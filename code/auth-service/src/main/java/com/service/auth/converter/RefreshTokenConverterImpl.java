@@ -16,19 +16,24 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
 public class RefreshTokenConverterImpl {
-    @Qualifier("jwtSecretKey")
-    SecretKey jwtSecretKey;
 
+    @NotNull
+    @Qualifier("jwtSecretKey")
+    private final SecretKey jwtSecretKey;
+
+    @NotNull
     @Qualifier("appName")
-    String appNameString;
+    private final String appNameString;
     
+    @NotNull
     @Qualifier("jwtSubject")
-    String jwtSubjecString;
+    private final String jwtSubjecString;
 
     public RefreshTokenBLM toBLM(RefreshTokenDALM dalm) {
         String token = Jwts.builder()

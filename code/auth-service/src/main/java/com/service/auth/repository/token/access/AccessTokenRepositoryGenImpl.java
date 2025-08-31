@@ -9,14 +9,17 @@ import org.springframework.stereotype.Repository;
 import com.service.auth.model.AccessTokenDALM;
 import com.service.auth.model.ClientBLM;
 
+import lombok.RequiredArgsConstructor;
+
 @Repository
+@RequiredArgsConstructor
 public class AccessTokenRepositoryGenImpl implements AccessTokenRepository {
 
     @Qualifier("jwtAccessTokenExpiration")
-    Duration jwtAccessTokenDuration;
+    private final Duration jwtAccessTokenDuration;
 
     @Qualifier("jwtRefreshTokenExpiration")
-    Duration jwtRefreshTokenDuration;
+    private final Duration jwtRefreshTokenDuration;
 
     @Override
     public AccessTokenDALM create(ClientBLM clientBLM) {
