@@ -17,6 +17,7 @@ public class RefreshTokenBLM {
     
     protected UUID uid;
     protected UUID clientUID;
+    
     protected Date createdAt;
     protected Date expiresAt;
 

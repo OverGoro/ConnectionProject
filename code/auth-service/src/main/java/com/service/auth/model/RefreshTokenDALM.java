@@ -13,8 +13,11 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RefreshTokenDALM {
+    protected String token;
+
     protected UUID uid;
     protected UUID clientUID;
+    
     protected Date createdAt;
     protected Date expiresAt;
 }

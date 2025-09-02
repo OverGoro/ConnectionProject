@@ -83,7 +83,11 @@ public class RefreshTokenConverterImpl {
     }
 
     public RefreshTokenDALM toDALM(RefreshTokenBLM blm){
-        return new RefreshTokenDALM(blm.getUid(), blm.getClientUID(), blm.getCreatedAt(), blm.getExpiresAt());
+        return new RefreshTokenDALM(blm.getToken(), 
+                                    blm.getUid(),
+                                    blm.getClientUID(), 
+                                    blm.getCreatedAt(), 
+                                    blm.getExpiresAt());
     }
 }
 

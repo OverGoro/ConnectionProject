@@ -27,8 +27,6 @@ public class AuthServiceImpl implements AuthService{
     private final RefreshTokenConverterImpl refreshTokenConverter;
     private final ClientConverterImpl clientConverter;
 
-    private final AccessTokenRepository accessTokenRepository;
-
     @Override
     public Pair<AccessTokenDTO, RefreshTokenDTO> authorize(ClientDTO clientDTO) {
         ClientBLM CLientBLM = clientConverter.toBLM(clientDTO);
