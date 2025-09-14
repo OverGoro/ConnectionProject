@@ -1,0 +1,12 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  # Пробрасываем порты 8080 и 8081 на хост для доступа к сервисам
+  extraPortMappings:
+  - containerPort: 30080 # Порт внутри кластера, который будет слушать Ingress Controller или Service типа NodePort
+    hostPort: 8080       # Порт на вашей Ubuntu, по которому будет доступен первый сервис
+    protocol: TCP
+  - containerPort: 30081
+    hostPort: 8081
+    protocol: TCP

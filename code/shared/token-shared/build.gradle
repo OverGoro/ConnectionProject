@@ -1,0 +1,74 @@
+plugins {
+    id 'java-library'                 
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'maven-publish'
+}
+
+group = 'com.connection'
+version = '1.0.0'
+description = 'token-shared'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Важно: dependencyManagement для управления версиями
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.boot:spring-boot-dependencies:3.5.5"
+    }
+}
+
+dependencies {
+    // Implementation зависимости - только для этого модуля
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.5.3'
+    compileOnly 'org.projectlombok:lombok:1.18.38'
+    
+    annotationProcessor 'org.projectlombok:lombok:1.18.38'
+
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+    
+    // Тестовые зависимости
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.5.3'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            // Добавляем информацию о pom для лучшей совместимости
+            pom {
+                name = 'Token Shared Module'
+                description = 'Shared components for auth and other JWT tokens'
+                url = 'http://www.example.com'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        mavenLocal()
+    }
+}
