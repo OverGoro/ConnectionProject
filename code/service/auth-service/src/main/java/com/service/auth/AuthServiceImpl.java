@@ -157,4 +157,16 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenValidator.validate(refreshTokenBLM);
     }
 
+
+    @Override
+    public UUID getClientUid(AccessTokenBLM accessTokenBLM){
+        validateAccessToken(accessTokenBLM);
+        return accessTokenBLM.getClientUID();
+    }
+
+     @Override
+    public UUID getClientUid(RefreshTokenBLM accessTokenBLM){
+        validateRefreshToken(accessTokenBLM);
+        return accessTokenBLM.getClientUID();
+    }
 }

@@ -1,26 +1,16 @@
-FROM eclipse-temurin:21-jdk-alpine
-
-# Создаем пользователя для безопасности
-RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
-
-# Рабочая директория
+FROM openjdk:21-jdk-slim
 WORKDIR /app
+COPY auth-service.jar app.jar
 
-# Копируем JAR файл
-COPY --chown=spring:spring auth-service.jar /app/auth-service.jar
+COPY auth-service.jar /app/auth-service.jar
+COPY application.properties /app/application.properties
+COPY logback-spring.xml /app/logback-spring.xml
 
-# Копируем конфигурационные файлы
-COPY --chown=spring:spring application.properties /app/application.properties
-COPY --chown=spring:spring logback-spring.xml /app/logback-spring.xml
+RUN mkdir -p /app/logs
 
-# Создаем директорию для логов
-RUN mkdir -p /app/logs && chown spring:spring /app/logs
-
-# Порт приложения
 EXPOSE 8080
 
 # Команда запуска
-CMD ["java", "-jar", "auth-service.jar", \
+ENTRYPOINT ["java", "-jar", "auth-service.jar", \
     "--spring.config.location=file:./application.properties", \
     "--logging.config=file:./logback-spring.xml"]

@@ -1,6 +1,7 @@
 package com.service.auth;
 
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.data.util.Pair;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ import com.connection.token.model.RefreshTokenDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -48,7 +50,7 @@ public class AuthServiceController {
 
             authService.register(clientBLM);
 
-            log.info("User registered successfully: {}", clientDTO.getEmail());
+            log.info("Client registered successfully: {}", clientDTO.getEmail());
             return ResponseEntity.ok().body(Map.of(
                     "message", "User registered successfully",
                     "email", clientDTO.getEmail()));
@@ -151,6 +153,30 @@ public class AuthServiceController {
         authService.validateRefreshToken(refreshTokenBLM);
 
         ResponseEntity<?> responseEntity = ResponseEntity.ok().body(Map.of("status", "OK"));
+        return responseEntity;
+    }
+
+    @GetMapping("/extract/accessTokenClientUID")
+    public ResponseEntity<UUID> getAccessTokenClientUID(String accessToken) {
+        log.info("Validating access token");
+        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
+
+        AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
+        authService.validateAccessToken(accessTokenBLM);
+
+        ResponseEntity<UUID> responseEntity = ResponseEntity.ok().body(accessTokenBLM.getClientUID());
+        return responseEntity;
+    }
+
+    @GetMapping("/extract/refreshTokenClientUID")
+    public ResponseEntity<UUID> getRefreshTokenClientUID(String refreshToken) {
+        log.info("Validating refresh token");
+        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
+
+        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
+        authService.validateRefreshToken(refreshTokenBLM);
+
+        ResponseEntity<UUID> responseEntity = ResponseEntity.ok().body(refreshTokenBLM.getClientUID());
         return responseEntity;
     }
 }
