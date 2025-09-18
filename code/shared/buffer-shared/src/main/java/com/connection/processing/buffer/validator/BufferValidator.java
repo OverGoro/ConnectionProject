@@ -35,7 +35,7 @@ public class BufferValidator {
             validateMaxMessageSize(buffer.getMaxMessageSize());
             validateMessagePrototype(buffer.getMessagePrototype());
         } catch (IllegalArgumentException e) {
-            throw new BufferValidateException(buffer.getUid().toString(), e.getMessage());
+            throw new BufferValidateException(buffer.getUid() != null ? buffer.getUid().toString() : "null", e.getMessage());
         }
     }
 
@@ -50,7 +50,7 @@ public class BufferValidator {
             validateMaxMessageSize(buffer.getMaxMessageSize());
             validateMessagePrototype(buffer.getMessagePrototype());
         } catch (IllegalArgumentException e) {
-            throw new BufferValidateException(buffer.getUid().toString(), e.getMessage());
+            throw new BufferValidateException(buffer.getUid() != null ? buffer.getUid().toString() : "null", e.getMessage());
         }
     }
 

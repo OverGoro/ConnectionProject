@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Buffer Json Data Repository Tests - SQL implementation tests" tests="15" skipped="0" failures="0" errors="0" timestamp="2025-09-18T22:31:29.265Z" hostname="Yurik" time="1.32">
+  <properties/>
+  <testcase name="Add data - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="1.243"/>
+  <testcase name="Add existing data - Negative" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.004"/>
+  <testcase name="Check data exists - Negative" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Check data exists - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Count data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.003"/>
+  <testcase name="Delete data - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Delete data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Delete non-existent data - Negative" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.003"/>
+  <testcase name="Delete old data - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Find data by UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Find data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.017"/>
+  <testcase name="Find newest N data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.003"/>
+  <testcase name="Find newest data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Find non-existent data by UID - Negative" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Find oldest data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/yurik/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.17.7/fbf3d6d649ed37fc9e9c59480a05be0a26e3c2da/byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

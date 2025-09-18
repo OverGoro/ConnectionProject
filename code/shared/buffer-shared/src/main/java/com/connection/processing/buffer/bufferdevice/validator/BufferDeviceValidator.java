@@ -17,7 +17,8 @@ public class BufferDeviceValidator {
             validateBufferUid(bufferDevice.getBufferUid());
             validateDeviceUid(bufferDevice.getDeviceUid());
         } catch (IllegalArgumentException e) {
-            throw new BufferDeviceValidateException(bufferDevice.getBufferUid(), bufferDevice.getDeviceUid(), e.getMessage());
+            throw new BufferDeviceValidateException(bufferDevice.getBufferUid(), bufferDevice.getDeviceUid(),
+                    e.getMessage());
         }
     }
 
@@ -29,7 +30,10 @@ public class BufferDeviceValidator {
             validateBufferUid(bufferDevice.getBufferUid());
             validateDeviceUid(bufferDevice.getDeviceUid());
         } catch (IllegalArgumentException e) {
-            throw new BufferDeviceValidateException(bufferDevice.getBufferUid().toString(), bufferDevice.getDeviceUid().toString(), e.getMessage());
+            throw new BufferDeviceValidateException(
+                    bufferDevice.getBufferUid() != null ? bufferDevice.getBufferUid().toString() : "null",
+                    bufferDevice.getDeviceUid() != null ? bufferDevice.getDeviceUid().toString() : "null",
+                    e.getMessage());
         }
     }
 
@@ -41,7 +45,9 @@ public class BufferDeviceValidator {
             validateBufferUid(bufferDevice.getBufferUid());
             validateDeviceUid(bufferDevice.getDeviceUid());
         } catch (IllegalArgumentException e) {
-            throw new BufferDeviceValidateException(bufferDevice.getBufferUid().toString(), bufferDevice.getDeviceUid().toString(), e.getMessage());
+            throw new BufferDeviceValidateException(
+                    bufferDevice.getBufferUid() != null ? bufferDevice.getBufferUid().toString() : "null",
+                    bufferDevice.getDeviceUid() != null ? bufferDevice.getDeviceUid().toString() : "null", e.getMessage());
         }
     }
 

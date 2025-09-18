@@ -34,7 +34,7 @@ public class BufferJsonDataValidator {
             validateData(data.getData());
             validateCreatedAt(data.getCreatedAt());
         } catch (IllegalArgumentException e) {
-            throw new BufferJsonDataValidateException(data.getUid().toString(), e.getMessage());
+            throw new BufferJsonDataValidateException(data.getUid() != null ? data.getUid().toString() : "null", e.getMessage());
         }
     }
 
@@ -48,7 +48,7 @@ public class BufferJsonDataValidator {
             validateData(data.getData());
             validateCreatedAt(data.getCreatedAt());
         } catch (IllegalArgumentException e) {
-            throw new BufferJsonDataValidateException(data.getUid().toString(), e.getMessage());
+            throw new BufferJsonDataValidateException(data.getUid() != null ? data.getUid().toString() : "null", e.getMessage());
         }
     }
 

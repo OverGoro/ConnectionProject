@@ -33,7 +33,7 @@ public class DeviceValidator {
             validateDeviceName(device.getDeviceName());
             validateDeviceDescription(device.getDeviceDescription());
         } catch (IllegalArgumentException e) {
-            throw new DeviceValidateException(device.getUid().toString(), e.getMessage());
+            throw new DeviceValidateException(device.getUid() != null ? device.getUid().toString() : "null", e.getMessage());
         }
     }
 
@@ -47,7 +47,7 @@ public class DeviceValidator {
             validateDeviceName(device.getDeviceName());
             validateDeviceDescription(device.getDeviceDescription());
         } catch (IllegalArgumentException e) {
-            throw new DeviceValidateException(device.getUid().toString(), e.getMessage());
+            throw new DeviceValidateException(device.getUid() != null ? device.getUid().toString() : "null", e.getMessage());
         }
     }
 
