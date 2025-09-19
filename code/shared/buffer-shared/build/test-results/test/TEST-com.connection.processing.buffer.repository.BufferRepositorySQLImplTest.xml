@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Buffer Repository Tests - SQL implementation tests" tests="12" skipped="0" failures="0" errors="0" timestamp="2025-09-19T00:07:06.394Z" hostname="Yurik" time="0.036">
+  <properties/>
+  <testcase name="Add buffer - Positive" classname="com.connection.processing.buffer.repository.BufferRepositorySQLImplTest" time="0.003"/>
+  <testcase name="Add existing buffer - Negative" classname="com.connection.processing.buffer.repository.BufferRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Check buffer exists - Negative" classname="com.connection.processing.buffer.repository.BufferRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Check buffer exists - Positive" classname="com.connection.processing.buffer.repository.BufferRepositorySQLImplTest" time="0.001"/>
+  <testcase name="Delete buffer - Positive" classname="com.connection.processing.buffer.repository.BufferRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Delete buffers by scheme UID - Positive" classname="com.connection.processing.buffer.repository.BufferRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Delete non-existent buffer - Negative" classname="com.connection.processing.buffer.repository.BufferRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Find buffer by UID - Positive" classname="com.connection.processing.buffer.repository.BufferRepositorySQLImplTest" time="0.001"/>
+  <testcase name="Find buffers by scheme UID - Positive" classname="com.connection.processing.buffer.repository.BufferRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Find non-existent buffer by UID - Negative" classname="com.connection.processing.buffer.repository.BufferRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Update buffer - Positive" classname="com.connection.processing.buffer.repository.BufferRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Update non-existent buffer - Negative" classname="com.connection.processing.buffer.repository.BufferRepositorySQLImplTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

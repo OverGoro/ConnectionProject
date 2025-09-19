@@ -31,7 +31,7 @@ public class ConnectionSchemeValidator {
             validateClientUid(scheme.getClientUid());
             validateSchemeJson(scheme.getSchemeJson());
         } catch (IllegalArgumentException e) {
-            throw new ConnectionSchemeValidateException(scheme.getUid().toString(), e.getMessage());
+            throw new ConnectionSchemeValidateException(scheme.getUid() != null ? scheme.getUid().toString() : "null", e.getMessage());
         }
     }
 
@@ -44,7 +44,7 @@ public class ConnectionSchemeValidator {
             validateClientUid(scheme.getClientUid());
             validateSchemeJson(scheme.getSchemeJson());
         } catch (IllegalArgumentException e) {
-            throw new ConnectionSchemeValidateException(scheme.getUid().toString(), e.getMessage());
+            throw new ConnectionSchemeValidateException(scheme.getUid() != null ? scheme.getUid().toString() : "null", e.getMessage());
         }
     }
 

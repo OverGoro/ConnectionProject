@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Access Token Generator Tests" tests="7" skipped="0" failures="0" errors="0" timestamp="2025-09-19T00:10:40.584Z" hostname="Yurik" time="0.645">
+  <properties/>
+  <testcase name="Generate access token - Positive" classname="com.connection.token.generator.AccessTokenGeneratorTest" time="0.529"/>
+  <testcase name="Generate and parse round trip - Positive" classname="com.connection.token.generator.AccessTokenGeneratorTest" time="0.093"/>
+  <testcase name="Generate token and verify time precision - Milliseconds ignored" classname="com.connection.token.generator.AccessTokenGeneratorTest" time="0.003"/>
+  <testcase name="Generate token with different dates - Positive" classname="com.connection.token.generator.AccessTokenGeneratorTest" time="0.002"/>
+  <testcase name="Parse access token with wrong subject - Negative" classname="com.connection.token.generator.AccessTokenGeneratorTest" time="0.002"/>
+  <testcase name="Parse invalid access token - Negative" classname="com.connection.token.generator.AccessTokenGeneratorTest" time="0.003"/>
+  <testcase name="Parse valid access token - Positive" classname="com.connection.token.generator.AccessTokenGeneratorTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

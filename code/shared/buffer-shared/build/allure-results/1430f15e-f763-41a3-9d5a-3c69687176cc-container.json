@@ -1,0 +1,1 @@
+{"uuid":"1430f15e-f763-41a3-9d5a-3c69687176cc","name":"Validate valid BufferDTO - Positive","children":["8fbf0aa3-a96c-4c50-b3c5-327c07707471"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758240426453,"stop":1758240426453}],"afters":[],"start":1758240426452,"stop":1758240426454}

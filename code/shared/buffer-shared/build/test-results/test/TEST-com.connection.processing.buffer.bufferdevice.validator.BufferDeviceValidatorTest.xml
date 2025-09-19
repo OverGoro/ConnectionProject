@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="BufferDevice Validator Tests" tests="10" skipped="0" failures="0" errors="0" timestamp="2025-09-19T00:07:06.189Z" hostname="Yurik" time="0.024">
+  <properties/>
+  <testcase name="Validate BufferDeviceBLM with null fields - Negative" classname="com.connection.processing.buffer.bufferdevice.validator.BufferDeviceValidatorTest" time="0.002"/>
+  <testcase name="Validate BufferDeviceDTO with invalid buffer UID - Negative" classname="com.connection.processing.buffer.bufferdevice.validator.BufferDeviceValidatorTest" time="0.001"/>
+  <testcase name="Validate BufferDeviceDTO with invalid device UID - Negative" classname="com.connection.processing.buffer.bufferdevice.validator.BufferDeviceValidatorTest" time="0.001"/>
+  <testcase name="Validate BufferDeviceDTO with null buffer UID - Negative" classname="com.connection.processing.buffer.bufferdevice.validator.BufferDeviceValidatorTest" time="0.0"/>
+  <testcase name="Validate BufferDeviceDTO with null device UID - Negative" classname="com.connection.processing.buffer.bufferdevice.validator.BufferDeviceValidatorTest" time="0.001"/>
+  <testcase name="Validate null BufferDeviceBLM - Negative" classname="com.connection.processing.buffer.bufferdevice.validator.BufferDeviceValidatorTest" time="0.001"/>
+  <testcase name="Validate null BufferDeviceDTO - Negative" classname="com.connection.processing.buffer.bufferdevice.validator.BufferDeviceValidatorTest" time="0.001"/>
+  <testcase name="Validate valid BufferDeviceBLM - Positive" classname="com.connection.processing.buffer.bufferdevice.validator.BufferDeviceValidatorTest" time="0.001"/>
+  <testcase name="Validate valid BufferDeviceDALM - Positive" classname="com.connection.processing.buffer.bufferdevice.validator.BufferDeviceValidatorTest" time="0.0"/>
+  <testcase name="Validate valid BufferDeviceDTO - Positive" classname="com.connection.processing.buffer.bufferdevice.validator.BufferDeviceValidatorTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Refresh Token Repository Tests - SQL implementation tests" tests="8" skipped="0" failures="0" errors="0" timestamp="2025-09-19T00:10:41.399Z" hostname="Yurik" time="0.26">
+  <properties/>
+  <testcase name="Add existing refresh token - Negative" classname="com.connection.token.repository.RefreshTokenRepositorySQLImplTest" time="0.234"/>
+  <testcase name="Add refresh token - Positive" classname="com.connection.token.repository.RefreshTokenRepositorySQLImplTest" time="0.006"/>
+  <testcase name="Check token exists - Negative" classname="com.connection.token.repository.RefreshTokenRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Check token exists - Positive" classname="com.connection.token.repository.RefreshTokenRepositorySQLImplTest" time="0.001"/>
+  <testcase name="Cleanup expired tokens - Positive" classname="com.connection.token.repository.RefreshTokenRepositorySQLImplTest" time="0.003"/>
+  <testcase name="Revoke all client tokens - Positive" classname="com.connection.token.repository.RefreshTokenRepositorySQLImplTest" time="0.001"/>
+  <testcase name="Revoke non-existent refresh token - Negative" classname="com.connection.token.repository.RefreshTokenRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Revoke refresh token - Positive" classname="com.connection.token.repository.RefreshTokenRepositorySQLImplTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
