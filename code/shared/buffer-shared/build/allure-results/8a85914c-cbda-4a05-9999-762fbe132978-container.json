@@ -1,1 +1,0 @@
-{"uuid":"8a85914c-cbda-4a05-9999-762fbe132978","name":"Validate BufferJsonDataDTO with minimal valid JSON - Positive","children":["42d1151a-3de0-4150-a8d8-387137af9bab"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758240426361,"stop":1758240426361}],"afters":[],"start":1758240426360,"stop":1758240426361}

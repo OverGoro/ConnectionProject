@@ -1,0 +1,1 @@
+{"uuid":"b1d6d39b-8463-42d0-879d-f5fb50b20767","name":"Validate BufferJsonDataDTO with null data - Negative","children":["be34938e-6e10-4e9e-bb8e-cfa1c023a3b3"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758310680241,"stop":1758310680241}],"afters":[],"start":1758310680241,"stop":1758310680242}

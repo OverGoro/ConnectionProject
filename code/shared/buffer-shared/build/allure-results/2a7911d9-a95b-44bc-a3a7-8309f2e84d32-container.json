@@ -1,1 +1,0 @@
-{"uuid":"2a7911d9-a95b-44bc-a3a7-8309f2e84d32","name":"Delete data by buffer UID - Positive","children":["bd9a6443-3e52-4e59-ad95-473bae3de45d"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758240426313,"stop":1758240426314}],"afters":[],"start":1758240426312,"stop":1758240426315}

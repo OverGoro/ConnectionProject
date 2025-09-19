@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Buffer Validator Tests" tests="11" skipped="0" failures="0" errors="0" timestamp="2025-09-19T00:07:06.434Z" hostname="Yurik" time="0.019">
+<testsuite name="Buffer Validator Tests" tests="11" skipped="0" failures="0" errors="0" timestamp="2025-09-19T19:38:00.298Z" hostname="Yurik" time="0.015">
   <properties/>
-  <testcase name="Validate BufferBLM with null fields - Negative" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.001"/>
-  <testcase name="Validate BufferDTO with empty prototype - Negative" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.001"/>
-  <testcase name="Validate BufferDTO with invalid UID - Negative" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.001"/>
+  <testcase name="Validate BufferBLM with null fields - Negative" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.0"/>
+  <testcase name="Validate BufferDTO with empty prototype - Negative" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.0"/>
+  <testcase name="Validate BufferDTO with invalid UID - Negative" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.0"/>
   <testcase name="Validate BufferDTO with negative max size - Negative" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.001"/>
   <testcase name="Validate BufferDTO with null UID - Negative" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.001"/>
   <testcase name="Validate BufferDTO with zero max messages - Negative" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.001"/>
-  <testcase name="Validate null BufferBLM - Negative" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.001"/>
+  <testcase name="Validate null BufferBLM - Negative" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.0"/>
   <testcase name="Validate null BufferDTO - Negative" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.001"/>
-  <testcase name="Validate valid BufferBLM - Positive" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.0"/>
-  <testcase name="Validate valid BufferDALM - Positive" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.001"/>
+  <testcase name="Validate valid BufferBLM - Positive" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.001"/>
+  <testcase name="Validate valid BufferDALM - Positive" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.0"/>
   <testcase name="Validate valid BufferDTO - Positive" classname="com.connection.processing.buffer.validator.BufferValidatorTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

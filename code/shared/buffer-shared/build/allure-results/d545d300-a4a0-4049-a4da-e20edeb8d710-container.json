@@ -1,0 +1,1 @@
+{"uuid":"d545d300-a4a0-4049-a4da-e20edeb8d710","name":"Validate valid BufferJsonDataBLM - Positive","children":["d0a84f0a-0423-4494-bd98-a901dbe5b1c9"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758310680250,"stop":1758310680251}],"afters":[],"start":1758310680250,"stop":1758310680251}

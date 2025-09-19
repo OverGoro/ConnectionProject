@@ -1,0 +1,1 @@
+{"uuid":"974fb4bb-f6b9-40c8-83b1-89cca4d66cef","name":"Add buffer-device relationship - Positive","children":["88e213b3-abef-412c-8893-8219fee2b6c7"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758310678778,"stop":1758310679831}],"afters":[],"start":1758310678777,"stop":1758310679993}

@@ -1,0 +1,1 @@
+{"uuid":"a99c0215-a799-4792-a760-99400d0755b1","name":"Validate valid BufferDeviceBLM - Positive","children":["3aa9acd4-ec70-41d2-b422-37be4104f9b3"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758310680103,"stop":1758310680103}],"afters":[],"start":1758310680102,"stop":1758310680104}
