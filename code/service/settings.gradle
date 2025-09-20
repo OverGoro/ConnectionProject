@@ -1,0 +1,7 @@
+rootProject.name = 'service-project-tests'
+
+include 'auth-service'
+include 'connection-scheme-service'
+include 'device-service'
+include 'buffer-service'
+include 'buffer-device-service'

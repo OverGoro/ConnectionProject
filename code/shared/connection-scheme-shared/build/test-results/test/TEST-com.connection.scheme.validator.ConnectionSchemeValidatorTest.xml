@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Connection Scheme Validator Tests" tests="12" skipped="0" failures="0" errors="0" timestamp="2025-09-19T00:31:02.288Z" hostname="Yurik" time="0.521">
+<testsuite name="Connection Scheme Validator Tests" tests="12" skipped="0" failures="0" errors="0" timestamp="2025-09-19T23:14:13.210Z" hostname="Yurik" time="0.026">
   <properties/>
-  <testcase name="Validate ConnectionSchemeBLM with null fields - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.365"/>
-  <testcase name="Validate ConnectionSchemeDTO with empty JSON - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.002"/>
+  <testcase name="Validate ConnectionSchemeBLM with null fields - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.002"/>
+  <testcase name="Validate ConnectionSchemeDTO with empty JSON - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.001"/>
   <testcase name="Validate ConnectionSchemeDTO with invalid JSON - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.001"/>
   <testcase name="Validate ConnectionSchemeDTO with invalid UID - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.001"/>
-  <testcase name="Validate ConnectionSchemeDTO with null UID - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.001"/>
-  <testcase name="Validate ConnectionSchemeDTO with null client UID - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.001"/>
+  <testcase name="Validate ConnectionSchemeDTO with null UID - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.0"/>
+  <testcase name="Validate ConnectionSchemeDTO with null client UID - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.0"/>
   <testcase name="Validate ConnectionSchemeDTO with whitespace JSON - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.001"/>
   <testcase name="Validate null ConnectionSchemeBLM - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.001"/>
   <testcase name="Validate null ConnectionSchemeDTO - Negative" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.001"/>
   <testcase name="Validate valid ConnectionSchemeBLM - Positive" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.001"/>
-  <testcase name="Validate valid ConnectionSchemeDALM - Positive" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.001"/>
-  <testcase name="Validate valid ConnectionSchemeDTO - Positive" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.0"/>
+  <testcase name="Validate valid ConnectionSchemeDALM - Positive" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.0"/>
+  <testcase name="Validate valid ConnectionSchemeDTO - Positive" classname="com.connection.scheme.validator.ConnectionSchemeValidatorTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

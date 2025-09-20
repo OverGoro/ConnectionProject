@@ -1,0 +1,1 @@
+{"uuid":"05100528-ba13-4077-9e98-520c459e5a59","name":"Validate valid BufferDeviceDALM - Positive","children":["18648ed4-2d94-4d62-b648-039f62631ab4"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758323250991,"stop":1758323250991}],"afters":[],"start":1758323250991,"stop":1758323250992}

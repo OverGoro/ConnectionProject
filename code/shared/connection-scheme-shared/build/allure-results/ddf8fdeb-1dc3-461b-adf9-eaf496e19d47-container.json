@@ -1,0 +1,1 @@
+{"uuid":"ddf8fdeb-1dc3-461b-adf9-eaf496e19d47","name":"Validate valid ConnectionSchemeDALM - Positive","children":["6422b5b5-d3e1-4843-b2d2-09ddd7a769c7"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758323653234,"stop":1758323653234}],"afters":[],"start":1758323653234,"stop":1758323653235}

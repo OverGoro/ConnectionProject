@@ -222,12 +222,35 @@ public class BufferDeviceServiceImpl implements BufferDeviceService {
 
     @Override
     public Map<String, Object> getHealthStatus() {
+        Map<String, Object> authServiceClientHealth;
+        Map<String, Object> bufferServiceClientHealth;
+        Map<String, Object> deviceServiceClientHealth;
+        try{
+            authServiceClientHealth = authServiceClient.healthCheck();
+        }
+        catch (Exception e){
+            authServiceClientHealth = Map.of("status", "DOWN");
+        }
+
+        try{
+            bufferServiceClientHealth = bufferServiceClient.healthCheck();
+        }
+        catch (Exception e){
+            bufferServiceClientHealth = Map.of("status", "DOWN");
+        }
+
+        try{
+            deviceServiceClientHealth = deviceServiceClient.healthCheck();
+        }
+        catch (Exception e){
+            deviceServiceClientHealth = Map.of("status", "DOWN");
+        }
         return Map.of(
                 "status", "OK",
                 "service", "buffer-device-service",
                 "timestamp", System.currentTimeMillis(),
-                "auth-service", authServiceClient.healthCheck(),
-                "buffer-service", bufferServiceClient.healthCheck(),
-                "device-service", deviceServiceClient.healthCheck());
+                "auth-service", authServiceClientHealth, 
+                "buffer-service", bufferServiceClientHealth,
+                "device-service", deviceServiceClientHealth);
     }
 }

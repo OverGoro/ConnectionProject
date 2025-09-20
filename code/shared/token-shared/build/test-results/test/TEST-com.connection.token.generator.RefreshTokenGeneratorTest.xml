@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Refresh Token Generator Tests" tests="4" skipped="0" failures="0" errors="0" timestamp="2025-09-19T00:10:41.231Z" hostname="Yurik" time="0.009">
+<testsuite name="Refresh Token Generator Tests" tests="4" skipped="0" failures="0" errors="0" timestamp="2025-09-19T23:14:18.697Z" hostname="Yurik" time="0.008">
   <properties/>
   <testcase name="Generate refresh token from DALM - Positive" classname="com.connection.token.generator.RefreshTokenGeneratorTest" time="0.001"/>
   <testcase name="Generate refresh token from parameters - Positive" classname="com.connection.token.generator.RefreshTokenGeneratorTest" time="0.001"/>

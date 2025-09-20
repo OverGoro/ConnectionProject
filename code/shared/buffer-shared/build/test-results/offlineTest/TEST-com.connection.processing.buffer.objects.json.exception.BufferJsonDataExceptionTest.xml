@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Buffer Json Data Exception Tests" tests="5" skipped="0" failures="0" errors="0" timestamp="2025-09-19T20:14:59.999Z" hostname="Yurik" time="0.008">
+  <properties/>
+  <testcase name="BaseBufferJsonDataException toString format" classname="com.connection.processing.buffer.objects.json.exception.BufferJsonDataExceptionTest" time="0.001"/>
+  <testcase name="BufferJsonDataAlreadyExistsException toString format" classname="com.connection.processing.buffer.objects.json.exception.BufferJsonDataExceptionTest" time="0.001"/>
+  <testcase name="BufferJsonDataNotFoundException toString format" classname="com.connection.processing.buffer.objects.json.exception.BufferJsonDataExceptionTest" time="0.0"/>
+  <testcase name="BufferJsonDataValidateException toString format" classname="com.connection.processing.buffer.objects.json.exception.BufferJsonDataExceptionTest" time="0.001"/>
+  <testcase name="Exception inheritance hierarchy" classname="com.connection.processing.buffer.objects.json.exception.BufferJsonDataExceptionTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

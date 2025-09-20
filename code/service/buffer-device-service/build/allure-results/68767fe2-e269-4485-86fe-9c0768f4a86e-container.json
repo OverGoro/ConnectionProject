@@ -1,0 +1,1 @@
+{"uuid":"68767fe2-e269-4485-86fe-9c0768f4a86e","name":"Create buffer device binding - Negative: Token validation fails","children":["af40c382-265e-4ccb-9a37-cbb66e36ab3c"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758336275191,"stop":1758336275191}],"afters":[],"start":1758336275188,"stop":1758336275555}

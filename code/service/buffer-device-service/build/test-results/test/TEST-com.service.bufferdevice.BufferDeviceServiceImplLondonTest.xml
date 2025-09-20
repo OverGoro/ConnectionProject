@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Buffer Device Service Implementation Tests - London Style" tests="15" skipped="0" failures="0" errors="0" timestamp="2025-09-20T02:44:33.507Z" hostname="Yurik" time="2.173">
+  <properties/>
+  <testcase name="Delete all buffer devices for buffer - Positive" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="1.575"/>
+  <testcase name="Delete all buffer devices for device - Positive" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.003"/>
+  <testcase name="Create buffer device binding - Negative: Token validation fails" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.365"/>
+  <testcase name="Buffer device exists - Positive" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.003"/>
+  <testcase name="Health check - Positive" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.044"/>
+  <testcase name="Create buffer device binding - Negative: Device doesn't belong to client" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.009"/>
+  <testcase name="Get buffer devices by buffer - Positive" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.024"/>
+  <testcase name="Add devices to buffer - Positive" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.003"/>
+  <testcase name="Delete buffer device binding - Positive" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.003"/>
+  <testcase name="Buffer device exists - Negative" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.002"/>
+  <testcase name="Create buffer device binding - Negative: Buffer doesn't belong to client" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.003"/>
+  <testcase name="Create buffer device binding - Positive" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.003"/>
+  <testcase name="Get buffer devices by device - Positive" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.002"/>
+  <testcase name="Health check - Negative: External service down" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.003"/>
+  <testcase name="Add buffers to device - Positive" classname="com.service.bufferdevice.BufferDeviceServiceImplLondonTest" time="0.003"/>
+  <system-out><![CDATA[05:44:35.057 [ForkJoinPool-1-worker-1] INFO com.service.bufferdevice.BufferDeviceServiceImpl -- All Buffer-Device bindings deleted for buffer: 323e4567-e89b-12d3-a456-426614174002
+05:44:35.186 [ForkJoinPool-1-worker-1] INFO com.service.bufferdevice.BufferDeviceServiceImpl -- All Buffer-Device bindings deleted for device: 423e4567-e89b-12d3-a456-426614174003
+05:44:35.649 [ForkJoinPool-1-worker-1] INFO com.service.bufferdevice.BufferDeviceServiceImpl -- Added 2 devices to buffer: 323e4567-e89b-12d3-a456-426614174002
+05:44:35.654 [ForkJoinPool-1-worker-1] INFO com.service.bufferdevice.BufferDeviceServiceImpl -- Buffer-Device binding deleted: buffer=323e4567-e89b-12d3-a456-426614174002, device=423e4567-e89b-12d3-a456-426614174003
+05:44:35.667 [ForkJoinPool-1-worker-1] INFO com.service.bufferdevice.BufferDeviceServiceImpl -- Buffer-Device binding created: buffer=323e4567-e89b-12d3-a456-426614174002, device=423e4567-e89b-12d3-a456-426614174003
+05:44:35.680 [ForkJoinPool-1-worker-1] INFO com.service.bufferdevice.BufferDeviceServiceImpl -- Added 2 buffers to device: 423e4567-e89b-12d3-a456-426614174003
+]]></system-out>
+  <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/yurik/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.17.7/fbf3d6d649ed37fc9e9c59480a05be0a26e3c2da/byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

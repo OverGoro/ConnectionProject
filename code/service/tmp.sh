@@ -1,0 +1,1 @@
+cat ./connection-scheme-service/settings.gradle && cat ./auth-service/settings.gradle && cat ./buffer-service/settings.gradle && cat ./message-service/settings.gradle && cat ./buffer-device-service/settings.gradle && cat ./settings.gradle && cat ./device-service/settings.gradle | grep 'rootProject.name'

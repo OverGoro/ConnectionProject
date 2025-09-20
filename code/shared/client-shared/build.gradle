@@ -61,7 +61,7 @@ compileJava {
 
 compileTestJava {
     options.compilerArgs += ['-parameters']
-}ы
+}
 
 tasks.named('test') {
     useJUnitPlatform()

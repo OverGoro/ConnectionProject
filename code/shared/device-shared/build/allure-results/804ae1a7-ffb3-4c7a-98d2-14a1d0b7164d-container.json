@@ -1,1 +1,0 @@
-{"uuid":"804ae1a7-ffb3-4c7a-98d2-14a1d0b7164d","name":"Validate DeviceDTO with invalid UID - Negative","children":["cb3ce4bd-58dd-4c97-a935-c5bb7192aa38"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758225092475,"stop":1758225092475}],"afters":[],"start":1758225092474,"stop":1758225092476}

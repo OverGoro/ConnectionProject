@@ -1,0 +1,1 @@
+{"uuid":"61002d88-af5a-4816-9b32-9eed199e7c70","name":"Validate ClientBLM with null fields - Negative","children":["50eca45f-f8da-4d68-b0f2-f1a8f1f98c88"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758323255627,"stop":1758323255627}],"afters":[],"start":1758323255626,"stop":1758323255628}

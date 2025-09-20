@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Feign Error Decoder Tests" tests="6" skipped="0" failures="0" errors="0" timestamp="2025-09-20T02:46:38.308Z" hostname="Yurik" time="0.026">
+  <properties/>
+  <testcase name="Decode 401 - Unauthorized" classname="com.connection.device.client.FeignErrorDecoderTest" time="0.014"/>
+  <testcase name="Decode with response body" classname="com.connection.device.client.FeignErrorDecoderTest" time="0.003"/>
+  <testcase name="Decode 403 - Forbidden" classname="com.connection.device.client.FeignErrorDecoderTest" time="0.001"/>
+  <testcase name="Decode unknown status code" classname="com.connection.device.client.FeignErrorDecoderTest" time="0.001"/>
+  <testcase name="Decode 404 - Not Found" classname="com.connection.device.client.FeignErrorDecoderTest" time="0.001"/>
+  <testcase name="Decode 500 - Internal Server Error" classname="com.connection.device.client.FeignErrorDecoderTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

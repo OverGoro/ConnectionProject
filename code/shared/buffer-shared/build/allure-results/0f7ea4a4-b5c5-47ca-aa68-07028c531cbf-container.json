@@ -1,1 +1,0 @@
-{"uuid":"0f7ea4a4-b5c5-47ca-aa68-07028c531cbf","name":"Validate BufferJsonDataDTO with future timestamp - Negative","children":["9d64ac6f-8af2-42f3-b22f-611f19ed1186"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758310680234,"stop":1758310680234}],"afters":[],"start":1758310680233,"stop":1758310680234}

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Refresh Token Converter Tests" tests="4" skipped="0" failures="0" errors="0" timestamp="2025-09-19T00:10:40.532Z" hostname="Yurik" time="0.029">
+<testsuite name="Refresh Token Converter Tests" tests="4" skipped="0" failures="0" errors="0" timestamp="2025-09-19T23:14:17.947Z" hostname="Yurik" time="0.032">
   <properties/>
   <testcase name="Convert BLM to DALM - Positive" classname="com.connection.token.converter.RefreshTokenConverterTest" time="0.021"/>
   <testcase name="Convert BLM to DTO - Positive" classname="com.connection.token.converter.RefreshTokenConverterTest" time="0.002"/>
-  <testcase name="Convert DALM to BLM - Positive" classname="com.connection.token.converter.RefreshTokenConverterTest" time="0.001"/>
-  <testcase name="Convert DTO to BLM - Positive" classname="com.connection.token.converter.RefreshTokenConverterTest" time="0.001"/>
+  <testcase name="Convert DALM to BLM - Positive" classname="com.connection.token.converter.RefreshTokenConverterTest" time="0.002"/>
+  <testcase name="Convert DTO to BLM - Positive" classname="com.connection.token.converter.RefreshTokenConverterTest" time="0.002"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Connection Scheme Exception Tests" tests="5" skipped="0" failures="0" errors="0" timestamp="2025-09-19T00:31:02.847Z" hostname="Yurik" time="0.023">
+<testsuite name="Connection Scheme Exception Tests" tests="5" skipped="0" failures="0" errors="0" timestamp="2025-09-19T23:14:11.493Z" hostname="Yurik" time="0.014">
   <properties/>
   <testcase name="BaseConnectionSchemeException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.003"/>
-  <testcase name="ConnectionSchemeAlreadyExistsException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.002"/>
-  <testcase name="ConnectionSchemeNotFoundException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.003"/>
+  <testcase name="ConnectionSchemeAlreadyExistsException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.0"/>
+  <testcase name="ConnectionSchemeNotFoundException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.001"/>
   <testcase name="ConnectionSchemeValidateException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.001"/>
   <testcase name="Exception inheritance hierarchy" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.002"/>
   <system-out><![CDATA[]]></system-out>

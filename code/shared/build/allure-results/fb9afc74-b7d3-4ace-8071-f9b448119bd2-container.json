@@ -1,0 +1,1 @@
+{"uuid":"fb9afc74-b7d3-4ace-8071-f9b448119bd2","name":"Validate BufferJsonDataBLM with null fields - Negative","children":["66349f8f-ed2c-4cda-9a39-5e397bebbc34"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758323251139,"stop":1758323251139}],"afters":[],"start":1758323251138,"stop":1758323251140}
