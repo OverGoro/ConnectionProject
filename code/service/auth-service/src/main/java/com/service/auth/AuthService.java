@@ -18,4 +18,5 @@ public interface AuthService {
     public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM);
     public UUID getClientUid(AccessTokenBLM accessTokenBLM);
     public UUID getClientUid(RefreshTokenBLM accessTokenBLM);
+
 }

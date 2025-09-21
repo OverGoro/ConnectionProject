@@ -71,6 +71,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Инициализация нового refreshToken
         UUID newRefreshUID = UUID.randomUUID();
+        
         Date newRefreshExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
         String newRefreshTokenString = refreshTokenGenerator.generateRefreshToken(newRefreshUID, newClientUuid,
                 newCreatedAt, newRefreshExpiresAt);

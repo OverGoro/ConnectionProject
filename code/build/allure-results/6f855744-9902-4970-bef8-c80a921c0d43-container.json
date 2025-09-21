@@ -1,0 +1,1 @@
+{"uuid":"6f855744-9902-4970-bef8-c80a921c0d43","name":"Health check - Negative: External service down","children":["47ded2cd-f786-49ab-b973-c0ec148ffb0a"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758353242215,"stop":1758353242215}],"afters":[],"start":1758353242212,"stop":1758353242216}

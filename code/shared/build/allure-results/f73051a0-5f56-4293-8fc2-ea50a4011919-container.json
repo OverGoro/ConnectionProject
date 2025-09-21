@@ -1,0 +1,1 @@
+{"uuid":"f73051a0-5f56-4293-8fc2-ea50a4011919","name":"Validate ClientDTO with empty email - Negative","children":["c63fe8b4-3a59-4d24-b02e-3fac97640382"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758359009055,"stop":1758359009055}],"afters":[],"start":1758359009053,"stop":1758359009056}

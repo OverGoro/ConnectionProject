@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Buffer Json Data Validator Tests" tests="17" skipped="0" failures="0" errors="0" timestamp="2025-09-19T23:07:31.139Z" hostname="Yurik" time="0.031">
+<testsuite name="Buffer Json Data Validator Tests" tests="17" skipped="0" failures="0" errors="0" timestamp="2025-09-20T07:27:39.609Z" hostname="Yurik" time="0.049">
   <properties/>
   <testcase name="Validate BufferJsonDataBLM with null fields - Negative" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
-  <testcase name="Validate BufferJsonDataDTO with array JSON - Negative" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.0"/>
+  <testcase name="Validate BufferJsonDataDTO with array JSON - Negative" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
   <testcase name="Validate BufferJsonDataDTO with empty data - Negative" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
-  <testcase name="Validate BufferJsonDataDTO with future timestamp - Negative" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
+  <testcase name="Validate BufferJsonDataDTO with future timestamp - Negative" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.002"/>
   <testcase name="Validate BufferJsonDataDTO with invalid JSON - Negative" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
   <testcase name="Validate BufferJsonDataDTO with invalid UID - Negative" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
   <testcase name="Validate BufferJsonDataDTO with minimal valid JSON - Positive" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
@@ -14,10 +14,10 @@
   <testcase name="Validate BufferJsonDataDTO with valid complex JSON - Positive" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
   <testcase name="Validate BufferJsonDataDTO with whitespace JSON - Negative" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
   <testcase name="Validate null BufferJsonDataBLM - Negative" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
-  <testcase name="Validate null BufferJsonDataDTO - Negative" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.0"/>
+  <testcase name="Validate null BufferJsonDataDTO - Negative" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
   <testcase name="Validate valid BufferJsonDataBLM - Positive" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
   <testcase name="Validate valid BufferJsonDataDALM - Positive" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
-  <testcase name="Validate valid BufferJsonDataDTO - Positive" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.0"/>
+  <testcase name="Validate valid BufferJsonDataDTO - Positive" classname="com.connection.processing.buffer.objects.json.validator.BufferJsonDataValidatorTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

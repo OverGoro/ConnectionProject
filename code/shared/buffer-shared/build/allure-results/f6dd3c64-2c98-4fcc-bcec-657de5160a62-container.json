@@ -1,1 +1,0 @@
-{"uuid":"f6dd3c64-2c98-4fcc-bcec-657de5160a62","name":"Validate BufferDeviceBLM with null fields - Negative","children":["d099a8a3-c7c5-495d-a259-5a648ade4464"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758323250972,"stop":1758323250973}],"afters":[],"start":1758323250971,"stop":1758323250974}

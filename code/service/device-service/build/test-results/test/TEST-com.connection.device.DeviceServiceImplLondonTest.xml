@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Device Service Implementation Tests - London Style" tests="13" skipped="0" failures="0" errors="0" timestamp="2025-09-20T02:46:36.294Z" hostname="Yurik" time="2.006">
+<testsuite name="Device Service Implementation Tests - London Style" tests="13" skipped="0" failures="0" errors="0" timestamp="2025-09-20T07:27:33.225Z" hostname="Yurik" time="1.897">
   <properties/>
-  <testcase name="Create device - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="1.742"/>
+  <testcase name="Create device - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="1.66"/>
   <testcase name="Update device - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.003"/>
-  <testcase name="Create device - Negative: Token validation fails" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.038"/>
-  <testcase name="Create device - Negative: Device already exists" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.003"/>
-  <testcase name="Device exists - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.002"/>
-  <testcase name="Get device - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.003"/>
-  <testcase name="Health check - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.049"/>
-  <testcase name="Get device - Negative: Device doesn't belong to client" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.002"/>
-  <testcase name="Get devices by client - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.043"/>
-  <testcase name="Create device - Negative: Client UID mismatch" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.003"/>
-  <testcase name="Delete device - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.002"/>
-  <testcase name="Device exists - Negative: Device not found" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.001"/>
+  <testcase name="Create device - Negative: Token validation fails" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.028"/>
+  <testcase name="Create device - Negative: Device already exists" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.004"/>
+  <testcase name="Device exists - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.003"/>
+  <testcase name="Get device - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.002"/>
+  <testcase name="Health check - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.037"/>
+  <testcase name="Get device - Negative: Device doesn't belong to client" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.003"/>
+  <testcase name="Get devices by client - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.011"/>
+  <testcase name="Create device - Negative: Client UID mismatch" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.002"/>
+  <testcase name="Delete device - Positive" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.003"/>
+  <testcase name="Device exists - Negative: Device not found" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.002"/>
   <testcase name="Health check - Negative: Auth service down" classname="com.connection.device.DeviceServiceImplLondonTest" time="0.002"/>
-  <system-out><![CDATA[05:46:37.648 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceImpl -- Device created: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
-05:46:38.132 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceImpl -- Device updated: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
-05:46:38.293 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceImpl -- Device deleted: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
+  <system-out><![CDATA[10:27:34.589 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceImpl -- Device created: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
+10:27:34.977 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceImpl -- Device updated: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
+10:27:35.114 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceImpl -- Device deleted: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
 ]]></system-out>
   <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
 WARNING: A Java agent has been loaded dynamically (/home/yurik/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.17.7/fbf3d6d649ed37fc9e9c59480a05be0a26e3c2da/byte-buddy-agent-1.17.7.jar)

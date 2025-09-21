@@ -1,1 +1,0 @@
-{"uuid":"fbf01d24-f3ce-43c4-9b23-bdd562a31bae","name":"Validate BufferJsonDataDTO with valid complex JSON - Positive","children":["6a52aa97-e330-4484-899c-11b0e12696e5"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758323251159,"stop":1758323251159}],"afters":[],"start":1758323251158,"stop":1758323251160}

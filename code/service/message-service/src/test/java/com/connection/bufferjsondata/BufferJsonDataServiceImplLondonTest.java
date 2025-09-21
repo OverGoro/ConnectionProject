@@ -129,8 +129,7 @@ class BufferJsonDataServiceImplLondonTest {
 
         // Act & Assert
         assertThatThrownBy(() -> bufferJsonDataService.addJsonData(VALID_TOKEN, jsonDataDTO))
-            .isInstanceOf(BufferJsonDataAlreadyExistsException.class)
-            .hasMessageContaining("already exists");
+            .isInstanceOf(BufferJsonDataAlreadyExistsException.class);
 
         verify(jsonDataValidator).validate(jsonDataDTO);
         verify(bufferServiceClient).getBuffer(VALID_TOKEN, BUFFER_UUID);

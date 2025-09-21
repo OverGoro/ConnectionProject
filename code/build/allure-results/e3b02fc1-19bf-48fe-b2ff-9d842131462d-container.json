@@ -1,0 +1,1 @@
+{"uuid":"e3b02fc1-19bf-48fe-b2ff-9d842131462d","name":"Validate valid BufferJsonDataDALM - Positive","children":["75053b02-e898-487a-b34a-5f1c43be489b"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758353259656,"stop":1758353259656}],"afters":[],"start":1758353259655,"stop":1758353259657}

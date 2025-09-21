@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Buffer Json Data Service Implementation Tests" tests="13" skipped="0" failures="13" errors="0" timestamp="2025-09-20T02:59:02.116Z" hostname="Yurik" time="2.032">
+  <properties/>
+  <testcase name="Add JSON data - Negative: Data already exists" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="1.795">
+    <failure message="java.lang.AssertionError: &#10;Expecting actual throwable to be an instance of:&#10;  com.connection.processing.buffer.objects.json.exception.BufferJsonDataAlreadyExistsException&#10;but was:&#10;  java.lang.SecurityException: Buffer doesn't belong to the authenticated client&#10;&#9;at com.connection.bufferjsondata.BufferJsonDataServiceImpl.addJsonData_aroundBody0(BufferJsonDataServiceImpl.java:56)&#10;&#9;at com.connection.bufferjsondata.BufferJsonDataServiceImpl$AjcClosure1.run(BufferJsonDataServiceImpl.java:1)&#10;&#9;at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96cproceed(AbstractTransactionAspect.aj:67)&#10;&#9;...(73 remaining lines not displayed - this can be changed with Assertions.setMaxStackTraceElementsDisplayed)" type="java.lang.AssertionError">java.lang.AssertionError: 
+Expecting actual throwable to be an instance of:
+  com.connection.processing.buffer.objects.json.exception.BufferJsonDataAlreadyExistsException
+but was:
+  java.lang.SecurityException: Buffer doesn't belong to the authenticated client
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.addJsonData_aroundBody0(BufferJsonDataServiceImpl.java:56)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl$AjcClosure1.run(BufferJsonDataServiceImpl.java:1)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96cproceed(AbstractTransactionAspect.aj:67)
+	...(73 remaining lines not displayed - this can be changed with Assertions.setMaxStackTraceElementsDisplayed)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.shouldThrowExceptionWhenDataAlreadyExists(BufferJsonDataServiceImplLondonTest.java:132)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <testcase name="Get JSON data by buffer and date range - Positive" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="0.004">
+    <failure message="java.lang.SecurityException: Buffer doesn't belong to the authenticated client" type="java.lang.SecurityException">java.lang.SecurityException: Buffer doesn't belong to the authenticated client
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.getJsonDataByBufferAndCreatedBetween_aroundBody10(BufferJsonDataServiceImpl.java:146)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl$AjcClosure11.run(BufferJsonDataServiceImpl.java:1)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96cproceed(AbstractTransactionAspect.aj:67)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect$AbstractTransactionAspect$1.proceedWithInvocation(AbstractTransactionAspect.aj:73)
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96c(AbstractTransactionAspect.aj:71)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.getJsonDataByBufferAndCreatedBetween(BufferJsonDataServiceImpl.java:140)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.shouldGetJsonDataByBufferAndDateRangeWhenValidRequest(BufferJsonDataServiceImplLondonTest.java:324)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <testcase name="Add JSON data - Negative: Token validation fails" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="0.05">
+    <failure message="org.mockito.exceptions.misusing.UnnecessaryStubbingException: &#10;Unnecessary stubbings detected.&#10;Clean &amp; maintainable test code requires zero unnecessary code.&#10;Following stubbings are unnecessary (click to navigate to relevant line of code):&#10;  1. -&gt; at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.setUp(BufferJsonDataServiceImplLondonTest.java:70)&#10;Please remove unnecessary stubbings or use 'lenient' strictness. More info: javadoc for UnnecessaryStubbingException class." type="org.mockito.exceptions.misusing.UnnecessaryStubbingException">org.mockito.exceptions.misusing.UnnecessaryStubbingException: 
+Unnecessary stubbings detected.
+Clean &amp; maintainable test code requires zero unnecessary code.
+Following stubbings are unnecessary (click to navigate to relevant line of code):
+  1. -&gt; at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.setUp(BufferJsonDataServiceImplLondonTest.java:70)
+Please remove unnecessary stubbings or use 'lenient' strictness. More info: javadoc for UnnecessaryStubbingException class.
+	at app//org.mockito.junit.jupiter.MockitoExtension.lambda$afterEach$2(MockitoExtension.java:200)
+	at java.base@21.0.8/java.util.Optional.ifPresent(Optional.java:178)
+	at app//org.mockito.junit.jupiter.MockitoExtension.afterEach(MockitoExtension.java:198)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <testcase name="Delete old JSON data - Positive" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="0.013">
+    <failure message="org.mockito.exceptions.misusing.UnnecessaryStubbingException: &#10;Unnecessary stubbings detected.&#10;Clean &amp; maintainable test code requires zero unnecessary code.&#10;Following stubbings are unnecessary (click to navigate to relevant line of code):&#10;  1. -&gt; at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.setUp(BufferJsonDataServiceImplLondonTest.java:70)&#10;Please remove unnecessary stubbings or use 'lenient' strictness. More info: javadoc for UnnecessaryStubbingException class." type="org.mockito.exceptions.misusing.UnnecessaryStubbingException">org.mockito.exceptions.misusing.UnnecessaryStubbingException: 
+Unnecessary stubbings detected.
+Clean &amp; maintainable test code requires zero unnecessary code.
+Following stubbings are unnecessary (click to navigate to relevant line of code):
+  1. -&gt; at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.setUp(BufferJsonDataServiceImplLondonTest.java:70)
+Please remove unnecessary stubbings or use 'lenient' strictness. More info: javadoc for UnnecessaryStubbingException class.
+	at app//org.mockito.junit.jupiter.MockitoExtension.lambda$afterEach$2(MockitoExtension.java:200)
+	at java.base@21.0.8/java.util.Optional.ifPresent(Optional.java:178)
+	at app//org.mockito.junit.jupiter.MockitoExtension.afterEach(MockitoExtension.java:198)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <testcase name="Health check - Positive" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="0.027">
+    <failure message="org.mockito.exceptions.misusing.UnnecessaryStubbingException: &#10;Unnecessary stubbings detected.&#10;Clean &amp; maintainable test code requires zero unnecessary code.&#10;Following stubbings are unnecessary (click to navigate to relevant line of code):&#10;  1. -&gt; at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.setUp(BufferJsonDataServiceImplLondonTest.java:70)&#10;Please remove unnecessary stubbings or use 'lenient' strictness. More info: javadoc for UnnecessaryStubbingException class." type="org.mockito.exceptions.misusing.UnnecessaryStubbingException">org.mockito.exceptions.misusing.UnnecessaryStubbingException: 
+Unnecessary stubbings detected.
+Clean &amp; maintainable test code requires zero unnecessary code.
+Following stubbings are unnecessary (click to navigate to relevant line of code):
+  1. -&gt; at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.setUp(BufferJsonDataServiceImplLondonTest.java:70)
+Please remove unnecessary stubbings or use 'lenient' strictness. More info: javadoc for UnnecessaryStubbingException class.
+	at app//org.mockito.junit.jupiter.MockitoExtension.lambda$afterEach$2(MockitoExtension.java:200)
+	at java.base@21.0.8/java.util.Optional.ifPresent(Optional.java:178)
+	at app//org.mockito.junit.jupiter.MockitoExtension.afterEach(MockitoExtension.java:198)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <testcase name="Count JSON data by buffer - Positive" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="0.004">
+    <failure message="java.lang.SecurityException: Buffer doesn't belong to the authenticated client" type="java.lang.SecurityException">java.lang.SecurityException: Buffer doesn't belong to the authenticated client
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.countJsonDataByBuffer_aroundBody26(BufferJsonDataServiceImpl.java:267)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl$AjcClosure27.run(BufferJsonDataServiceImpl.java:1)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96cproceed(AbstractTransactionAspect.aj:67)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect$AbstractTransactionAspect$1.proceedWithInvocation(AbstractTransactionAspect.aj:73)
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96c(AbstractTransactionAspect.aj:71)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.countJsonDataByBuffer(BufferJsonDataServiceImpl.java:261)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.shouldCountJsonDataByBufferWhenValidRequest(BufferJsonDataServiceImplLondonTest.java:238)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <testcase name="Get JSON data by buffer - Positive" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="0.005">
+    <failure message="java.lang.SecurityException: Buffer doesn't belong to the authenticated client" type="java.lang.SecurityException">java.lang.SecurityException: Buffer doesn't belong to the authenticated client
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.getJsonDataByBuffer_aroundBody4(BufferJsonDataServiceImpl.java:95)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl$AjcClosure5.run(BufferJsonDataServiceImpl.java:1)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96cproceed(AbstractTransactionAspect.aj:67)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect$AbstractTransactionAspect$1.proceedWithInvocation(AbstractTransactionAspect.aj:73)
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96c(AbstractTransactionAspect.aj:71)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.getJsonDataByBuffer(BufferJsonDataServiceImpl.java:89)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.shouldGetJsonDataByBufferWhenValidRequest(BufferJsonDataServiceImplLondonTest.java:176)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <testcase name="JSON data exists - Positive" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="0.003">
+    <failure message="org.mockito.exceptions.misusing.UnnecessaryStubbingException: &#10;Unnecessary stubbings detected.&#10;Clean &amp; maintainable test code requires zero unnecessary code.&#10;Following stubbings are unnecessary (click to navigate to relevant line of code):&#10;  1. -&gt; at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.setUp(BufferJsonDataServiceImplLondonTest.java:70)&#10;Please remove unnecessary stubbings or use 'lenient' strictness. More info: javadoc for UnnecessaryStubbingException class." type="org.mockito.exceptions.misusing.UnnecessaryStubbingException">org.mockito.exceptions.misusing.UnnecessaryStubbingException: 
+Unnecessary stubbings detected.
+Clean &amp; maintainable test code requires zero unnecessary code.
+Following stubbings are unnecessary (click to navigate to relevant line of code):
+  1. -&gt; at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.setUp(BufferJsonDataServiceImplLondonTest.java:70)
+Please remove unnecessary stubbings or use 'lenient' strictness. More info: javadoc for UnnecessaryStubbingException class.
+	at app//org.mockito.junit.jupiter.MockitoExtension.lambda$afterEach$2(MockitoExtension.java:200)
+	at java.base@21.0.8/java.util.Optional.ifPresent(Optional.java:178)
+	at app//org.mockito.junit.jupiter.MockitoExtension.afterEach(MockitoExtension.java:198)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <testcase name="Get JSON data - Positive" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="0.004">
+    <failure message="java.lang.SecurityException: JSON data doesn't belong to the authenticated client" type="java.lang.SecurityException">java.lang.SecurityException: JSON data doesn't belong to the authenticated client
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.getJsonData_aroundBody2(BufferJsonDataServiceImpl.java:81)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl$AjcClosure3.run(BufferJsonDataServiceImpl.java:1)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96cproceed(AbstractTransactionAspect.aj:67)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect$AbstractTransactionAspect$1.proceedWithInvocation(AbstractTransactionAspect.aj:73)
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96c(AbstractTransactionAspect.aj:71)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.getJsonData(BufferJsonDataServiceImpl.java:73)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.shouldGetJsonDataWhenValidRequest(BufferJsonDataServiceImplLondonTest.java:152)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <testcase name="Delete JSON data - Positive" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="0.003">
+    <failure message="java.lang.SecurityException: JSON data doesn't belong to the authenticated client" type="java.lang.SecurityException">java.lang.SecurityException: JSON data doesn't belong to the authenticated client
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.deleteJsonData_aroundBody20(BufferJsonDataServiceImpl.java:230)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl$AjcClosure21.run(BufferJsonDataServiceImpl.java:1)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96cproceed(AbstractTransactionAspect.aj:67)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect$AbstractTransactionAspect$1.proceedWithInvocation(AbstractTransactionAspect.aj:73)
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96c(AbstractTransactionAspect.aj:71)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.deleteJsonData(BufferJsonDataServiceImpl.java:221)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.shouldDeleteJsonDataWhenValidRequest(BufferJsonDataServiceImplLondonTest.java:220)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <testcase name="Add JSON data - Positive" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="0.002">
+    <failure message="java.lang.SecurityException: Buffer doesn't belong to the authenticated client" type="java.lang.SecurityException">java.lang.SecurityException: Buffer doesn't belong to the authenticated client
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.addJsonData_aroundBody0(BufferJsonDataServiceImpl.java:56)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl$AjcClosure1.run(BufferJsonDataServiceImpl.java:1)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96cproceed(AbstractTransactionAspect.aj:67)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect$AbstractTransactionAspect$1.proceedWithInvocation(AbstractTransactionAspect.aj:73)
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96c(AbstractTransactionAspect.aj:71)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.addJsonData(BufferJsonDataServiceImpl.java:46)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.shouldAddJsonDataWhenValidData(BufferJsonDataServiceImplLondonTest.java:88)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <testcase name="Get newest JSON data by buffer - Positive" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="0.003">
+    <failure message="java.lang.SecurityException: Buffer doesn't belong to the authenticated client" type="java.lang.SecurityException">java.lang.SecurityException: Buffer doesn't belong to the authenticated client
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.getNewestJsonDataByBuffer_aroundBody12(BufferJsonDataServiceImpl.java:163)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl$AjcClosure13.run(BufferJsonDataServiceImpl.java:1)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96cproceed(AbstractTransactionAspect.aj:67)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect$AbstractTransactionAspect$1.proceedWithInvocation(AbstractTransactionAspect.aj:73)
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96c(AbstractTransactionAspect.aj:71)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImpl.getNewestJsonDataByBuffer(BufferJsonDataServiceImpl.java:157)
+	at com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.shouldGetNewestJsonDataByBufferWhenValidRequest(BufferJsonDataServiceImplLondonTest.java:199)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <testcase name="Health check - Negative: Auth service down" classname="com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest" time="0.002">
+    <failure message="org.springframework.web.server.ResponseStatusException: 500 INTERNAL_SERVER_ERROR" type="org.springframework.web.server.ResponseStatusException">org.springframework.web.server.ResponseStatusException: 500 INTERNAL_SERVER_ERROR
+	at app//com.connection.bufferjsondata.BufferJsonDataServiceImpl.getHealthStatus_aroundBody30(BufferJsonDataServiceImpl.java:301)
+	at app//com.connection.bufferjsondata.BufferJsonDataServiceImpl$AjcClosure31.run(BufferJsonDataServiceImpl.java:1)
+	at app//org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96cproceed(AbstractTransactionAspect.aj:67)
+	at app//org.springframework.transaction.aspectj.AbstractTransactionAspect$AbstractTransactionAspect$1.proceedWithInvocation(AbstractTransactionAspect.aj:73)
+	at app//org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+	at app//org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96c(AbstractTransactionAspect.aj:71)
+	at app//com.connection.bufferjsondata.BufferJsonDataServiceImpl.getHealthStatus(BufferJsonDataServiceImpl.java:297)
+	at app//com.connection.bufferjsondata.BufferJsonDataServiceImplLondonTest.shouldHandleAuthServiceDownInHealthCheck(BufferJsonDataServiceImplLondonTest.java:296)
+	at java.base@21.0.8/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base@21.0.8/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+</failure>
+  </testcase>
+  <system-out><![CDATA[05:59:04.069 [ForkJoinPool-1-worker-1] INFO com.connection.bufferjsondata.BufferJsonDataServiceImpl -- Old JSON data deleted (older than: 2025-09-19T02:59:04.063966563Z)
+]]></system-out>
+  <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/yurik/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.17.7/fbf3d6d649ed37fc9e9c59480a05be0a26e3c2da/byte-buddy-agent-1.17.7.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

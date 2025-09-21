@@ -1,1 +1,0 @@
-{"uuid":"9e636907-fd1d-49b0-abab-188a79825f0a","name":"Authorize by email - Negative: Email validation fails","children":["9c4906d0-de2e-4048-9f3c-3c7a5b0241fd"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758336271239,"stop":1758336271239}],"afters":[],"start":1758336271236,"stop":1758336271240}

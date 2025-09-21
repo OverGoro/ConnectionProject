@@ -36,7 +36,7 @@ public class ClientValidator {
 
     public void validate(ClientBLM client) {
         if (client == null) {
-            throw new ClientValidateException("null", "Client cannot be null");
+            throw new ClientValidateException("null", "Client cannot be null.");
         }
         try {
             validateUid(client.getUid());
@@ -61,7 +61,7 @@ public class ClientValidator {
             validateEmail(client.getEmail());
             validateUsername(client.getUsername());
             validatePassword(client.getPassword());
-            validateBirthDate(client.getBirthDate());
+            // validateBirthDate(client.getBirthDate());
         } catch (IllegalArgumentException e) {
             if (client.getUid() != null)
                 throw new ClientValidateException(client.getUid().toString(), e.getMessage());

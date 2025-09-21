@@ -1,0 +1,1 @@
+{"uuid":"48f6d163-3187-4776-8105-f347eb84035b","name":"Validate ClientDTO with invalid email - Negative","children":["cd249b77-fe8c-4895-930c-8b03a70ed8d3"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758353264288,"stop":1758353264288}],"afters":[],"start":1758353264287,"stop":1758353264290}

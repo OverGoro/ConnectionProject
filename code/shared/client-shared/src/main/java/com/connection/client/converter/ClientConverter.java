@@ -23,4 +23,5 @@ public class ClientConverter {
     public ClientDALM toDALM(ClientBLM blm){
         return new ClientDALM(blm.getUid(), blm.getBirthDate(), blm.getEmail(), blm.getPassword(), blm.getUsername());
     }
+    
 }

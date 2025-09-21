@@ -23,17 +23,18 @@ task aggregateAllureResults(type: Copy) {
     description = 'Aggregates Allure results from all subprojects'
 
     into "${buildDir}/allure-results"
-    
-    // Стратегия обработки дубликатов - перезаписываем файлы
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 
-        subprojects.each { project ->
+    // Копируем историю из предыдущих запусков
+    from("${buildDir}/allure-report/history") {
+        into 'history'
+    }
+
+    subprojects.each { project ->
         def allureResultsDir = "${project.buildDir}/allure-results"
         if (file(allureResultsDir).exists()) {
             from(allureResultsDir) {
                 include '**/*'
-                // Убираем переименование файлов - копируем как есть
-                // Allure сам разберётся с дубликатами
             }
         }
     }
@@ -41,12 +42,10 @@ task aggregateAllureResults(type: Copy) {
     dependsOn testAll
     
     doFirst {
-        delete "${buildDir}/allure-results"
         mkdir "${buildDir}/allure-results"
     }
 }
 
-// Задача для генерации объединённого Allure отчёта
 task generateAllureReport(type: Exec) {
     group = 'reporting'
     description = 'Generates combined Allure report from all subprojects'
@@ -54,16 +53,13 @@ task generateAllureReport(type: Exec) {
     def resultsDir = file("${buildDir}/allure-results")
     def reportDir = file("${buildDir}/allure-report")
 
-    commandLine 'allure', 'generate', resultsDir, '-o', reportDir, '--clean'
+    // Добавляем флаг для сохранения истории
+    commandLine 'allure', 'generate', resultsDir, '-o', reportDir, '--clean', '--history-dir', "${reportDir}/history"
 
     dependsOn aggregateAllureResults
 
     doFirst {
-        println "Generating combined Allure report from all subprojects"
-    }
-
-    doLast {
-        println "Allure report generated at: file://${new File(reportDir.absolutePath + '/index.html')}"
+        println "Generating combined Allure report with history"
     }
 }
 

@@ -1,0 +1,1 @@
+{"uuid":"e47b23e2-2368-4c1a-9fc1-73167f823fd1","name":"Validate ClientDTO with short password - Negative","children":["bbab7019-9f9c-4ce2-8257-cd2a8c00532e"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758353264295,"stop":1758353264295}],"afters":[],"start":1758353264294,"stop":1758353264295}

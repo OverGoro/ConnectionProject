@@ -1,1 +1,1 @@
-{"name":"Gradle","type":"gradle","taskName":"test","buildName":"buffer-device-service","projectPath":":buffer-device-service","projectVersion":"0.0.1-SNAPSHOT"}
+{"name":"Gradle","type":"gradle","taskName":"test","buildName":"buffer-device-service","projectPath":":service:buffer-device-service","projectVersion":"0.0.1-SNAPSHOT"}

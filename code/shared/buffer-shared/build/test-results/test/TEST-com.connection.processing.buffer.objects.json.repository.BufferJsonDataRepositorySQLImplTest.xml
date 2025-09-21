@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Buffer Json Data Repository Tests - SQL implementation tests" tests="15" skipped="0" failures="0" errors="0" timestamp="2025-09-19T23:07:31.079Z" hostname="Yurik" time="0.056">
+<testsuite name="Buffer Json Data Repository Tests - SQL implementation tests" tests="15" skipped="0" failures="0" errors="0" timestamp="2025-09-20T07:27:39.560Z" hostname="Yurik" time="0.046">
   <properties/>
-  <testcase name="Add data - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.003"/>
-  <testcase name="Add existing data - Negative" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.003"/>
+  <testcase name="Add data - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.004"/>
+  <testcase name="Add existing data - Negative" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
   <testcase name="Check data exists - Negative" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
-  <testcase name="Check data exists - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
-  <testcase name="Count data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Check data exists - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.001"/>
+  <testcase name="Count data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.001"/>
   <testcase name="Delete data - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
   <testcase name="Delete data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
   <testcase name="Delete non-existent data - Negative" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
   <testcase name="Delete old data - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
-  <testcase name="Find data by UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.003"/>
+  <testcase name="Find data by UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
   <testcase name="Find data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.003"/>
   <testcase name="Find newest N data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
-  <testcase name="Find newest data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.003"/>
+  <testcase name="Find newest data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
   <testcase name="Find non-existent data by UID - Negative" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
-  <testcase name="Find oldest data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.002"/>
+  <testcase name="Find oldest data by buffer UID - Positive" classname="com.connection.processing.buffer.objects.json.repository.BufferJsonDataRepositorySQLImplTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

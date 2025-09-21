@@ -1,0 +1,1 @@
+{"uuid":"345aa660-a205-46ab-a483-ea374142c8dc","name":"Get JSON data - Positive","children":["8d7478cc-7692-4826-931f-53742f58ecc4"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758337144127,"stop":1758337144128}],"afters":[],"start":1758337144125,"stop":1758337144130}

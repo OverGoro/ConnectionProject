@@ -1,0 +1,1 @@
+{"uuid":"6e9b3e80-2497-485e-9517-28eff5895af8","name":"Validate null BufferDeviceDTO - Negative","children":["bcbabe8e-6d30-44fb-8965-1c7c97fc2cf3"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758353259459,"stop":1758353259459}],"afters":[],"start":1758353259458,"stop":1758353259460}

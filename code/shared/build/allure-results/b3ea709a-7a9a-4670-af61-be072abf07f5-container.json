@@ -1,1 +1,0 @@
-{"uuid":"b3ea709a-7a9a-4670-af61-be072abf07f5","name":"Delete all by device UID - Positive","children":["a26b286d-24ac-43fd-b163-475c72457dc1"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758323250919,"stop":1758323250920}],"afters":[],"start":1758323250918,"stop":1758323250922}

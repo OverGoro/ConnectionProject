@@ -1,0 +1,1 @@
+{"uuid":"012a9686-977a-4920-bc08-166a7e7ca737","name":"Round-trip conversion DTO -> BLM -> DTO","children":["23ad2038-a8ed-4399-88a0-3a2146439348"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758353259514,"stop":1758353259514}],"afters":[],"start":1758353259513,"stop":1758353259515}
