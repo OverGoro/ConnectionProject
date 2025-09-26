@@ -1,0 +1,1 @@
+{"uuid":"842bdc83-726b-438d-b431-e4b27aba758c","name":"Validate valid ConnectionSchemeDTO - Positive","children":["5d74259d-630a-4d99-97a1-bd73427b8d51"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758888543360,"stop":1758888543360}],"afters":[],"start":1758888543357,"stop":1758888543362}

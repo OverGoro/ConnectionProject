@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Connection Scheme Exception Tests" tests="5" skipped="0" failures="0" errors="0" timestamp="2025-09-20T07:27:46.977Z" hostname="Yurik" time="0.011">
+<testsuite name="Connection Scheme Exception Tests" tests="5" skipped="0" failures="0" errors="0" timestamp="2025-09-26T12:08:58.074Z" hostname="Yurik" time="0.042">
   <properties/>
-  <testcase name="BaseConnectionSchemeException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.002"/>
-  <testcase name="ConnectionSchemeAlreadyExistsException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.001"/>
-  <testcase name="ConnectionSchemeNotFoundException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.001"/>
-  <testcase name="ConnectionSchemeValidateException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.001"/>
-  <testcase name="Exception inheritance hierarchy" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.002"/>
+  <testcase name="BaseConnectionSchemeException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.007"/>
+  <testcase name="ConnectionSchemeAlreadyExistsException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.002"/>
+  <testcase name="ConnectionSchemeNotFoundException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.002"/>
+  <testcase name="ConnectionSchemeValidateException toString format" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.002"/>
+  <testcase name="Exception inheritance hierarchy" classname="com.connection.scheme.exception.ConnectionSchemeExceptionTest" time="0.009"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

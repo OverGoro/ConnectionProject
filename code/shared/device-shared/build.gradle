@@ -6,8 +6,8 @@ plugins {
 
 }
 
-group = 'com.connection.device'
-version = '0.0.1-SNAPSHOT'
+group = 'com.connection'
+version = '1.0.0'
 description = 'Device shared module'
 
 java {

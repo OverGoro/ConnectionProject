@@ -5,10 +5,12 @@ include ':service:buffer-device-service'
 include ':service:buffer-service'
 include ':service:connection-scheme-service'
 include ':service:device-service'
+include ':service:device-auth-service'
 
 include ':shared:buffer-shared'
 include ':shared:client-shared'
 include ':shared:connection-scheme-shared'
 include ':shared:device-shared'
+include ':shared:device-token-shared'
 include ':shared:token-shared'
 

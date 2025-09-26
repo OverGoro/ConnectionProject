@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Token Exception Tests" tests="8" skipped="0" failures="0" errors="0" timestamp="2025-09-20T07:27:57.778Z" hostname="Yurik" time="0.019">
+  <properties/>
+  <testcase name="AccessTokenValidateException toString format" classname="com.connection.device.token.exception.TokenExceptionTest" time="0.003"/>
+  <testcase name="BaseTokenException toString format" classname="com.connection.device.token.exception.TokenExceptionTest" time="0.001"/>
+  <testcase name="Exception inheritance hierarchy" classname="com.connection.device.token.exception.TokenExceptionTest" time="0.003"/>
+  <testcase name="RefreshTokenAddException toString format" classname="com.connection.device.token.exception.TokenExceptionTest" time="0.0"/>
+  <testcase name="RefreshTokenAlreadyExistsException toString format" classname="com.connection.device.token.exception.TokenExceptionTest" time="0.001"/>
+  <testcase name="RefreshTokenExpiredException toString format" classname="com.connection.device.token.exception.TokenExceptionTest" time="0.0"/>
+  <testcase name="RefreshTokenNotFoundException toString format" classname="com.connection.device.token.exception.TokenExceptionTest" time="0.0"/>
+  <testcase name="RefreshTokenValidateException toString format" classname="com.connection.device.token.exception.TokenExceptionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

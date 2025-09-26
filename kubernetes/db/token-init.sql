@@ -17,7 +17,7 @@ create table if not exists access.device_token(
     expires_at TIMESTAMP WITH TIME zone not null
 );
 
-create table if not exists access.device_refresh_token(
+create table if not exists access.device_access_token(
 	uid uuid primary key,
 	device_token_uid uuid not null references access.device_token(uid) on delete cascade,
 	token varchar(512) not null unique,	

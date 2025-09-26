@@ -6,8 +6,8 @@ plugins {
 
 }
 
-group = 'com.service.client'
-version = '0.0.1-SNAPSHOT'
+group = 'com.connection'
+version = '1.0.0'
 description = 'client shared module'
 
 java {

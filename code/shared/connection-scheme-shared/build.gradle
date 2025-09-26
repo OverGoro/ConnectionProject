@@ -6,8 +6,8 @@ plugins {
 
 }
 
-group = 'com.connection.scheme'
-version = '0.0.1-SNAPSHOT'
+group = 'com.connection'
+version = '1.0.0'
 description = 'connection-scheme shared module'
 
 java {

@@ -1,0 +1,1 @@
+{"uuid":"b41d22c2-27a2-4f01-a7df-b2bb7405fb53","name":"Validate ConnectionSchemeDTO with whitespace JSON - Negative","children":["3d1cc93f-ae0e-4c32-b07a-698a258f20dc"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758888543328,"stop":1758888543328}],"afters":[],"start":1758888543325,"stop":1758888543330}

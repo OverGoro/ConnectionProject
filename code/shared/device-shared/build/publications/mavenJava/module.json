@@ -1,0 +1,69 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.connection",
+    "module": "device-shared",
+    "version": "1.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.14.3"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "device-shared-1.0.0.jar",
+          "url": "device-shared-1.0.0.jar",
+          "size": 17204,
+          "sha512": "c70c88ed49887af7690d66782abdf1a7d7cdcd831c9d2c07325615ab49210e775753c5f713b6bbc13d507de6020a258451b588c8789bf1ceb35844b8746554ca",
+          "sha256": "60eb0a8a2492289c9ed22345c7753d568f0b26b76aa57a662b2bf83e726a28ab",
+          "sha1": "cc0ad2ed7c41d964fa327bf3ec8a291c3099265d",
+          "md5": "e3a6f88c1028b013c38f29f1456ae0fe"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-data-jpa",
+          "version": {
+            "requires": "3.5.3"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "device-shared-1.0.0.jar",
+          "url": "device-shared-1.0.0.jar",
+          "size": 17204,
+          "sha512": "c70c88ed49887af7690d66782abdf1a7d7cdcd831c9d2c07325615ab49210e775753c5f713b6bbc13d507de6020a258451b588c8789bf1ceb35844b8746554ca",
+          "sha256": "60eb0a8a2492289c9ed22345c7753d568f0b26b76aa57a662b2bf83e726a28ab",
+          "sha1": "cc0ad2ed7c41d964fa327bf3ec8a291c3099265d",
+          "md5": "e3a6f88c1028b013c38f29f1456ae0fe"
+        }
+      ]
+    }
+  ]
+}
