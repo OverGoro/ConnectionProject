@@ -1,0 +1,1 @@
+{"uuid":"6ba0db9d-7421-4941-9169-04e7cd9ccee9","name":"Validate ConnectionSchemeDTO with missing usedBuffers - Negative","children":["9798b84b-9a34-4216-aee1-4ae6206035f5"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1759186473055,"stop":1759186473055}],"afters":[],"start":1759186473054,"stop":1759186473056}

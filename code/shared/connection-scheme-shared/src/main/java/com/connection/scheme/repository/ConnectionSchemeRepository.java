@@ -14,5 +14,6 @@ public interface ConnectionSchemeRepository {
     void delete(UUID uid) throws ConnectionSchemeNotFoundException;
     ConnectionSchemeDALM findByUid(UUID uid) throws ConnectionSchemeNotFoundException;
     List<ConnectionSchemeDALM> findByClientUid(UUID clientUid);
+    List<ConnectionSchemeDALM> findByBufferUid(UUID bufferUid);
     boolean exists(UUID uid);
 }

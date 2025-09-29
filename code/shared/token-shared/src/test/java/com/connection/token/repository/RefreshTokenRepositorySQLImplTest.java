@@ -28,7 +28,7 @@ import com.connection.token.exception.RefreshTokenAlreadyExisistsException;
 import com.connection.token.exception.RefreshTokenNotFoundException;
 import com.connection.token.model.RefreshTokenDALM;
 
-@TestMethodOrder(MethodOrderer.DisplayName.class)
+@TestMethodOrder(MethodOrderer.Random.class)
 @DisplayName("Refresh Token Repository Tests - SQL implementation tests")
 class RefreshTokenRepositorySQLImplTest {
 

@@ -1,9 +1,14 @@
+// ConnectionSchemeValidatorTest.java
 package com.connection.scheme.validator;
 
 import static com.connection.scheme.mother.ConnectionSchemeObjectMother.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -93,6 +98,22 @@ class ConnectionSchemeValidatorTest {
     }
 
     @Test
+    @DisplayName("Validate ConnectionSchemeDTO with missing usedBuffers - Negative")
+    void testValidateConnectionSchemeDTOWithMissingUsedBuffers_Negative() {
+        ConnectionSchemeDTO scheme = createConnectionSchemeDTOWithMissingUsedBuffers();
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeDTO with missing bufferTransitions - Negative")
+    void testValidateConnectionSchemeDTOWithMissingBufferTransitions_Negative() {
+        ConnectionSchemeDTO scheme = createConnectionSchemeDTOWithMissingBufferTransitions();
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
     @DisplayName("Validate null ConnectionSchemeBLM - Negative")
     void testValidateNullConnectionSchemeBLM_Negative() {
         ConnectionSchemeBLM scheme = null;
@@ -109,12 +130,45 @@ class ConnectionSchemeValidatorTest {
     }
 
     @Test
+    @DisplayName("Validate ConnectionSchemeBLM with null usedBuffers - Negative")
+    void testValidateConnectionSchemeBLMWithNullUsedBuffers_Negative() {
+        Map<UUID, List<UUID>> transitions = new HashMap<>();
+        transitions.put(UUID.randomUUID(), Arrays.asList(UUID.randomUUID()));
+        
+        ConnectionSchemeBLM scheme = ConnectionSchemeBLM.builder()
+                .uid(UUID.randomUUID())
+                .clientUid(UUID.randomUUID())
+                .schemeJson("{\"usedBuffers\": [], \"bufferTransitions\": {}}")
+                .usedBuffers(null)
+                .bufferTransitions(transitions)
+                .build();
+        
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeBLM with null bufferTransitions - Negative")
+    void testValidateConnectionSchemeBLMWithNullBufferTransitions_Negative() {
+        ConnectionSchemeBLM scheme = ConnectionSchemeBLM.builder()
+                .uid(UUID.randomUUID())
+                .clientUid(UUID.randomUUID())
+                .schemeJson("{\"usedBuffers\": [], \"bufferTransitions\": {}}")
+                .usedBuffers(Arrays.asList(UUID.randomUUID()))
+                .bufferTransitions(null)
+                .build();
+        
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
     @DisplayName("Validate ConnectionSchemeDTO with null client UID - Negative")
     void testValidateConnectionSchemeDTOWithNullClientUid_Negative() {
         ConnectionSchemeDTO scheme = ConnectionSchemeDTO.builder()
                 .uid(UUID.randomUUID().toString())
                 .clientUid(null)
-                .schemeJson("{\"valid\": true}")
+                .schemeJson("{\"usedBuffers\": [], \"bufferTransitions\": {}}")
                 .build();
         assertThatThrownBy(() -> validator.validate(scheme))
                 .isInstanceOf(ConnectionSchemeValidateException.class);
