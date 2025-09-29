@@ -9,7 +9,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -75,6 +77,8 @@ class ConnectionSchemeServiceImplLondonTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(SCHEME_UUID);
+        assertThat(result.getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2));
+        assertThat(result.getBufferTransitions()).hasSize(2);
         verify(authServiceClient).validateAccessToken(VALID_TOKEN);
         verify(schemeValidator).validate(schemeDTO);
         verify(schemeRepository).add(schemeDALM);
@@ -105,11 +109,17 @@ class ConnectionSchemeServiceImplLondonTest {
         // Arrange
         ConnectionSchemeDTO schemeDTO = createSchemeDTOWithDifferentClient();
         UUID differentClientUuid = UUID.randomUUID();
-        ConnectionSchemeBLM schemeBLM = new ConnectionSchemeBLM(
-            SCHEME_UUID,
-            differentClientUuid, // different client
-            SCHEME_JSON
-        );
+        
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UUID_1, Arrays.asList(BUFFER_UUID_2));
+        
+        ConnectionSchemeBLM schemeBLM = ConnectionSchemeBLM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(differentClientUuid) // different client
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
+            .bufferTransitions(bufferTransitions)
+            .build();
 
         when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
         when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
@@ -161,6 +171,8 @@ class ConnectionSchemeServiceImplLondonTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(SCHEME_UUID);
+        assertThat(result.getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2));
+        assertThat(result.getBufferTransitions()).hasSize(2);
         verify(authServiceClient).validateAccessToken(VALID_TOKEN);
         verify(schemeRepository).findByUid(SCHEME_UUID);
     }
@@ -170,11 +182,12 @@ class ConnectionSchemeServiceImplLondonTest {
     void shouldThrowExceptionWhenSchemeNotBelongsToClient() {
         // Arrange
         UUID differentClientUuid = UUID.randomUUID();
-        ConnectionSchemeDALM schemeDALM = new ConnectionSchemeDALM(
-            SCHEME_UUID,
-            differentClientUuid, // different client
-            SCHEME_JSON
-        );
+        ConnectionSchemeDALM schemeDALM = ConnectionSchemeDALM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(differentClientUuid) // different client
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
+            .build();
 
         when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
         when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(schemeDALM);
@@ -207,6 +220,8 @@ class ConnectionSchemeServiceImplLondonTest {
         // Assert
         assertThat(result).isNotEmpty();
         assertThat(result.get(0).getUid()).isEqualTo(SCHEME_UUID);
+        assertThat(result.get(0).getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2));
+        assertThat(result.get(0).getBufferTransitions()).hasSize(2);
         verify(authServiceClient).validateAccessToken(VALID_TOKEN);
         verify(schemeRepository).findByClientUid(CLIENT_UUID);
     }
@@ -230,6 +245,8 @@ class ConnectionSchemeServiceImplLondonTest {
 
         // Assert
         assertThat(result).isNotNull();
+        assertThat(result.getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2));
+        assertThat(result.getBufferTransitions()).hasSize(2);
         verify(authServiceClient).validateAccessToken(VALID_TOKEN);
         verify(schemeValidator).validate(schemeDTO);
         verify(schemeRepository).update(schemeDALM);
@@ -240,11 +257,18 @@ class ConnectionSchemeServiceImplLondonTest {
     void shouldThrowExceptionWhenTryingToChangeUid() {
         // Arrange
         ConnectionSchemeDTO schemeDTO = createSchemeDTOWithDifferentUid();
-        ConnectionSchemeBLM schemeBLM = new ConnectionSchemeBLM(
-            UUID.randomUUID(), // different UID
-            CLIENT_UUID,
-            SCHEME_JSON
-        );
+        
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UUID_1, Arrays.asList(BUFFER_UUID_2));
+        
+        ConnectionSchemeBLM schemeBLM = ConnectionSchemeBLM.builder()
+            .uid(UUID.randomUUID()) // different UID
+            .clientUid(CLIENT_UUID)
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
+            .bufferTransitions(bufferTransitions)
+            .build();
+            
         ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
 
         when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
@@ -255,6 +279,38 @@ class ConnectionSchemeServiceImplLondonTest {
         assertThatThrownBy(() -> connectionSchemeService.updateScheme(VALID_TOKEN, SCHEME_UUID, schemeDTO))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Cannot change scheme UID");
+
+        verify(authServiceClient).validateAccessToken(VALID_TOKEN);
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository, never()).update(any());
+    }
+
+    @Test
+    @DisplayName("Update scheme - Negative: Client UID change attempt")
+    void shouldThrowExceptionWhenTryingToChangeClientUid() {
+        // Arrange
+        ConnectionSchemeDTO schemeDTO = createSchemeDTOWithDifferentClient();
+        
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UUID_1, Arrays.asList(BUFFER_UUID_2));
+        
+        ConnectionSchemeBLM schemeBLM = ConnectionSchemeBLM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(UUID.randomUUID()) // different client UID
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
+            .bufferTransitions(bufferTransitions)
+            .build();
+            
+        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+
+        when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+
+        // Act & Assert
+        assertThatThrownBy(() -> connectionSchemeService.updateScheme(VALID_TOKEN, SCHEME_UUID, schemeDTO))
+            .isInstanceOf(RuntimeException.class);
 
         verify(authServiceClient).validateAccessToken(VALID_TOKEN);
         verify(schemeValidator).validate(schemeDTO);
@@ -306,6 +362,29 @@ class ConnectionSchemeServiceImplLondonTest {
         assertThat(result).isFalse();
         verify(authServiceClient).validateAccessToken(VALID_TOKEN);
         verify(schemeRepository).exists(SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Get schemes by buffer - Positive")
+    void shouldGetSchemesByBufferWhenValidRequest() {
+        // Arrange
+        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
+        ConnectionSchemeBLM expectedBLM = createValidSchemeBLM();
+        List<ConnectionSchemeDALM> schemesDALM = Collections.singletonList(schemeDALM);
+
+        when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
+        when(schemeRepository.findByBufferUid(BUFFER_UUID_1)).thenReturn(schemesDALM);
+        when(schemeConverter.toBLM(schemeDALM)).thenReturn(expectedBLM);
+
+        // Act
+        List<ConnectionSchemeBLM> result = connectionSchemeService.getSchemesByBuffer(VALID_TOKEN, BUFFER_UUID_1);
+
+        // Assert
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getUid()).isEqualTo(SCHEME_UUID);
+        assertThat(result.get(0).getUsedBuffers()).contains(BUFFER_UUID_1);
+        verify(authServiceClient).validateAccessToken(VALID_TOKEN);
+        verify(schemeRepository).findByBufferUid(BUFFER_UUID_1);
     }
 
     @Test

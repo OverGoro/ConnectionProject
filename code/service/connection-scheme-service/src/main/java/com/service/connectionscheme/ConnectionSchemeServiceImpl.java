@@ -87,6 +87,17 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     }
 
     @Override
+    public List<ConnectionSchemeBLM> getSchemesByBuffer(String accessToken, UUID bufferUuid) {
+        UUID clientUid = validateTokenAndGetClientUid(accessToken);
+
+        List<ConnectionSchemeDALM> schemesDALM = schemeRepository.findByBufferUid(bufferUuid);
+        return schemesDALM.stream()
+                .map(schemeConverter::toBLM)
+                .filter(arg0 -> arg0.getClientUid().equals(clientUid))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public ConnectionSchemeBLM updateScheme(String accessToken, UUID schemeUid, ConnectionSchemeDTO schemeDTO) {
         UUID clientUid = validateTokenAndGetClientUid(accessToken);
 
@@ -159,4 +170,6 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
                 "timestamp", System.currentTimeMillis(),
                 "auth-service: ", authServiceHealth);
     }
+
+
 }
