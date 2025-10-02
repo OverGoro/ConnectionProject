@@ -1,0 +1,1533 @@
+// BufferService.java
+package com.service.buffer;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDTO;
+
+public interface BufferService {
+    BufferBLM createBuffer(String accessToken, BufferDTO bufferDTO);
+    BufferBLM getBuffer(String accessToken, UUID bufferUid);
+    List<BufferBLM> getBuffersByClient(String accessToken);
+    List<BufferBLM> getBuffersByConnectionScheme(String accessToken, UUID connectionSchemeUid);
+    BufferBLM updateBuffer(String accessToken, UUID bufferUid, BufferDTO bufferDTO);
+    void deleteBuffer(String accessToken, UUID bufferUid);
+    void deleteBuffersByConnectionScheme(String accessToken, UUID connectionSchemeUid);
+    boolean bufferExists(String accessToken, UUID bufferUid);
+    Map<String, Object> getHealthStatus();
+}// FeignClientConfig.java
+package com.service.buffer.config;
+
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.service.buffer.client.FeignErrorDecoder;
+
+@Configuration
+@EnableFeignClients(basePackages = "com.service.buffer.client")
+public class FeignClientConfig {
+    
+    @Bean
+    public FeignErrorDecoder feignErrorDecoder() {
+        return new FeignErrorDecoder();
+    }
+}// BufferJDBCConfig.java
+package com.service.buffer.config;
+
+import java.util.Properties;
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.atomikos.jdbc.AtomikosDataSourceBean;
+
+@Configuration
+public class BufferJDBCConfig {
+    
+    @Value("${app.datasource.buffer.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    private String xaDataSourceClassName;
+
+    @Value("${app.datasource.buffer.xa-properties.url}")
+    private String jdbcUrl;
+
+    @Value("${app.datasource.buffer.xa-properties.user}")
+    private String username;
+
+    @Value("${app.datasource.buffer.xa-properties.password}")
+    private String password;
+
+    @Value("${app.datasource.buffer.unique-resource-name:bufferXADataSource}")
+    private String uniqueResourceName;
+
+    @Bean("BufferDataSource")
+    DataSource bufferDataSource() {
+        AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
+        dataSource.setUniqueResourceName(uniqueResourceName);
+        dataSource.setXaDataSourceClassName(xaDataSourceClassName);
+        
+        Properties xaProperties = new Properties();
+        xaProperties.setProperty("url", jdbcUrl);
+        xaProperties.setProperty("user", username);
+        xaProperties.setProperty("password", password);
+
+        dataSource.setXaProperties(xaProperties);
+        dataSource.setPoolSize(5);
+        dataSource.setTestQuery("SELECT 1");
+
+        return dataSource;
+    }
+
+    @Bean("BufferJdbcTemplate")
+    NamedParameterJdbcTemplate bufferNamedParameterJdbcTemplate(
+            @Qualifier("BufferDataSource") DataSource bufferDataSource) {
+        return new NamedParameterJdbcTemplate(bufferDataSource);
+    }
+}// BufferKafkaConfig.java
+package com.service.buffer.config;
+
+import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.TopicBuilder;
+
+import com.connection.auth.events.AuthEventConstants;
+
+@Configuration
+public class BufferKafkaConfig {
+
+    @Bean
+    public NewTopic authResponsesTopic() {
+        return TopicBuilder.name(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+}// TransactionConfig.java
+package com.service.buffer.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.jta.JtaTransactionManager;
+
+import com.atomikos.icatch.jta.UserTransactionManager;
+
+import jakarta.transaction.SystemException;
+
+@Configuration
+public class TransactionConfig {
+
+    @Bean
+    public UserTransactionManager userTransactionManager() throws SystemException{
+        UserTransactionManager manager = new UserTransactionManager();
+        manager.setTransactionTimeout(300);
+        manager.setForceShutdown(true);
+        return manager;
+    }
+
+    @Bean(name = "atomicosTransactionManager")
+    public JtaTransactionManager jtaTransactionManager() throws SystemException {
+        JtaTransactionManager jtaTransactionManager = new JtaTransactionManager();
+        jtaTransactionManager.setTransactionManager(userTransactionManager());
+        jtaTransactionManager.setUserTransaction(userTransactionManager());
+        return jtaTransactionManager;
+    }
+}// BufferRepositoryConfig.java
+package com.service.buffer.config;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.processing.buffer.repository.BufferRepository;
+import com.connection.processing.buffer.repository.BufferRepositorySQLImpl;
+
+@Configuration
+public class BufferRepositoryConfig {
+    @Bean("BufferRepository")
+    BufferRepository bufferRepository(@Qualifier("BufferJdbcTemplate") NamedParameterJdbcTemplate template){
+        return new BufferRepositorySQLImpl(template);
+    }
+}// SecurityConfig.java
+package com.service.buffer.config;
+
+import com.service.buffer.client.AuthServiceClient;
+import com.service.buffer.client.JwtAuthenticationFilter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+    
+    private final AuthServiceClient authServiceClient;
+
+    public SecurityConfig(AuthServiceClient authServiceClient) {
+        this.authServiceClient = authServiceClient;
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .authorizeHttpRequests(authz -> authz
+                .requestMatchers("/swagger-ui.html").permitAll()
+                .requestMatchers("/swagger-ui/**").permitAll()
+                .requestMatchers("/api-docs/**").permitAll()
+                .requestMatchers("/webjars/**").permitAll()
+                .requestMatchers("/v3/api-docs/**").permitAll()
+                .requestMatchers("/api/buffer-service/health").permitAll()
+                .requestMatchers("/api/buffer-service/**").permitAll()//.authenticated()
+                .anyRequest().permitAll()
+            )
+            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        
+        return http.build();
+    }
+
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtAuthenticationFilter(authServiceClient);
+    }
+}// BufferUtilsConfig.java
+package com.service.buffer.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.connection.processing.buffer.converter.BufferConverter;
+import com.connection.processing.buffer.validator.BufferValidator;
+
+@Configuration
+public class BufferUtilsConfig {
+    @Bean("BufferConverter")
+    BufferConverter bufferConverter(){
+        return new BufferConverter();
+    }
+
+    @Bean("BufferValidator")
+    BufferValidator bufferValidator(){
+        return new BufferValidator();
+    }
+}// BufferServiceApplication.java
+package com.service.buffer;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class BufferServiceApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(BufferServiceApplication.class, args);
+    }
+}// AuthResponseConsumer.java
+package com.service.buffer.kafka;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.stereotype.Component;
+
+import com.connection.auth.events.AuthEventUtils;
+import com.connection.auth.events.responses.TokenValidationResponse;
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class AuthResponseConsumer {
+
+    private final TypedAuthKafkaClient authKafkaClient;
+
+    @KafkaListener(topics = "${app.kafka.topics.auth-responses:auth.responses}")
+    public void handleAuthResponse(@Payload String message,
+                                  @Header(KafkaHeaders.RECEIVED_KEY) String correlationId) {
+        try {
+            log.info("Received auth response: correlationId={}", correlationId);
+
+            // Определяем тип ответа по структуре JSON и десериализуем в правильный тип
+            Object response;
+            if (message.contains("\"isValid\"")) {
+                response = AuthEventUtils.fromJson(message, TokenValidationResponse.class);
+            } else if (message.contains("\"clientUid\"")) {
+                response = AuthEventUtils.fromJson(message, ClientUidResponse.class);
+            } else if (message.contains("\"healthStatus\"")) {
+                response = AuthEventUtils.fromJson(message, HealthCheckResponse.class);
+            } else {
+                log.warn("Unknown response type for correlationId: {}", correlationId);
+                return;
+            }
+            
+            authKafkaClient.handleResponse(correlationId, response);
+            
+        } catch (Exception e) {
+            log.error("Error processing auth response: correlationId={}", correlationId, e);
+        }
+    }
+}// TypedAuthKafkaClient.java (альтернативная версия)
+package com.service.buffer.kafka;
+
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+
+import com.connection.auth.events.AuthEventConstants;
+import com.connection.auth.events.AuthEventUtils;
+import com.connection.auth.events.commands.ExtractClientUidCommand;
+import com.connection.auth.events.commands.HealthCheckCommand;
+import com.connection.auth.events.commands.ValidateTokenCommand;
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.auth.events.responses.TokenValidationResponse;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class TypedAuthKafkaClient {
+
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    
+    // Типизированное хранилище с поддержкой разных типов ответов
+    private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+
+    // Базовый класс для типизированных запросов
+    private static class PendingRequest<T> {
+        final CompletableFuture<T> future;
+        final Class<T> responseType;
+
+        PendingRequest(CompletableFuture<T> future, Class<T> responseType) {
+            this.future = future;
+            this.responseType = responseType;
+        }
+    }
+
+    public CompletableFuture<TokenValidationResponse> validateToken(String token, String sourceService) {
+        return sendRequest(
+            ValidateTokenCommand.builder()
+                .token(token)
+                .tokenType(ValidateTokenCommand.TokenType.ACCESS)
+                .sourceService(sourceService)
+                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .correlationId(AuthEventUtils.generateCorrelationId())
+                .build(),
+            TokenValidationResponse.class
+        );
+    }
+
+    public CompletableFuture<ClientUidResponse> getClientUid(String token, String sourceService) {
+        return sendRequest(
+            ExtractClientUidCommand.builder()
+                .token(token)
+                .tokenType(ExtractClientUidCommand.TokenType.ACCESS)
+                .sourceService(sourceService)
+                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .correlationId(AuthEventUtils.generateCorrelationId())
+                .build(),
+            ClientUidResponse.class
+        );
+    }
+
+    public CompletableFuture<HealthCheckResponse> healthCheck(String sourceService) {
+        return sendRequest(
+            HealthCheckCommand.builder()
+                .sourceService(sourceService)
+                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .correlationId(AuthEventUtils.generateCorrelationId())
+                .build(),
+            HealthCheckResponse.class
+        );
+    }
+
+    private <T> CompletableFuture<T> sendRequest(Object command, Class<T> responseType) {
+        String correlationId;
+        
+        // Извлекаем correlationId из команды
+        if (command instanceof ValidateTokenCommand) {
+            correlationId = ((ValidateTokenCommand) command).getCorrelationId();
+        } else if (command instanceof ExtractClientUidCommand) {
+            correlationId = ((ExtractClientUidCommand) command).getCorrelationId();
+        } else if (command instanceof HealthCheckCommand) {
+            correlationId = ((HealthCheckCommand) command).getCorrelationId();
+        } else {
+            throw new IllegalArgumentException("Unsupported command type: " + command.getClass());
+        }
+
+        CompletableFuture<T> future = new CompletableFuture<>();
+        pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
+
+        kafkaTemplate.send(AuthEventConstants.AUTH_COMMANDS_TOPIC, correlationId, command)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        future.completeExceptionally(ex);
+                        pendingRequests.remove(correlationId);
+                        log.error("Failed to send command: {}", ex.getMessage());
+                    }
+                });
+
+        return future;
+    }
+
+    @SuppressWarnings("unchecked")
+    public void handleResponse(String correlationId, Object response) {
+        PendingRequest<?> pendingRequest = pendingRequests.remove(correlationId);
+        if (pendingRequest != null) {
+            try {
+                // Проверяем тип ответа
+                if (pendingRequest.responseType.isInstance(response)) {
+                    CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
+                    future.complete(response);
+                } else {
+                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
+                            correlationId, pendingRequest.responseType, response.getClass());
+                    pendingRequest.future.completeExceptionally(
+                        new ClassCastException("Type mismatch in response")
+                    );
+                }
+            } catch (Exception e) {
+                pendingRequest.future.completeExceptionally(e);
+            }
+        } else {
+            log.warn("Received response for unknown correlationId: {}", correlationId);
+        }
+    }
+}// FeignErrorDecoder.java
+package com.service.buffer.client;
+
+import feign.Response;
+import feign.codec.ErrorDecoder;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+public class FeignErrorDecoder implements ErrorDecoder {
+
+    @Override
+    public Exception decode(String methodKey, Response response) {
+        switch (response.status()) {
+            case 401:
+                return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid access token");
+            case 403:
+                return new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+            case 404:
+                return new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found");
+            default:
+                return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, 
+                    "External service error: " + response.status());
+        }
+    }
+}// JwtAuthenticationFilter.java
+package com.service.buffer.client;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Collections;
+
+@RequiredArgsConstructor
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private final AuthServiceClient authServiceClient;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, 
+                                  HttpServletResponse response, 
+                                  FilterChain filterChain) throws ServletException, IOException {
+        
+        String authorizationHeader = request.getHeader("Authorization");
+        
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            String token = authorizationHeader.substring(7);
+            
+            try {
+                // Валидируем токен через auth service
+                authServiceClient.validateAccessToken(token);
+                
+                // Получаем client UID из токена
+                String clientUid = authServiceClient.getAccessTokenClientUID(token).toString();
+                
+                // Создаем аутентификацию
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                    clientUid, 
+                    null, 
+                    Collections.emptyList()
+                );
+                
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                
+            } catch (Exception e) {
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token: " + e.getMessage());
+                return;
+            }
+        }
+        
+        filterChain.doFilter(request, response);
+    }
+}// ConnectionSchemeServiceClient.java
+package com.service.buffer.client;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.connection.scheme.model.ConnectionSchemeBLM;
+
+@FeignClient(name = "connection-scheme-service", url = "${connection.scheme.service.url}")
+public interface ConnectionSchemeServiceClient {
+    
+    @GetMapping("/schemes/{schemeUid}")
+    ConnectionSchemeBLM getScheme(@RequestParam String accessToken, @PathVariable UUID schemeUid);
+    
+    @GetMapping("/schemes")
+    List<ConnectionSchemeBLM> getSchemesByClient(@RequestParam String accessToken);
+
+    @GetMapping("/health")
+    Map<String, Object> healthCheck();
+}// AuthServiceClient.java
+package com.service.buffer.client;
+
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+@FeignClient(name = "auth-service", url = "${auth.service.url}")
+public interface AuthServiceClient {
+    
+    @GetMapping("/extract/accessTokenClientUID")
+    UUID getAccessTokenClientUID(@RequestParam String accessToken);
+    
+    @GetMapping("/validate/token/access")
+    void validateAccessToken(@RequestParam String accessToken);
+
+    @GetMapping("/health")
+    Map<String, Object> healthCheck();
+}// BufferController.java
+package com.service.buffer;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDTO;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/buffer-service")
+public class BufferController {
+    
+    private final BufferService bufferService;
+
+    @PostMapping("/buffers")
+    public ResponseEntity<BufferBLM> createBuffer(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestBody BufferDTO bufferDTO) {
+        
+        String accessToken = extractToken(authorizationHeader);
+        log.info("Creating buffer for connection scheme: {}", bufferDTO.getConnectionSchemeUid());
+        
+        BufferBLM buffer = bufferService.createBuffer(accessToken, bufferDTO);
+        return ResponseEntity.ok(buffer);
+    }
+
+    @GetMapping("/buffers/{bufferUid}")
+    public ResponseEntity<BufferBLM> getBuffer(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable UUID bufferUid) {
+        
+        String accessToken = extractToken(authorizationHeader);
+        log.info("Getting buffer: {}", bufferUid);
+        
+        BufferBLM buffer = bufferService.getBuffer(accessToken, bufferUid);
+        return ResponseEntity.ok(buffer);
+    }
+
+    @GetMapping("/buffers")
+    public ResponseEntity<List<BufferBLM>> getBuffersByClient(
+            @RequestHeader("Authorization") String authorizationHeader) {
+        
+        String accessToken = extractToken(authorizationHeader);
+        log.info("Getting all buffers for client");
+        
+        List<BufferBLM> buffers = bufferService.getBuffersByClient(accessToken);
+        return ResponseEntity.ok(buffers);
+    }
+
+    @GetMapping("/buffers/scheme/{connectionSchemeUid}")
+    public ResponseEntity<List<BufferBLM>> getBuffersByConnectionScheme(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable UUID connectionSchemeUid) {
+        
+        String accessToken = extractToken(authorizationHeader);
+        log.info("Getting buffers for connection scheme: {}", connectionSchemeUid);
+        
+        List<BufferBLM> buffers = bufferService.getBuffersByConnectionScheme(accessToken, connectionSchemeUid);
+        return ResponseEntity.ok(buffers);
+    }
+
+    @PutMapping("/buffers/{bufferUid}")
+    public ResponseEntity<BufferBLM> updateBuffer(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable UUID bufferUid,
+            @RequestBody BufferDTO bufferDTO) {
+        
+        String accessToken = extractToken(authorizationHeader);
+        log.info("Updating buffer: {}", bufferUid);
+        
+        BufferBLM buffer = bufferService.updateBuffer(accessToken, bufferUid, bufferDTO);
+        return ResponseEntity.ok(buffer);
+    }
+
+    @DeleteMapping("/buffers/{bufferUid}")
+    public ResponseEntity<Void> deleteBuffer(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable UUID bufferUid) {
+        
+        String accessToken = extractToken(authorizationHeader);
+        log.info("Deleting buffer: {}", bufferUid);
+        
+        bufferService.deleteBuffer(accessToken, bufferUid);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/buffers/scheme/{connectionSchemeUid}")
+    public ResponseEntity<Void> deleteBuffersByConnectionScheme(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable UUID connectionSchemeUid) {
+        
+        String accessToken = extractToken(authorizationHeader);
+        log.info("Deleting buffers for connection scheme: {}", connectionSchemeUid);
+        
+        bufferService.deleteBuffersByConnectionScheme(accessToken, connectionSchemeUid);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<?> healthCheck() {
+        log.info("Health check: status: OK, service: buffer-service, timestamp: {}", 
+                System.currentTimeMillis());
+
+        return ResponseEntity.ok().body(bufferService.getHealthStatus());
+    }
+
+    private String extractToken(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new SecurityException("Invalid authorization header");
+        }
+        return authorizationHeader.substring(7);
+    }
+}// BufferServiceImpl.java
+package com.service.buffer;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.auth.events.responses.TokenValidationResponse;
+import com.connection.processing.buffer.converter.BufferConverter;
+import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferDTO;
+import com.connection.processing.buffer.repository.BufferRepository;
+import com.connection.processing.buffer.validator.BufferValidator;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.service.buffer.client.ConnectionSchemeServiceClient;
+import com.service.buffer.kafka.TypedAuthKafkaClient;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+        JpaRepositoriesAutoConfiguration.class
+})
+@Transactional("atomicosTransactionManager")
+public class BufferServiceImpl implements BufferService {
+
+    private final BufferRepository bufferRepository;
+    private final BufferConverter bufferConverter;
+    private final BufferValidator bufferValidator;
+    private final TypedAuthKafkaClient authKafkaClient;
+    private final ConnectionSchemeServiceClient connectionSchemeServiceClient;
+
+    @Override
+    public BufferBLM createBuffer(String accessToken, BufferDTO bufferDTO) {
+        UUID clientUid = validateTokenAndGetClientUid(accessToken);
+
+        bufferValidator.validate(bufferDTO);
+        BufferBLM bufferBLM = bufferConverter.toBLM(bufferDTO);
+
+        // Проверяем, что схема подключения принадлежит клиенту
+        ConnectionSchemeBLM connectionScheme = connectionSchemeServiceClient.getScheme(
+                accessToken, bufferBLM.getConnectionSchemeUid());
+
+        if (!clientUid.equals(connectionScheme.getClientUid())) {
+            throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
+        }
+
+        // Проверяем, что буфер с таким UID не существует
+        if (bufferRepository.exists(bufferBLM.getUid())) {
+            throw new BufferAlreadyExistsException("Buffer with UID '" + bufferBLM.getUid() + "' already exists");
+        }
+
+        BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
+        bufferRepository.add(bufferDALM);
+
+        log.info("Buffer created: {} for connection scheme: {}", bufferBLM.getUid(),
+                bufferBLM.getConnectionSchemeUid());
+        return bufferBLM;
+    }
+
+    @Override
+    public BufferBLM getBuffer(String accessToken, UUID bufferUid) {
+        UUID clientUid = validateTokenAndGetClientUid(accessToken);
+
+        BufferDALM bufferDALM = bufferRepository.findByUid(bufferUid);
+
+        // Проверяем, что схема подключения принадлежит клиенту
+        ConnectionSchemeBLM connectionScheme = connectionSchemeServiceClient.getScheme(
+                accessToken, bufferDALM.getConnectionSchemeUid());
+
+        if (!clientUid.equals(connectionScheme.getClientUid())) {
+            throw new SecurityException("Buffer doesn't belong to the authenticated client");
+        }
+
+        return bufferConverter.toBLM(bufferDALM);
+    }
+
+    @Override
+    public List<BufferBLM> getBuffersByClient(String accessToken) {
+        validateTokenAndGetClientUid(accessToken);
+
+        // Получаем все схемы подключения клиента
+        List<ConnectionSchemeBLM> connectionSchemes = connectionSchemeServiceClient.getSchemesByClient(accessToken);
+
+        // Получаем все буферы для всех схем подключения клиента
+        return connectionSchemes.stream()
+                .flatMap(scheme -> bufferRepository.findByConnectionSchemeUid(scheme.getUid()).stream())
+                .map(bufferConverter::toBLM)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<BufferBLM> getBuffersByConnectionScheme(String accessToken, UUID connectionSchemeUid) {
+        UUID clientUid = validateTokenAndGetClientUid(accessToken);
+
+        // Проверяем, что схема подключения принадлежит клиенту
+        ConnectionSchemeBLM connectionScheme = connectionSchemeServiceClient.getScheme(accessToken,
+                connectionSchemeUid);
+
+        if (!clientUid.equals(connectionScheme.getClientUid())) {
+            throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
+        }
+
+        List<BufferDALM> buffersDALM = bufferRepository.findByConnectionSchemeUid(connectionSchemeUid);
+        return buffersDALM.stream()
+                .map(bufferConverter::toBLM)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public BufferBLM updateBuffer(String accessToken, UUID bufferUid, BufferDTO bufferDTO) {
+        UUID clientUid = validateTokenAndGetClientUid(accessToken);
+
+        // Проверяем существование буфера
+        BufferDALM existingBuffer = bufferRepository.findByUid(bufferUid);
+
+        // Проверяем, что схема подключения принадлежит клиенту
+        ConnectionSchemeBLM existingConnectionScheme = connectionSchemeServiceClient.getScheme(
+                accessToken, existingBuffer.getConnectionSchemeUid());
+
+        if (!clientUid.equals(existingConnectionScheme.getClientUid())) {
+            throw new SecurityException("Buffer doesn't belong to the authenticated client");
+        }
+
+        bufferValidator.validate(bufferDTO);
+        BufferBLM bufferBLM = bufferConverter.toBLM(bufferDTO);
+
+        // Проверяем, что клиент из токена совпадает с клиентом новой схемы
+        ConnectionSchemeBLM newConnectionScheme = connectionSchemeServiceClient.getScheme(
+                accessToken, bufferBLM.getConnectionSchemeUid());
+
+        if (!clientUid.equals(newConnectionScheme.getClientUid())) {
+            throw new SecurityException("New connection scheme doesn't belong to the authenticated client");
+        }
+
+        // Проверяем, что UID не изменяется
+        if (!bufferUid.equals(bufferBLM.getUid())) {
+            throw new IllegalArgumentException("Cannot change buffer UID");
+        }
+
+        BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
+        bufferRepository.update(bufferDALM);
+
+        log.info("Buffer updated: {} for connection scheme: {}", bufferUid, bufferBLM.getConnectionSchemeUid());
+        return bufferBLM;
+    }
+
+    @Override
+    public void deleteBuffer(String accessToken, UUID bufferUid) {
+        UUID clientUid = validateTokenAndGetClientUid(accessToken);
+
+        // Проверяем существование буфера
+        BufferDALM existingBuffer = bufferRepository.findByUid(bufferUid);
+
+        // Проверяем, что схема подключения принадлежит клиенту
+        ConnectionSchemeBLM connectionScheme = connectionSchemeServiceClient.getScheme(
+                accessToken, existingBuffer.getConnectionSchemeUid());
+
+        if (!clientUid.equals(connectionScheme.getClientUid())) {
+            throw new SecurityException("Buffer doesn't belong to the authenticated client");
+        }
+
+        bufferRepository.delete(bufferUid);
+        log.info("Buffer deleted: {}", bufferUid);
+    }
+
+    @Override
+    public void deleteBuffersByConnectionScheme(String accessToken, UUID connectionSchemeUid) {
+        UUID clientUid = validateTokenAndGetClientUid(accessToken);
+
+        // Проверяем, что схема подключения принадлежит клиенту
+        ConnectionSchemeBLM connectionScheme = connectionSchemeServiceClient.getScheme(accessToken,
+                connectionSchemeUid);
+
+        if (!clientUid.equals(connectionScheme.getClientUid())) {
+            throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
+        }
+
+        bufferRepository.deleteByConnectionSchemeUid(connectionSchemeUid);
+        log.info("Buffers deleted for connection scheme: {}", connectionSchemeUid);
+    }
+
+    @Override
+    public boolean bufferExists(String accessToken, UUID bufferUid) {
+        validateToken(accessToken);
+        return bufferRepository.exists(bufferUid);
+    }
+
+    private UUID validateTokenAndGetClientUid(String accessToken) {
+        try {
+            // Валидируем токен
+            TokenValidationResponse validationResponse = authKafkaClient.validateToken(
+                    accessToken, "buffer-service").get(10, TimeUnit.SECONDS);
+
+            if (!validationResponse.isSuccess() || !validationResponse.isValid()) {
+                throw new SecurityException("Token validation failed: " + validationResponse.getError());
+            }
+
+            // Получаем client UID
+            ClientUidResponse clientUidResponse = authKafkaClient.getClientUid(
+                    accessToken, "buffer-service").get(10, TimeUnit.SECONDS);
+
+            if (!clientUidResponse.isSuccess()) {
+                throw new SecurityException("Failed to get client UID: " + clientUidResponse.getError());
+            }
+
+            return clientUidResponse.getClientUid();
+
+        } catch (Exception e) {
+            throw new SecurityException("Authentication failed: " + e.getMessage());
+        }
+    }
+
+    private void validateToken(String accessToken) {
+        try {
+            TokenValidationResponse response = authKafkaClient.validateToken(
+                    accessToken, "buffer-service").get(10, TimeUnit.SECONDS);
+
+            if (!response.isSuccess() || !response.isValid()) {
+                throw new SecurityException("Token validation failed: " + response.getError());
+            }
+        } catch (Exception e) {
+            throw new SecurityException("Token validation error: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public Map<String, Object> getHealthStatus() {
+        try {
+            HealthCheckResponse authHealth = authKafkaClient.healthCheck("buffer-service")
+                    .get(5, TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "buffer-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+        } catch (Exception e) {
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "buffer-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "error", e.getMessage());
+        }
+    }
+}package com.service.buffer.mother;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferDTO;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+
+public class BufferObjectMother {
+
+    public static final UUID CLIENT_UUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    public static final UUID BUFFER_UUID = UUID.fromString("323e4567-e89b-12d3-a456-426614174002");
+    public static final UUID SCHEME_UUID = UUID.fromString("423e4567-e89b-12d3-a456-426614174003");
+    public static final String VALID_TOKEN = "valid-token-123";
+    public static final String INVALID_TOKEN = "invalid-token-456";
+
+
+    private static final UUID BUFFER_UID_1 = UUID.fromString("223e4567-e89b-12d3-a456-426614174002");
+    private static final UUID BUFFER_UID_2 = UUID.fromString("223e4567-e89b-12d3-a456-426614174003");
+    private static final UUID BUFFER_UID_3 = UUID.fromString("223e4567-e89b-12d3-a456-426614174004");
+    
+    private static final String DEFAULT_SCHEME_JSON = "{" +
+        "\"usedBuffers\": [\"" + BUFFER_UID_1 + "\", \"" + BUFFER_UID_2 + "\"], " +
+        "\"bufferTransitions\": {" +
+            "\"" + BUFFER_UID_1 + "\": [\"" + BUFFER_UID_2 + "\"], " +
+            "\"" + BUFFER_UID_2 + "\": [\"" + BUFFER_UID_3 + "\"]" +
+        "}" +
+    "}";
+
+
+    public static BufferDTO createValidBufferDTO() {
+        return new BufferDTO(
+            BUFFER_UUID.toString(),
+            SCHEME_UUID.toString(),
+            1000,
+            1024,
+            "message prototype"
+        );
+    }
+
+    public static BufferBLM createValidBufferBLM() {
+        return new BufferBLM(
+            BUFFER_UUID,
+            SCHEME_UUID,
+            1000,
+            1024,
+            "message prototype"
+        );
+    }
+
+    public static BufferDALM createValidBufferDALM() {
+        return new BufferDALM(
+            BUFFER_UUID,
+            SCHEME_UUID,
+            1000,
+            1024,
+            "message prototype"
+        );
+    }
+    public static ConnectionSchemeBLM createValidConnectionSchemeBLM() {
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UID_1, Arrays.asList(BUFFER_UID_2));
+        bufferTransitions.put(BUFFER_UID_2, Arrays.asList(BUFFER_UID_3));
+        
+        return ConnectionSchemeBLM.builder()
+                .uid(SCHEME_UUID)
+                .clientUid(CLIENT_UUID)
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(Arrays.asList(BUFFER_UID_1, BUFFER_UID_2))
+                .bufferTransitions(bufferTransitions)
+                .build();
+    }
+
+    public static ConnectionSchemeBLM createValidConnectionSchemeBLM(UUID clientUuid) {
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UID_1, Arrays.asList(BUFFER_UID_2));
+        bufferTransitions.put(BUFFER_UID_2, Arrays.asList(BUFFER_UID_3));
+        
+        return ConnectionSchemeBLM.builder()
+                .uid(SCHEME_UUID)
+                .clientUid(clientUuid)
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(Arrays.asList(BUFFER_UID_1, BUFFER_UID_2))
+                .bufferTransitions(bufferTransitions)
+                .build();
+    }
+
+    public static BufferDTO createBufferDTOWithDifferentScheme() {
+        return new BufferDTO(
+            BUFFER_UUID.toString(),
+            UUID.randomUUID().toString(), // different scheme
+            1000,
+            1024,
+            "message prototype"
+        );
+    }
+
+    public static BufferDTO createInvalidBufferDTO() {
+        return new BufferDTO(
+            "invalid-uuid",
+            "invalid-scheme-uuid",
+            -1, // invalid max messages
+            -1, // invalid max size
+            null // null prototype
+        );
+    }
+}package com.service.buffer;
+
+import static com.service.buffer.mother.BufferObjectMother.BUFFER_UUID;
+import static com.service.buffer.mother.BufferObjectMother.CLIENT_UUID;
+import static com.service.buffer.mother.BufferObjectMother.INVALID_TOKEN;
+import static com.service.buffer.mother.BufferObjectMother.SCHEME_UUID;
+import static com.service.buffer.mother.BufferObjectMother.VALID_TOKEN;
+import static com.service.buffer.mother.BufferObjectMother.createValidBufferBLM;
+import static com.service.buffer.mother.BufferObjectMother.createValidBufferDALM;
+import static com.service.buffer.mother.BufferObjectMother.createValidBufferDTO;
+import static com.service.buffer.mother.BufferObjectMother.createValidConnectionSchemeBLM;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.auth.events.responses.TokenValidationResponse;
+import com.connection.processing.buffer.converter.BufferConverter;
+import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferDTO;
+import com.connection.processing.buffer.repository.BufferRepository;
+import com.connection.processing.buffer.validator.BufferValidator;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.service.buffer.client.ConnectionSchemeServiceClient;
+import com.service.buffer.kafka.TypedAuthKafkaClient;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("Buffer Service Implementation Tests")
+class BufferServiceImplLondonTest {
+
+    @Mock
+    private BufferRepository bufferRepository;
+
+    @Mock
+    private BufferConverter bufferConverter;
+
+    @Mock
+    private BufferValidator bufferValidator;
+
+    @Mock
+    private TypedAuthKafkaClient authKafkaClient; // Заменяем Feign client на Kafka client
+
+    @Mock
+    private ConnectionSchemeServiceClient connectionSchemeServiceClient;
+
+    @InjectMocks
+    private BufferServiceImpl bufferService;
+
+    @BeforeEach
+    void setUp() {
+    }
+
+    @Test
+    @DisplayName("Create buffer - Positive")
+    void shouldCreateBufferWhenValidData() {
+        // Arrange
+        BufferDTO bufferDTO = createValidBufferDTO();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        BufferDALM bufferDALM = createValidBufferDALM();
+        ConnectionSchemeBLM connectionScheme = createValidConnectionSchemeBLM();
+
+        // Mock Kafka responses
+        TokenValidationResponse validationResponse = TokenValidationResponse.valid(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+        ClientUidResponse clientUidResponse = ClientUidResponse.success(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+
+        when(authKafkaClient.validateToken(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(validationResponse));
+        when(authKafkaClient.getClientUid(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(clientUidResponse));
+        
+        when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
+        when(bufferConverter.toDALM(bufferBLM)).thenReturn(bufferDALM);
+        when(connectionSchemeServiceClient.getScheme(VALID_TOKEN, SCHEME_UUID)).thenReturn(connectionScheme);
+        when(bufferRepository.exists(BUFFER_UUID)).thenReturn(false);
+
+        // Act
+        BufferBLM result = bufferService.createBuffer(VALID_TOKEN, bufferDTO);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(BUFFER_UUID);
+        verify(authKafkaClient).validateToken(VALID_TOKEN, "buffer-service");
+        verify(authKafkaClient).getClientUid(VALID_TOKEN, "buffer-service");
+        verify(bufferValidator).validate(bufferDTO);
+        verify(connectionSchemeServiceClient).getScheme(VALID_TOKEN, SCHEME_UUID);
+        verify(bufferRepository).add(bufferDALM);
+    }
+
+    @Test
+    @DisplayName("Create buffer - Negative: Token validation fails")
+    void shouldThrowExceptionWhenTokenValidationFails() {
+        // Arrange
+        BufferDTO bufferDTO = createValidBufferDTO();
+        
+        TokenValidationResponse validationResponse = TokenValidationResponse.error(
+            "correlation-id", "Token validation failed"
+        );
+
+        when(authKafkaClient.validateToken(INVALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(validationResponse));
+
+        // Act & Assert
+        assertThatThrownBy(() -> bufferService.createBuffer(INVALID_TOKEN, bufferDTO))
+            .isInstanceOf(SecurityException.class)
+            .hasMessageContaining("Token validation failed");
+
+        verify(bufferValidator, never()).validate(any(BufferDTO.class));
+        verify(connectionSchemeServiceClient, never()).getScheme(anyString(), any());
+        verify(bufferRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Create buffer - Negative: Connection scheme doesn't belong to client")
+    void shouldThrowExceptionWhenConnectionSchemeNotBelongsToClient() {
+        // Arrange
+        BufferDTO bufferDTO = createValidBufferDTO();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        ConnectionSchemeBLM differentClientScheme = createValidConnectionSchemeBLM(UUID.randomUUID());
+
+        TokenValidationResponse validationResponse = TokenValidationResponse.valid(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+        ClientUidResponse clientUidResponse = ClientUidResponse.success(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+
+        when(authKafkaClient.validateToken(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(validationResponse));
+        when(authKafkaClient.getClientUid(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(clientUidResponse));
+        
+        when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
+        when(connectionSchemeServiceClient.getScheme(VALID_TOKEN, SCHEME_UUID)).thenReturn(differentClientScheme);
+
+        // Act & Assert
+        assertThatThrownBy(() -> bufferService.createBuffer(VALID_TOKEN, bufferDTO))
+            .isInstanceOf(SecurityException.class)
+            .hasMessageContaining("doesn't belong");
+
+        verify(authKafkaClient).validateToken(VALID_TOKEN, "buffer-service");
+        verify(authKafkaClient).getClientUid(VALID_TOKEN, "buffer-service");
+        verify(bufferValidator).validate(bufferDTO);
+        verify(bufferRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Create buffer - Negative: Buffer already exists")
+    void shouldThrowExceptionWhenBufferAlreadyExists() {
+        // Arrange
+        BufferDTO bufferDTO = createValidBufferDTO();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        ConnectionSchemeBLM connectionScheme = createValidConnectionSchemeBLM();
+
+        TokenValidationResponse validationResponse = TokenValidationResponse.valid(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+        ClientUidResponse clientUidResponse = ClientUidResponse.success(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+
+        when(authKafkaClient.validateToken(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(validationResponse));
+        when(authKafkaClient.getClientUid(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(clientUidResponse));
+        
+        when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
+        when(connectionSchemeServiceClient.getScheme(VALID_TOKEN, SCHEME_UUID)).thenReturn(connectionScheme);
+        when(bufferRepository.exists(BUFFER_UUID)).thenReturn(true);
+
+        // Act & Assert
+        assertThatThrownBy(() -> bufferService.createBuffer(VALID_TOKEN, bufferDTO))
+            .isInstanceOf(BufferAlreadyExistsException.class);
+        
+        verify(authKafkaClient).validateToken(VALID_TOKEN, "buffer-service");
+        verify(authKafkaClient).getClientUid(VALID_TOKEN, "buffer-service");
+        verify(bufferValidator).validate(bufferDTO);
+        verify(bufferRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Get buffer - Positive")
+    void shouldGetBufferWhenValidRequest() {
+        // Arrange
+        BufferDALM bufferDALM = createValidBufferDALM();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        ConnectionSchemeBLM connectionScheme = createValidConnectionSchemeBLM();
+
+        TokenValidationResponse validationResponse = TokenValidationResponse.valid(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+        ClientUidResponse clientUidResponse = ClientUidResponse.success(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+
+        when(authKafkaClient.validateToken(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(validationResponse));
+        when(authKafkaClient.getClientUid(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(clientUidResponse));
+
+        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(bufferDALM);
+        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        when(connectionSchemeServiceClient.getScheme(VALID_TOKEN, SCHEME_UUID)).thenReturn(connectionScheme);
+
+        // Act
+        BufferBLM result = bufferService.getBuffer(VALID_TOKEN, BUFFER_UUID);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(BUFFER_UUID);
+        verify(authKafkaClient).validateToken(VALID_TOKEN, "buffer-service");
+        verify(authKafkaClient).getClientUid(VALID_TOKEN, "buffer-service");
+        verify(connectionSchemeServiceClient).getScheme(VALID_TOKEN, SCHEME_UUID);
+        verify(bufferRepository).findByUid(BUFFER_UUID);
+    }
+
+    @Test
+    @DisplayName("Get buffers by connection scheme - Positive")
+    void shouldGetBuffersByConnectionSchemeWhenValidRequest() {
+        // Arrange
+        BufferDALM bufferDALM = createValidBufferDALM();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        ConnectionSchemeBLM connectionScheme = createValidConnectionSchemeBLM();
+        List<BufferDALM> buffersDALM = Collections.singletonList(bufferDALM);
+
+        TokenValidationResponse validationResponse = TokenValidationResponse.valid(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+        ClientUidResponse clientUidResponse = ClientUidResponse.success(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+
+        when(authKafkaClient.validateToken(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(validationResponse));
+        when(authKafkaClient.getClientUid(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(clientUidResponse));
+        
+        when(connectionSchemeServiceClient.getScheme(VALID_TOKEN, SCHEME_UUID)).thenReturn(connectionScheme);
+        when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersDALM);
+        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+
+        // Act
+        List<BufferBLM> result = bufferService.getBuffersByConnectionScheme(VALID_TOKEN, SCHEME_UUID);
+
+        // Assert
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getUid()).isEqualTo(BUFFER_UUID);
+        verify(authKafkaClient).validateToken(VALID_TOKEN, "buffer-service");
+        verify(authKafkaClient).getClientUid(VALID_TOKEN, "buffer-service");
+        verify(connectionSchemeServiceClient).getScheme(VALID_TOKEN, SCHEME_UUID);
+        verify(bufferRepository).findByConnectionSchemeUid(SCHEME_UUID);
+    }
+
+    @Test
+@DisplayName("Get buffers by client - Positive")
+void shouldGetBuffersByClientWhenValidRequest() {
+    // Arrange
+    ConnectionSchemeBLM connectionScheme = createValidConnectionSchemeBLM();
+    List<ConnectionSchemeBLM> connectionSchemes = Collections.singletonList(connectionScheme);
+    BufferDALM bufferDALM = createValidBufferDALM();
+    BufferBLM bufferBLM = createValidBufferBLM();
+    List<BufferDALM> buffersDALM = Collections.singletonList(bufferDALM);
+
+    TokenValidationResponse validationResponse = TokenValidationResponse.valid(
+        "correlation-id", CLIENT_UUID, "ACCESS"
+    );
+    ClientUidResponse clientUidResponse = ClientUidResponse.success(
+        "correlation-id", CLIENT_UUID, "ACCESS"
+    );
+
+    when(authKafkaClient.validateToken(VALID_TOKEN, "buffer-service"))
+        .thenReturn(CompletableFuture.completedFuture(validationResponse));
+    when(authKafkaClient.getClientUid(VALID_TOKEN, "buffer-service"))
+        .thenReturn(CompletableFuture.completedFuture(clientUidResponse));
+
+    when(connectionSchemeServiceClient.getSchemesByClient(VALID_TOKEN)).thenReturn(connectionSchemes);
+    when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersDALM);
+    when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+
+    // Act
+    List<BufferBLM> result = bufferService.getBuffersByClient(VALID_TOKEN);
+
+    // Assert
+    assertThat(result).isNotEmpty();
+    assertThat(result.get(0).getUid()).isEqualTo(BUFFER_UUID);
+    verify(authKafkaClient).validateToken(VALID_TOKEN, "buffer-service");
+    verify(authKafkaClient).getClientUid(VALID_TOKEN, "buffer-service");
+    verify(connectionSchemeServiceClient).getSchemesByClient(VALID_TOKEN);
+    verify(bufferRepository).findByConnectionSchemeUid(SCHEME_UUID);
+}
+
+    @Test
+    @DisplayName("Update buffer - Positive")
+    void shouldUpdateBufferWhenValidData() {
+        // Arrange
+        BufferDTO bufferDTO = createValidBufferDTO();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        BufferDALM bufferDALM = createValidBufferDALM();
+        BufferDALM existingBuffer = createValidBufferDALM();
+        ConnectionSchemeBLM connectionScheme = createValidConnectionSchemeBLM();
+
+        TokenValidationResponse validationResponse = TokenValidationResponse.valid(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+        ClientUidResponse clientUidResponse = ClientUidResponse.success(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+
+        when(authKafkaClient.validateToken(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(validationResponse));
+        when(authKafkaClient.getClientUid(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(clientUidResponse));
+
+        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(existingBuffer);
+        when(connectionSchemeServiceClient.getScheme(VALID_TOKEN, SCHEME_UUID)).thenReturn(connectionScheme);
+        when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
+        when(bufferConverter.toDALM(bufferBLM)).thenReturn(bufferDALM);
+
+        // Act
+        BufferBLM result = bufferService.updateBuffer(VALID_TOKEN, BUFFER_UUID, bufferDTO);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(bufferValidator).validate(bufferDTO);
+        verify(bufferRepository).update(bufferDALM);
+    }
+
+    @Test
+    @DisplayName("Delete buffer - Positive")
+    void shouldDeleteBufferWhenValidRequest() {
+        // Arrange
+        BufferDALM existingBuffer = createValidBufferDALM();
+        ConnectionSchemeBLM connectionScheme = createValidConnectionSchemeBLM();
+
+        TokenValidationResponse validationResponse = TokenValidationResponse.valid(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+        ClientUidResponse clientUidResponse = ClientUidResponse.success(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+
+        when(authKafkaClient.validateToken(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(validationResponse));
+        when(authKafkaClient.getClientUid(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(clientUidResponse));
+
+        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(existingBuffer);
+        when(connectionSchemeServiceClient.getScheme(VALID_TOKEN, SCHEME_UUID)).thenReturn(connectionScheme);
+
+        // Act
+        bufferService.deleteBuffer(VALID_TOKEN, BUFFER_UUID);
+
+        // Assert
+        verify(authKafkaClient).validateToken(VALID_TOKEN, "buffer-service");
+        verify(authKafkaClient).getClientUid(VALID_TOKEN, "buffer-service");
+        verify(bufferRepository).delete(BUFFER_UUID);
+    }
+
+    @Test
+    @DisplayName("Delete buffers by connection scheme - Positive")
+    void shouldDeleteBuffersByConnectionSchemeWhenValidRequest() {
+        // Arrange
+        ConnectionSchemeBLM connectionScheme = createValidConnectionSchemeBLM();
+
+        TokenValidationResponse validationResponse = TokenValidationResponse.valid(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+        ClientUidResponse clientUidResponse = ClientUidResponse.success(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+
+        when(authKafkaClient.validateToken(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(validationResponse));
+        when(authKafkaClient.getClientUid(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(clientUidResponse));
+        
+        when(connectionSchemeServiceClient.getScheme(VALID_TOKEN, SCHEME_UUID)).thenReturn(connectionScheme);
+
+        // Act
+        bufferService.deleteBuffersByConnectionScheme(VALID_TOKEN, SCHEME_UUID);
+
+        // Assert
+        verify(authKafkaClient).validateToken(VALID_TOKEN, "buffer-service");
+        verify(authKafkaClient).getClientUid(VALID_TOKEN, "buffer-service");
+        verify(bufferRepository).deleteByConnectionSchemeUid(SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Buffer exists - Positive")
+    void shouldReturnTrueWhenBufferExists() {
+        // Arrange
+        TokenValidationResponse validationResponse = TokenValidationResponse.valid(
+            "correlation-id", CLIENT_UUID, "ACCESS"
+        );
+
+        when(authKafkaClient.validateToken(VALID_TOKEN, "buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(validationResponse));
+        when(bufferRepository.exists(BUFFER_UUID)).thenReturn(true);
+
+        // Act
+        boolean result = bufferService.bufferExists(VALID_TOKEN, BUFFER_UUID);
+
+        // Assert
+        assertThat(result).isTrue();
+        verify(authKafkaClient).validateToken(VALID_TOKEN, "buffer-service");
+        verify(bufferRepository).exists(BUFFER_UUID);
+    }
+
+    @Test
+    @DisplayName("Health check - Positive")
+    void shouldReturnHealthStatus() {
+        // Arrange
+        Map<String, Object> healthStatus = Map.of("status", "OK", "service", "auth-service");
+        HealthCheckResponse healthResponse = HealthCheckResponse.success("correlation-id", healthStatus);
+
+        when(authKafkaClient.healthCheck("buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(healthResponse));
+
+        // Act
+        Map<String, Object> result = bufferService.getHealthStatus();
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("OK");
+        assertThat(result.get("service")).isEqualTo("buffer-service");
+        assertThat(result.get("auth-service")).isEqualTo(healthStatus);
+        verify(authKafkaClient).healthCheck("buffer-service");
+    }
+
+    @Test
+    @DisplayName("Health check - Negative: Auth service unavailable")
+    void shouldReturnDegradedStatusWhenAuthServiceUnavailable() {
+        // Arrange
+        HealthCheckResponse healthResponse = HealthCheckResponse.error("correlation-id", "Service unavailable");
+
+        when(authKafkaClient.healthCheck("buffer-service"))
+            .thenReturn(CompletableFuture.completedFuture(healthResponse));
+
+        // Act
+        Map<String, Object> result = bufferService.getHealthStatus();
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("OK");
+        assertThat(result.get("auth-service")).isEqualTo("UNAVAILABLE");
+        verify(authKafkaClient).healthCheck("buffer-service");
+    }
+
+    @Test
+    @DisplayName("Kafka timeout - Negative")
+    void shouldThrowExceptionWhenKafkaTimeout() {
+        // Arrange
+        BufferDTO bufferDTO = createValidBufferDTO();
+
+        CompletableFuture<TokenValidationResponse> timeoutFuture = new CompletableFuture<>();
+        // Simulate timeout by not completing the future
+
+        when(authKafkaClient.validateToken(VALID_TOKEN, "buffer-service"))
+            .thenReturn(timeoutFuture);
+
+        // Act & Assert
+        assertThatThrownBy(() -> bufferService.createBuffer(VALID_TOKEN, bufferDTO))
+            .isInstanceOf(SecurityException.class)
+            .hasMessageContaining("Authentication failed");
+    }
+}

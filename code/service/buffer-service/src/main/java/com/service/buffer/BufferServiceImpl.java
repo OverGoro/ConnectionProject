@@ -4,6 +4,7 @@ package com.service.buffer;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -11,6 +12,9 @@ import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfig
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.auth.events.responses.TokenValidationResponse;
 import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
 import com.connection.processing.buffer.model.BufferBLM;
@@ -19,8 +23,8 @@ import com.connection.processing.buffer.model.BufferDTO;
 import com.connection.processing.buffer.repository.BufferRepository;
 import com.connection.processing.buffer.validator.BufferValidator;
 import com.connection.scheme.model.ConnectionSchemeBLM;
-import com.service.buffer.client.AuthServiceClient;
 import com.service.buffer.client.ConnectionSchemeServiceClient;
+import com.service.buffer.kafka.TypedAuthKafkaClient;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,28 +33,28 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Service
 @EnableAutoConfiguration(exclude = {
-    JpaRepositoriesAutoConfiguration.class
+        JpaRepositoriesAutoConfiguration.class
 })
 @Transactional("atomicosTransactionManager")
 public class BufferServiceImpl implements BufferService {
-    
+
     private final BufferRepository bufferRepository;
     private final BufferConverter bufferConverter;
     private final BufferValidator bufferValidator;
-    private final AuthServiceClient authServiceClient;
+    private final TypedAuthKafkaClient authKafkaClient;
     private final ConnectionSchemeServiceClient connectionSchemeServiceClient;
 
     @Override
     public BufferBLM createBuffer(String accessToken, BufferDTO bufferDTO) {
         UUID clientUid = validateTokenAndGetClientUid(accessToken);
-        
+
         bufferValidator.validate(bufferDTO);
         BufferBLM bufferBLM = bufferConverter.toBLM(bufferDTO);
-        
+
         // Проверяем, что схема подключения принадлежит клиенту
         ConnectionSchemeBLM connectionScheme = connectionSchemeServiceClient.getScheme(
-            accessToken, bufferBLM.getConnectionSchemeUid());
-        
+                accessToken, bufferBLM.getConnectionSchemeUid());
+
         if (!clientUid.equals(connectionScheme.getClientUid())) {
             throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
         }
@@ -62,35 +66,36 @@ public class BufferServiceImpl implements BufferService {
 
         BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
         bufferRepository.add(bufferDALM);
-        
-        log.info("Buffer created: {} for connection scheme: {}", bufferBLM.getUid(), bufferBLM.getConnectionSchemeUid());
+
+        log.info("Buffer created: {} for connection scheme: {}", bufferBLM.getUid(),
+                bufferBLM.getConnectionSchemeUid());
         return bufferBLM;
     }
 
     @Override
     public BufferBLM getBuffer(String accessToken, UUID bufferUid) {
         UUID clientUid = validateTokenAndGetClientUid(accessToken);
-        
+
         BufferDALM bufferDALM = bufferRepository.findByUid(bufferUid);
-        
+
         // Проверяем, что схема подключения принадлежит клиенту
         ConnectionSchemeBLM connectionScheme = connectionSchemeServiceClient.getScheme(
-            accessToken, bufferDALM.getConnectionSchemeUid());
-        
+                accessToken, bufferDALM.getConnectionSchemeUid());
+
         if (!clientUid.equals(connectionScheme.getClientUid())) {
             throw new SecurityException("Buffer doesn't belong to the authenticated client");
         }
-        
+
         return bufferConverter.toBLM(bufferDALM);
     }
 
     @Override
     public List<BufferBLM> getBuffersByClient(String accessToken) {
         validateTokenAndGetClientUid(accessToken);
-        
+
         // Получаем все схемы подключения клиента
         List<ConnectionSchemeBLM> connectionSchemes = connectionSchemeServiceClient.getSchemesByClient(accessToken);
-        
+
         // Получаем все буферы для всех схем подключения клиента
         return connectionSchemes.stream()
                 .flatMap(scheme -> bufferRepository.findByConnectionSchemeUid(scheme.getUid()).stream())
@@ -101,10 +106,11 @@ public class BufferServiceImpl implements BufferService {
     @Override
     public List<BufferBLM> getBuffersByConnectionScheme(String accessToken, UUID connectionSchemeUid) {
         UUID clientUid = validateTokenAndGetClientUid(accessToken);
-        
+
         // Проверяем, что схема подключения принадлежит клиенту
-        ConnectionSchemeBLM connectionScheme = connectionSchemeServiceClient.getScheme(accessToken, connectionSchemeUid);
-        
+        ConnectionSchemeBLM connectionScheme = connectionSchemeServiceClient.getScheme(accessToken,
+                connectionSchemeUid);
+
         if (!clientUid.equals(connectionScheme.getClientUid())) {
             throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
         }
@@ -118,25 +124,25 @@ public class BufferServiceImpl implements BufferService {
     @Override
     public BufferBLM updateBuffer(String accessToken, UUID bufferUid, BufferDTO bufferDTO) {
         UUID clientUid = validateTokenAndGetClientUid(accessToken);
-        
+
         // Проверяем существование буфера
         BufferDALM existingBuffer = bufferRepository.findByUid(bufferUid);
-        
+
         // Проверяем, что схема подключения принадлежит клиенту
         ConnectionSchemeBLM existingConnectionScheme = connectionSchemeServiceClient.getScheme(
-            accessToken, existingBuffer.getConnectionSchemeUid());
-        
+                accessToken, existingBuffer.getConnectionSchemeUid());
+
         if (!clientUid.equals(existingConnectionScheme.getClientUid())) {
             throw new SecurityException("Buffer doesn't belong to the authenticated client");
         }
 
         bufferValidator.validate(bufferDTO);
         BufferBLM bufferBLM = bufferConverter.toBLM(bufferDTO);
-        
+
         // Проверяем, что клиент из токена совпадает с клиентом новой схемы
         ConnectionSchemeBLM newConnectionScheme = connectionSchemeServiceClient.getScheme(
-            accessToken, bufferBLM.getConnectionSchemeUid());
-        
+                accessToken, bufferBLM.getConnectionSchemeUid());
+
         if (!clientUid.equals(newConnectionScheme.getClientUid())) {
             throw new SecurityException("New connection scheme doesn't belong to the authenticated client");
         }
@@ -148,7 +154,7 @@ public class BufferServiceImpl implements BufferService {
 
         BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
         bufferRepository.update(bufferDALM);
-        
+
         log.info("Buffer updated: {} for connection scheme: {}", bufferUid, bufferBLM.getConnectionSchemeUid());
         return bufferBLM;
     }
@@ -156,14 +162,14 @@ public class BufferServiceImpl implements BufferService {
     @Override
     public void deleteBuffer(String accessToken, UUID bufferUid) {
         UUID clientUid = validateTokenAndGetClientUid(accessToken);
-        
+
         // Проверяем существование буфера
         BufferDALM existingBuffer = bufferRepository.findByUid(bufferUid);
-        
+
         // Проверяем, что схема подключения принадлежит клиенту
         ConnectionSchemeBLM connectionScheme = connectionSchemeServiceClient.getScheme(
-            accessToken, existingBuffer.getConnectionSchemeUid());
-        
+                accessToken, existingBuffer.getConnectionSchemeUid());
+
         if (!clientUid.equals(connectionScheme.getClientUid())) {
             throw new SecurityException("Buffer doesn't belong to the authenticated client");
         }
@@ -175,10 +181,11 @@ public class BufferServiceImpl implements BufferService {
     @Override
     public void deleteBuffersByConnectionScheme(String accessToken, UUID connectionSchemeUid) {
         UUID clientUid = validateTokenAndGetClientUid(accessToken);
-        
+
         // Проверяем, что схема подключения принадлежит клиенту
-        ConnectionSchemeBLM connectionScheme = connectionSchemeServiceClient.getScheme(accessToken, connectionSchemeUid);
-        
+        ConnectionSchemeBLM connectionScheme = connectionSchemeServiceClient.getScheme(accessToken,
+                connectionSchemeUid);
+
         if (!clientUid.equals(connectionScheme.getClientUid())) {
             throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
         }
@@ -194,21 +201,62 @@ public class BufferServiceImpl implements BufferService {
     }
 
     private UUID validateTokenAndGetClientUid(String accessToken) {
-        validateToken(accessToken);
-        return authServiceClient.getAccessTokenClientUID(accessToken);
+        try {
+            // Валидируем токен
+            TokenValidationResponse validationResponse = authKafkaClient.validateToken(
+                    accessToken, "buffer-service").get(10, TimeUnit.SECONDS);
+
+            if (!validationResponse.isSuccess() || !validationResponse.isValid()) {
+                throw new SecurityException("Token validation failed: " + validationResponse.getError());
+            }
+
+            // Получаем client UID
+            ClientUidResponse clientUidResponse = authKafkaClient.getClientUid(
+                    accessToken, "buffer-service").get(10, TimeUnit.SECONDS);
+
+            if (!clientUidResponse.isSuccess()) {
+                throw new SecurityException("Failed to get client UID: " + clientUidResponse.getError());
+            }
+
+            return clientUidResponse.getClientUid();
+
+        } catch (Exception e) {
+            throw new SecurityException("Authentication failed: " + e.getMessage());
+        }
     }
 
     private void validateToken(String accessToken) {
-        authServiceClient.validateAccessToken(accessToken);
+        try {
+            TokenValidationResponse response = authKafkaClient.validateToken(
+                    accessToken, "buffer-service").get(10, TimeUnit.SECONDS);
+
+            if (!response.isSuccess() || !response.isValid()) {
+                throw new SecurityException("Token validation failed: " + response.getError());
+            }
+        } catch (Exception e) {
+            throw new SecurityException("Token validation error: " + e.getMessage());
+        }
     }
 
     @Override
     public Map<String, Object> getHealthStatus() {
-        return Map.of(
-                "status", "OK",
-                "service", "buffer-service",
-                "timestamp", System.currentTimeMillis(),
-                "auth-service", authServiceClient.healthCheck(),
-                "connection-scheme-service", connectionSchemeServiceClient.healthCheck());
+        try {
+            HealthCheckResponse authHealth = authKafkaClient.healthCheck("buffer-service")
+                    .get(5, TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "buffer-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+        } catch (Exception e) {
+            log.error("Kafka Client: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "buffer-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "error", e.getMessage());
+        }
     }
 }

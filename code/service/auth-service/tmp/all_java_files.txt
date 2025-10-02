@@ -1,0 +1,1347 @@
+package com.service.auth;
+
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.data.util.Pair;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.client.converter.ClientConverter;
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDTO;
+import com.connection.client.validator.ClientValidator;
+import com.connection.token.converter.AccessTokenConverter;
+import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.AccessTokenDTO;
+import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.RefreshTokenDTO;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/auth-service")
+public class AuthServiceController {
+    private final AccessTokenConverter accessTokenConverter;
+    private final RefreshTokenConverter refreshTokenConverter;
+    private final ClientConverter clientConverter;
+
+    private final ClientValidator clientValidator;
+    
+    private final AuthService authService;
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody ClientDTO clientDTO) {
+        try {
+            log.info("Registration attempt for email: {}", clientDTO.getEmail());
+            clientValidator.validate(clientDTO);
+
+            ClientBLM clientBLM = clientConverter.toBLM(clientDTO);
+
+            authService.register(clientBLM);
+
+            log.info("Client registered successfully: {}", clientDTO.getEmail());
+            return ResponseEntity.ok().body(Map.of(
+                    "message", "User registered successfully",
+                    "email", clientDTO.getEmail()));
+
+        } catch (Exception e) {
+            log.error("Registration failed for email: {}", clientDTO.getEmail(), e);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Registration failed",
+                    "message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/login/email")
+    public ResponseEntity<?> loginByEmail(@RequestBody Map<String, String> credentials) {
+        try {
+            String email = credentials.get("email");
+            String password = credentials.get("password");
+
+            log.info("Login attempt by email: {}", email);
+
+            // Вызываем сервис авторизации
+            Pair<AccessTokenBLM, RefreshTokenBLM> tokens = authService.authorizeByEmail(email, password);
+
+            log.info("Login successful for email: {}", email);
+
+            return ResponseEntity.ok().body(Map.of(
+                    "accessToken", tokens.getFirst().getToken(),
+                    "refreshToken", tokens.getSecond().getToken(),
+                    "accessTokenExpiresAt", tokens.getFirst().getExpiresAt(),
+                    "refreshTokenExpiresAt", tokens.getSecond().getExpiresAt(),
+                    "clientUid", tokens.getFirst().getClientUID()));
+
+        } catch (Exception e) {
+            log.error("Login failed for email: {}", credentials.get("email"), e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", "Login failed",
+                    "message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> tokenRequest) {
+        try {
+            String refreshToken = tokenRequest.get("refreshToken");
+
+            log.info("Token refresh attempt");
+
+            RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
+            RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
+
+            // Вызываем сервис обновления токенов
+            Pair<AccessTokenBLM, RefreshTokenBLM> newTokens = authService.refresh(refreshTokenBLM);
+
+            log.info("Token refresh successful");
+
+            return ResponseEntity.ok().body(Map.of(
+                    "accessToken", newTokens.getFirst().getToken(),
+                    "refreshToken", newTokens.getSecond().getToken(),
+                    "accessTokenExpiresAt", newTokens.getFirst().getExpiresAt(),
+                    "refreshTokenExpiresAt", newTokens.getSecond().getExpiresAt()));
+
+        } catch (Exception e) {
+            log.error("Token refresh failed", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", "Token refresh failed",
+                    "message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<?> healthCheck() {
+        log.info("Heakth check: " + "\nstatus: OK" + "\nservice: auth-service" + "\ntimestamp: "
+                + System.currentTimeMillis());
+
+        ResponseEntity<?> responseEntity = ResponseEntity.ok().body(Map.of(
+                "status", "OK",
+                "service", "auth-service",
+                "timestamp", System.currentTimeMillis()));
+        return responseEntity;
+    }
+
+    @GetMapping("/validate/token/access")
+    public ResponseEntity<?> validateAccessToken(String accessToken) {
+        log.info("Validating access token");
+        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
+
+        AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
+        authService.validateAccessToken(accessTokenBLM);
+
+        ResponseEntity<?> responseEntity = ResponseEntity.ok().body(Map.of("status", "OK"));
+        return responseEntity;
+    }
+
+    @GetMapping("/validate/token/refresh")
+    public ResponseEntity<?> validateRefreshToken(String refreshToken) {
+        log.info("Validating refresh token");
+        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
+
+        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
+        authService.validateRefreshToken(refreshTokenBLM);
+
+        ResponseEntity<?> responseEntity = ResponseEntity.ok().body(Map.of("status", "OK"));
+        return responseEntity;
+    }
+
+    @GetMapping("/extract/accessTokenClientUID")
+    public ResponseEntity<UUID> getAccessTokenClientUID(String accessToken) {
+        log.info("Validating access token");
+        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
+
+        AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
+        authService.validateAccessToken(accessTokenBLM);
+
+        ResponseEntity<UUID> responseEntity = ResponseEntity.ok().body(accessTokenBLM.getClientUID());
+        return responseEntity;
+    }
+
+    @GetMapping("/extract/refreshTokenClientUID")
+    public ResponseEntity<UUID> getRefreshTokenClientUID(String refreshToken) {
+        log.info("Validating refresh token");
+        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
+
+        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
+        authService.validateRefreshToken(refreshTokenBLM);
+
+        ResponseEntity<UUID> responseEntity = ResponseEntity.ok().body(refreshTokenBLM.getClientUID());
+        return responseEntity;
+    }
+}package com.service.auth.config;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.token.repository.RefreshTokenRepository;
+import com.connection.token.repository.RefreshTokenRepositorySQLImpl;
+
+@Configuration
+public class RefreshTokenRepositoryConfig {
+    @Bean("RefreshTokenRepository")
+    RefreshTokenRepository refreshTokenRepository(@Qualifier("RefreshTokenJdbcTemplate")NamedParameterJdbcTemplate template){
+        return new RefreshTokenRepositorySQLImpl(template);
+    }
+}
+package com.service.auth.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.connection.client.converter.ClientConverter;
+import com.connection.client.validator.ClientValidator;
+
+
+@Configuration
+public class ClientUtilsConfig {
+    @Bean("ClientConverter")
+    ClientConverter clientConverter(){
+        return new ClientConverter();
+    }
+
+    @Bean("ClientValidator")
+    ClientValidator clientValidator(){
+        return new ClientValidator();
+    }
+}
+// AuthKafkaConfig.java
+package com.service.auth.config;
+
+import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.TopicBuilder;
+
+import com.connection.auth.events.AuthEventConstants;
+
+@Configuration
+public class AuthKafkaConfig {
+
+    @Bean
+    public NewTopic authCommandsTopic() {
+        return TopicBuilder.name(AuthEventConstants.AUTH_COMMANDS_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic authResponsesTopic() {
+        return TopicBuilder.name(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic authEventsTopic() {
+        return TopicBuilder.name(AuthEventConstants.AUTH_EVENTS_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+}package com.service.auth.config;
+
+import java.util.Properties;
+
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.atomikos.jdbc.AtomikosDataSourceBean;
+
+@Configuration
+public class RefreshTokenJDBCConfig {
+    
+    @Value("${app.datasource.refresh-token.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    private String xaDataSourceClassName;
+
+    @Value("${app.datasource.refresh-token.xa-properties.url}")
+    private String jdbcUrl;
+
+    @Value("${app.datasource.refresh-token.xa-properties.user}")
+    private String username;
+
+    @Value("${app.datasource.refresh-token.xa-properties.password}")
+    private String password;
+
+    @Value("${app.datasource.refresh-token.pool-size:5}")
+    private int poolSize;
+
+    @Value("${app.datasource.refresh-token.max-pool-size:10}")
+    private int maxPoolSize;
+
+    @Value("${app.datasource.refresh-token.min-pool-size:2}")
+    private int minPoolSize;
+
+    @Value("${app.datasource.refresh-token.borrow-connection-timeout:30000}")
+    private int borrowConnectionTimeout;
+
+    @Value("${app.datasource.refresh-token.max-idle-time:60}")
+    private int maxIdleTime;
+
+    @Value("${app.datasource.refresh-token.max-lifetime:120}")
+    private int maxLifetime;
+
+    @Value("${app.datasource.refresh-token.test-query:SELECT 1}")
+    private String testQuery;
+
+    @Value("${app.datasource.refresh-token.maintenance-interval:60}")
+    private int maintenanceInterval;
+
+    @Value("${app.datasource.refresh-token.unique-resource-name:refreshTokenXADataSource}")
+    private String uniqueResourceName;
+
+    @Bean("RefreshTokenDataSource")
+    DataSource refreshTokenDataSource() {
+        AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
+
+        dataSource.setUniqueResourceName(uniqueResourceName);
+        dataSource.setXaDataSourceClassName(xaDataSourceClassName);
+
+        Properties xaProperties = new Properties();
+        xaProperties.setProperty("url", jdbcUrl);
+        xaProperties.setProperty("user", username);
+        xaProperties.setProperty("password", password);
+
+        dataSource.setXaProperties(xaProperties);
+
+        dataSource.setPoolSize(poolSize);
+        dataSource.setMaxPoolSize(maxPoolSize);
+        dataSource.setMinPoolSize(minPoolSize);
+        dataSource.setBorrowConnectionTimeout(borrowConnectionTimeout);
+        dataSource.setMaxIdleTime(maxIdleTime);
+        dataSource.setMaxLifetime(maxLifetime);
+
+        dataSource.setTestQuery(testQuery);
+        dataSource.setMaintenanceInterval(maintenanceInterval);
+
+        return dataSource;
+    }
+
+    @Bean("RefreshTokenJdbcTemplate")
+    NamedParameterJdbcTemplate refreshTokenNamedParameterJdbcTemplate(
+            @Qualifier("RefreshTokenDataSource") DataSource refreshTokenDataSource) {
+        return new NamedParameterJdbcTemplate(refreshTokenDataSource);
+    }
+}package com.service.auth.config;
+
+import java.util.Properties;
+
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.atomikos.jdbc.AtomikosDataSourceBean;
+
+@Configuration
+public class ClientJDBCConfig {
+    
+    @Value("${app.datasource.client.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    private String xaDataSourceClassName;
+
+    @Value("${app.datasource.client.xa-properties.url}")
+    private String jdbcUrl;
+
+    @Value("${app.datasource.client.xa-properties.user}")
+    private String username;
+
+    @Value("${app.datasource.client.xa-properties.password}")
+    private String password;
+
+    @Value("${app.datasource.client.pool-size:5}")
+    private int poolSize;
+
+    @Value("${app.datasource.client.max-pool-size:10}")
+    private int maxPoolSize;
+
+    @Value("${app.datasource.client.min-pool-size:2}")
+    private int minPoolSize;
+
+    @Value("${app.datasource.client.borrow-connection-timeout:30000}")
+    private int borrowConnectionTimeout;
+
+    @Value("${app.datasource.client.max-idle-time:60}")
+    private int maxIdleTime;
+
+    @Value("${app.datasource.client.max-lifetime:120}")
+    private int maxLifetime;
+
+    @Value("${app.datasource.client.test-query:SELECT 1}")
+    private String testQuery;
+
+    @Value("${app.datasource.client.maintenance-interval:60}")
+    private int maintenanceInterval;
+
+    @Value("${app.datasource.client.unique-resource-name:clientXADataSource}")
+    private String uniqueResourceName;
+
+    @Bean("ClientDataSource")
+    DataSource clientDataSource() {
+        AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
+
+        dataSource.setUniqueResourceName(uniqueResourceName);
+        dataSource.setXaDataSourceClassName(xaDataSourceClassName);
+        
+        Properties xaProperties = new Properties();
+        xaProperties.setProperty("url", jdbcUrl);
+        xaProperties.setProperty("user", username);
+        xaProperties.setProperty("password", password);
+
+        dataSource.setXaProperties(xaProperties);
+
+        dataSource.setPoolSize(poolSize);
+        dataSource.setMaxPoolSize(maxPoolSize);
+        dataSource.setMinPoolSize(minPoolSize);
+        dataSource.setBorrowConnectionTimeout(borrowConnectionTimeout);
+        dataSource.setMaxIdleTime(maxIdleTime);
+        dataSource.setMaxLifetime(maxLifetime);
+
+        dataSource.setTestQuery(testQuery);
+        dataSource.setMaintenanceInterval(maintenanceInterval);
+
+        return dataSource;
+    }
+
+    @Bean("ClientJdbcTemplate")
+    NamedParameterJdbcTemplate clientNamedParameterJdbcTemplate(
+            @Qualifier("ClientDataSource") DataSource clientDataSource) {
+        return new NamedParameterJdbcTemplate(clientDataSource);
+    }
+}package com.service.auth.config;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.MacAlgorithm;
+
+@Configuration
+public class JwtConfig {
+    @Value("${JWT_KEY:${app.jwt.key:zbhcWhLNkuwmbgJBdLKQU5tEArWPrWyMHrenwYT7e9c}}")
+    private String jwtSecretString;
+
+    @Value("AuthToken")
+    private String jwtSubjectString;
+
+    @Value("${ACCESS_TOKEN_EXPIRATION:${app.jwt.access-token.expiration:600}}")
+    private long accessTokenExpiration;
+    
+    @Value("${REFRESH_TOKEN_EXPIRATION:${app.jwt.refresh-token.expiration:86400}}")
+    private long refreshTokenExpiration;
+
+    private final MacAlgorithm jwtAlgorithmMacAlgorithm = Jwts.SIG.HS256;
+
+    @Bean("jwtSecretKey")
+    SecretKey jwtSecretKey() {
+        return createSecretKeyFromString(jwtSecretString, jwtAlgorithmMacAlgorithm);
+    }
+
+    @Bean("jwtSubject")
+    String jwtSubject(){
+        return jwtSecretString;
+    }
+
+    @Bean("jwtAccessTokenExpiration")
+    Duration jwtAccessTokenDuration(){
+        return Duration.ofSeconds(accessTokenExpiration);
+    }
+
+    @Bean("jwtRefreshTokenExpiration")
+    Duration jwtRefreshTokenDuration(){
+        return Duration.ofSeconds(refreshTokenExpiration);
+    }
+    
+    @Bean("jwtAlghorithm")
+    MacAlgorithm jwtAlgorithmMacAlgorithm(){
+        return jwtAlgorithmMacAlgorithm;
+    }
+
+    private SecretKey createSecretKeyFromString(String secretString, MacAlgorithm algorithm) {
+        byte[] keyBytes = secretString.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+
+}
+package com.service.auth.config;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.validator.RefreshTokenValidator;
+
+@Configuration
+public class RefreshTokenUtilsConfig {
+
+    @Bean("RefreshTokenValidator")
+    RefreshTokenValidator refreshTokenValidator(){
+        return new RefreshTokenValidator();
+    }
+
+    @Bean("RefreshTokenGenerator")
+    RefreshTokenGenerator refreshTokenGenerator(
+            @Qualifier("jwtSecretKey") SecretKey secretKey,
+            @Qualifier("appName") String appNameString,
+            @Qualifier("jwtSubject") String subjecString) {
+        return new RefreshTokenGenerator(secretKey, appNameString, subjecString);
+    }
+
+    @Bean("RefreshTokenConverter")
+    RefreshTokenConverter refreshTokenConverter(
+            @Qualifier("RefreshTokenGenerator") RefreshTokenGenerator refreshTokenGenerator) {
+        return new RefreshTokenConverter(refreshTokenGenerator);
+    }
+}
+package com.service.auth.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.jta.JtaTransactionManager;
+
+import com.atomikos.icatch.jta.UserTransactionManager;
+
+import jakarta.transaction.SystemException;
+
+@Configuration
+public class TransactionConfig {
+
+    @Bean
+    public UserTransactionManager userTransactionManager() throws SystemException{
+        UserTransactionManager manager = new UserTransactionManager();
+        manager.setTransactionTimeout(300);
+        manager.setForceShutdown(true);
+        return manager;
+    }
+
+    @Bean(name = "atomicosTransactionManager")
+    public JtaTransactionManager jtaTransactionManager() throws SystemException {
+        JtaTransactionManager jtaTransactionManager = new JtaTransactionManager();
+        jtaTransactionManager.setTransactionManager(userTransactionManager());
+        jtaTransactionManager.setUserTransaction(userTransactionManager());
+        return jtaTransactionManager;
+    }
+}package com.service.auth.config;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.client.repository.ClientRepository;
+import com.connection.client.repository.ClientRepositorySQLImpl;
+
+@Configuration
+public class ClientRepositoryConfig {
+    @Bean("ClientRepository")
+    ClientRepository clientRepository(@Qualifier("ClientJdbcTemplate")NamedParameterJdbcTemplate template){
+        return new ClientRepositorySQLImpl(template);
+    }
+}
+package com.service.auth.config;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class ApplicationConfig {
+    @Value("${spring.application.name:auth-service}")
+    private String appNameString;
+
+    @Bean
+    @Qualifier("appName")
+    String appName(){
+        return appNameString;
+    }
+}
+package com.service.auth.config;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.connection.token.converter.AccessTokenConverter;
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.validator.AccessTokenValidator;
+@Configuration
+public class AccessTokenUtilsConfig {
+    @Bean("AccessTokenValidator")
+    AccessTokenValidator accessTokenValidator() {
+        return new AccessTokenValidator();
+    }
+
+    @Bean("AccessTokenGenerator")
+    AccessTokenGenerator accessTokenGenerator(
+            @Qualifier("jwtSecretKey") SecretKey secretKey,
+            @Qualifier("appName") String appNameString,
+            @Qualifier("jwtSubject") String subjecString) {
+        return new AccessTokenGenerator(secretKey, appNameString, subjecString);
+    }
+
+    @Bean("AccessTokenConverter")
+    AccessTokenConverter accessTokenConverter(
+            @Qualifier("AccessTokenGenerator") AccessTokenGenerator accessTokenGenerator) {
+        return new AccessTokenConverter(accessTokenGenerator);
+    }
+
+}
+// AuthCommandConsumer.java
+package com.service.auth.kafka;
+
+import java.util.Map;
+
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.stereotype.Component;
+
+import com.connection.auth.events.AuthEventUtils;
+import com.connection.auth.events.commands.ExtractClientUidCommand;
+import com.connection.auth.events.commands.HealthCheckCommand;
+import com.connection.auth.events.commands.ValidateTokenCommand;
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.auth.events.responses.TokenValidationResponse;
+import com.connection.token.converter.AccessTokenConverter;
+import com.connection.token.model.AccessTokenBLM;
+import com.service.auth.AuthService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class AuthCommandConsumer {
+
+    private final AuthService authService;
+    private final AccessTokenConverter accessTokenConverter;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    @KafkaListener(topics = "${app.kafka.topics.auth-commands:auth.commands}")
+    public void handleAuthCommand(@Payload String message,
+            @Header(KafkaHeaders.RECEIVED_KEY) String key,
+            @Header("type") String type) {
+        try {
+            log.info("Received auth command: type={}, key={}", type, key);
+
+            switch (type) {
+                case "VALIDATE_TOKEN":
+                    handleValidateTokenCommand(message, key);
+                    break;
+                case "EXTRACT_CLIENT_UID":
+                    handleExtractClientUidCommand(message, key);
+                    break;
+                case "HEALTH_CHECK":
+                    handleHealthCheckCommand(message, key);
+                    break;
+                default:
+                    log.warn("Unknown command type: {}", type);
+            }
+        } catch (Exception e) {
+            log.error("Error processing auth command: type={}, key={}", type, key, e);
+        }
+    }
+
+    private void handleValidateTokenCommand(String message, String key) {
+        ValidateTokenCommand command = AuthEventUtils.fromJson(message, ValidateTokenCommand.class);
+
+        try {
+            AccessTokenBLM tokenBLM = accessTokenConverter.toBLM(
+                    new com.connection.token.model.AccessTokenDTO(command.getToken()));
+            authService.validateAccessToken(tokenBLM);
+
+            TokenValidationResponse response = TokenValidationResponse.valid(
+                    command.getCorrelationId(),
+                    tokenBLM.getClientUID(),
+                    command.getTokenType().name());
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.info("Token validation successful: clientUid={}", tokenBLM.getClientUID());
+
+        } catch (Exception e) {
+            TokenValidationResponse response = TokenValidationResponse.error(
+                    command.getCorrelationId(),
+                    e.getMessage());
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.error("Token validation failed: {}", e.getMessage());
+        }
+    }
+
+    private void handleExtractClientUidCommand(String message, String key) {
+        ExtractClientUidCommand command = AuthEventUtils.fromJson(message, ExtractClientUidCommand.class);
+
+        try {
+            AccessTokenBLM tokenBLM = accessTokenConverter.toBLM(
+                    new com.connection.token.model.AccessTokenDTO(command.getToken()));
+            authService.validateAccessToken(tokenBLM);
+
+            ClientUidResponse response = ClientUidResponse.success(
+                    command.getCorrelationId(),
+                    tokenBLM.getClientUID(),
+                    command.getTokenType().name());
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.info("Client UID extracted: {}", tokenBLM.getClientUID());
+
+        } catch (Exception e) {
+            ClientUidResponse response = ClientUidResponse.error(
+                    command.getCorrelationId(),
+                    e.getMessage());
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.error("Client UID extraction failed: {}", e.getMessage());
+        }
+    }
+
+    private void handleHealthCheckCommand(String message, String key) {
+        HealthCheckCommand command = AuthEventUtils.fromJson(message, HealthCheckCommand.class);
+
+        try {
+            Map<String, Object> healthStatus = Map.of(
+                    "status", "OK",
+                    "service", "auth-service",
+                    "timestamp", System.currentTimeMillis());
+
+            HealthCheckResponse response = HealthCheckResponse.success(
+                    command.getCorrelationId(),
+                    healthStatus);
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.info("Health check completed successfully");
+
+        } catch (Exception e) {
+            HealthCheckResponse response = HealthCheckResponse.error(
+                    command.getCorrelationId(),
+                    e.getMessage());
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.error("Health check failed: {}", e.getMessage());
+        }
+    }
+}package com.service.auth;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class AuthServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(AuthServiceApplication.class, args);
+	}
+	
+}
+package com.service.auth;
+
+import java.util.UUID;
+
+import org.springframework.data.util.Pair;
+
+import com.connection.client.model.ClientBLM;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.RefreshTokenBLM;
+
+
+
+public interface AuthService {
+    public Pair<AccessTokenBLM, RefreshTokenBLM> authorizeByEmail(String email, String password);
+    public void register(ClientBLM clientBLM);
+    public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(RefreshTokenBLM refreshTokenBLM);
+    public void validateAccessToken(AccessTokenBLM accessTokenBLM);
+    public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM);
+    public UUID getClientUid(AccessTokenBLM accessTokenBLM);
+    public UUID getClientUid(RefreshTokenBLM accessTokenBLM);
+
+}
+package com.service.auth;
+
+import java.time.Duration;
+import java.util.Date;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.data.util.Pair;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.client.converter.ClientConverter;
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDALM;
+import com.connection.client.repository.ClientRepository;
+import com.connection.client.validator.ClientValidator;
+import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.RefreshTokenDALM;
+import com.connection.token.repository.RefreshTokenRepository;
+import com.connection.token.validator.AccessTokenValidator;
+import com.connection.token.validator.RefreshTokenValidator;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+    JpaRepositoriesAutoConfiguration.class
+})
+@EnableTransactionManagement
+public class AuthServiceImpl implements AuthService {
+    private final RefreshTokenConverter refreshTokenConverter;
+    private final ClientConverter clientConverter;
+
+    private final ClientValidator clientValidator;
+    private final RefreshTokenValidator refreshTokenValidator;
+    private final AccessTokenValidator accessTokenValidator;
+
+    private final RefreshTokenGenerator refreshTokenGenerator;
+    private final AccessTokenGenerator accessTokenGenerator;
+
+    private final ClientRepository clientRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    @Qualifier("jwtAccessTokenExpiration")
+    private final Duration jwtAccessTokenDuration;
+
+    @Qualifier("jwtRefreshTokenExpiration")
+    private final Duration jwtRefreshTokenDuration;
+
+    @Override
+    @Transactional("atomicosTransactionManager")
+    public Pair<AccessTokenBLM, RefreshTokenBLM> authorizeByEmail(String email, String password) {
+        clientValidator.validateEmail(email);
+
+        ClientDALM clientDALM = clientRepository.findByEmail(email);
+        ClientBLM clientBLM = clientConverter.toBLM(clientDALM);        
+
+        // Инициалаизация общих полей
+        UUID newClientUuid = clientBLM.getUid();
+        Date newCreatedAt = new Date();
+
+        // Инициализация нового refreshToken
+        UUID newRefreshUID = UUID.randomUUID();
+        
+        Date newRefreshExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
+        String newRefreshTokenString = refreshTokenGenerator.generateRefreshToken(newRefreshUID, newClientUuid,
+                newCreatedAt, newRefreshExpiresAt);
+
+        RefreshTokenBLM newRefreshTokenBLM = new RefreshTokenBLM(newRefreshTokenString, newRefreshUID, newClientUuid,
+                newCreatedAt, newRefreshExpiresAt);
+
+        refreshTokenValidator.validate(newRefreshTokenBLM);
+
+        // Инициалищация нового accessToken
+        Date newAccessExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
+        String newAcessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
+                newAccessExpiresAt);
+        AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAcessTokenString, newClientUuid, newCreatedAt,
+                newAccessExpiresAt);
+        accessTokenValidator.validate(newAccessTokenBLM);
+
+
+        // Добавление нового refreshToken в БД
+        RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
+        refreshTokenRepository.add(newRefreshTokenDALM);
+
+        // Возварты пары токенов
+        return Pair.of(newAccessTokenBLM, newRefreshTokenBLM);
+
+    }
+
+    @Override
+    @Transactional("atomicosTransactionManager")
+    public void register(ClientBLM clientBLM) {
+        // Создаем нового клиента
+        clientValidator.validate(clientBLM);
+        ClientDALM clientDALM = clientConverter.toDALM(clientBLM);
+        clientRepository.add(clientDALM);
+
+        // Создаем refreshToken 
+    }
+
+    @Override
+    @Transactional("atomicosTransactionManager")
+    public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(
+            RefreshTokenBLM refreshTokenBLM) {
+        refreshTokenValidator.validate(refreshTokenBLM);
+
+        // Инициалаизация общих полей
+        UUID newClientUuid = refreshTokenBLM.getClientUID();
+        Date newCreatedAt = new Date();
+
+        // Инициализация нового refreshToken
+        UUID newRefreshUID = refreshTokenBLM.getUid();
+        Date newRefreshExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
+        String newRefreshTokenString = refreshTokenGenerator.generateRefreshToken(newRefreshUID, newClientUuid,
+                newCreatedAt, newRefreshExpiresAt);
+
+        RefreshTokenBLM newRefreshTokenBLM = new RefreshTokenBLM(newRefreshTokenString, newRefreshUID, newClientUuid,
+                newCreatedAt, newRefreshExpiresAt);
+
+        refreshTokenValidator.validate(newRefreshTokenBLM);
+
+        // Инициалищация нового accessToken
+        Date newAccessExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
+        String newAcessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
+                newAccessExpiresAt);
+        AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAcessTokenString, newClientUuid, newCreatedAt,
+                newAccessExpiresAt);
+        accessTokenValidator.validate(newAccessTokenBLM);
+
+        // Обновление RefreshToken в репозитории
+        RefreshTokenDALM refreshTokenDALM = refreshTokenConverter.toDALM(refreshTokenBLM);
+        RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
+        refreshTokenRepository.updateToken(refreshTokenDALM, newRefreshTokenDALM);
+
+        // Возвращат новых токенов
+        return Pair.of(newAccessTokenBLM, newRefreshTokenBLM);
+    }
+
+    @Override
+    public void validateAccessToken(AccessTokenBLM accessTokenBLM) {
+        accessTokenValidator.validate(accessTokenBLM);
+    }
+
+    @Override
+    public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM) {
+        refreshTokenValidator.validate(refreshTokenBLM);
+    }
+
+
+    @Override
+    public UUID getClientUid(AccessTokenBLM accessTokenBLM){
+        validateAccessToken(accessTokenBLM);
+        return accessTokenBLM.getClientUID();
+    }
+
+     @Override
+    public UUID getClientUid(RefreshTokenBLM accessTokenBLM){
+        validateRefreshToken(accessTokenBLM);
+        return accessTokenBLM.getClientUID();
+    }
+}
+package com.service.auth;
+
+import static com.service.auth.mother.AuthObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.Duration;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.util.Pair;
+
+import com.connection.client.converter.ClientConverter;
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDALM;
+import com.connection.client.validator.ClientValidator;
+import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.RefreshTokenDALM;
+import com.connection.token.repository.RefreshTokenRepository;
+import com.connection.token.validator.AccessTokenValidator;
+import com.connection.token.validator.RefreshTokenValidator;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("Auth Service Implementation Tests - London Style")
+class AuthServiceImplLondonTest {
+
+    @Mock
+    private RefreshTokenConverter refreshTokenConverter;
+
+    @Mock
+    private ClientConverter clientConverter;
+
+    @Mock
+    private ClientValidator clientValidator;
+
+    @Mock
+    private RefreshTokenValidator refreshTokenValidator;
+
+    @Mock
+    private AccessTokenValidator accessTokenValidator;
+
+    @Mock
+    private RefreshTokenGenerator refreshTokenGenerator;
+
+    @Mock
+    private AccessTokenGenerator accessTokenGenerator;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
+
+    @Mock
+    private com.connection.client.repository.ClientRepository clientRepository;
+
+    // Используем реальные Duration вместо моков
+    private Duration jwtAccessTokenDuration = Duration.ofSeconds(600); // 10 minutes
+    private Duration jwtRefreshTokenDuration = Duration.ofSeconds(86400); // 24 hours
+
+    @InjectMocks
+    private AuthServiceImpl authService;
+
+    @BeforeEach
+    void setUp() {
+        // Устанавливаем реальные Duration через рефлексию, так как они final в
+        // AuthServiceImpl
+        try {
+            var accessTokenField = AuthServiceImpl.class.getDeclaredField("jwtAccessTokenDuration");
+            var refreshTokenField = AuthServiceImpl.class.getDeclaredField("jwtRefreshTokenDuration");
+
+            accessTokenField.setAccessible(true);
+            refreshTokenField.setAccessible(true);
+
+            accessTokenField.set(authService, jwtAccessTokenDuration);
+            refreshTokenField.set(authService, jwtRefreshTokenDuration);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set Duration fields", e);
+        }
+    }
+
+    @Test
+    @DisplayName("Authorize by email - Positive")
+    void shouldAuthorizeByEmailWhenValidCredentials() {
+        // Arrange
+        ClientDALM clientDALM = createValidClientDALM();
+        ClientBLM clientBLM = createValidClientBLM();
+        AccessTokenBLM accessTokenBLM = createValidAccessTokenBLM();
+        RefreshTokenBLM refreshTokenBLM = createValidRefreshTokenBLM();
+        RefreshTokenDALM refreshTokenDALM = new RefreshTokenDALM();
+
+        when(clientRepository.findByEmail(VALID_EMAIL)).thenReturn(clientDALM);
+        when(clientConverter.toBLM(clientDALM)).thenReturn(clientBLM);
+        when(refreshTokenGenerator.generateRefreshToken(any(), any(), any(), any()))
+                .thenReturn(refreshTokenBLM.getToken());
+        when(accessTokenGenerator.generateAccessToken(any(), any(), any()))
+                .thenReturn(accessTokenBLM.getToken());
+        when(refreshTokenConverter.toDALM(any(RefreshTokenBLM.class))).thenReturn(refreshTokenDALM);
+
+        // Act
+        Pair<AccessTokenBLM, RefreshTokenBLM> result = authService.authorizeByEmail(VALID_EMAIL, VALID_PASSWORD);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getFirst()).isNotNull();
+        assertThat(result.getSecond()).isNotNull();
+        verify(clientValidator).validateEmail(VALID_EMAIL);
+        verify(refreshTokenValidator).validate(any(RefreshTokenBLM.class));
+        verify(accessTokenValidator).validate(any(AccessTokenBLM.class));
+        verify(refreshTokenRepository).add(refreshTokenDALM);
+    }
+
+    @Test
+    @DisplayName("Authorize by email - Negative: Email validation fails")
+    void shouldThrowExceptionWhenEmailValidationFails() {
+        // Arrange
+        doThrow(new IllegalArgumentException("Invalid email"))
+                .when(clientValidator).validateEmail("invalid-email");
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.authorizeByEmail("invalid-email", VALID_PASSWORD))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid email");
+
+        verify(clientRepository, never()).findByEmail(any());
+        verify(refreshTokenRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Register client - Positive")
+    void shouldRegisterClientWhenValidData() {
+        // Arrange
+        ClientBLM clientBLM = createValidClientBLM();
+        ClientDALM clientDALM = createValidClientDALM();
+
+        when(clientConverter.toDALM(clientBLM)).thenReturn(clientDALM);
+
+        // Act
+        authService.register(clientBLM);
+
+        // Assert
+        verify(clientValidator).validate(clientBLM);
+        verify(clientRepository).add(clientDALM);
+    }
+
+    @Test
+    @DisplayName("Register client - Negative: Client validation fails")
+    void shouldThrowExceptionWhenClientValidationFails() {
+        // Arrange
+        ClientBLM invalidClient = createValidClientBLM();
+
+        doThrow(new IllegalArgumentException("Invalid client data"))
+                .when(clientValidator).validate(invalidClient);
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.register(invalidClient))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid client data");
+
+        verify(clientRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Refresh tokens - Positive")
+    void shouldRefreshTokensWhenValidRefreshToken() {
+        // Arrange
+        RefreshTokenBLM oldRefreshToken = createValidRefreshTokenBLM();
+        RefreshTokenBLM newRefreshToken = createValidRefreshTokenBLM();
+        AccessTokenBLM newAccessToken = createValidAccessTokenBLM();
+        RefreshTokenDALM oldRefreshTokenDALM = new RefreshTokenDALM();
+        RefreshTokenDALM newRefreshTokenDALM = new RefreshTokenDALM();
+
+        when(refreshTokenGenerator.generateRefreshToken(any(), any(), any(), any()))
+                .thenReturn(newRefreshToken.getToken());
+        when(accessTokenGenerator.generateAccessToken(any(), any(), any()))
+                .thenReturn(newAccessToken.getToken());
+        when(refreshTokenConverter.toDALM(any(RefreshTokenBLM.class)))
+                .thenReturn(oldRefreshTokenDALM) // для первого вызова
+                .thenReturn(newRefreshTokenDALM); // для второго вызова
+        // Act
+        Pair<AccessTokenBLM, RefreshTokenBLM> result = authService.refresh(oldRefreshToken);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getFirst()).isNotNull();
+        assertThat(result.getSecond()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Refresh tokens - Negative: Invalid refresh token")
+    void shouldThrowExceptionWhenRefreshTokenInvalid() {
+        // Arrange
+        RefreshTokenBLM invalidRefreshToken = createExpiredRefreshTokenBLM();
+
+        doThrow(new IllegalArgumentException("Expired refresh token"))
+                .when(refreshTokenValidator).validate(invalidRefreshToken);
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.refresh(invalidRefreshToken))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Expired refresh token");
+
+        verify(refreshTokenRepository, never()).updateToken(any(), any());
+    }
+
+    @Test
+    @DisplayName("Validate access token - Positive")
+    void shouldValidateAccessTokenWhenValid() {
+        // Arrange
+        AccessTokenBLM accessToken = createValidAccessTokenBLM();
+
+        // Act
+        authService.validateAccessToken(accessToken);
+
+        // Assert
+        verify(accessTokenValidator).validate(accessToken);
+    }
+
+    @Test
+    @DisplayName("Validate access token - Negative: Invalid token")
+    void shouldThrowExceptionWhenAccessTokenInvalid() {
+        // Arrange
+        AccessTokenBLM invalidAccessToken = createValidAccessTokenBLM();
+
+        doThrow(new IllegalArgumentException("Expired access token"))
+                .when(accessTokenValidator).validate(invalidAccessToken);
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.validateAccessToken(invalidAccessToken))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Expired access token");
+    }
+
+    @Test
+    @DisplayName("Validate refresh token - Positive")
+    void shouldValidateRefreshTokenWhenValid() {
+        // Arrange
+        RefreshTokenBLM refreshToken = createValidRefreshTokenBLM();
+
+        // Act
+        authService.validateRefreshToken(refreshToken);
+
+        // Assert
+        verify(refreshTokenValidator).validate(refreshToken);
+    }
+
+    @Test
+    @DisplayName("Get client UID from access token - Positive")
+    void shouldReturnClientUidFromAccessToken() {
+        // Arrange
+        AccessTokenBLM accessToken = createValidAccessTokenBLM();
+
+        // Мокаем только валидацию, сам объект accessToken уже содержит нужные данные
+        // Act
+        UUID result = authService.getClientUid(accessToken);
+
+        // Assert
+        assertThat(result).isEqualTo(CLIENT_UUID);
+        verify(accessTokenValidator).validate(accessToken);
+    }
+
+    @Test
+    @DisplayName("Get client UID from refresh token - Positive")
+    void shouldReturnClientUidFromRefreshToken() {
+        // Arrange
+        RefreshTokenBLM refreshToken = createValidRefreshTokenBLM();
+
+        // Act
+        UUID result = authService.getClientUid(refreshToken);
+
+        // Assert
+        assertThat(result).isEqualTo(CLIENT_UUID);
+        verify(refreshTokenValidator).validate(refreshToken);
+    }
+
+    @Test
+    @DisplayName("Get client UID - Negative: Invalid token")
+    void shouldThrowExceptionWhenGettingClientUidFromInvalidToken() {
+        // Arrange
+        AccessTokenBLM invalidAccessToken = createValidAccessTokenBLM();
+
+        doThrow(new IllegalArgumentException("Invalid token"))
+                .when(accessTokenValidator).validate(invalidAccessToken);
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.getClientUid(invalidAccessToken))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid token");
+    }
+}package com.service.auth.mother;
+
+import java.util.Date;
+import java.util.UUID;
+
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDALM;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.RefreshTokenBLM;
+
+public class AuthObjectMother {
+
+    public static final UUID CLIENT_UUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    public static final UUID REFRESH_TOKEN_UUID = UUID.fromString("323e4567-e89b-12d3-a456-426614174002");
+    public static final String VALID_EMAIL = "test@example.com";
+    public static final String VALID_PASSWORD = "securePassword123";
+    public static final String VALID_USERNAME = "testuser";
+    public static final Date BIRTH_DATE = new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000); // 25 years ago
+
+    public static ClientBLM createValidClientBLM() {
+        return new ClientBLM(
+            CLIENT_UUID,
+            BIRTH_DATE,
+            VALID_EMAIL,
+            VALID_PASSWORD,
+            VALID_USERNAME
+        );
+    }
+
+    public static ClientDALM createValidClientDALM() {
+        return new ClientDALM(
+            CLIENT_UUID,
+            BIRTH_DATE,
+            VALID_EMAIL,
+            VALID_PASSWORD,
+            VALID_USERNAME
+        );
+    }
+
+    public static AccessTokenBLM createValidAccessTokenBLM() {
+        Date createdAt = new Date();
+        Date expiresAt = new Date(createdAt.getTime() + 600000); // 10 minutes
+        String tokenString = "valid.access.token.string";
+        
+        return new AccessTokenBLM(
+            tokenString,
+            CLIENT_UUID,
+            createdAt,
+            expiresAt
+        );
+    }
+
+    public static RefreshTokenBLM createValidRefreshTokenBLM() {
+        Date createdAt = new Date();
+        Date expiresAt = new Date(createdAt.getTime() + 86400000); // 24 hours
+        String tokenString = "valid.refresh.token.string";
+        
+        return new RefreshTokenBLM(
+            tokenString,
+            REFRESH_TOKEN_UUID,
+            CLIENT_UUID,
+            createdAt,
+            expiresAt
+        );
+    }
+
+    public static RefreshTokenBLM createExpiredRefreshTokenBLM() {
+        Date createdAt = new Date(System.currentTimeMillis() - 86400000); // 24 hours ago
+        Date expiresAt = new Date(createdAt.getTime() + 3600000); // 1 hour, already expired
+        String tokenString = "expired.refresh.token.string";
+        
+        return new RefreshTokenBLM(
+            tokenString,
+            REFRESH_TOKEN_UUID,
+            CLIENT_UUID,
+            createdAt,
+            expiresAt
+        );
+    }
+}

@@ -27,11 +27,11 @@
         {
           "name": "connection-scheme-shared-1.0.0.jar",
           "url": "connection-scheme-shared-1.0.0.jar",
-          "size": 15978,
-          "sha512": "81253a7322047f11a5a618f1ffd53fd6ac63b6d1b6774b64beb7115573ff54e58248bb5faf3e0180aa3021c8e71106b40fd2bcf4bec37623ce50d7985cbf9e9d",
-          "sha256": "6c6f61c14c9f453f0125ad0db7281a64b7960a31935de613b0bbdc82c6f2791a",
-          "sha1": "c33037c32b7a0ca0e5863dddf40cb4c3d2f68eb5",
-          "md5": "1ae778c2a5a001eb544e5f985d5879dd"
+          "size": 23874,
+          "sha512": "4d73d9d4943346c4612a1453455add14b105ace82213c2dd3441964824c17d13ba1a78fd12365d77fbf369ea27c389d3274906e09cd70b79fd6df915d6ac025a",
+          "sha256": "8ffb2b690f7c55793655a56bcb87647970e26159aa0412ceac302ec4fb2d7b85",
+          "sha1": "72e1d46bca3a4e01c3b737c9b2bb4fcf8eb065a3",
+          "md5": "7220689b7b7154b565697606fd9c2fd2"
         }
       ]
     },
@@ -51,17 +51,31 @@
           "version": {
             "requires": "3.5.3"
           }
+        },
+        {
+          "group": "com.fasterxml.jackson.core",
+          "module": "jackson-core",
+          "version": {
+            "requires": "2.18.4"
+          }
+        },
+        {
+          "group": "com.fasterxml.jackson.core",
+          "module": "jackson-databind",
+          "version": {
+            "requires": "2.18.4"
+          }
         }
       ],
       "files": [
         {
           "name": "connection-scheme-shared-1.0.0.jar",
           "url": "connection-scheme-shared-1.0.0.jar",
-          "size": 15978,
-          "sha512": "81253a7322047f11a5a618f1ffd53fd6ac63b6d1b6774b64beb7115573ff54e58248bb5faf3e0180aa3021c8e71106b40fd2bcf4bec37623ce50d7985cbf9e9d",
-          "sha256": "6c6f61c14c9f453f0125ad0db7281a64b7960a31935de613b0bbdc82c6f2791a",
-          "sha1": "c33037c32b7a0ca0e5863dddf40cb4c3d2f68eb5",
-          "md5": "1ae778c2a5a001eb544e5f985d5879dd"
+          "size": 23874,
+          "sha512": "4d73d9d4943346c4612a1453455add14b105ace82213c2dd3441964824c17d13ba1a78fd12365d77fbf369ea27c389d3274906e09cd70b79fd6df915d6ac025a",
+          "sha256": "8ffb2b690f7c55793655a56bcb87647970e26159aa0412ceac302ec4fb2d7b85",
+          "sha1": "72e1d46bca3a4e01c3b737c9b2bb4fcf8eb065a3",
+          "md5": "7220689b7b7154b565697606fd9c2fd2"
         }
       ]
     }

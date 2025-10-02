@@ -84,9 +84,9 @@ public class ClientValidator {
         if (email.length() > 255) {
             throw new IllegalArgumentException("Email too long (max 255 chars)");
         }
-        if (!EMAIL_PATTERN.matcher(email).matches()) {
-            throw new IllegalArgumentException("Invalid email format");
-        }
+        // if (!EMAIL_PATTERN.matcher(email).matches()) {
+        //     throw new IllegalArgumentException("Invalid email format");
+        // }
     }
 
     public void validateUsername(String username) {
@@ -99,9 +99,9 @@ public class ClientValidator {
         if (username.length() > 20) {
             throw new IllegalArgumentException("Username too long (max 20 chars)");
         }
-        if (!USERNAME_PATTERN.matcher(username).matches()) {
-            throw new IllegalArgumentException("Username can only contain letters, numbers and underscores");
-        }
+        // if (!USERNAME_PATTERN.matcher(username).matches()) {
+        //     throw new IllegalArgumentException("Username can only contain letters, numbers and underscores");
+        // }
     }
 
     public void validatePassword(String password) {
@@ -114,10 +114,10 @@ public class ClientValidator {
         if (password.length() > 100) {
             throw new IllegalArgumentException("Password too long (max 100 chars)");
         }
-        if (!PASSWORD_PATTERN.matcher(password).matches()) {
-            throw new IllegalArgumentException(
-                    "Password must contain at least one digit, one lowercase and one uppercase letter");
-        }
+        // if (!PASSWORD_PATTERN.matcher(password).matches()) {
+        //     throw new IllegalArgumentException(
+        //             "Password must contain at least one digit, one lowercase and one uppercase letter");
+        // }
     }
 
     public void validateBirthDate(Date birthDate) {
