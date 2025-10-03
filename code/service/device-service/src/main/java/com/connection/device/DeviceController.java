@@ -10,12 +10,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.connection.device.config.SecurityUtils;
+import com.connection.device.converter.DeviceConverter;
 import com.connection.device.model.DeviceBLM;
 import com.connection.device.model.DeviceDTO;
+import com.connection.device.validator.DeviceValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,64 +29,55 @@ import lombok.extern.slf4j.Slf4j;
 public class DeviceController {
     
     private final DeviceService deviceService;
+    private final DeviceValidator deviceValidator;
+    private final DeviceConverter deviceConverter;
 
     @PostMapping("/devices")
-    public ResponseEntity<DeviceBLM> createDevice(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @RequestBody DeviceDTO deviceDTO) {
-        
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Creating device for client");
-        
-        DeviceBLM device = deviceService.createDevice(accessToken, deviceDTO);
+    public ResponseEntity<DeviceBLM> createDevice(@RequestBody DeviceDTO deviceDTO) {
+        UUID clientUuid = SecurityUtils.getCurrentClientUid();
+        log.info("Creating device for client " + clientUuid);
+
+        deviceValidator.validate(deviceDTO);
+        DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
+
+        DeviceBLM device = deviceService.createDevice(deviceBLM);
         return ResponseEntity.ok(device);
     }
 
     @GetMapping("/devices/{deviceUid}")
-    public ResponseEntity<DeviceBLM> getDevice(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable UUID deviceUid) {
-        
-        String accessToken = extractToken(authorizationHeader);
+    public ResponseEntity<DeviceBLM> getDevice(@PathVariable UUID deviceUid) {
         log.info("Getting device: {}", deviceUid);
-        
-        DeviceBLM device = deviceService.getDevice(accessToken, deviceUid);
+
+        DeviceBLM device = deviceService.getDevice(deviceUid);
         return ResponseEntity.ok(device);
     }
 
     @GetMapping("/devices")
-    public ResponseEntity<List<DeviceBLM>> getDevicesByClient(
-            @RequestHeader("Authorization") String authorizationHeader) {
-        
-        String accessToken = extractToken(authorizationHeader);
+    public ResponseEntity<List<DeviceBLM>> getDevicesByClient() {
         log.info("Getting all devices for client");
         
-        List<DeviceBLM> devices = deviceService.getDevicesByClient(accessToken);
+        List<DeviceBLM> devices = deviceService.getDevicesByClient();
         return ResponseEntity.ok(devices);
     }
 
-    @PutMapping("/devices/{deviceUid}")
+    @PutMapping("/device")
     public ResponseEntity<DeviceBLM> updateDevice(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable UUID deviceUid,
-            @RequestBody DeviceDTO deviceDTO) {
+            @RequestBody DeviceDTO deviceDTO) {            
+        deviceValidator.validate(deviceDTO);
+        UUID clientUuid = SecurityUtils.getCurrentClientUid();
+        log.info("Updating device: {}, for client: {}", deviceDTO.getUid(), clientUuid);
         
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Updating device: {}", deviceUid);
-        
-        DeviceBLM device = deviceService.updateDevice(accessToken, deviceUid, deviceDTO);
+
+        DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
+        DeviceBLM device = deviceService.updateDevice(deviceBLM);
         return ResponseEntity.ok(device);
     }
 
     @DeleteMapping("/devices/{deviceUid}")
-    public ResponseEntity<Void> deleteDevice(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable UUID deviceUid) {
-        
-        String accessToken = extractToken(authorizationHeader);
+    public ResponseEntity<Void> deleteDevice(@PathVariable UUID deviceUid) {
         log.info("Deleting device: {}", deviceUid);
         
-        deviceService.deleteDevice(accessToken, deviceUid);
+        deviceService.deleteDevice(deviceUid);
         return ResponseEntity.noContent().build();
     }
 
@@ -94,12 +87,5 @@ public class DeviceController {
                 System.currentTimeMillis());
 
         return ResponseEntity.ok().body(deviceService.getHealthStatus());
-    }
-
-    private String extractToken(String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new SecurityException("Invalid authorization header");
-        }
-        return authorizationHeader.substring(7);
     }
 }

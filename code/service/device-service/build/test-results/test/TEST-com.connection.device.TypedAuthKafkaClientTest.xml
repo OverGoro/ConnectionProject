@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Typed Auth Kafka Client Tests" tests="7" skipped="0" failures="0" errors="0" timestamp="2025-10-03T22:35:56.583Z" hostname="Yurik" time="0.581">
+  <properties/>
+  <testcase name="Handle response - ignores unknown correlation ID" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.164"/>
+  <testcase name="Send request - handles Kafka send failure" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.385"/>
+  <testcase name="Validate token - sends correct command" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.004"/>
+  <testcase name="Handle response - completes exceptionally for type mismatch" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.004"/>
+  <testcase name="Get client UID - sends correct command" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.005"/>
+  <testcase name="Health check - sends correct command" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.007"/>
+  <testcase name="Handle response - completes future for matching correlation ID" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.001"/>
+  <system-out><![CDATA[01:35:56.747 [ForkJoinPool-1-worker-1] WARN com.connection.device.kafka.TypedAuthKafkaClient -- Received response for unknown correlationId: unknown-correlation-id
+01:35:57.134 [ForkJoinPool-1-worker-1] ERROR com.connection.device.kafka.TypedAuthKafkaClient -- Failed to send command: Kafka error
+01:35:57.146 [ForkJoinPool-1-worker-1] WARN com.connection.device.kafka.TypedAuthKafkaClient -- Type mismatch for correlationId: 09734615-c561-41fd-8c2d-0a49df3e0a42. Expected: class com.connection.auth.events.responses.TokenValidationResponse, Got: class com.connection.auth.events.responses.ClientUidResponse
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Refresh Token Generator Tests" tests="4" skipped="0" failures="0" errors="0" timestamp="2025-09-20T07:27:58.845Z" hostname="Yurik" time="0.009">
+<testsuite name="Refresh Token Generator Tests" tests="4" skipped="0" failures="0" errors="0" timestamp="2025-10-02T21:37:39.124Z" hostname="Yurik" time="0.007">
   <properties/>
   <testcase name="Generate refresh token from DALM - Positive" classname="com.connection.token.generator.RefreshTokenGeneratorTest" time="0.001"/>
-  <testcase name="Generate refresh token from parameters - Positive" classname="com.connection.token.generator.RefreshTokenGeneratorTest" time="0.001"/>
+  <testcase name="Generate refresh token from parameters - Positive" classname="com.connection.token.generator.RefreshTokenGeneratorTest" time="0.0"/>
   <testcase name="Parse invalid refresh token - Negative" classname="com.connection.token.generator.RefreshTokenGeneratorTest" time="0.001"/>
   <testcase name="Parse valid refresh token - Positive" classname="com.connection.token.generator.RefreshTokenGeneratorTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>

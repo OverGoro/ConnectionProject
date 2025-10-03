@@ -1,8 +1,9 @@
 package com.connection.token.converter;
 
-import static com.connection.token.mother.TokenObjectMother.*;
+import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenBLM;
+import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDALM;
+import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDTO;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 

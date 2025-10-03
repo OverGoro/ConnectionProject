@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.apache.catalina.security.SecurityUtil;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import com.connection.processing.buffer.repository.BufferRepository;
 import com.connection.processing.buffer.validator.BufferValidator;
 import com.connection.scheme.model.ConnectionSchemeBLM;
 import com.service.buffer.client.ConnectionSchemeServiceClient;
+import com.service.buffer.config.SecurityUtils;
 import com.service.buffer.kafka.TypedAuthKafkaClient;
 
 import lombok.RequiredArgsConstructor;
@@ -45,9 +47,7 @@ public class BufferServiceImpl implements BufferService {
     private final ConnectionSchemeServiceClient connectionSchemeServiceClient;
 
     @Override
-    public BufferBLM createBuffer(String accessToken, BufferDTO bufferDTO) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
-
+    public BufferBLM createBuffer(UUID clientUid, BufferDTO bufferDTO) {
         bufferValidator.validate(bufferDTO);
         BufferBLM bufferBLM = bufferConverter.toBLM(bufferDTO);
 
@@ -91,8 +91,7 @@ public class BufferServiceImpl implements BufferService {
 
     @Override
     public List<BufferBLM> getBuffersByClient(String accessToken) {
-        validateTokenAndGetClientUid(accessToken);
-
+        UUID client = SecurityUtils.getCurrentClientUid();
         // Получаем все схемы подключения клиента
         List<ConnectionSchemeBLM> connectionSchemes = connectionSchemeServiceClient.getSchemesByClient(accessToken);
 

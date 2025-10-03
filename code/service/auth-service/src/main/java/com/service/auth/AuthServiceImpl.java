@@ -114,6 +114,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional("atomicosTransactionManager")
     public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(
             RefreshTokenBLM refreshTokenBLM) {
+
         refreshTokenValidator.validate(refreshTokenBLM);
 
         // Инициалаизация общих полей
@@ -150,6 +151,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void validateAccessToken(AccessTokenBLM accessTokenBLM) {
+        log.info("Validating tokeb: |{}|", accessTokenBLM.getToken());
         accessTokenValidator.validate(accessTokenBLM);
     }
 

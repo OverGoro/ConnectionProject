@@ -1,10 +1,8 @@
 package com.connection.token.generator;
 
-import static com.connection.token.mother.TokenObjectMother.*;
+import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDALM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.util.Date;
 
 import javax.crypto.SecretKey;
 

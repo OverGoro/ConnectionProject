@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Refresh Token Validator Tests" tests="11" skipped="0" failures="0" errors="0" timestamp="2025-09-20T07:27:59.413Z" hostname="Yurik" time="0.018">
+<testsuite name="Refresh Token Validator Tests" tests="11" skipped="0" failures="0" errors="0" timestamp="2025-10-02T21:37:39.153Z" hostname="Yurik" time="0.016">
   <properties/>
   <testcase name="Validate RefreshTokenBLM with expired token - Negative" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.001"/>
   <testcase name="Validate RefreshTokenBLM with null fields - Negative" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.001"/>
   <testcase name="Validate RefreshTokenDALM with future created date - Negative" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.0"/>
-  <testcase name="Validate RefreshTokenDALM with null fields - Negative" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.0"/>
+  <testcase name="Validate RefreshTokenDALM with null fields - Negative" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.001"/>
   <testcase name="Validate RefreshTokenDTO with empty token - Negative" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.001"/>
   <testcase name="Validate null RefreshTokenBLM - Negative" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.001"/>
   <testcase name="Validate null RefreshTokenDALM - Negative" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.0"/>
   <testcase name="Validate null RefreshTokenDTO - Negative" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.001"/>
   <testcase name="Validate valid RefreshTokenBLM - Positive" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.0"/>
-  <testcase name="Validate valid RefreshTokenDALM - Positive" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.001"/>
-  <testcase name="Validate valid RefreshTokenDTO - Positive" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.0"/>
+  <testcase name="Validate valid RefreshTokenDALM - Positive" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.0"/>
+  <testcase name="Validate valid RefreshTokenDTO - Positive" classname="com.connection.token.validator.RefreshTokenValidatorTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

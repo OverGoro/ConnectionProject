@@ -9,16 +9,17 @@ import com.connection.processing.buffer.model.BufferBLM;
 import com.connection.processing.buffer.model.BufferDTO;
 
 public interface BufferService {
-    BufferBLM createBuffer(String accessToken, BufferDTO bufferDTO);
-    BufferBLM getBuffer(String accessToken, UUID bufferUid);
-    List<BufferBLM> getBuffersByClient(String accessToken);
-    List<BufferBLM> getBuffersByConnectionScheme(String accessToken, UUID connectionSchemeUid);
-    BufferBLM updateBuffer(String accessToken, UUID bufferUid, BufferDTO bufferDTO);
-    void deleteBuffer(String accessToken, UUID bufferUid);
-    void deleteBuffersByConnectionScheme(String accessToken, UUID connectionSchemeUid);
-    boolean bufferExists(String accessToken, UUID bufferUid);
+    BufferBLM createBuffer(UUID clientUid, BufferDTO bufferDTO);
+    BufferBLM getBufferByUid(UUID clientUid, UUID bufferUid);
+    List<BufferBLM> getBuffersByClient(UUID clientUid);
+    List<BufferBLM> getBuffersByConnectionScheme(UUID clientUid, UUID connectionSchemeUid);
+    BufferBLM updateBuffer(UUID clientUid, UUID bufferUid, BufferDTO bufferDTO);
+    void deleteBuffer(UUID clientUid, UUID bufferUid);
+    void deleteBuffersByConnectionScheme(UUID clientUid, UUID connectionSchemeUid);
+    boolean bufferExists(UUID clientUid, UUID bufferUid);
     Map<String, Object> getHealthStatus();
-}// FeignClientConfig.java
+}
+// FeignClientConfig.java
 package com.service.buffer.config;
 
 import org.springframework.cloud.openfeign.EnableFeignClients;
@@ -34,6 +35,77 @@ public class FeignClientConfig {
     @Bean
     public FeignErrorDecoder feignErrorDecoder() {
         return new FeignErrorDecoder();
+    }
+}package com.service.buffer.config;
+
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@SecurityScheme(
+    name = "bearerAuth",
+    type = SecuritySchemeType.HTTP,
+    bearerFormat = "JWT",
+    scheme = "bearer"
+)
+public class SwaggerConfig {
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Buffer Service API")
+                        .version("1.0")
+                        .description("API для управления буферами"))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
+                .components(new Components()
+                        .addSecuritySchemes("bearerAuth", 
+                            new io.swagger.v3.oas.models.security.SecurityScheme()
+                                .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")));
+    }
+}package com.service.buffer.config;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+
+import java.util.UUID;
+
+@Component
+public class SecurityUtils {
+
+    public static UUID getCurrentClientUid() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new SecurityException("User not authenticated");
+        }
+
+        Object principal = authentication.getPrincipal();
+        
+        if (principal instanceof UUID) {
+            return (UUID) principal;
+        } else if (principal instanceof String) {
+            try {
+                return UUID.fromString((String) principal);
+            } catch (IllegalArgumentException e) {
+                throw new SecurityException("Invalid client UID format in principal");
+            }
+        } else {
+            throw new SecurityException("Unexpected principal type: " + principal.getClass());
+        }
+    }
+
+    public static String getCurrentClientUidAsString() {
+        return getCurrentClientUid().toString();
     }
 }// BufferJDBCConfig.java
 package com.service.buffer.config;
@@ -156,52 +228,46 @@ public class BufferRepositoryConfig {
     BufferRepository bufferRepository(@Qualifier("BufferJdbcTemplate") NamedParameterJdbcTemplate template){
         return new BufferRepositorySQLImpl(template);
     }
-}// SecurityConfig.java
-package com.service.buffer.config;
+}package com.service.buffer.config;
 
-import com.service.buffer.client.AuthServiceClient;
-import com.service.buffer.client.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.service.buffer.client.JwtKafkaAuthenticationFilter;
+
+import lombok.RequiredArgsConstructor;
+
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
 public class SecurityConfig {
-    
-    private final AuthServiceClient authServiceClient;
 
-    public SecurityConfig(AuthServiceClient authServiceClient) {
-        this.authServiceClient = authServiceClient;
-    }
+    private final JwtKafkaAuthenticationFilter jwtKafkaAuthenticationFilter;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/swagger-ui.html").permitAll()
-                .requestMatchers("/swagger-ui/**").permitAll()
-                .requestMatchers("/api-docs/**").permitAll()
-                .requestMatchers("/webjars/**").permitAll()
-                .requestMatchers("/v3/api-docs/**").permitAll()
-                .requestMatchers("/api/buffer-service/health").permitAll()
-                .requestMatchers("/api/buffer-service/**").permitAll()//.authenticated()
-                .anyRequest().permitAll()
-            )
-            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
-        
-        return http.build();
-    }
-
-    @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(authServiceClient);
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .csrf(csrf -> csrf.disable()) // Отключаем CSRF для API
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/swagger-ui.html").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/api-docs/**").permitAll()
+                        .requestMatchers("/webjars/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/buffer-service/health").permitAll()
+                        .requestMatchers("/api/buffer-service/**").authenticated()
+                        .anyRequest().denyAll()
+                )
+                .addFilterBefore(jwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
     }
 }// BufferUtilsConfig.java
 package com.service.buffer.config;
@@ -223,6 +289,277 @@ public class BufferUtilsConfig {
     BufferValidator bufferValidator(){
         return new BufferValidator();
     }
+}// BuffersListResponse.java
+package com.service.buffer.controller;
+
+import com.connection.processing.buffer.model.BufferDTO;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+import java.util.List;
+
+@AllArgsConstructor
+@Getter
+public class BuffersListResponse {
+    private final List<BufferDTO> buffers;
+}// GlobalExceptionHandler.java
+package com.service.buffer.controller;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import com.connection.processing.buffer.exception.BufferNotFoundException;
+import com.connection.processing.buffer.exception.BufferValidateException;
+
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<?> handleSecurityException(SecurityException e) {
+        log.warn("Security exception: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse(
+                "invalid_authorization",
+                "Invalid or missing authorization header"));
+    }
+
+    @ExceptionHandler(BufferNotFoundException.class)
+    public ResponseEntity<?> handleBufferNotFoundException(
+            BufferNotFoundException e) {
+        log.warn("Buffer not found: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(
+                "buffer_not_found",
+                "Buffer not found"));
+    }
+
+    @ExceptionHandler(BufferValidateException.class)
+    public ResponseEntity<?> handleBufferValidationException(
+            BufferValidateException e) {
+        log.warn("Buffer validation failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "validation_failed",
+                e.getMessage() != null ? e.getMessage() : "Invalid buffer data"));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handleGenericException(Exception e) {
+        log.error("Unexpected error occurred: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse(
+                "internal_server_error",
+                "An unexpected error occurred"));
+    }
+}// ErrorResponse.java
+package com.service.buffer.controller;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class ErrorResponse {
+    private final String error;
+    private final String message;
+}// HealthResponse.java
+package com.service.buffer.controller;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class HealthResponse {
+    private final String messaege;
+}// BufferResponse.java
+package com.service.buffer.controller;
+
+import java.util.UUID;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class BufferResponse {
+    private final UUID bufferUuid;
+}// BufferController.java
+package com.service.buffer.controller;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.processing.buffer.converter.BufferConverter;
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDTO;
+import com.service.buffer.BufferService;
+import com.service.buffer.config.SecurityUtils;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/buffer-service")
+public class BufferController {
+    
+    private final BufferService bufferService;
+    private final BufferConverter bufferConverter;
+
+    @PostMapping("/buffers")
+    public ResponseEntity<?> createBuffer(
+            @RequestBody CreateBufferRequest createRequest) {
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Creating buffer for client: {}, connection scheme: {}", 
+                clientUid, createRequest.getConnectionSchemeUid());
+        
+        // Конвертируем CreateBufferRequest в BufferDTO
+        BufferDTO bufferDTO = createRequest.getBufferDTO();
+        BufferBLM buffer = bufferService.createBuffer(clientUid, bufferDTO);
+        
+        log.info("Created buffer with uid {} for client {}", buffer.getUid(), clientUid);
+        return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
+    }
+
+    @GetMapping("/buffers/{bufferUid}")
+    public ResponseEntity<?> getBuffer(
+            @PathVariable UUID bufferUid) {
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Getting buffer: {} for client: {}", bufferUid, clientUid);
+        
+        BufferBLM buffer = bufferService.getBuffer(authorizationHeader, bufferUid);
+
+        log.info("Got buffer: {} for client: {}", buffer.getUid(), clientUid);
+        return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
+    }
+
+    @GetMapping("/buffers")
+    public ResponseEntity<?> getBuffersByClient() {
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Getting all buffers for client: {}", clientUid);
+        
+        List<BufferBLM> buffers = bufferService.getBuffersByClient(clientUid);
+        List<BufferDTO> bufferDTOs = buffers.stream()
+            .map(buffer -> bufferConverter.toDTO(buffer))
+            .collect(Collectors.toList());
+
+        return ResponseEntity.ok(new BuffersListResponse(bufferDTOs));
+    }
+
+    @GetMapping("/buffers/scheme/{connectionSchemeUid}")
+    public ResponseEntity<?> getBuffersByConnectionScheme(
+            @PathVariable UUID connectionSchemeUid) {
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Getting buffers for connection scheme: {} for client: {}", connectionSchemeUid, clientUid);
+        
+        List<BufferBLM> buffers = bufferService.getBuffersByConnectionScheme(clientUid, connectionSchemeUid);
+        List<BufferDTO> bufferDTOs = buffers.stream()
+            .map(buffer -> bufferConverter.toDTO(buffer))
+            .collect(Collectors.toList());
+
+        return ResponseEntity.ok(new BuffersListResponse(bufferDTOs));
+    }
+
+    @PutMapping("/buffers/{bufferUid}")
+    public ResponseEntity<?> updateBuffer(
+            @PathVariable UUID bufferUid,
+            @RequestBody UpdateBufferRequest updateRequest) {
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Updating buffer: {} for client: {}", bufferUid, clientUid);
+        
+        // Конвертируем UpdateBufferRequest в BufferDTO
+        BufferDTO bufferDTO = updateRequest.getBufferDTO();
+        BufferBLM buffer = bufferService.updateBuffer(clientUid, bufferUid, bufferDTO);
+        
+        return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
+    }
+
+    @DeleteMapping("/buffers/{bufferUid}")
+    public ResponseEntity<?> deleteBuffer(
+            @PathVariable UUID bufferUid) {
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Deleting buffer: {} for client: {}", bufferUid, clientUid);
+        
+        bufferService.deleteBuffer(authorizationHeader, bufferUid);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/buffers/scheme/{connectionSchemeUid}")
+    public ResponseEntity<?> deleteBuffersByConnectionScheme(
+            @PathVariable UUID connectionSchemeUid) {
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Deleting buffers for connection scheme: {} for client: {}", connectionSchemeUid, clientUid);
+        
+        bufferService.deleteBuffersByConnectionScheme(authorizationHeader, connectionSchemeUid);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<?> healthCheck() {
+        log.info("Health check - status: OK, service: buffer-service, timestamp: {}", 
+                System.currentTimeMillis());
+
+        // Предполагая, что bufferService.getHealthStatus() возвращает HealthResponse
+        return ResponseEntity.ok().body(bufferService.getHealthStatus());
+    }
+}
+// CreateBufferRequest.java
+package com.service.buffer.controller;
+
+import java.util.UUID;
+
+import com.connection.processing.buffer.model.BufferDTO;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@AllArgsConstructor
+@Getter
+@Setter
+public class CreateBufferRequest {
+    private BufferDTO bufferDTO;
+    private UUID connectionSchemeUid;
+}// UpdateBufferRequest.java
+package com.service.buffer.controller;
+
+import java.util.UUID;
+
+import com.connection.processing.buffer.model.BufferDTO;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@AllArgsConstructor
+@Getter
+@Setter
+public class UpdateBufferRequest {
+    private BufferDTO bufferDTO;
+    private UUID connectionSchemeUid;
 }// BufferServiceApplication.java
 package com.service.buffer;
 
@@ -235,21 +572,19 @@ public class BufferServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(BufferServiceApplication.class, args);
     }
-}// AuthResponseConsumer.java
-package com.service.buffer.kafka;
+}package com.service.buffer.kafka;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Component;
+
+import com.connection.auth.events.responses.TokenValidationResponse;
+import com.connection.common.events.CommandResponse;
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.stereotype.Component;
-
-import com.connection.auth.events.AuthEventUtils;
-import com.connection.auth.events.responses.TokenValidationResponse;
-import com.connection.auth.events.responses.ClientUidResponse;
-import com.connection.auth.events.responses.HealthCheckResponse;
 
 @Slf4j
 @Component
@@ -259,34 +594,36 @@ public class AuthResponseConsumer {
     private final TypedAuthKafkaClient authKafkaClient;
 
     @KafkaListener(topics = "${app.kafka.topics.auth-responses:auth.responses}")
-    public void handleAuthResponse(@Payload String message,
-                                  @Header(KafkaHeaders.RECEIVED_KEY) String correlationId) {
+    public void handleAuthResponse(ConsumerRecord<String, CommandResponse> record) {
         try {
+            CommandResponse message = record.value();
+            String correlationId = record.key();
+            
             log.info("Received auth response: correlationId={}", correlationId);
-
-            // Определяем тип ответа по структуре JSON и десериализуем в правильный тип
-            Object response;
-            if (message.contains("\"isValid\"")) {
-                response = AuthEventUtils.fromJson(message, TokenValidationResponse.class);
-            } else if (message.contains("\"clientUid\"")) {
-                response = AuthEventUtils.fromJson(message, ClientUidResponse.class);
-            } else if (message.contains("\"healthStatus\"")) {
-                response = AuthEventUtils.fromJson(message, HealthCheckResponse.class);
+                
+            if (message instanceof TokenValidationResponse) {
+                TokenValidationResponse typedResponse = (TokenValidationResponse) message;
+                authKafkaClient.handleResponse(correlationId, typedResponse);
+            } else if (message instanceof ClientUidResponse) {
+                ClientUidResponse typedResponse = (ClientUidResponse) message;
+                authKafkaClient.handleResponse(correlationId, typedResponse);
+            } else if (message instanceof HealthCheckResponse) {
+                HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+                authKafkaClient.handleResponse(correlationId, typedResponse);
             } else {
                 log.warn("Unknown response type for correlationId: {}", correlationId);
-                return;
             }
             
-            authKafkaClient.handleResponse(correlationId, response);
-            
         } catch (Exception e) {
-            log.error("Error processing auth response: correlationId={}", correlationId, e);
+            log.error("Error processing auth response: correlationId={}", record.key(), e);
         }
     }
 }// TypedAuthKafkaClient.java (альтернативная версия)
 package com.service.buffer.kafka;
 
+import java.util.Date;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -355,9 +692,12 @@ public class TypedAuthKafkaClient {
     public CompletableFuture<HealthCheckResponse> healthCheck(String sourceService) {
         return sendRequest(
             HealthCheckCommand.builder()
+                .eventId(UUID.randomUUID().toString())
                 .sourceService(sourceService)
+                .timestamp(new Date().toInstant())
                 .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
                 .correlationId(AuthEventUtils.generateCorrelationId())
+                .commandType(AuthEventConstants.COMMAND_HEALTH_CHECK)
                 .build(),
             HealthCheckResponse.class
         );
@@ -439,61 +779,100 @@ public class FeignErrorDecoder implements ErrorDecoder {
                     "External service error: " + response.status());
         }
     }
-}// JwtAuthenticationFilter.java
-package com.service.buffer.client;
+}package com.service.buffer.client;
+
+import com.service.buffer.kafka.TypedAuthKafkaClient;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
+import com.connection.auth.events.responses.TokenValidationResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
+@Slf4j
+@Component
 @RequiredArgsConstructor
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtKafkaAuthenticationFilter extends OncePerRequestFilter {
 
-    private final AuthServiceClient authServiceClient;
+    private final TypedAuthKafkaClient authKafkaClient;
+    private static final String AUTH_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, 
-                                  HttpServletResponse response, 
-                                  FilterChain filterChain) throws ServletException, IOException {
-        
-        String authorizationHeader = request.getHeader("Authorization");
-        
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            String token = authorizationHeader.substring(7);
-            
-            try {
-                // Валидируем токен через auth service
-                authServiceClient.validateAccessToken(token);
-                
-                // Получаем client UID из токена
-                String clientUid = authServiceClient.getAccessTokenClientUID(token).toString();
-                
-                // Создаем аутентификацию
-                Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    clientUid, 
-                    null, 
-                    Collections.emptyList()
-                );
-                
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                
-            } catch (Exception e) {
-                SecurityContextHolder.clearContext();
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token: " + e.getMessage());
-                return;
-            }
+    protected void doFilterInternal(HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
+
+        String authHeader = request.getHeader(AUTH_HEADER);
+
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            filterChain.doFilter(request, response);
+            return;
         }
-        
+
+        String jwtToken = authHeader.substring(BEARER_PREFIX.length());
+
+        try {
+            authenticateWithToken(jwtToken, request);
+        } catch (Exception e) {
+            log.error("Authentication failed for token: {}", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
         filterChain.doFilter(request, response);
+    }
+
+    private void authenticateWithToken(String token, HttpServletRequest request) {
+        try {
+            // ОБЯЗАТЕЛЬНО обрезаем пробелы!
+            String cleanToken = token.trim();
+            cleanToken = cleanToken.replace("Bearer ", "");
+
+            log.info("Validating token: {}...", cleanToken);
+
+            CompletableFuture<TokenValidationResponse> validationFuture = authKafkaClient.validateToken(cleanToken,
+                    "buffer-service");
+
+            TokenValidationResponse validationResponse = validationFuture
+                    .get(10, TimeUnit.SECONDS);
+
+            if (!validationResponse.isValid()) {
+                throw new SecurityException("Token validation failed: " + validationResponse.getError());
+            }
+
+            // Создаем аутентификацию
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    validationResponse.getClientUid(),
+                    null,
+                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            log.info("Successfully authenticated client: {}", validationResponse.getClientUid());
+
+        } catch (java.util.concurrent.TimeoutException e) {
+            throw new SecurityException("Token validation timeout");
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new SecurityException("Token validation error: " + e.getCause().getMessage());
+        } catch (Exception e) {
+            throw new SecurityException("Authentication failed: " + e.getMessage());
+        }
     }
 }// ConnectionSchemeServiceClient.java
 package com.service.buffer.client;
@@ -520,156 +899,6 @@ public interface ConnectionSchemeServiceClient {
 
     @GetMapping("/health")
     Map<String, Object> healthCheck();
-}// AuthServiceClient.java
-package com.service.buffer.client;
-
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-
-@FeignClient(name = "auth-service", url = "${auth.service.url}")
-public interface AuthServiceClient {
-    
-    @GetMapping("/extract/accessTokenClientUID")
-    UUID getAccessTokenClientUID(@RequestParam String accessToken);
-    
-    @GetMapping("/validate/token/access")
-    void validateAccessToken(@RequestParam String accessToken);
-
-    @GetMapping("/health")
-    Map<String, Object> healthCheck();
-}// BufferController.java
-package com.service.buffer;
-
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.connection.processing.buffer.model.BufferBLM;
-import com.connection.processing.buffer.model.BufferDTO;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
-@RestController
-@RequiredArgsConstructor
-@RequestMapping("/api/buffer-service")
-public class BufferController {
-    
-    private final BufferService bufferService;
-
-    @PostMapping("/buffers")
-    public ResponseEntity<BufferBLM> createBuffer(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @RequestBody BufferDTO bufferDTO) {
-        
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Creating buffer for connection scheme: {}", bufferDTO.getConnectionSchemeUid());
-        
-        BufferBLM buffer = bufferService.createBuffer(accessToken, bufferDTO);
-        return ResponseEntity.ok(buffer);
-    }
-
-    @GetMapping("/buffers/{bufferUid}")
-    public ResponseEntity<BufferBLM> getBuffer(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable UUID bufferUid) {
-        
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Getting buffer: {}", bufferUid);
-        
-        BufferBLM buffer = bufferService.getBuffer(accessToken, bufferUid);
-        return ResponseEntity.ok(buffer);
-    }
-
-    @GetMapping("/buffers")
-    public ResponseEntity<List<BufferBLM>> getBuffersByClient(
-            @RequestHeader("Authorization") String authorizationHeader) {
-        
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Getting all buffers for client");
-        
-        List<BufferBLM> buffers = bufferService.getBuffersByClient(accessToken);
-        return ResponseEntity.ok(buffers);
-    }
-
-    @GetMapping("/buffers/scheme/{connectionSchemeUid}")
-    public ResponseEntity<List<BufferBLM>> getBuffersByConnectionScheme(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable UUID connectionSchemeUid) {
-        
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Getting buffers for connection scheme: {}", connectionSchemeUid);
-        
-        List<BufferBLM> buffers = bufferService.getBuffersByConnectionScheme(accessToken, connectionSchemeUid);
-        return ResponseEntity.ok(buffers);
-    }
-
-    @PutMapping("/buffers/{bufferUid}")
-    public ResponseEntity<BufferBLM> updateBuffer(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable UUID bufferUid,
-            @RequestBody BufferDTO bufferDTO) {
-        
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Updating buffer: {}", bufferUid);
-        
-        BufferBLM buffer = bufferService.updateBuffer(accessToken, bufferUid, bufferDTO);
-        return ResponseEntity.ok(buffer);
-    }
-
-    @DeleteMapping("/buffers/{bufferUid}")
-    public ResponseEntity<Void> deleteBuffer(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable UUID bufferUid) {
-        
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Deleting buffer: {}", bufferUid);
-        
-        bufferService.deleteBuffer(accessToken, bufferUid);
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/buffers/scheme/{connectionSchemeUid}")
-    public ResponseEntity<Void> deleteBuffersByConnectionScheme(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable UUID connectionSchemeUid) {
-        
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Deleting buffers for connection scheme: {}", connectionSchemeUid);
-        
-        bufferService.deleteBuffersByConnectionScheme(accessToken, connectionSchemeUid);
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/health")
-    public ResponseEntity<?> healthCheck() {
-        log.info("Health check: status: OK, service: buffer-service, timestamp: {}", 
-                System.currentTimeMillis());
-
-        return ResponseEntity.ok().body(bufferService.getHealthStatus());
-    }
-
-    private String extractToken(String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new SecurityException("Invalid authorization header");
-        }
-        return authorizationHeader.substring(7);
-    }
 }// BufferServiceImpl.java
 package com.service.buffer;
 
@@ -679,6 +908,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.apache.catalina.security.SecurityUtil;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.stereotype.Service;
@@ -696,6 +926,7 @@ import com.connection.processing.buffer.repository.BufferRepository;
 import com.connection.processing.buffer.validator.BufferValidator;
 import com.connection.scheme.model.ConnectionSchemeBLM;
 import com.service.buffer.client.ConnectionSchemeServiceClient;
+import com.service.buffer.config.SecurityUtils;
 import com.service.buffer.kafka.TypedAuthKafkaClient;
 
 import lombok.RequiredArgsConstructor;
@@ -717,9 +948,7 @@ public class BufferServiceImpl implements BufferService {
     private final ConnectionSchemeServiceClient connectionSchemeServiceClient;
 
     @Override
-    public BufferBLM createBuffer(String accessToken, BufferDTO bufferDTO) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
-
+    public BufferBLM createBuffer(UUID clientUid, BufferDTO bufferDTO) {
         bufferValidator.validate(bufferDTO);
         BufferBLM bufferBLM = bufferConverter.toBLM(bufferDTO);
 
@@ -763,8 +992,7 @@ public class BufferServiceImpl implements BufferService {
 
     @Override
     public List<BufferBLM> getBuffersByClient(String accessToken) {
-        validateTokenAndGetClientUid(accessToken);
-
+        UUID client = SecurityUtils.getCurrentClientUid();
         // Получаем все схемы подключения клиента
         List<ConnectionSchemeBLM> connectionSchemes = connectionSchemeServiceClient.getSchemesByClient(accessToken);
 
@@ -922,6 +1150,7 @@ public class BufferServiceImpl implements BufferService {
                     "timestamp", System.currentTimeMillis(),
                     "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
         } catch (Exception e) {
+            log.error("Kafka Client: ", e);
             return Map.of(
                     "status", "DEGRADED",
                     "service", "buffer-service",

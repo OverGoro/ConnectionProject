@@ -1,185 +1,4 @@
-package com.service.auth;
-
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.data.util.Pair;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.connection.client.converter.ClientConverter;
-import com.connection.client.model.ClientBLM;
-import com.connection.client.model.ClientDTO;
-import com.connection.client.validator.ClientValidator;
-import com.connection.token.converter.AccessTokenConverter;
-import com.connection.token.converter.RefreshTokenConverter;
-import com.connection.token.model.AccessTokenBLM;
-import com.connection.token.model.AccessTokenDTO;
-import com.connection.token.model.RefreshTokenBLM;
-import com.connection.token.model.RefreshTokenDTO;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-
-@Slf4j
-@RestController
-@RequiredArgsConstructor
-@RequestMapping("/api/auth-service")
-public class AuthServiceController {
-    private final AccessTokenConverter accessTokenConverter;
-    private final RefreshTokenConverter refreshTokenConverter;
-    private final ClientConverter clientConverter;
-
-    private final ClientValidator clientValidator;
-    
-    private final AuthService authService;
-
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody ClientDTO clientDTO) {
-        try {
-            log.info("Registration attempt for email: {}", clientDTO.getEmail());
-            clientValidator.validate(clientDTO);
-
-            ClientBLM clientBLM = clientConverter.toBLM(clientDTO);
-
-            authService.register(clientBLM);
-
-            log.info("Client registered successfully: {}", clientDTO.getEmail());
-            return ResponseEntity.ok().body(Map.of(
-                    "message", "User registered successfully",
-                    "email", clientDTO.getEmail()));
-
-        } catch (Exception e) {
-            log.error("Registration failed for email: {}", clientDTO.getEmail(), e);
-            return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Registration failed",
-                    "message", e.getMessage()));
-        }
-    }
-
-    @PostMapping("/login/email")
-    public ResponseEntity<?> loginByEmail(@RequestBody Map<String, String> credentials) {
-        try {
-            String email = credentials.get("email");
-            String password = credentials.get("password");
-
-            log.info("Login attempt by email: {}", email);
-
-            // Вызываем сервис авторизации
-            Pair<AccessTokenBLM, RefreshTokenBLM> tokens = authService.authorizeByEmail(email, password);
-
-            log.info("Login successful for email: {}", email);
-
-            return ResponseEntity.ok().body(Map.of(
-                    "accessToken", tokens.getFirst().getToken(),
-                    "refreshToken", tokens.getSecond().getToken(),
-                    "accessTokenExpiresAt", tokens.getFirst().getExpiresAt(),
-                    "refreshTokenExpiresAt", tokens.getSecond().getExpiresAt(),
-                    "clientUid", tokens.getFirst().getClientUID()));
-
-        } catch (Exception e) {
-            log.error("Login failed for email: {}", credentials.get("email"), e);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "error", "Login failed",
-                    "message", e.getMessage()));
-        }
-    }
-
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> tokenRequest) {
-        try {
-            String refreshToken = tokenRequest.get("refreshToken");
-
-            log.info("Token refresh attempt");
-
-            RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
-            RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
-
-            // Вызываем сервис обновления токенов
-            Pair<AccessTokenBLM, RefreshTokenBLM> newTokens = authService.refresh(refreshTokenBLM);
-
-            log.info("Token refresh successful");
-
-            return ResponseEntity.ok().body(Map.of(
-                    "accessToken", newTokens.getFirst().getToken(),
-                    "refreshToken", newTokens.getSecond().getToken(),
-                    "accessTokenExpiresAt", newTokens.getFirst().getExpiresAt(),
-                    "refreshTokenExpiresAt", newTokens.getSecond().getExpiresAt()));
-
-        } catch (Exception e) {
-            log.error("Token refresh failed", e);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "error", "Token refresh failed",
-                    "message", e.getMessage()));
-        }
-    }
-
-    @GetMapping("/health")
-    public ResponseEntity<?> healthCheck() {
-        log.info("Heakth check: " + "\nstatus: OK" + "\nservice: auth-service" + "\ntimestamp: "
-                + System.currentTimeMillis());
-
-        ResponseEntity<?> responseEntity = ResponseEntity.ok().body(Map.of(
-                "status", "OK",
-                "service", "auth-service",
-                "timestamp", System.currentTimeMillis()));
-        return responseEntity;
-    }
-
-    @GetMapping("/validate/token/access")
-    public ResponseEntity<?> validateAccessToken(String accessToken) {
-        log.info("Validating access token");
-        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
-
-        AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
-        authService.validateAccessToken(accessTokenBLM);
-
-        ResponseEntity<?> responseEntity = ResponseEntity.ok().body(Map.of("status", "OK"));
-        return responseEntity;
-    }
-
-    @GetMapping("/validate/token/refresh")
-    public ResponseEntity<?> validateRefreshToken(String refreshToken) {
-        log.info("Validating refresh token");
-        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
-
-        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
-        authService.validateRefreshToken(refreshTokenBLM);
-
-        ResponseEntity<?> responseEntity = ResponseEntity.ok().body(Map.of("status", "OK"));
-        return responseEntity;
-    }
-
-    @GetMapping("/extract/accessTokenClientUID")
-    public ResponseEntity<UUID> getAccessTokenClientUID(String accessToken) {
-        log.info("Validating access token");
-        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
-
-        AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
-        authService.validateAccessToken(accessTokenBLM);
-
-        ResponseEntity<UUID> responseEntity = ResponseEntity.ok().body(accessTokenBLM.getClientUID());
-        return responseEntity;
-    }
-
-    @GetMapping("/extract/refreshTokenClientUID")
-    public ResponseEntity<UUID> getRefreshTokenClientUID(String refreshToken) {
-        log.info("Validating refresh token");
-        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
-
-        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
-        authService.validateRefreshToken(refreshTokenBLM);
-
-        ResponseEntity<UUID> responseEntity = ResponseEntity.ok().body(refreshTokenBLM.getClientUID());
-        return responseEntity;
-    }
-}package com.service.auth.config;
+package com.service.auth.config;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -217,19 +36,36 @@ public class ClientUtilsConfig {
         return new ClientValidator();
     }
 }
-// AuthKafkaConfig.java
 package com.service.auth.config;
 
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.support.serializer.JsonSerializer;
 
 import com.connection.auth.events.AuthEventConstants;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 public class AuthKafkaConfig {
 
+    @Value("${spring.kafka.bootstrap-servers:kafka:9092}")
+    private String bootstrapServers;
+
+    // Конфигурация топиков (существующий код)
     @Bean
     public NewTopic authCommandsTopic() {
         return TopicBuilder.name(AuthEventConstants.AUTH_COMMANDS_TOPIC)
@@ -252,6 +88,46 @@ public class AuthKafkaConfig {
                 .partitions(3)
                 .replicas(1)
                 .build();
+    }
+
+    // Новая конфигурация для Consumer
+    @Bean
+    public ConsumerFactory<String, Object> consumerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "auth-service-group");
+        configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.StringDeserializer.class);
+        configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "com.connection.auth.events.commands,com.connection.common.events");
+        configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
+        configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
+        configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");
+        return new DefaultKafkaConsumerFactory<>(configProps);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory = 
+            new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        return factory;
+    }
+
+    // Конфигурация для Producer
+    @Bean
+    public ProducerFactory<String, Object> producerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.StringSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
+        return new DefaultKafkaProducerFactory<>(configProps);
+    }
+
+    @Bean
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
     }
 }package com.service.auth.config;
 
@@ -622,25 +498,305 @@ public class AccessTokenUtilsConfig {
     }
 
 }
-// AuthCommandConsumer.java
-package com.service.auth.kafka;
+package com.service.auth.controller;
+
+import java.util.UUID;
+
+import org.springframework.data.util.Pair;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.client.converter.ClientConverter;
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDTO;
+import com.connection.client.validator.ClientValidator;
+import com.connection.token.converter.AccessTokenConverter;
+import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.AccessTokenDTO;
+import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.RefreshTokenDTO;
+import com.service.auth.AuthService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/auth-service")
+public class AuthServiceController {
+    private final AccessTokenConverter accessTokenConverter;
+    private final RefreshTokenConverter refreshTokenConverter;
+    private final ClientConverter clientConverter;
+
+    private final ClientValidator clientValidator;
+
+    private final AuthService authService;
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody ClientDTO clientDTO) {
+        log.info("Registration attempt for email: {}", clientDTO.getEmail());
+        clientValidator.validate(clientDTO);
+
+        ClientBLM clientBLM = clientConverter.toBLM(clientDTO);
+        authService.register(clientBLM);
+
+        log.info("Client registered successfully: {}", clientDTO.getEmail());
+        return ResponseEntity.ok().body(new RegistrationResponse(
+                "User registered successfully",
+                clientDTO.getEmail()));
+
+    }
+
+    @PostMapping("/login/email")
+    public ResponseEntity<?> loginByEmail(@RequestBody LoginRequest loginRequest) {
+        log.info("Login attempt by email: {}", loginRequest.getEmail());
+
+        Pair<AccessTokenBLM, RefreshTokenBLM> tokens = authService.authorizeByEmail(
+                loginRequest.getEmail(), loginRequest.getPassword());
+
+        log.info("Login successful for email: {}", loginRequest.getEmail());
+
+        return ResponseEntity.ok().body(new LoginResponse(
+                tokens.getFirst().getToken(),
+                tokens.getSecond().getToken(),
+                tokens.getFirst().getExpiresAt(),
+                tokens.getSecond().getExpiresAt(),
+                tokens.getFirst().getClientUID()));
+
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest refreshRequest) {
+        log.info("Token refresh attempt");
+
+        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshRequest.getRefreshToken());
+        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
+
+        Pair<AccessTokenBLM, RefreshTokenBLM> newTokens = authService.refresh(refreshTokenBLM);
+
+        log.info("Token refresh successful");
+
+        return ResponseEntity.ok().body(new LoginResponse(
+                newTokens.getFirst().getToken(),
+                newTokens.getSecond().getToken(),
+                newTokens.getFirst().getExpiresAt(),
+                newTokens.getSecond().getExpiresAt(),
+                newTokens.getFirst().getClientUID()));
+
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<?> healthCheck() {
+        log.info("Health check: \nstatus: OK\nservice: auth-service\ntimestamp: {}",
+                System.currentTimeMillis());
+
+        return ResponseEntity.ok().body(new HealthResponse(
+                "OK",
+                "auth-service",
+                System.currentTimeMillis()));
+    }
+
+    @GetMapping("/validate/token/access")
+    public ResponseEntity<?> validateAccessToken(@RequestParam String accessToken) {
+        log.info("Validating access token");
+        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
+
+        AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
+        authService.validateAccessToken(accessTokenBLM);
+
+        return ResponseEntity.ok().body(new ValidationResponse("OK"));
+    }
+
+    @GetMapping("/validate/token/refresh")
+    public ResponseEntity<?> validateRefreshToken(@RequestParam String refreshToken) {
+        log.info("Validating refresh token");
+        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
+
+        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
+        authService.validateRefreshToken(refreshTokenBLM);
+
+        return ResponseEntity.ok().body(new ValidationResponse("OK"));
+    }
+
+    @GetMapping("/extract/accessTokenClientUID")
+    public ResponseEntity<UUID> getAccessTokenClientUID(@RequestParam String accessToken) {
+        log.info("Extracting client UID from access token");
+        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
+
+        AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
+        authService.validateAccessToken(accessTokenBLM);
+
+        return ResponseEntity.ok().body(accessTokenBLM.getClientUID());
+    }
+
+    @GetMapping("/extract/refreshTokenClientUID")
+    public ResponseEntity<UUID> getRefreshTokenClientUID(@RequestParam String refreshToken) {
+        log.info("Extracting client UID from refresh token");
+        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
+
+        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
+        authService.validateRefreshToken(refreshTokenBLM);
+
+        return ResponseEntity.ok().body(refreshTokenBLM.getClientUID());
+    }
+}package com.service.auth.controller;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class ValidationResponse {
+    private final String status;
+}
+package com.service.auth.controller;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
 
 import java.util.Map;
 
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(com.connection.client.exception.ClientAlreadyExisistsException.class)
+    public ResponseEntity<?> handleClientAlreadyExistsException(
+            com.connection.client.exception.ClientAlreadyExisistsException e) {
+        log.warn("Client registration failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "client_already_exist",
+                "An account with such email or uid already exists"));
+    }
+
+    @ExceptionHandler(com.connection.client.exception.ClientNotFoundException.class)
+    public ResponseEntity<?> handleClientNotFoundException(com.connection.client.exception.ClientNotFoundException e) {
+        log.warn("Client not found: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(
+                "client_not_found",
+                "User not found"));
+    }
+
+    @ExceptionHandler(com.connection.client.exception.ClientValidateException.class)
+    public ResponseEntity<?> handleClientValidateException(com.connection.client.exception.ClientValidateException e) {
+        log.warn("Client validation failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "validation_failed",
+                e.getMessage() != null ? e.getMessage() : "Invalid user data"));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handleGenericException(Exception e) {
+        log.error("Unexpected error occurred: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "error", "Internal server error",
+                "message", "An unexpected error occurred"));
+    }
+}package com.service.auth.controller;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class ErrorResponse {
+    private final String error;
+    private final String message;
+}
+
+package com.service.auth.controller;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class HealthResponse {
+    private final String status;
+    private final String service;
+    private final long timestamp;
+}
+
+package com.service.auth.controller;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@AllArgsConstructor
+@Getter
+@Setter
+public class RegistrationResponse {
+    private final String message;
+    private final String email;
+}package com.service.auth.controller;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@AllArgsConstructor
+@Getter
+@Setter
+public class LoginRequest {
+    private String email;
+    private String password;
+}
+package com.service.auth.controller;
+
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class LoginResponse {
+    private final String accessToken;
+    private final String refreshToken;
+    private final Object accessTokenExpiresAt;
+    private final Object refreshTokenExpiresAt;
+    private final UUID clientUid;
+}
+
+package com.service.auth.controller;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@AllArgsConstructor
+@Getter
+@Setter
+public class RefreshTokenRequest {
+    private String refreshToken;
+}
+
+package com.service.auth.kafka;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
-import com.connection.auth.events.AuthEventUtils;
 import com.connection.auth.events.commands.ExtractClientUidCommand;
 import com.connection.auth.events.commands.HealthCheckCommand;
 import com.connection.auth.events.commands.ValidateTokenCommand;
 import com.connection.auth.events.responses.ClientUidResponse;
 import com.connection.auth.events.responses.HealthCheckResponse;
 import com.connection.auth.events.responses.TokenValidationResponse;
+import com.connection.common.events.Command;
 import com.connection.token.converter.AccessTokenConverter;
 import com.connection.token.model.AccessTokenBLM;
 import com.service.auth.AuthService;
@@ -658,58 +814,64 @@ public class AuthCommandConsumer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @KafkaListener(topics = "${app.kafka.topics.auth-commands:auth.commands}")
-    public void handleAuthCommand(@Payload String message,
-            @Header(KafkaHeaders.RECEIVED_KEY) String key,
-            @Header("type") String type) {
+    public void handleAuthCommand(ConsumerRecord<String, Command> record) {
         try {
-            log.info("Received auth command: type={}, key={}", type, key);
+            Command command = record.value();
+            String key = record.key();
 
-            switch (type) {
-                case "VALIDATE_TOKEN":
-                    handleValidateTokenCommand(message, key);
-                    break;
-                case "EXTRACT_CLIENT_UID":
-                    handleExtractClientUidCommand(message, key);
-                    break;
-                case "HEALTH_CHECK":
-                    handleHealthCheckCommand(message, key);
-                    break;
-                default:
-                    log.warn("Unknown command type: {}", type);
+            if (command instanceof ValidateTokenCommand) {
+                ValidateTokenCommand validateCommand = (ValidateTokenCommand) command;
+                handleValidateTokenCommand(validateCommand, key);
+            } else if (command instanceof ExtractClientUidCommand) {
+
+                ExtractClientUidCommand extractCommand = (ExtractClientUidCommand) command;
+                handleExtractClientUidCommand(extractCommand, key);
+            } else if (command instanceof HealthCheckCommand) {
+
+                HealthCheckCommand healthCommand = (HealthCheckCommand) command;
+                handleHealthCheckCommand(healthCommand, key);
             }
-        } catch (Exception e) {
-            log.error("Error processing auth command: type={}, key={}", type, key, e);
+
+            else {
+                log.warn("Unknown command typeId: {}", command.getClass().getCanonicalName());
+            }
+
+        } catch (
+
+        Exception e) {
+            log.error("Error processing auth command: key={}", record.key(), e);
         }
     }
 
-    private void handleValidateTokenCommand(String message, String key) {
-        ValidateTokenCommand command = AuthEventUtils.fromJson(message, ValidateTokenCommand.class);
-
+    private void handleValidateTokenCommand(ValidateTokenCommand command, String key) {
+        log.warn("Command {}, key {}", command, key);
         try {
+            log.warn("Command {}, key {}", command, key);
             AccessTokenBLM tokenBLM = accessTokenConverter.toBLM(
                     new com.connection.token.model.AccessTokenDTO(command.getToken()));
             authService.validateAccessToken(tokenBLM);
-
+            log.info("kafka validated token: {}", tokenBLM.getToken());
             TokenValidationResponse response = TokenValidationResponse.valid(
                     command.getCorrelationId(),
                     tokenBLM.getClientUID(),
                     command.getTokenType().name());
+            log.info("Kafka formed response {}", response.toString());
 
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Token validation successful: clientUid={}", tokenBLM.getClientUID());
+            log.info("Kafka send token validation successful: clientUid={}", response.toString());
 
         } catch (Exception e) {
             TokenValidationResponse response = TokenValidationResponse.error(
                     command.getCorrelationId(),
                     e.getMessage());
+            log.warn("Command {}, key {}", command, key);
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
             log.error("Token validation failed: {}", e.getMessage());
+            throw e;
         }
     }
 
-    private void handleExtractClientUidCommand(String message, String key) {
-        ExtractClientUidCommand command = AuthEventUtils.fromJson(message, ExtractClientUidCommand.class);
-
+    private void handleExtractClientUidCommand(ExtractClientUidCommand command, String key) {
         try {
             AccessTokenBLM tokenBLM = accessTokenConverter.toBLM(
                     new com.connection.token.model.AccessTokenDTO(command.getToken()));
@@ -732,11 +894,9 @@ public class AuthCommandConsumer {
         }
     }
 
-    private void handleHealthCheckCommand(String message, String key) {
-        HealthCheckCommand command = AuthEventUtils.fromJson(message, HealthCheckCommand.class);
-
+    private void handleHealthCheckCommand(HealthCheckCommand command, String key) {
         try {
-            Map<String, Object> healthStatus = Map.of(
+            java.util.Map<String, Object> healthStatus = java.util.Map.of(
                     "status", "OK",
                     "service", "auth-service",
                     "timestamp", System.currentTimeMillis());
@@ -907,6 +1067,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional("atomicosTransactionManager")
     public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(
             RefreshTokenBLM refreshTokenBLM) {
+
         refreshTokenValidator.validate(refreshTokenBLM);
 
         // Инициалаизация общих полей
@@ -943,6 +1104,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void validateAccessToken(AccessTokenBLM accessTokenBLM) {
+        log.info("Validating tokeb: |{}|", accessTokenBLM.getToken());
         accessTokenValidator.validate(accessTokenBLM);
     }
 

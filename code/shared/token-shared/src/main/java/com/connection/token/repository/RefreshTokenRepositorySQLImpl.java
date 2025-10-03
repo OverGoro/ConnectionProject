@@ -18,23 +18,21 @@ import com.connection.token.model.RefreshTokenDALM;
 @Repository
 public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
 
-    private static final String SELECT_REFRESH_TOKEN = "SELECT uid, client_id, token, family_id, created_at, expires_at";
-    private static final String FROM_REFRESH_TOKEN = " FROM public.refresh_token";
+    private static final String SELECT_REFRESH_TOKEN = "SELECT uid, client_id, token, created_at, expires_at";
+    private static final String FROM_REFRESH_TOKEN = " FROM \"access\".refresh_token";
 
     private static final String SELECT_TOKEN_BY_UID = SELECT_REFRESH_TOKEN + FROM_REFRESH_TOKEN + " WHERE uid = :uid";
     private static final String SELECT_TOKEN_BY_TOKEN = SELECT_REFRESH_TOKEN + FROM_REFRESH_TOKEN + " WHERE token = :token";
-    // private static final String SELECT_TOKENS_BY_CLIENT = SELECT_REFRESH_TOKEN + FROM_REFRESH_TOKEN + " WHERE client_id = :client_id";
-    // private static final String SELECT_TOKEN_BY_FAMILY = SELECT_REFRESH_TOKEN + FROM_REFRESH_TOKEN + " WHERE family_id = :family_id";
 
-    private static final String INSERT_REFRESH_TOKEN = "INSERT INTO public.refresh_token (uid, client_id, token, family_id, created_at, expires_at) " +
-            "VALUES (:uid, :client_id, :token, :family_id, :created_at, :expires_at)";
+    private static final String INSERT_REFRESH_TOKEN = "INSERT INTO \"access\".refresh_token (uid, client_id, token, created_at, expires_at) " +
+            "VALUES (:uid, :client_id, :token, :created_at, :expires_at)";
 
-    private static final String UPDATE_TOKEN = "UPDATE public.refresh_token SET token = :new_token, expires_at = :new_expires_at, created_at = :new_created_at " +
+    private static final String UPDATE_TOKEN = "UPDATE \"access\".refresh_token SET token = :new_token, expires_at = :new_expires_at, created_at = :new_created_at " +
             "WHERE uid = :uid";
 
-    private static final String REVOKE_TOKEN = "DELETE FROM public.refresh_token WHERE uid = :uid";
-    private static final String REVOKE_ALL_CLIENT_TOKENS = "DELETE FROM public.refresh_token WHERE client_id = :client_id";
-    private static final String CLEANUP_EXPIRED_TOKENS = "DELETE FROM public.refresh_token WHERE expires_at < NOW()";
+    private static final String REVOKE_TOKEN = "DELETE FROM \"access\".refresh_token WHERE uid = :uid";
+    private static final String REVOKE_ALL_CLIENT_TOKENS = "DELETE FROM \"access\".refresh_token WHERE client_id = :client_id";
+    private static final String CLEANUP_EXPIRED_TOKENS = "DELETE FROM \"access\".refresh_token WHERE expires_at < NOW()";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -69,7 +67,6 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         params.addValue("uid", refreshTokenDALM.getUid());
         params.addValue("client_id", refreshTokenDALM.getClientUID());
         params.addValue("token", refreshTokenDALM.getToken());
-        params.addValue("family_id", refreshTokenDALM.getUid()); // Используем uid как family_id для простоты
         params.addValue("created_at", new Timestamp(refreshTokenDALM.getCreatedAt().getTime()));
         params.addValue("expires_at", new Timestamp(refreshTokenDALM.getExpiresAt().getTime()));
 

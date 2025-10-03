@@ -84,7 +84,7 @@ class RefreshTokenRepositorySQLImplTest {
         repository.revoke(testToken);
 
         verify(jdbcTemplate, times(1)).update(
-                eq("DELETE FROM public.refresh_token WHERE uid = :uid"),
+                eq("DELETE FROM \"access\".refresh_token WHERE uid = :uid"),
                 any(MapSqlParameterSource.class));
     }
 
@@ -109,7 +109,7 @@ class RefreshTokenRepositorySQLImplTest {
         repository.revokeAll(testToken.getClientUID());
 
         verify(jdbcTemplate, times(1)).update(
-                eq("DELETE FROM public.refresh_token WHERE client_id = :client_id"),
+                eq("DELETE FROM \"access\".refresh_token WHERE client_id = :client_id"),
                 any(MapSqlParameterSource.class));
     }
 
@@ -121,7 +121,7 @@ class RefreshTokenRepositorySQLImplTest {
         repository.cleanUpExpired();
 
         verify(jdbcTemplate, times(1)).update(
-                eq("DELETE FROM public.refresh_token WHERE expires_at < NOW()"),
+                eq("DELETE FROM \"access\".refresh_token WHERE expires_at < NOW()"),
                 any(MapSqlParameterSource.class));
     }
 

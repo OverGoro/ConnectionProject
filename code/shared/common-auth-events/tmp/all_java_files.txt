@@ -78,12 +78,13 @@ import com.connection.common.events.Command;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class ValidateTokenCommand extends Command {
-    private String token;
-    private TokenType tokenType;
+    private final String token;
+    private final TokenType tokenType;
     
     public ValidateTokenCommand() {
         super("VALIDATE_TOKEN", "unknown", "auth.responses");
-        this.tokenType = TokenType.ACCESS;
+        this.token = "unknown";
+        this.tokenType = TokenType.UNKNOWN;
     }
     
     public ValidateTokenCommand(String token, String sourceService) {
@@ -99,7 +100,7 @@ public class ValidateTokenCommand extends Command {
     }
     
     public enum TokenType {
-        ACCESS, REFRESH
+        ACCESS, REFRESH, UNKNOWN
     }
 }package com.connection.auth.events.commands;
 
@@ -117,7 +118,8 @@ public class ExtractClientUidCommand extends Command {
     
     public ExtractClientUidCommand() {
         super("EXTRACT_CLIENT_UID", "unknown", "auth.responses");
-        this.tokenType = TokenType.ACCESS;
+        this.token = "unknown";
+        this.tokenType = TokenType.UNKNOWN;
     }
     
     public ExtractClientUidCommand(String token, String sourceService) {
@@ -133,7 +135,7 @@ public class ExtractClientUidCommand extends Command {
     }
     
     public enum TokenType {
-        ACCESS, REFRESH
+        ACCESS, REFRESH, UNKNOWN
     }
 }package com.connection.auth.events.exceptions;
 
@@ -190,8 +192,10 @@ public class AuthEventUtils {
     }
 }package com.connection.auth.events.responses;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.util.Map;
@@ -201,6 +205,8 @@ import com.connection.common.events.CommandResponse;
 
 @Data
 @SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class HealthCheckResponse extends CommandResponse {
     private Map<String, Object> healthStatus;
@@ -226,8 +232,10 @@ public class HealthCheckResponse extends CommandResponse {
     }
 }package com.connection.auth.events.responses;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.util.UUID;
@@ -236,6 +244,8 @@ import com.connection.common.events.CommandResponse;
 
 @Data
 @SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class ClientUidResponse extends CommandResponse {
     private UUID clientUid;
@@ -263,8 +273,10 @@ public class ClientUidResponse extends CommandResponse {
     }
 }package com.connection.auth.events.responses;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.util.UUID;
@@ -273,6 +285,8 @@ import com.connection.common.events.CommandResponse;
 
 @Data
 @SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class TokenValidationResponse extends CommandResponse {
     private boolean isValid;

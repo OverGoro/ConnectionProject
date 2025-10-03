@@ -1,0 +1,1236 @@
+package com.connection.device;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.device.converter.DeviceConverter;
+import com.connection.device.exception.DeviceAlreadyExistsException;
+import com.connection.device.kafka.TypedAuthKafkaClient;
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.repository.DeviceRepository;
+import com.connection.device.validator.DeviceValidator;
+import com.connection.device.config.SecurityUtils;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+        JpaRepositoriesAutoConfiguration.class
+})
+@Transactional("atomicosTransactionManager")
+public class DeviceServiceImpl implements DeviceService {
+
+    private final DeviceRepository deviceRepository;
+    private final DeviceConverter deviceConverter;
+    private final DeviceValidator deviceValidator;
+    private final TypedAuthKafkaClient authKafkaClient;
+
+    @Override
+    public DeviceBLM createDevice(DeviceBLM deviceBLM) {
+        deviceValidator.validate(deviceBLM);
+ 
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+
+
+        if (!clientUid.equals(deviceBLM.getClientUuid())) {
+            throw new SecurityException("Client UID from token doesn't match device client UID");
+        }
+
+        if (deviceRepository.existsByClientAndName(clientUid, deviceBLM.getDeviceName())) {
+            throw new DeviceAlreadyExistsException(
+                    "Device with name '" + deviceBLM.getDeviceName() + "' already exists for this client");
+        }
+
+        DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
+        deviceRepository.add(deviceDALM);
+
+        log.info("Device created: {} for client: {}", deviceBLM.getUid(), clientUid);
+        return deviceBLM;
+    }
+
+    @Override
+    public DeviceBLM getDevice(UUID deviceUid) {
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+
+        DeviceDALM deviceDALM = deviceRepository.findByUid(deviceUid);
+
+        if (!clientUid.equals(deviceDALM.getClientUuid())) {
+            throw new SecurityException("Device doesn't belong to the authenticated client");
+        }
+
+        return deviceConverter.toBLM(deviceDALM);
+    }
+
+    @Override
+    public List<DeviceBLM> getDevicesByClient() {
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+
+        List<DeviceDALM> devicesDALM = deviceRepository.findByClientUuid(clientUid);
+        return devicesDALM.stream()
+                .map(deviceConverter::toBLM)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public DeviceBLM updateDevice(DeviceBLM deviceBLM) {
+        deviceValidator.validate(deviceBLM);
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+
+
+        DeviceDALM existingDevice = deviceRepository.findByUid(deviceBLM.getUid());
+        if (!clientUid.equals(existingDevice.getClientUuid())) {
+            throw new SecurityException("Device doesn't belong to the authenticated client");
+        }
+
+        if (!clientUid.equals(deviceBLM.getClientUuid())) {
+            throw new SecurityException("Client UID from token doesn't match device client UID");
+        }
+
+        DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
+        deviceRepository.update(deviceDALM);
+
+        log.info("Device updated: {} for client: {}", deviceBLM.getUid(), clientUid);
+        return deviceBLM;
+    }
+
+    @Override
+    public void deleteDevice(UUID deviceUid) {
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+
+        DeviceDALM existingDevice = deviceRepository.findByUid(deviceUid);
+        if (!clientUid.equals(existingDevice.getClientUuid())) {
+            throw new SecurityException("Device doesn't belong to the authenticated client");
+        }
+
+        deviceRepository.delete(deviceUid);
+        log.info("Device deleted: {} for client: {}", deviceUid, clientUid);
+    }
+
+    @Override
+    public boolean deviceExists(UUID deviceUid) {
+        // Просто проверяем существование устройства без проверки принадлежности
+        return deviceRepository.exists(deviceUid);
+    }
+
+    @Override
+    public Map<String, Object> getHealthStatus() {
+        try {
+            HealthCheckResponse authHealth = authKafkaClient.healthCheck("device-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "device-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+        } catch (Exception e) {
+            log.error("Kafka Client: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "device-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "error", e.getMessage());
+        }
+    }
+}package com.connection.device;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.device.model.DeviceBLM;
+
+public interface DeviceService {
+    DeviceBLM createDevice(DeviceBLM deviceDTO);
+    DeviceBLM getDevice(UUID deviceUid);
+    List<DeviceBLM> getDevicesByClient();
+    DeviceBLM updateDevice(DeviceBLM deviceDTO);
+    void deleteDevice(UUID deviceUid);
+    boolean deviceExists(UUID deviceUid);
+    Map<String, Object> getHealthStatus();
+}package com.connection.device.config;
+
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@SecurityScheme(
+    name = "bearerAuth",
+    type = SecuritySchemeType.HTTP,
+    bearerFormat = "JWT",
+    scheme = "bearer"
+)
+public class SwaggerConfig {
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Device Service API")
+                        .version("1.0")
+                        .description("API для управления устройствами"))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
+                .components(new Components()
+                        .addSecuritySchemes("bearerAuth", 
+                            new io.swagger.v3.oas.models.security.SecurityScheme()
+                                .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")));
+    }
+}package com.connection.device.config;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.device.repository.DeviceRepository;
+import com.connection.device.repository.DeviceRepositorySQLImpl;
+
+@Configuration
+public class DeviceRepositoryConfig {
+    @Bean("DeviceRepository")
+    DeviceRepository deviceRepository(@Qualifier("DeviceJdbcTemplate") NamedParameterJdbcTemplate template){
+        return new DeviceRepositorySQLImpl(template);
+    }
+}package com.connection.device.config;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+
+import java.util.UUID;
+
+@Component
+public class SecurityUtils {
+
+    public static UUID getCurrentClientUid() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new SecurityException("User not authenticated");
+        }
+
+        Object principal = authentication.getPrincipal();
+        
+        if (principal instanceof UUID) {
+            return (UUID) principal;
+        } else if (principal instanceof String) {
+            try {
+                return UUID.fromString((String) principal);
+            } catch (IllegalArgumentException e) {
+                throw new SecurityException("Invalid client UID format in principal");
+            }
+        } else {
+            throw new SecurityException("Unexpected principal type: " + principal.getClass());
+        }
+    }
+
+    public static String getCurrentClientUidAsString() {
+        return getCurrentClientUid().toString();
+    }
+}package com.connection.device.config;
+
+import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.TopicBuilder;
+
+import com.connection.auth.events.AuthEventConstants;
+
+@Configuration
+public class DeviceKafkaConfig {
+
+    @Bean
+    public NewTopic authResponsesTopic() {
+        return TopicBuilder.name(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+}package com.connection.device.config;
+
+import java.util.Properties;
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.atomikos.jdbc.AtomikosDataSourceBean;
+
+@Configuration
+public class DeviceJDBCConfig {
+    
+    @Value("${app.datasource.device.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    private String xaDataSourceClassName;
+
+    @Value("${app.datasource.device.xa-properties.url}")
+    private String jdbcUrl;
+
+    @Value("${app.datasource.device.xa-properties.user}")
+    private String username;
+
+    @Value("${app.datasource.device.xa-properties.password}")
+    private String password;
+
+    @Value("${app.datasource.device.unique-resource-name:deviceXADataSource}")
+    private String uniqueResourceName;
+
+    @Bean("DeviceDataSource")
+    DataSource deviceDataSource() {
+        AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
+        dataSource.setUniqueResourceName(uniqueResourceName);
+        dataSource.setXaDataSourceClassName(xaDataSourceClassName);
+        
+        Properties xaProperties = new Properties();
+        xaProperties.setProperty("url", jdbcUrl);
+        xaProperties.setProperty("user", username);
+        xaProperties.setProperty("password", password);
+
+        dataSource.setXaProperties(xaProperties);
+        dataSource.setPoolSize(5);
+        dataSource.setTestQuery("SELECT 1");
+
+        return dataSource;
+    }
+
+    @Bean("DeviceJdbcTemplate")
+    NamedParameterJdbcTemplate deviceNamedParameterJdbcTemplate(
+            @Qualifier("DeviceDataSource") DataSource deviceDataSource) {
+        return new NamedParameterJdbcTemplate(deviceDataSource);
+    }
+}// DeviceExceptionHandler.java
+package com.connection.device.config;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import com.connection.device.exception.BaseDeviceException;
+import com.connection.device.exception.DeviceAddException;
+import com.connection.device.exception.DeviceAlreadyExistsException;
+import com.connection.device.exception.DeviceNotFoundException;
+import com.connection.device.exception.DeviceValidateException;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@RestControllerAdvice
+public class DeviceExceptionHandler {
+
+    @ExceptionHandler(DeviceAddException.class)
+    public ResponseEntity<Map<String, Object>> handleDeviceAddException(DeviceAddException ex) {
+        return createErrorResponse(
+            "DEVICE_ADD_ERROR",
+            "Cannot add device",
+            ex.getMessage(),
+            HttpStatus.BAD_REQUEST
+        );
+    }
+
+    @ExceptionHandler(DeviceAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleDeviceAlreadyExistsException(DeviceAlreadyExistsException ex) {
+        return createErrorResponse(
+            "DEVICE_ALREADY_EXISTS",
+            "Device already exists",
+            ex.getMessage(),
+            HttpStatus.CONFLICT
+        );
+    }
+
+    @ExceptionHandler(DeviceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleDeviceNotFoundException(DeviceNotFoundException ex) {
+        return createErrorResponse(
+            "DEVICE_NOT_FOUND",
+            "Device not found",
+            ex.getMessage(),
+            HttpStatus.NOT_FOUND
+        );
+    }
+
+    @ExceptionHandler(DeviceValidateException.class)
+    public ResponseEntity<Map<String, Object>> handleDeviceValidateException(DeviceValidateException ex) {
+        return createErrorResponse(
+            "DEVICE_VALIDATION_ERROR",
+            "Device validation failed",
+            ex.getMessage(),
+            HttpStatus.BAD_REQUEST
+        );
+    }
+
+    @ExceptionHandler(BaseDeviceException.class)
+    public ResponseEntity<Map<String, Object>> handleBaseDeviceException(BaseDeviceException ex) {
+        return createErrorResponse(
+            "DEVICE_ERROR",
+            "Device operation failed",
+            ex.getMessage(),
+            HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+
+    private ResponseEntity<Map<String, Object>> createErrorResponse(
+            String errorCode, 
+            String errorMessage, 
+            String details, 
+            HttpStatus status) {
+        
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("timestamp", System.currentTimeMillis());
+        errorResponse.put("status", status.value());
+        errorResponse.put("error", status.getReasonPhrase());
+        errorResponse.put("code", errorCode);
+        errorResponse.put("message", errorMessage);
+        errorResponse.put("details", details);
+        
+        return new ResponseEntity<>(errorResponse, status);
+    }
+}package com.connection.device.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.connection.device.converter.DeviceConverter;
+import com.connection.device.validator.DeviceValidator;
+
+@Configuration
+public class DeviceUtilsConfig {
+    @Bean("DeviceConverter")
+    DeviceConverter deviceConverter(){
+        return new DeviceConverter();
+    }
+
+    @Bean("DeviceValidator")
+    DeviceValidator deviceValidator(){
+        return new DeviceValidator();
+    }
+}package com.connection.device.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.jta.JtaTransactionManager;
+
+import com.atomikos.icatch.jta.UserTransactionManager;
+
+import jakarta.transaction.SystemException;
+
+@Configuration
+public class TransactionConfig {
+
+    @Bean
+    public UserTransactionManager userTransactionManager() throws SystemException{
+        UserTransactionManager manager = new UserTransactionManager();
+        manager.setTransactionTimeout(300);
+        manager.setForceShutdown(true);
+        return manager;
+    }
+
+    @Bean(name = "atomicosTransactionManager")
+    public JtaTransactionManager jtaTransactionManager() throws SystemException {
+        JtaTransactionManager jtaTransactionManager = new JtaTransactionManager();
+        jtaTransactionManager.setTransactionManager(userTransactionManager());
+        jtaTransactionManager.setUserTransaction(userTransactionManager());
+        return jtaTransactionManager;
+    }
+}package com.connection.device.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.connection.device.client.JwtKafkaAuthenticationFilter;
+import com.connection.device.kafka.TypedAuthKafkaClient;
+
+import lombok.RequiredArgsConstructor;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final TypedAuthKafkaClient authKafkaClient;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/swagger-ui.html").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/api-docs/**").permitAll()
+                        .requestMatchers("/webjars/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/device-service/**").authenticated()
+                        .requestMatchers("/api/device-service/health").permitAll()
+                        .anyRequest().denyAll()
+                )
+                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+
+    @Bean
+    public JwtKafkaAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtKafkaAuthenticationFilter(authKafkaClient);
+    }
+}   package com.connection.device.kafka;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Component;
+
+import com.connection.auth.events.responses.TokenValidationResponse;
+import com.connection.common.events.CommandResponse;
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class AuthResponseConsumer {
+
+    private final TypedAuthKafkaClient authKafkaClient;
+
+    @KafkaListener(topics = "${app.kafka.topics.auth-responses:auth.responses}")
+    public void handleAuthResponse(ConsumerRecord<String, CommandResponse> record) {
+        try {
+            CommandResponse message = record.value();
+            String correlationId = record.key();
+            
+            log.info("Received auth response: correlationId={}", correlationId);
+                
+            if (message instanceof TokenValidationResponse) {
+                TokenValidationResponse typedResponse = (TokenValidationResponse) message;
+                authKafkaClient.handleResponse(correlationId, typedResponse);
+            } else if (message instanceof ClientUidResponse) {
+                ClientUidResponse typedResponse = (ClientUidResponse) message;
+                authKafkaClient.handleResponse(correlationId, typedResponse);
+            } else if (message instanceof HealthCheckResponse) {
+                HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+                authKafkaClient.handleResponse(correlationId, typedResponse);
+            } else {
+                log.warn("Unknown response type for correlationId: {}", correlationId);
+            }
+            
+        } catch (Exception e) {
+            log.error("Error processing auth response: correlationId={}", record.key(), e);
+        }
+    }
+}package com.connection.device.kafka;
+
+import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+
+import com.connection.auth.events.AuthEventConstants;
+import com.connection.auth.events.AuthEventUtils;
+import com.connection.auth.events.commands.ExtractClientUidCommand;
+import com.connection.auth.events.commands.HealthCheckCommand;
+import com.connection.auth.events.commands.ValidateTokenCommand;
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.auth.events.responses.TokenValidationResponse;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class TypedAuthKafkaClient {
+
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    
+    private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+
+    private static class PendingRequest<T> {
+        final CompletableFuture<T> future;
+        final Class<T> responseType;
+
+        PendingRequest(CompletableFuture<T> future, Class<T> responseType) {
+            this.future = future;
+            this.responseType = responseType;
+        }
+    }
+
+    public CompletableFuture<TokenValidationResponse> validateToken(String token, String sourceService) {
+        return sendRequest(
+            ValidateTokenCommand.builder()
+                .token(token)
+                .tokenType(ValidateTokenCommand.TokenType.ACCESS)
+                .sourceService(sourceService)
+                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .correlationId(AuthEventUtils.generateCorrelationId())
+                .build(),
+            TokenValidationResponse.class
+        );
+    }
+
+    public CompletableFuture<ClientUidResponse> getClientUid(String token, String sourceService) {
+        return sendRequest(
+            ExtractClientUidCommand.builder()
+                .token(token)
+                .tokenType(ExtractClientUidCommand.TokenType.ACCESS)
+                .sourceService(sourceService)
+                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .correlationId(AuthEventUtils.generateCorrelationId())
+                .build(),
+            ClientUidResponse.class
+        );
+    }
+
+    public CompletableFuture<HealthCheckResponse> healthCheck(String sourceService) {
+        return sendRequest(
+            HealthCheckCommand.builder()
+                .eventId(UUID.randomUUID().toString())
+                .sourceService(sourceService)
+                .timestamp(new Date().toInstant())
+                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .correlationId(AuthEventUtils.generateCorrelationId())
+                .commandType(AuthEventConstants.COMMAND_HEALTH_CHECK)
+                .build(),
+            HealthCheckResponse.class
+        );
+    }
+
+    private <T> CompletableFuture<T> sendRequest(Object command, Class<T> responseType) {
+        String correlationId;
+        
+        if (command instanceof ValidateTokenCommand) {
+            correlationId = ((ValidateTokenCommand) command).getCorrelationId();
+        } else if (command instanceof ExtractClientUidCommand) {
+            correlationId = ((ExtractClientUidCommand) command).getCorrelationId();
+        } else if (command instanceof HealthCheckCommand) {
+            correlationId = ((HealthCheckCommand) command).getCorrelationId();
+        } else {
+            throw new IllegalArgumentException("Unsupported command type: " + command.getClass());
+        }
+
+        CompletableFuture<T> future = new CompletableFuture<>();
+        pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
+
+        kafkaTemplate.send(AuthEventConstants.AUTH_COMMANDS_TOPIC, correlationId, command)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        future.completeExceptionally(ex);
+                        pendingRequests.remove(correlationId);
+                        log.error("Failed to send command: {}", ex.getMessage());
+                    }
+                });
+
+        return future;
+    }
+
+    @SuppressWarnings("unchecked")
+    public void handleResponse(String correlationId, Object response) {
+        PendingRequest<?> pendingRequest = pendingRequests.remove(correlationId);
+        if (pendingRequest != null) {
+            try {
+                if (pendingRequest.responseType.isInstance(response)) {
+                    CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
+                    future.complete(response);
+                } else {
+                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
+                            correlationId, pendingRequest.responseType, response.getClass());
+                    pendingRequest.future.completeExceptionally(
+                        new ClassCastException("Type mismatch in response")
+                    );
+                }
+            } catch (Exception e) {
+                pendingRequest.future.completeExceptionally(e);
+            }
+        } else {
+            log.warn("Received response for unknown correlationId: {}", correlationId);
+        }
+    }
+}package com.connection.device;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class DeviceServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(DeviceServiceApplication.class, args);
+	}
+
+}
+package com.connection.device;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.device.config.SecurityUtils;
+import com.connection.device.converter.DeviceConverter;
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDTO;
+import com.connection.device.validator.DeviceValidator;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/device-service")
+public class DeviceController {
+    
+    private final DeviceService deviceService;
+    private final DeviceValidator deviceValidator;
+    private final DeviceConverter deviceConverter;
+
+    @PostMapping("/devices")
+    public ResponseEntity<DeviceBLM> createDevice(@RequestBody DeviceDTO deviceDTO) {
+        UUID clientUuid = SecurityUtils.getCurrentClientUid();
+        log.info("Creating device for client " + clientUuid);
+
+        deviceValidator.validate(deviceDTO);
+        DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
+
+        DeviceBLM device = deviceService.createDevice(deviceBLM);
+        return ResponseEntity.ok(device);
+    }
+
+    @GetMapping("/devices/{deviceUid}")
+    public ResponseEntity<DeviceBLM> getDevice(@PathVariable UUID deviceUid) {
+        log.info("Getting device: {}", deviceUid);
+
+        DeviceBLM device = deviceService.getDevice(deviceUid);
+        return ResponseEntity.ok(device);
+    }
+
+    @GetMapping("/devices")
+    public ResponseEntity<List<DeviceBLM>> getDevicesByClient() {
+        log.info("Getting all devices for client");
+        
+        List<DeviceBLM> devices = deviceService.getDevicesByClient();
+        return ResponseEntity.ok(devices);
+    }
+
+    @PutMapping("/device")
+    public ResponseEntity<DeviceBLM> updateDevice(
+            @RequestBody DeviceDTO deviceDTO) {            
+        deviceValidator.validate(deviceDTO);
+        UUID clientUuid = SecurityUtils.getCurrentClientUid();
+        log.info("Updating device: {}, for client: {}", deviceDTO.getUid(), clientUuid);
+        
+
+        DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
+        DeviceBLM device = deviceService.updateDevice(deviceBLM);
+        return ResponseEntity.ok(device);
+    }
+
+    @DeleteMapping("/devices/{deviceUid}")
+    public ResponseEntity<Void> deleteDevice(@PathVariable UUID deviceUid) {
+        log.info("Deleting device: {}", deviceUid);
+        
+        deviceService.deleteDevice(deviceUid);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<?> healthCheck() {
+        log.info("Health check: status: OK, service: device-service, timestamp: {}", 
+                System.currentTimeMillis());
+
+        return ResponseEntity.ok().body(deviceService.getHealthStatus());
+    }
+}package com.connection.device.client;
+
+import com.connection.device.kafka.TypedAuthKafkaClient;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import com.connection.auth.events.responses.TokenValidationResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class JwtKafkaAuthenticationFilter extends OncePerRequestFilter {
+
+    private final TypedAuthKafkaClient authKafkaClient;
+    private static final String AUTH_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
+
+        String authHeader = request.getHeader(AUTH_HEADER);
+
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String jwtToken = authHeader.substring(BEARER_PREFIX.length());
+
+        try {
+            authenticateWithToken(jwtToken, request);
+        } catch (Exception e) {
+            log.error("Authentication failed for token: {}", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        filterChain.doFilter(request, response);
+    }
+
+    private void authenticateWithToken(String token, HttpServletRequest request) {
+        try {
+            String cleanToken = token.trim();
+            cleanToken = cleanToken.replace("Bearer ", "");
+
+            log.info("Validating token: {}...", cleanToken);
+
+            CompletableFuture<TokenValidationResponse> validationFuture = authKafkaClient.validateToken(cleanToken,
+                    "device-service");
+
+            TokenValidationResponse validationResponse = validationFuture
+                    .get(10, TimeUnit.SECONDS);
+
+            if (!validationResponse.isValid()) {
+                throw new SecurityException("Token validation failed: " + validationResponse.getError());
+            }
+
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    validationResponse.getClientUid(),
+                    null,
+                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            log.info("Successfully authenticated client: {}", validationResponse.getClientUid());
+
+        } catch (java.util.concurrent.TimeoutException e) {
+            throw new SecurityException("Token validation timeout");
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new SecurityException("Token validation error: " + e.getCause().getMessage());
+        } catch (Exception e) {
+            throw new SecurityException("Authentication failed: " + e.getMessage());
+        }
+    }
+}package com.connection.device;
+
+import static com.connection.device.mother.DeviceObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.connection.device.converter.DeviceConverter;
+import com.connection.device.exception.DeviceAlreadyExistsException;
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.model.DeviceDTO;
+import com.connection.device.repository.DeviceRepository;
+import com.connection.device.validator.DeviceValidator;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("Device Service Implementation Tests - London Style")
+class DeviceServiceImplLondonTest {
+
+    @Mock
+    private DeviceRepository deviceRepository;
+
+    @Mock
+    private DeviceConverter deviceConverter;
+
+    @Mock
+    private DeviceValidator deviceValidator;
+
+    @Mock
+    private AuthServiceClient authServiceClient;
+
+    @InjectMocks
+    private DeviceServiceImpl deviceService;
+
+    @BeforeEach
+    void setUp() {
+
+    }
+
+    @Test
+    @DisplayName("Create device - Positive")
+    void shouldCreateDeviceWhenValidData() {
+
+        DeviceDTO deviceDTO = createValidDeviceDTO();
+        DeviceBLM deviceBLM = createValidDeviceBLM();
+        DeviceDALM deviceDALM = createValidDeviceDALM();
+
+        when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
+        when(deviceConverter.toBLM(deviceDTO)).thenReturn(deviceBLM);
+        when(deviceConverter.toDALM(deviceBLM)).thenReturn(deviceDALM);
+        when(deviceRepository.existsByClientAndName(CLIENT_UUID, "Test Device")).thenReturn(false);
+
+        DeviceBLM result = deviceService.createDevice(VALID_TOKEN, deviceDTO);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(DEVICE_UUID);
+        verify(authServiceClient).validateAccessToken(VALID_TOKEN);
+        verify(deviceValidator).validate(deviceDTO);
+        verify(deviceRepository).add(deviceDALM);
+    }
+
+    @Test
+    @DisplayName("Create device - Negative: Token validation fails")
+    void shouldThrowExceptionWhenTokenValidationFails() {
+
+        DeviceDTO deviceDTO = createValidDeviceDTO();
+
+        doThrow(new ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED))
+                .when(authServiceClient).validateAccessToken(INVALID_TOKEN);
+
+        assertThatThrownBy(() -> deviceService.createDevice(INVALID_TOKEN, deviceDTO))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("401 UNAUTHORIZED");
+
+        verify(deviceValidator, never()).validate(any(DeviceDTO.class));
+        verify(deviceRepository, never()).add(any());
+        verify(authServiceClient, never()).getAccessTokenClientUID(any());
+    }
+
+    @Test
+    @DisplayName("Create device - Negative: Client UID mismatch")
+    void shouldThrowExceptionWhenClientUidMismatch() {
+
+        DeviceDTO deviceDTO = createValidDeviceDTO();
+        UUID differentClientUuid = UUID.randomUUID();
+        DeviceBLM deviceBLM = new DeviceBLM(
+                DEVICE_UUID,
+                differentClientUuid,
+                "Test Device",
+                "Test Description");
+
+        when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
+        when(deviceConverter.toBLM(deviceDTO)).thenReturn(deviceBLM);
+
+        assertThatThrownBy(() -> deviceService.createDevice(VALID_TOKEN, deviceDTO))
+                .isInstanceOf(SecurityException.class)
+                .hasMessageContaining("Client UID from token doesn't match");
+
+        verify(authServiceClient).validateAccessToken(VALID_TOKEN);
+        verify(deviceValidator).validate(deviceDTO);
+        verify(deviceRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Create device - Negative: Device already exists")
+    void shouldThrowExceptionWhenDeviceAlreadyExists() {
+
+        DeviceDTO deviceDTO = createValidDeviceDTO();
+        DeviceBLM deviceBLM = createValidDeviceBLM();
+
+        when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
+        when(deviceConverter.toBLM(deviceDTO)).thenReturn(deviceBLM);
+        when(deviceRepository.existsByClientAndName(CLIENT_UUID, "Test Device")).thenReturn(true);
+
+        assertThatThrownBy(() -> deviceService.createDevice(VALID_TOKEN, deviceDTO))
+                .isInstanceOf(DeviceAlreadyExistsException.class);
+
+        verify(authServiceClient).validateAccessToken(VALID_TOKEN);
+        verify(deviceValidator).validate(deviceDTO);
+        verify(deviceRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Get device - Positive")
+    void shouldGetDeviceWhenValidRequest() {
+
+        DeviceDALM deviceDALM = createValidDeviceDALM();
+        DeviceBLM expectedBLM = createValidDeviceBLM();
+
+        when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
+        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceDALM);
+        when(deviceConverter.toBLM(deviceDALM)).thenReturn(expectedBLM);
+
+        DeviceBLM result = deviceService.getDevice(VALID_TOKEN, DEVICE_UUID);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(DEVICE_UUID);
+        verify(authServiceClient).validateAccessToken(VALID_TOKEN);
+        verify(deviceRepository).findByUid(DEVICE_UUID);
+    }
+
+    @Test
+    @DisplayName("Get device - Negative: Device doesn't belong to client")
+    void shouldThrowExceptionWhenDeviceNotBelongsToClient() {
+
+        UUID differentClientUuid = UUID.randomUUID();
+        DeviceDALM deviceDALM = new DeviceDALM(
+                DEVICE_UUID,
+                differentClientUuid,
+                "Test Device",
+                "Test Description");
+
+        when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
+        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceDALM);
+
+        assertThatThrownBy(() -> deviceService.getDevice(VALID_TOKEN, DEVICE_UUID))
+                .isInstanceOf(SecurityException.class)
+                .hasMessageContaining("doesn't belong");
+
+        verify(authServiceClient).validateAccessToken(VALID_TOKEN);
+        verify(deviceRepository).findByUid(DEVICE_UUID);
+        verify(deviceConverter, never()).toBLM(any(DeviceDTO.class));
+        verify(deviceConverter, never()).toBLM(any(DeviceDALM.class));
+    }
+
+    @Test
+    @DisplayName("Get devices by client - Positive")
+    void shouldGetDevicesByClientWhenValidRequest() {
+
+        DeviceDALM deviceDALM = createValidDeviceDALM();
+        DeviceBLM expectedBLM = createValidDeviceBLM();
+        List<DeviceDALM> devicesDALM = Collections.singletonList(deviceDALM);
+
+        when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
+        when(deviceRepository.findByClientUuid(CLIENT_UUID)).thenReturn(devicesDALM);
+        when(deviceConverter.toBLM(deviceDALM)).thenReturn(expectedBLM);
+
+        List<DeviceBLM> result = deviceService.getDevicesByClient(VALID_TOKEN);
+
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getUid()).isEqualTo(DEVICE_UUID);
+        verify(authServiceClient).validateAccessToken(VALID_TOKEN);
+        verify(deviceRepository).findByClientUuid(CLIENT_UUID);
+    }
+
+    @Test
+    @DisplayName("Update device - Positive")
+    void shouldUpdateDeviceWhenValidData() {
+
+        DeviceDTO deviceDTO = createValidDeviceDTO();
+        DeviceBLM deviceBLM = createValidDeviceBLM();
+        DeviceDALM deviceDALM = createValidDeviceDALM();
+        DeviceDALM existingDevice = createValidDeviceDALM();
+
+        when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
+        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(existingDevice);
+        when(deviceConverter.toBLM(deviceDTO)).thenReturn(deviceBLM);
+        when(deviceConverter.toDALM(deviceBLM)).thenReturn(deviceDALM);
+
+        DeviceBLM result = deviceService.updateDevice(VALID_TOKEN, DEVICE_UUID, deviceDTO);
+
+        assertThat(result).isNotNull();
+        verify(authServiceClient, times(1)).validateAccessToken(VALID_TOKEN);
+        verify(deviceValidator).validate(deviceDTO);
+        verify(deviceRepository).update(deviceDALM);
+    }
+
+    @Test
+    @DisplayName("Delete device - Positive")
+    void shouldDeleteDeviceWhenValidRequest() {
+
+        DeviceDALM existingDevice = createValidDeviceDALM();
+
+        when(authServiceClient.getAccessTokenClientUID(VALID_TOKEN)).thenReturn(CLIENT_UUID);
+        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(existingDevice);
+
+        deviceService.deleteDevice(VALID_TOKEN, DEVICE_UUID);
+
+        verify(authServiceClient).validateAccessToken(VALID_TOKEN);
+        verify(deviceRepository).delete(DEVICE_UUID);
+    }
+
+    @Test
+    @DisplayName("Device exists - Positive")
+    void shouldReturnTrueWhenDeviceExists() {
+
+        when(deviceRepository.exists(DEVICE_UUID)).thenReturn(true);
+
+        boolean result = deviceService.deviceExists(VALID_TOKEN, DEVICE_UUID);
+
+        assertThat(result).isTrue();
+        verify(authServiceClient).validateAccessToken(VALID_TOKEN);
+        verify(deviceRepository).exists(DEVICE_UUID);
+    }
+
+    @Test
+    @DisplayName("Device exists - Negative: Device not found")
+    void shouldReturnFalseWhenDeviceNotExists() {
+
+        when(deviceRepository.exists(DEVICE_UUID)).thenReturn(false);
+
+        boolean result = deviceService.deviceExists(VALID_TOKEN, DEVICE_UUID);
+
+        assertThat(result).isFalse();
+        verify(authServiceClient).validateAccessToken(VALID_TOKEN);
+        verify(deviceRepository).exists(DEVICE_UUID);
+    }
+
+    @Test
+    @DisplayName("Health check - Positive")
+    void shouldReturnHealthStatus() {
+
+        Map<String, Object> authHealth = Map.of("status", "OK");
+        when(authServiceClient.healthCheck()).thenReturn(authHealth);
+
+        Map<String, Object> result = deviceService.getHealthStatus();
+
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("OK");
+        assertThat(result.get("service")).isEqualTo("device-service");
+        assertThat(result.get("auth-service")).isEqualTo(authHealth);
+        verify(authServiceClient).healthCheck();
+    }
+
+    @Test
+    @DisplayName("Health check - Negative: Auth service down")
+    void shouldHandleAuthServiceDownInHealthCheck() {
+
+        when(authServiceClient.healthCheck())
+                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR));
+
+        Map<String, Object> result = deviceService.getHealthStatus();
+
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("OK");
+        assertThat(result.get("service")).isEqualTo("device-service");
+        assertThat(result.get("auth-service")).isNotNull();
+        verify(authServiceClient).healthCheck();
+    }
+}package com.connection.device.mother;
+
+import java.util.UUID;
+
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.model.DeviceDTO;
+
+public class DeviceObjectMother {
+
+    public static final UUID CLIENT_UUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    public static final UUID DEVICE_UUID = UUID.fromString("223e4567-e89b-12d3-a456-426614174001");
+    public static final String VALID_TOKEN = "valid-token-123";
+    public static final String INVALID_TOKEN = "invalid-token-456";
+
+    public static DeviceDTO createValidDeviceDTO() {
+        return new DeviceDTO(
+            DEVICE_UUID.toString(),
+            CLIENT_UUID.toString(),
+            "Test Device",
+            "Test Description"
+        );
+    }
+
+    public static DeviceDTO createInvalidDeviceDTO() {
+        return new DeviceDTO(
+            "invalid-uuid",
+            "invalid-client-uuid",
+            "", // empty name
+            null // null description
+        );
+    }
+
+    public static DeviceBLM createValidDeviceBLM() {
+        return new DeviceBLM(
+            DEVICE_UUID,
+            CLIENT_UUID,
+            "Test Device",
+            "Test Description"
+        );
+    }
+
+    public static DeviceDALM createValidDeviceDALM() {
+        return new DeviceDALM(
+            DEVICE_UUID,
+            CLIENT_UUID,
+            "Test Device",
+            "Test Description"
+        );
+    }
+
+    public static DeviceDTO createDeviceDTOWithDifferentClient() {
+        return new DeviceDTO(
+            DEVICE_UUID.toString(),
+            UUID.randomUUID().toString(), // different client
+            "Test Device",
+            "Test Description"
+        );
+    }
+}

@@ -59,25 +59,30 @@ public class AuthCommandConsumer {
     }
 
     private void handleValidateTokenCommand(ValidateTokenCommand command, String key) {
+        log.warn("Command {}, key {}", command, key);
         try {
+            log.warn("Command {}, key {}", command, key);
             AccessTokenBLM tokenBLM = accessTokenConverter.toBLM(
                     new com.connection.token.model.AccessTokenDTO(command.getToken()));
             authService.validateAccessToken(tokenBLM);
-
+            log.info("kafka validated token: {}", tokenBLM.getToken());
             TokenValidationResponse response = TokenValidationResponse.valid(
                     command.getCorrelationId(),
                     tokenBLM.getClientUID(),
                     command.getTokenType().name());
+            log.info("Kafka formed response {}", response.toString());
 
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Token validation successful: clientUid={}", tokenBLM.getClientUID());
+            log.info("Kafka send token validation successful: clientUid={}", response.toString());
 
         } catch (Exception e) {
             TokenValidationResponse response = TokenValidationResponse.error(
                     command.getCorrelationId(),
                     e.getMessage());
+            log.warn("Command {}, key {}", command, key);
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
             log.error("Token validation failed: {}", e.getMessage());
+            throw e;
         }
     }
 

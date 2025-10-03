@@ -4,7 +4,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
 
 import java.sql.Date;
 import java.util.UUID;
@@ -15,7 +14,6 @@ import com.connection.client.model.ClientDALM;
 
 import org.springframework.transaction.annotation.Transactional;
 
-@Repository("jdbcClientRepo")
 public class ClientRepositorySQLImpl implements ClientRepository {
 
     private static final String SELECT_CLIENT = "SELECT uid, email, birth_date, username, password";

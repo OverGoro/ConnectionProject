@@ -27,11 +27,11 @@
         {
           "name": "device-shared-1.0.0.jar",
           "url": "device-shared-1.0.0.jar",
-          "size": 17204,
-          "sha512": "c70c88ed49887af7690d66782abdf1a7d7cdcd831c9d2c07325615ab49210e775753c5f713b6bbc13d507de6020a258451b588c8789bf1ceb35844b8746554ca",
-          "sha256": "60eb0a8a2492289c9ed22345c7753d568f0b26b76aa57a662b2bf83e726a28ab",
-          "sha1": "cc0ad2ed7c41d964fa327bf3ec8a291c3099265d",
-          "md5": "e3a6f88c1028b013c38f29f1456ae0fe"
+          "size": 17184,
+          "sha512": "654ea9eb12daff1a09de959f497fc77b3d15b6732f8db6f7a118595d7ada64ef047bb5bcb5db3995895af3597ba5de6e98a266544c7b8c2ed099265f0fea6d17",
+          "sha256": "b39ab09df788a2f97edd47e8ea46724c1b2e045a961c05508ac4d0a95bdf5f24",
+          "sha1": "8e897e620adcd16178618e7cd20f639cb9a07bfe",
+          "md5": "2c9896fba1a6958f5eb2aa07da001a44"
         }
       ]
     },
@@ -57,11 +57,11 @@
         {
           "name": "device-shared-1.0.0.jar",
           "url": "device-shared-1.0.0.jar",
-          "size": 17204,
-          "sha512": "c70c88ed49887af7690d66782abdf1a7d7cdcd831c9d2c07325615ab49210e775753c5f713b6bbc13d507de6020a258451b588c8789bf1ceb35844b8746554ca",
-          "sha256": "60eb0a8a2492289c9ed22345c7753d568f0b26b76aa57a662b2bf83e726a28ab",
-          "sha1": "cc0ad2ed7c41d964fa327bf3ec8a291c3099265d",
-          "md5": "e3a6f88c1028b013c38f29f1456ae0fe"
+          "size": 17184,
+          "sha512": "654ea9eb12daff1a09de959f497fc77b3d15b6732f8db6f7a118595d7ada64ef047bb5bcb5db3995895af3597ba5de6e98a266544c7b8c2ed099265f0fea6d17",
+          "sha256": "b39ab09df788a2f97edd47e8ea46724c1b2e045a961c05508ac4d0a95bdf5f24",
+          "sha1": "8e897e620adcd16178618e7cd20f639cb9a07bfe",
+          "md5": "2c9896fba1a6958f5eb2aa07da001a44"
         }
       ]
     }

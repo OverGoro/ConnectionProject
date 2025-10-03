@@ -4,9 +4,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-import com.connection.auth.events.AuthEventUtils;
 import com.connection.auth.events.responses.TokenValidationResponse;
-import com.connection.common.events.Command;
 import com.connection.common.events.CommandResponse;
 import com.connection.auth.events.responses.ClientUidResponse;
 import com.connection.auth.events.responses.HealthCheckResponse;

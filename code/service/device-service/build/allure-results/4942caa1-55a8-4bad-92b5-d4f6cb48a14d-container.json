@@ -1,0 +1,1 @@
+{"uuid":"4942caa1-55a8-4bad-92b5-d4f6cb48a14d","name":"Get client UID - sends correct command","children":["56ee6f6d-30eb-4e17-80e1-bce22105093f"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1759530957149,"stop":1759530957149}],"afters":[],"start":1759530957148,"stop":1759530957154}

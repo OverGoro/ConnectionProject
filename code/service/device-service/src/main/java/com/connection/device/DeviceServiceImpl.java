@@ -10,14 +10,15 @@ import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfig
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.connection.device.client.AuthServiceClient;
+import com.connection.auth.events.responses.HealthCheckResponse;
 import com.connection.device.converter.DeviceConverter;
 import com.connection.device.exception.DeviceAlreadyExistsException;
+import com.connection.device.kafka.TypedAuthKafkaClient;
 import com.connection.device.model.DeviceBLM;
 import com.connection.device.model.DeviceDALM;
-import com.connection.device.model.DeviceDTO;
 import com.connection.device.repository.DeviceRepository;
 import com.connection.device.validator.DeviceValidator;
+import com.connection.device.config.SecurityUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,21 +35,19 @@ public class DeviceServiceImpl implements DeviceService {
     private final DeviceRepository deviceRepository;
     private final DeviceConverter deviceConverter;
     private final DeviceValidator deviceValidator;
-    private final AuthServiceClient authServiceClient;
+    private final TypedAuthKafkaClient authKafkaClient;
 
     @Override
-    public DeviceBLM createDevice(String accessToken, DeviceDTO deviceDTO) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
+    public DeviceBLM createDevice(DeviceBLM deviceBLM) {
+        deviceValidator.validate(deviceBLM);
+ 
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
 
-        deviceValidator.validate(deviceDTO);
-        DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
 
-        // Проверяем, что клиент из токена совпадает с клиентом устройства
         if (!clientUid.equals(deviceBLM.getClientUuid())) {
             throw new SecurityException("Client UID from token doesn't match device client UID");
         }
 
-        // Проверяем, что устройство с таким именем не существует для этого клиента
         if (deviceRepository.existsByClientAndName(clientUid, deviceBLM.getDeviceName())) {
             throw new DeviceAlreadyExistsException(
                     "Device with name '" + deviceBLM.getDeviceName() + "' already exists for this client");
@@ -62,12 +61,11 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public DeviceBLM getDevice(String accessToken, UUID deviceUid) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
+    public DeviceBLM getDevice(UUID deviceUid) {
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
 
         DeviceDALM deviceDALM = deviceRepository.findByUid(deviceUid);
 
-        // Проверяем, что устройство принадлежит клиенту из токена
         if (!clientUid.equals(deviceDALM.getClientUuid())) {
             throw new SecurityException("Device doesn't belong to the authenticated client");
         }
@@ -76,8 +74,8 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public List<DeviceBLM> getDevicesByClient(String accessToken) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
+    public List<DeviceBLM> getDevicesByClient() {
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
 
         List<DeviceDALM> devicesDALM = deviceRepository.findByClientUuid(clientUid);
         return devicesDALM.stream()
@@ -86,19 +84,17 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public DeviceBLM updateDevice(String accessToken, UUID deviceUid, DeviceDTO deviceDTO) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
+    public DeviceBLM updateDevice(DeviceBLM deviceBLM) {
+        deviceValidator.validate(deviceBLM);
 
-        // Проверяем существование устройства и принадлежность клиенту
-        DeviceDALM existingDevice = deviceRepository.findByUid(deviceUid);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+
+
+        DeviceDALM existingDevice = deviceRepository.findByUid(deviceBLM.getUid());
         if (!clientUid.equals(existingDevice.getClientUuid())) {
             throw new SecurityException("Device doesn't belong to the authenticated client");
         }
 
-        deviceValidator.validate(deviceDTO);
-        DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
-
-        // Проверяем, что клиент из токена совпадает с клиентом устройства
         if (!clientUid.equals(deviceBLM.getClientUuid())) {
             throw new SecurityException("Client UID from token doesn't match device client UID");
         }
@@ -106,15 +102,14 @@ public class DeviceServiceImpl implements DeviceService {
         DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
         deviceRepository.update(deviceDALM);
 
-        log.info("Device updated: {} for client: {}", deviceUid, clientUid);
+        log.info("Device updated: {} for client: {}", deviceBLM.getUid(), clientUid);
         return deviceBLM;
     }
 
     @Override
-    public void deleteDevice(String accessToken, UUID deviceUid) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
+    public void deleteDevice(UUID deviceUid) {
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
 
-        // Проверяем существование устройства и принадлежность клиенту
         DeviceDALM existingDevice = deviceRepository.findByUid(deviceUid);
         if (!clientUid.equals(existingDevice.getClientUuid())) {
             throw new SecurityException("Device doesn't belong to the authenticated client");
@@ -125,38 +120,30 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public boolean deviceExists(String accessToken, UUID deviceUid) {
-        validateToken(accessToken);
+    public boolean deviceExists(UUID deviceUid) {
+        // Просто проверяем существование устройства без проверки принадлежности
         return deviceRepository.exists(deviceUid);
-    }
-
-    private UUID validateTokenAndGetClientUid(String accessToken) {
-        validateToken(accessToken);
-        return authServiceClient.getAccessTokenClientUID(accessToken);
-    }
-
-    private void validateToken(String accessToken) {
-        authServiceClient.validateAccessToken(accessToken);
     }
 
     @Override
     public Map<String, Object> getHealthStatus() {
-        Map<String, Object> authServiceStatus;
         try {
-            authServiceStatus = authServiceClient.healthCheck();
+            HealthCheckResponse authHealth = authKafkaClient.healthCheck("device-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "device-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
         } catch (Exception e) {
-            // В случае ошибки возвращаем информацию об исключении
-            authServiceStatus = Map.of(
-                    "error", e.getClass().getSimpleName(),
-                    "message", e.getMessage(),
-                    "status", "DOWN");
+            log.error("Kafka Client: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "device-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "error", e.getMessage());
         }
-
-        return Map.of(
-                "status", "OK",
-                "service", "device-service",
-                "timestamp", System.currentTimeMillis(),
-                "auth-service", authServiceStatus);
     }
-
 }

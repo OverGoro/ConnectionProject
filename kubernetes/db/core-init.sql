@@ -10,7 +10,7 @@ create table if not exists core.device(
 	uid uuid primary key, 
 	client_uuid uuid not null references core.client(uid),
 	device_name varchar(100) not null, 
-	devicde_description varchar(500) not null
+	device_description varchar(500) not null
 );
 
 create table if not exists core.tariff(

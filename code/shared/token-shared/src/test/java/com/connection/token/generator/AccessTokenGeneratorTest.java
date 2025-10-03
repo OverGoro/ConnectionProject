@@ -1,12 +1,10 @@
 package com.connection.token.generator;
 
-import static com.connection.token.mother.TokenObjectMother.*;
+import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenDALM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.within;
 
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
 
@@ -24,7 +22,6 @@ import io.jsonwebtoken.security.Keys;
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Access Token Generator Tests")
 class AccessTokenGeneratorTest {
-
     private AccessTokenGenerator generator;
     private SecretKey secretKey;
 

@@ -5,7 +5,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -15,7 +14,6 @@ import com.connection.device.exception.DeviceAlreadyExistsException;
 import com.connection.device.exception.DeviceNotFoundException;
 import com.connection.device.model.DeviceDALM;
 
-@Repository
 public class DeviceRepositorySQLImpl implements DeviceRepository {
 
     private static final String SELECT_DEVICE = "SELECT uid, client_uuid, device_name, device_description";
