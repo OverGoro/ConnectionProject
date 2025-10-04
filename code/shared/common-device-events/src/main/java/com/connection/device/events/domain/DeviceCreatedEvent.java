@@ -1,4 +1,4 @@
-package com.connection.auth.events.domain;
+package com.connection.device.events.domain;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -6,8 +6,8 @@ import lombok.experimental.SuperBuilder;
 
 import java.util.UUID;
 
-import com.connection.auth.events.DeviceEventConstants;
 import com.connection.common.events.BaseEvent;
+import com.connection.device.events.DeviceEventConstants;
 
 @Data
 @SuperBuilder

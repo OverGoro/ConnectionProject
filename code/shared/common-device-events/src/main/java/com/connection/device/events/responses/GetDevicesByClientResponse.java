@@ -1,4 +1,4 @@
-package com.connection.auth.events.responses;
+package com.connection.device.events.responses;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -6,31 +6,32 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
 import com.connection.common.events.CommandResponse;
+import com.connection.device.model.DeviceDTO;
 
 @Data
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class HealthCheckResponse extends CommandResponse {
-    private Map<String, Object> healthStatus;
+public class GetDevicesByClientResponse extends CommandResponse {
+    private List<DeviceDTO> deviceDTOs;
     
-    public static HealthCheckResponse success(String correlationId, Map<String, Object> healthStatus) {
-        return HealthCheckResponse.builder()
+    public static GetDevicesByClientResponse valid(String correlationId, List<DeviceDTO> deviceDTOs) {
+        return GetDevicesByClientResponse.builder()
                 .eventId(UUID.randomUUID().toString())
                 .correlationId(correlationId)
                 .success(true)
-                .healthStatus(healthStatus)
+                .deviceDTOs(deviceDTOs)
                 .timestamp(java.time.Instant.now())
                 .build();
     }
     
-    public static HealthCheckResponse error(String correlationId, String error) {
-        return HealthCheckResponse.builder()
+    public static GetDevicesByClientResponse error(String correlationId, String error) {
+        return GetDevicesByClientResponse.builder()
                 .eventId(UUID.randomUUID().toString())
                 .correlationId(correlationId)
                 .success(false)

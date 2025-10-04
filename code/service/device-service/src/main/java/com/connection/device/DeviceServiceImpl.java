@@ -18,7 +18,6 @@ import com.connection.device.model.DeviceBLM;
 import com.connection.device.model.DeviceDALM;
 import com.connection.device.repository.DeviceRepository;
 import com.connection.device.validator.DeviceValidator;
-import com.connection.device.config.SecurityUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,11 +37,8 @@ public class DeviceServiceImpl implements DeviceService {
     private final TypedAuthKafkaClient authKafkaClient;
 
     @Override
-    public DeviceBLM createDevice(DeviceBLM deviceBLM) {
+    public DeviceBLM createDevice(UUID clientUid, DeviceBLM deviceBLM) {
         deviceValidator.validate(deviceBLM);
- 
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-
 
         if (!clientUid.equals(deviceBLM.getClientUuid())) {
             throw new SecurityException("Client UID from token doesn't match device client UID");
@@ -61,9 +57,7 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public DeviceBLM getDevice(UUID deviceUid) {
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-
+    public DeviceBLM getDevice(UUID clientUid, UUID deviceUid) {
         DeviceDALM deviceDALM = deviceRepository.findByUid(deviceUid);
 
         if (!clientUid.equals(deviceDALM.getClientUuid())) {
@@ -74,8 +68,7 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public List<DeviceBLM> getDevicesByClient() {
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
+    public List<DeviceBLM> getDevicesByClient(UUID clientUid) {
 
         List<DeviceDALM> devicesDALM = deviceRepository.findByClientUuid(clientUid);
         return devicesDALM.stream()
@@ -84,11 +77,8 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public DeviceBLM updateDevice(DeviceBLM deviceBLM) {
+    public DeviceBLM updateDevice(UUID clientUid, DeviceBLM deviceBLM) {
         deviceValidator.validate(deviceBLM);
-
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-
 
         DeviceDALM existingDevice = deviceRepository.findByUid(deviceBLM.getUid());
         if (!clientUid.equals(existingDevice.getClientUuid())) {
@@ -107,8 +97,7 @@ public class DeviceServiceImpl implements DeviceService {
     }
 
     @Override
-    public void deleteDevice(UUID deviceUid) {
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
+    public void deleteDevice(UUID clientUid, UUID deviceUid) {
 
         DeviceDALM existingDevice = deviceRepository.findByUid(deviceUid);
         if (!clientUid.equals(existingDevice.getClientUuid())) {

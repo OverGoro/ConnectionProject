@@ -1,4 +1,4 @@
-package com.connection.auth.events;
+package com.connection.device.events;
 
 public class DeviceEventConstants {
     

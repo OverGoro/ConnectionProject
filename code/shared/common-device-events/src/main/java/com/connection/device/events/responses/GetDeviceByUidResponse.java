@@ -1,4 +1,4 @@
-package com.connection.auth.events.responses;
+package com.connection.device.events.responses;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -6,7 +6,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import java.util.List;
 import java.util.UUID;
 
 import com.connection.common.events.CommandResponse;
@@ -17,21 +16,21 @@ import com.connection.device.model.DeviceDTO;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class GetDevicesByClientResponse extends CommandResponse {
-    private List<DeviceDTO> deviceDTOs;
+public class GetDeviceByUidResponse extends CommandResponse {
+    private DeviceDTO deviceDTO;
     
-    public static GetDevicesByClientResponse valid(String correlationId, List<DeviceDTO> deviceDTOs) {
-        return GetDevicesByClientResponse.builder()
+    public static GetDeviceByUidResponse success(String correlationId, DeviceDTO deviceDTO) {
+        return GetDeviceByUidResponse.builder()
                 .eventId(UUID.randomUUID().toString())
                 .correlationId(correlationId)
                 .success(true)
-                .deviceDTOs(deviceDTOs)
+                .deviceDTO(deviceDTO)
                 .timestamp(java.time.Instant.now())
                 .build();
     }
     
-    public static GetDevicesByClientResponse error(String correlationId, String error) {
-        return GetDevicesByClientResponse.builder()
+    public static GetDeviceByUidResponse error(String correlationId, String error) {
+        return GetDeviceByUidResponse.builder()
                 .eventId(UUID.randomUUID().toString())
                 .correlationId(correlationId)
                 .success(false)

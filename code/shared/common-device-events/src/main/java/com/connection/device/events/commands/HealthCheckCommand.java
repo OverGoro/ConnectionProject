@@ -1,7 +1,7 @@
-package com.connection.auth.events.commands;
+package com.connection.device.events.commands;
 
-import com.connection.auth.events.DeviceEventConstants;
 import com.connection.common.events.Command;
+import com.connection.device.events.DeviceEventConstants;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;

@@ -40,7 +40,8 @@ public class DeviceController {
         deviceValidator.validate(deviceDTO);
         DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
 
-        DeviceBLM device = deviceService.createDevice(deviceBLM);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        DeviceBLM device = deviceService.createDevice(clientUid, deviceBLM);
         return ResponseEntity.ok(device);
     }
 
@@ -48,15 +49,16 @@ public class DeviceController {
     public ResponseEntity<DeviceBLM> getDevice(@PathVariable UUID deviceUid) {
         log.info("Getting device: {}", deviceUid);
 
-        DeviceBLM device = deviceService.getDevice(deviceUid);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        DeviceBLM device = deviceService.getDevice(clientUid, deviceUid);
         return ResponseEntity.ok(device);
     }
 
     @GetMapping("/devices")
     public ResponseEntity<List<DeviceBLM>> getDevicesByClient() {
         log.info("Getting all devices for client");
-        
-        List<DeviceBLM> devices = deviceService.getDevicesByClient();
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        List<DeviceBLM> devices = deviceService.getDevicesByClient(clientUid);
         return ResponseEntity.ok(devices);
     }
 
@@ -67,17 +69,19 @@ public class DeviceController {
         UUID clientUuid = SecurityUtils.getCurrentClientUid();
         log.info("Updating device: {}, for client: {}", deviceDTO.getUid(), clientUuid);
         
-
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        
         DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
-        DeviceBLM device = deviceService.updateDevice(deviceBLM);
+        DeviceBLM device = deviceService.updateDevice(clientUid, deviceBLM);
         return ResponseEntity.ok(device);
     }
 
     @DeleteMapping("/devices/{deviceUid}")
     public ResponseEntity<Void> deleteDevice(@PathVariable UUID deviceUid) {
         log.info("Deleting device: {}", deviceUid);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
         
-        deviceService.deleteDevice(deviceUid);
+        deviceService.deleteDevice(clientUid, deviceUid);
         return ResponseEntity.noContent().build();
     }
 

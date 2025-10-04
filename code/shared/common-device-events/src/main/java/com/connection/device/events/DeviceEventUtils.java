@@ -1,4 +1,4 @@
-package com.connection.auth.events;
+package com.connection.device.events;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
