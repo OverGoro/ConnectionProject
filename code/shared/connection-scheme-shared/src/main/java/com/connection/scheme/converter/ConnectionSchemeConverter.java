@@ -1,4 +1,3 @@
-// ConnectionSchemeConverter.java
 package com.connection.scheme.converter;
 
 import java.util.List;
@@ -12,10 +11,10 @@ import com.connection.scheme.model.ConnectionSchemeDALM;
 import com.connection.scheme.model.ConnectionSchemeDTO;
 
 public class ConnectionSchemeConverter {
-    
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    
-    public ConnectionSchemeBLM toBLM(ConnectionSchemeDALM dalm) {
+
+        public ConnectionSchemeBLM toBLM(ConnectionSchemeDALM dalm) {
         try {
             // Извлекаем transitions из JSON
             Map<UUID, List<UUID>> bufferTransitions = extractTransitionsFromJson(dalm.getSchemeJson());
@@ -24,7 +23,7 @@ public class ConnectionSchemeConverter {
                 .uid(dalm.getUid())
                 .clientUid(dalm.getClientUid())
                 .schemeJson(dalm.getSchemeJson())
-                .usedBuffers(dalm.getUsedBuffers())
+                .usedBuffers(dalm.getUsedBuffers()) // Теперь получаем из DALM
                 .bufferTransitions(bufferTransitions)
                 .build();
         } catch (Exception e) {
@@ -41,7 +40,7 @@ public class ConnectionSchemeConverter {
                 .uid(UUID.fromString(dto.getUid()))
                 .clientUid(UUID.fromString(dto.getClientUid()))
                 .schemeJson(dto.getSchemeJson())
-                .usedBuffers(extractUsedBuffersFromJson(dto.getSchemeJson()))
+                .usedBuffers(dto.getUsedBuffers()) // Используем переданные usedBuffers
                 .bufferTransitions(bufferTransitions)
                 .build();
         } catch (Exception e) {
@@ -50,45 +49,62 @@ public class ConnectionSchemeConverter {
     }
 
     public ConnectionSchemeDTO toDTO(ConnectionSchemeBLM blm) {
+
+        String transitionsJson = convertTransitionsToJson(blm.getBufferTransitions());
+
         return ConnectionSchemeDTO.builder()
-            .uid(blm.getUid().toString())
-            .clientUid(blm.getClientUid().toString())
-            .schemeJson(blm.getSchemeJson())
-            .build();
+                .uid(blm.getUid().toString())
+                .clientUid(blm.getClientUid().toString())
+                .schemeJson(transitionsJson)
+                .usedBuffers(blm.getUsedBuffers())
+                .build();
     }
 
     public ConnectionSchemeDALM toDALM(ConnectionSchemeBLM blm) {
+
+        String transitionsJson = convertTransitionsToJson(blm.getBufferTransitions());
+
         return ConnectionSchemeDALM.builder()
-            .uid(blm.getUid())
-            .clientUid(blm.getClientUid())
-            .schemeJson(blm.getSchemeJson())
-            .usedBuffers(blm.getUsedBuffers())
-            .build();
+                .uid(blm.getUid())
+                .clientUid(blm.getClientUid())
+                .schemeJson(transitionsJson)
+                .usedBuffers(blm.getUsedBuffers())
+                .build();
     }
-    
+
     private Map<UUID, List<UUID>> extractTransitionsFromJson(String schemeJson) {
         try {
-            Map<String, Object> jsonMap = objectMapper.readValue(schemeJson, new TypeReference<Map<String, Object>>() {});
-            
-            @SuppressWarnings("unchecked")
-            Map<String, List<String>> transitionsMap = (Map<String, List<String>>) jsonMap.get("bufferTransitions");
-            
-            return objectMapper.convertValue(transitionsMap, new TypeReference<Map<UUID, List<UUID>>>() {});
+
+            return objectMapper.readValue(schemeJson, new TypeReference<Map<UUID, List<UUID>>>() {
+            });
         } catch (Exception e) {
             throw new RuntimeException("Failed to extract transitions from JSON", e);
         }
     }
-    
+
     private List<UUID> extractUsedBuffersFromJson(String schemeJson) {
         try {
-            Map<String, Object> jsonMap = objectMapper.readValue(schemeJson, new TypeReference<Map<String, Object>>() {});
-            
-            @SuppressWarnings("unchecked")
-            List<String> usedBuffersList = (List<String>) jsonMap.get("usedBuffers");
-            
-            return objectMapper.convertValue(usedBuffersList, new TypeReference<List<UUID>>() {});
+
+            Map<UUID, List<UUID>> transitions = extractTransitionsFromJson(schemeJson);
+
+            return transitions.entrySet().stream()
+                    .flatMap(entry -> {
+                        java.util.stream.Stream<UUID> keyStream = java.util.stream.Stream.of(entry.getKey());
+                        java.util.stream.Stream<UUID> valueStream = entry.getValue().stream();
+                        return java.util.stream.Stream.concat(keyStream, valueStream);
+                    })
+                    .distinct()
+                    .collect(java.util.stream.Collectors.toList());
         } catch (Exception e) {
             throw new RuntimeException("Failed to extract used buffers from JSON", e);
+        }
+    }
+
+    private String convertTransitionsToJson(Map<UUID, List<UUID>> bufferTransitions) {
+        try {
+            return objectMapper.writeValueAsString(bufferTransitions);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert transitions to JSON", e);
         }
     }
 }

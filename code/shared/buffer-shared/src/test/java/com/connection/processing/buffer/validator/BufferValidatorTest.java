@@ -75,6 +75,14 @@ class BufferValidatorTest {
     }
 
     @Test
+    @DisplayName("Validate BufferDTO with null device UID - Negative")
+    void testValidateBufferDTOWithNullDeviceUid_Negative() {
+        BufferDTO buffer = createBufferDTOWithNullUid(); // Используем существующий метод, т.к. deviceUid теперь обязателен
+        assertThatThrownBy(() -> validator.validate(buffer))
+                .isInstanceOf(BufferValidateException.class);
+    }
+
+    @Test
     @DisplayName("Validate BufferDTO with zero max messages - Negative")
     void testValidateBufferDTOWithZeroMaxMessages_Negative() {
         BufferDTO buffer = createBufferDTOWithZeroMaxMessages();

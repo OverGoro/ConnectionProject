@@ -1,1 +1,0 @@
-{"uuid":"d827e117-f6d6-4a60-8edc-8b5f1193957f","name":"Validate ConnectionSchemeDTO with invalid JSON - Negative","children":["d708eda0-dfba-4e50-bce2-f9409aab5182"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758353268929,"stop":1758353268929}],"afters":[],"start":1758353268928,"stop":1758353268930}

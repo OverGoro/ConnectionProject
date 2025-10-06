@@ -92,7 +92,7 @@ public class ConnectionSchemeValidator {
         }
     }
 
-    private void validateSchemeJson(String schemeJson) {
+        private void validateSchemeJson(String schemeJson) {
         if (schemeJson == null || schemeJson.trim().isEmpty()) {
             throw new IllegalArgumentException("Scheme JSON cannot be empty");
         }
@@ -100,34 +100,35 @@ public class ConnectionSchemeValidator {
             throw new IllegalArgumentException("Invalid JSON format");
         }
         
-        // Проверяем структуру JSON
+        // Проверяем структуру JSON (теперь только transitions)
         try {
-            Map<String, Object> jsonMap = objectMapper.readValue(schemeJson, new TypeReference<Map<String, Object>>() {});
+            Map<UUID, List<UUID>> transitions = objectMapper.readValue(
+                schemeJson, 
+                new TypeReference<Map<UUID, List<UUID>>>() {}
+            );
             
-            // Проверяем наличие usedBuffers
-            if (!jsonMap.containsKey("usedBuffers")) {
-                throw new IllegalArgumentException("JSON must contain 'usedBuffers' field");
+            // Проверяем, что transitions не пусты
+            if (transitions.isEmpty()) {
+                throw new IllegalArgumentException("Transitions cannot be empty");
             }
             
-            // Проверяем наличие bufferTransitions
-            if (!jsonMap.containsKey("bufferTransitions")) {
-                throw new IllegalArgumentException("JSON must contain 'bufferTransitions' field");
-            }
-            
-            // Проверяем формат usedBuffers
-            Object usedBuffersObj = jsonMap.get("usedBuffers");
-            if (!(usedBuffersObj instanceof List)) {
-                throw new IllegalArgumentException("'usedBuffers' must be an array");
-            }
-            
-            // Проверяем формат bufferTransitions
-            Object transitionsObj = jsonMap.get("bufferTransitions");
-            if (!(transitionsObj instanceof Map)) {
-                throw new IllegalArgumentException("'bufferTransitions' must be an object");
+            // Проверяем формат UUID в ключах и значениях
+            for (Map.Entry<UUID, List<UUID>> entry : transitions.entrySet()) {
+                if (entry.getKey() == null) {
+                    throw new IllegalArgumentException("Transition key cannot be null");
+                }
+                if (entry.getValue() == null) {
+                    throw new IllegalArgumentException("Transition value list cannot be null");
+                }
+                for (UUID bufferUid : entry.getValue()) {
+                    if (bufferUid == null) {
+                        throw new IllegalArgumentException("Buffer UID in transition list cannot be null");
+                    }
+                }
             }
             
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid JSON structure: " + e.getMessage());
+            throw new IllegalArgumentException("Invalid transitions JSON structure: " + e.getMessage());
         }
     }
     

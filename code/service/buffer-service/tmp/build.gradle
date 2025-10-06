@@ -73,6 +73,8 @@ dependencies {
 	compileOnly 'com.connection:common-events:1.0.0'
     implementation 'com.connection:common-auth-events:1.0.0'
 	compileOnly 'com.connection:common-auth-events:1.0.0'
+    implementation 'com.connection:common-device-events:1.0.0'
+    implementation 'com.connection:common-buffer-events:1.0.0'
 
 	// Тестовые зависимости
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

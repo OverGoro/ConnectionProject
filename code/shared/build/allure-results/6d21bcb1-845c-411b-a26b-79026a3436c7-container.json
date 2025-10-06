@@ -1,1 +1,0 @@
-{"uuid":"6d21bcb1-845c-411b-a26b-79026a3436c7","name":"Validate ClientDTO with invalid username - Negative","children":["f7e4b050-6299-43b8-9257-6c206f2722ca"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758353264291,"stop":1758353264291}],"afters":[],"start":1758353264291,"stop":1758353264292}

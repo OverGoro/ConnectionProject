@@ -1,1 +1,0 @@
-{"uuid":"6f3a792b-09b5-4d63-ba90-04a5e7742939","name":"Add client with existing email - Negative","children":["e95c58ef-ddf3-4493-9a19-ba7f22b1a93d"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758359008977,"stop":1758359008978}],"afters":[],"start":1758359008974,"stop":1758359008985}

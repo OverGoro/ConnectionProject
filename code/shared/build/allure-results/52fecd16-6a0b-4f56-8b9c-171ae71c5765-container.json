@@ -1,1 +1,0 @@
-{"uuid":"52fecd16-6a0b-4f56-8b9c-171ae71c5765","name":"Delete client by UID - Positive","children":["cd41b2fb-bf9d-4619-8f48-07c8b803280c"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758353264256,"stop":1758353264257}],"afters":[],"start":1758353264255,"stop":1758353264259}

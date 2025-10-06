@@ -1,1 +1,0 @@
-{"uuid":"1dabeb0b-efde-4047-a6f1-e99b3bf2d49e","name":"Health check - sends correct command","children":["303f8eb7-04a8-430a-a519-2077cf645912"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1759530957156,"stop":1759530957156}],"afters":[],"start":1759530957154,"stop":1759530957162}

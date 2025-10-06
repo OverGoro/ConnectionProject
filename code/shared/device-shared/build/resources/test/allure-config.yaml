@@ -1,4 +1,0 @@
-allure:
-  report:
-    language: ru
-  directory: build/allure-results

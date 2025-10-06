@@ -1,1 +1,0 @@
-{"uuid":"0ff1b208-685c-45cf-b450-de64b141a9fe","name":"Validate valid ConnectionSchemeBLM - Positive","children":["1c1bbd3c-225e-4d31-a52c-475b41e9156a"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1759186473070,"stop":1759186473070}],"afters":[],"start":1759186473069,"stop":1759186473071}

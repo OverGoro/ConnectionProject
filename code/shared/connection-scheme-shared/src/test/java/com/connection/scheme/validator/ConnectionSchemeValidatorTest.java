@@ -90,25 +90,21 @@ class ConnectionSchemeValidatorTest {
     }
 
     @Test
+    @DisplayName("Validate ConnectionSchemeDTO with empty transitions - Negative")
+    void testValidateConnectionSchemeDTOWithEmptyTransitions_Negative() {
+        ConnectionSchemeDTO scheme = ConnectionSchemeDTO.builder()
+                .uid(UUID.randomUUID().toString())
+                .clientUid(UUID.randomUUID().toString())
+                .schemeJson("{}") // Пустые transitions
+                .build();
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
     @DisplayName("Validate ConnectionSchemeDTO with invalid JSON - Negative")
     void testValidateConnectionSchemeDTOWithInvalidJson_Negative() {
         ConnectionSchemeDTO scheme = createConnectionSchemeDTOWithInvalidJson();
-        assertThatThrownBy(() -> validator.validate(scheme))
-                .isInstanceOf(ConnectionSchemeValidateException.class);
-    }
-
-    @Test
-    @DisplayName("Validate ConnectionSchemeDTO with missing usedBuffers - Negative")
-    void testValidateConnectionSchemeDTOWithMissingUsedBuffers_Negative() {
-        ConnectionSchemeDTO scheme = createConnectionSchemeDTOWithMissingUsedBuffers();
-        assertThatThrownBy(() -> validator.validate(scheme))
-                .isInstanceOf(ConnectionSchemeValidateException.class);
-    }
-
-    @Test
-    @DisplayName("Validate ConnectionSchemeDTO with missing bufferTransitions - Negative")
-    void testValidateConnectionSchemeDTOWithMissingBufferTransitions_Negative() {
-        ConnectionSchemeDTO scheme = createConnectionSchemeDTOWithMissingBufferTransitions();
         assertThatThrownBy(() -> validator.validate(scheme))
                 .isInstanceOf(ConnectionSchemeValidateException.class);
     }
@@ -134,7 +130,7 @@ class ConnectionSchemeValidatorTest {
     void testValidateConnectionSchemeBLMWithNullUsedBuffers_Negative() {
         Map<UUID, List<UUID>> transitions = new HashMap<>();
         transitions.put(UUID.randomUUID(), Arrays.asList(UUID.randomUUID()));
-        
+
         ConnectionSchemeBLM scheme = ConnectionSchemeBLM.builder()
                 .uid(UUID.randomUUID())
                 .clientUid(UUID.randomUUID())
@@ -142,7 +138,7 @@ class ConnectionSchemeValidatorTest {
                 .usedBuffers(null)
                 .bufferTransitions(transitions)
                 .build();
-        
+
         assertThatThrownBy(() -> validator.validate(scheme))
                 .isInstanceOf(ConnectionSchemeValidateException.class);
     }
@@ -157,7 +153,7 @@ class ConnectionSchemeValidatorTest {
                 .usedBuffers(Arrays.asList(UUID.randomUUID()))
                 .bufferTransitions(null)
                 .build();
-        
+
         assertThatThrownBy(() -> validator.validate(scheme))
                 .isInstanceOf(ConnectionSchemeValidateException.class);
     }

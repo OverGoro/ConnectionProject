@@ -1,3 +1,4 @@
+// JwtKafkaAuthenticationFilter.java
 package com.service.buffer.client;
 
 import com.service.buffer.kafka.TypedAuthKafkaClient;
@@ -58,11 +59,10 @@ public class JwtKafkaAuthenticationFilter extends OncePerRequestFilter {
 
     private void authenticateWithToken(String token, HttpServletRequest request) {
         try {
-            // ОБЯЗАТЕЛЬНО обрезаем пробелы!
             String cleanToken = token.trim();
             cleanToken = cleanToken.replace("Bearer ", "");
 
-            log.info("Validating token: {}...", cleanToken);
+            log.info("Validating token: {}...", cleanToken.substring(0, Math.min(cleanToken.length(), 10)) + "...");
 
             CompletableFuture<TokenValidationResponse> validationFuture = authKafkaClient.validateToken(cleanToken,
                     "buffer-service");
@@ -74,7 +74,6 @@ public class JwtKafkaAuthenticationFilter extends OncePerRequestFilter {
                 throw new SecurityException("Token validation failed: " + validationResponse.getError());
             }
 
-            // Создаем аутентификацию
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     validationResponse.getClientUid(),
                     null,

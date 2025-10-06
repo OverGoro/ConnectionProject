@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.connection.scheme.model.ConnectionSchemeBLM;
 import com.connection.scheme.model.ConnectionSchemeDTO;
+import com.service.connectionscheme.config.SecurityUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,10 +35,11 @@ public class ConnectionSchemeController {
             @RequestHeader("Authorization") String authorizationHeader,
             @RequestBody ConnectionSchemeDTO schemeDTO) {
         
-        String accessToken = extractToken(authorizationHeader);
         log.info("Creating connection scheme for client");
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
         
-        ConnectionSchemeBLM scheme = connectionSchemeService.createScheme(accessToken, schemeDTO);
+        ConnectionSchemeBLM scheme = connectionSchemeService.createScheme(clientUid, schemeDTO);
         return ResponseEntity.ok(scheme);
     }
 
@@ -46,10 +48,11 @@ public class ConnectionSchemeController {
             @RequestHeader("Authorization") String authorizationHeader,
             @PathVariable UUID schemeUid) {
         
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Getting connection scheme: {}", schemeUid);
         
-        ConnectionSchemeBLM scheme = connectionSchemeService.getScheme(accessToken, schemeUid);
+        log.info("Getting connection scheme: {}", schemeUid);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        
+        ConnectionSchemeBLM scheme = connectionSchemeService.getSchemeByUid(clientUid, schemeUid);
         return ResponseEntity.ok(scheme);
     }
 
@@ -57,10 +60,11 @@ public class ConnectionSchemeController {
     public ResponseEntity<List<ConnectionSchemeBLM>> getSchemesByClient(
             @RequestHeader("Authorization") String authorizationHeader) {
         
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Getting all connection schemes for client");
         
-        List<ConnectionSchemeBLM> schemes = connectionSchemeService.getSchemesByClient(accessToken);
+        log.info("Getting all connection schemes for client");
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        
+        List<ConnectionSchemeBLM> schemes = connectionSchemeService.getSchemesByClient(clientUid);
         return ResponseEntity.ok(schemes);
     }
 
@@ -70,10 +74,11 @@ public class ConnectionSchemeController {
             @PathVariable UUID schemeUid,
             @RequestBody ConnectionSchemeDTO schemeDTO) {
         
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Updating connection scheme: {}", schemeUid);
         
-        ConnectionSchemeBLM scheme = connectionSchemeService.updateScheme(accessToken, schemeUid, schemeDTO);
+        log.info("Updating connection scheme: {}", schemeUid);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        
+        ConnectionSchemeBLM scheme = connectionSchemeService.updateScheme(clientUid, schemeUid, schemeDTO);
         return ResponseEntity.ok(scheme);
     }
 
@@ -82,10 +87,11 @@ public class ConnectionSchemeController {
             @RequestHeader("Authorization") String authorizationHeader,
             @PathVariable UUID schemeUid) {
         
-        String accessToken = extractToken(authorizationHeader);
-        log.info("Deleting connection scheme: {}", schemeUid);
         
-        connectionSchemeService.deleteScheme(accessToken, schemeUid);
+        log.info("Deleting connection scheme: {}", schemeUid);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        
+        connectionSchemeService.deleteScheme(clientUid, schemeUid);
         return ResponseEntity.noContent().build();
     }
 
@@ -93,14 +99,8 @@ public class ConnectionSchemeController {
     public ResponseEntity<?> healthCheck() {
         log.info("Health check: status: OK, service: connection-scheme-service, timestamp: {}", 
                 System.currentTimeMillis());
-
+                
         return ResponseEntity.ok().body(connectionSchemeService.getHealthStatus());
     }
 
-    private String extractToken(String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new SecurityException("Invalid authorization header");
-        }
-        return authorizationHeader.substring(7);
-    }
 }

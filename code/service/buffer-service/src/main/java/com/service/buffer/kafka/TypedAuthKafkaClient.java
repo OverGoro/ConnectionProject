@@ -1,4 +1,4 @@
-// TypedAuthKafkaClient.java (альтернативная версия)
+// TypedAuthKafkaClient.java
 package com.service.buffer.kafka;
 
 import java.util.Date;
@@ -29,10 +29,8 @@ public class TypedAuthKafkaClient {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
     
-    // Типизированное хранилище с поддержкой разных типов ответов
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
 
-    // Базовый класс для типизированных запросов
     private static class PendingRequest<T> {
         final CompletableFuture<T> future;
         final Class<T> responseType;
@@ -86,7 +84,6 @@ public class TypedAuthKafkaClient {
     private <T> CompletableFuture<T> sendRequest(Object command, Class<T> responseType) {
         String correlationId;
         
-        // Извлекаем correlationId из команды
         if (command instanceof ValidateTokenCommand) {
             correlationId = ((ValidateTokenCommand) command).getCorrelationId();
         } else if (command instanceof ExtractClientUidCommand) {
@@ -105,7 +102,7 @@ public class TypedAuthKafkaClient {
                     if (ex != null) {
                         future.completeExceptionally(ex);
                         pendingRequests.remove(correlationId);
-                        log.error("Failed to send command: {}", ex.getMessage());
+                        log.error("Failed to send auth command: {}", ex.getMessage());
                     }
                 });
 
@@ -117,7 +114,6 @@ public class TypedAuthKafkaClient {
         PendingRequest<?> pendingRequest = pendingRequests.remove(correlationId);
         if (pendingRequest != null) {
             try {
-                // Проверяем тип ответа
                 if (pendingRequest.responseType.isInstance(response)) {
                     CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
                     future.complete(response);
@@ -125,14 +121,14 @@ public class TypedAuthKafkaClient {
                     log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
                             correlationId, pendingRequest.responseType, response.getClass());
                     pendingRequest.future.completeExceptionally(
-                        new ClassCastException("Type mismatch in response")
+                        new ClassCastException("Type mismatch in auth response")
                     );
                 }
             } catch (Exception e) {
                 pendingRequest.future.completeExceptionally(e);
             }
         } else {
-            log.warn("Received response for unknown correlationId: {}", correlationId);
+            log.warn("Received auth response for unknown correlationId: {}", correlationId);
         }
     }
 }

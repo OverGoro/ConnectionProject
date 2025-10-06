@@ -11,7 +11,7 @@ public class BufferConverter {
     public BufferBLM toBLM(BufferDALM dalm) {
         return new BufferBLM(
             dalm.getUid(),
-            dalm.getConnectionSchemeUid(),
+            dalm.getDeviceUid(),
             dalm.getMaxMessagesNumber(),
             dalm.getMaxMessageSize(),
             dalm.getMessagePrototype()
@@ -21,7 +21,7 @@ public class BufferConverter {
     public BufferBLM toBLM(BufferDTO dto) {
         return new BufferBLM(
             UUID.fromString(dto.getUid()),
-            UUID.fromString(dto.getConnectionSchemeUid()),
+            UUID.fromString(dto.getDeviceUid()),
             dto.getMaxMessagesNumber(),
             dto.getMaxMessageSize(),
             dto.getMessagePrototype()
@@ -31,7 +31,7 @@ public class BufferConverter {
     public BufferDTO toDTO(BufferBLM blm) {
         return new BufferDTO(
             blm.getUid().toString(),
-            blm.getConnectionSchemeUid().toString(),
+            blm.getDeviceUid().toString(),
             blm.getMaxMessagesNumber(),
             blm.getMaxMessageSize(),
             blm.getMessagePrototype()
@@ -41,7 +41,7 @@ public class BufferConverter {
     public BufferDALM toDALM(BufferBLM blm) {
         return new BufferDALM(
             blm.getUid(),
-            blm.getConnectionSchemeUid(),
+            blm.getDeviceUid(),
             blm.getMaxMessagesNumber(),
             blm.getMaxMessageSize(),
             blm.getMessagePrototype()

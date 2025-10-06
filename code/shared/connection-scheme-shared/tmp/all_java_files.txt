@@ -1,0 +1,1375 @@
+// ConnectionSchemeNotFoundException.java
+package com.connection.scheme.exception;
+
+public class ConnectionSchemeNotFoundException extends BaseConnectionSchemeException {
+    public ConnectionSchemeNotFoundException(String schemeUid) {
+        super(schemeUid);
+    }
+
+    public String toString() {
+        return super.toString() + "\ndescription: connection scheme not found";
+    }
+}// BaseConnectionSchemeException.java
+package com.connection.scheme.exception;
+
+public class BaseConnectionSchemeException extends RuntimeException {
+    private final String schemeUid;
+
+    public BaseConnectionSchemeException(String schemeUid) {
+        super("connection scheme");
+        this.schemeUid = schemeUid;
+    }
+
+    public String toString() {
+        return super.toString() + "\nscheme: " + schemeUid;
+    }
+}// ConnectionSchemeValidateException.java
+package com.connection.scheme.exception;
+
+public class ConnectionSchemeValidateException extends BaseConnectionSchemeException {
+    private final String description;
+
+    public ConnectionSchemeValidateException(String schemeUid, String description) {
+        super(schemeUid);
+        this.description = description;
+    }
+
+    public String toString() {
+        return super.toString() + "\ndescription: " + description;
+    }
+}// ConnectionSchemeAlreadyExistsException.java
+package com.connection.scheme.exception;
+
+public class ConnectionSchemeAlreadyExistsException extends BaseConnectionSchemeException {
+    public ConnectionSchemeAlreadyExistsException(String schemeUid) {
+        super(schemeUid);
+    }
+
+    public String toString() {
+        return super.toString() + "\ndescription: connection scheme already exists";
+    }
+}// ConnectionSchemeDTO.java
+package com.connection.scheme.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class ConnectionSchemeDTO {
+    
+    protected String uid;
+    
+    protected String clientUid;
+    
+    protected String schemeJson;
+}// ConnectionSchemeBLM.java
+package com.connection.scheme.model;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class ConnectionSchemeBLM {
+    
+    protected UUID uid;
+    
+    protected UUID clientUid;
+
+    protected String schemeJson;
+    
+    protected List<UUID> usedBuffers;
+    
+    protected Map<UUID, List<UUID>> bufferTransitions;
+}// ConnectionSchemeDALM.java
+package com.connection.scheme.model;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/**
+ * DALM для схемы подключения
+ */
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class ConnectionSchemeDALM {
+    
+    protected UUID uid;
+    
+    protected UUID clientUid;
+
+    protected String schemeJson;
+
+    protected List<UUID> usedBuffers;
+}// ConnectionSchemeConverter.java
+package com.connection.scheme.converter;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+public class ConnectionSchemeConverter {
+    
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    
+    public ConnectionSchemeBLM toBLM(ConnectionSchemeDALM dalm) {
+        try {
+            // Извлекаем transitions из JSON
+            Map<UUID, List<UUID>> bufferTransitions = extractTransitionsFromJson(dalm.getSchemeJson());
+            
+            return ConnectionSchemeBLM.builder()
+                .uid(dalm.getUid())
+                .clientUid(dalm.getClientUid())
+                .schemeJson(dalm.getSchemeJson())
+                .usedBuffers(dalm.getUsedBuffers())
+                .bufferTransitions(bufferTransitions)
+                .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert DALM to BLM", e);
+        }
+    }
+
+    public ConnectionSchemeBLM toBLM(ConnectionSchemeDTO dto) {
+        try {
+            // Извлекаем transitions из JSON
+            Map<UUID, List<UUID>> bufferTransitions = extractTransitionsFromJson(dto.getSchemeJson());
+            
+            return ConnectionSchemeBLM.builder()
+                .uid(UUID.fromString(dto.getUid()))
+                .clientUid(UUID.fromString(dto.getClientUid()))
+                .schemeJson(dto.getSchemeJson())
+                .usedBuffers(extractUsedBuffersFromJson(dto.getSchemeJson()))
+                .bufferTransitions(bufferTransitions)
+                .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert DTO to BLM", e);
+        }
+    }
+
+    public ConnectionSchemeDTO toDTO(ConnectionSchemeBLM blm) {
+        return ConnectionSchemeDTO.builder()
+            .uid(blm.getUid().toString())
+            .clientUid(blm.getClientUid().toString())
+            .schemeJson(blm.getSchemeJson())
+            .build();
+    }
+
+    public ConnectionSchemeDALM toDALM(ConnectionSchemeBLM blm) {
+        return ConnectionSchemeDALM.builder()
+            .uid(blm.getUid())
+            .clientUid(blm.getClientUid())
+            .schemeJson(blm.getSchemeJson())
+            .usedBuffers(blm.getUsedBuffers())
+            .build();
+    }
+    
+    private Map<UUID, List<UUID>> extractTransitionsFromJson(String schemeJson) {
+        try {
+            Map<String, Object> jsonMap = objectMapper.readValue(schemeJson, new TypeReference<Map<String, Object>>() {});
+            
+            @SuppressWarnings("unchecked")
+            Map<String, List<String>> transitionsMap = (Map<String, List<String>>) jsonMap.get("bufferTransitions");
+            
+            return objectMapper.convertValue(transitionsMap, new TypeReference<Map<UUID, List<UUID>>>() {});
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extract transitions from JSON", e);
+        }
+    }
+    
+    private List<UUID> extractUsedBuffersFromJson(String schemeJson) {
+        try {
+            Map<String, Object> jsonMap = objectMapper.readValue(schemeJson, new TypeReference<Map<String, Object>>() {});
+            
+            @SuppressWarnings("unchecked")
+            List<String> usedBuffersList = (List<String>) jsonMap.get("usedBuffers");
+            
+            return objectMapper.convertValue(usedBuffersList, new TypeReference<List<UUID>>() {});
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extract used buffers from JSON", e);
+        }
+    }
+}// ConnectionSchemeValidator.java
+package com.connection.scheme.validator;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.connection.scheme.exception.ConnectionSchemeValidateException;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+public class ConnectionSchemeValidator {
+    
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    
+    public void validate(ConnectionSchemeDTO scheme) {
+        if (scheme == null) {
+            throw new ConnectionSchemeValidateException("null", "Scheme is null");
+        }
+        try {
+            validateUid(scheme.getUid());
+            validateClientUid(scheme.getClientUid());
+            validateSchemeJson(scheme.getSchemeJson());
+        } catch (IllegalArgumentException e) {
+            throw new ConnectionSchemeValidateException(scheme.getUid(), e.getMessage());
+        }
+    }
+
+    public void validate(ConnectionSchemeBLM scheme) {
+        if (scheme == null) {
+            throw new ConnectionSchemeValidateException("null", "Scheme is null");
+        }
+        try {
+            validateUid(scheme.getUid());
+            validateClientUid(scheme.getClientUid());
+            validateSchemeJson(scheme.getSchemeJson());
+            validateUsedBuffers(scheme.getUsedBuffers());
+            validateBufferTransitions(scheme.getBufferTransitions());
+        } catch (IllegalArgumentException e) {
+            throw new ConnectionSchemeValidateException(scheme.getUid() != null ? scheme.getUid().toString() : "null", e.getMessage());
+        }
+    }
+
+    public void validate(ConnectionSchemeDALM scheme) {
+        if (scheme == null) {
+            throw new ConnectionSchemeValidateException("null", "Scheme is null");
+        }
+        try {
+            validateUid(scheme.getUid());
+            validateClientUid(scheme.getClientUid());
+            validateSchemeJson(scheme.getSchemeJson());
+            validateUsedBuffers(scheme.getUsedBuffers());
+        } catch (IllegalArgumentException e) {
+            throw new ConnectionSchemeValidateException(scheme.getUid() != null ? scheme.getUid().toString() : "null", e.getMessage());
+        }
+    }
+
+    private void validateUid(String uid) {
+        if (uid == null || uid.trim().isEmpty()) {
+            throw new IllegalArgumentException("UID cannot be empty");
+        }
+        try {
+            UUID.fromString(uid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid UID format");
+        }
+    }
+
+    private void validateUid(UUID uid) {
+        if (uid == null) {
+            throw new IllegalArgumentException("UID cannot be null");
+        }
+    }
+
+    private void validateClientUid(String clientUid) {
+        if (clientUid == null || clientUid.trim().isEmpty()) {
+            throw new IllegalArgumentException("Client UID cannot be empty");
+        }
+        try {
+            UUID.fromString(clientUid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid Client UID format");
+        }
+    }
+
+    private void validateClientUid(UUID clientUid) {
+        if (clientUid == null) {
+            throw new IllegalArgumentException("Client UID cannot be null");
+        }
+    }
+
+    private void validateSchemeJson(String schemeJson) {
+        if (schemeJson == null || schemeJson.trim().isEmpty()) {
+            throw new IllegalArgumentException("Scheme JSON cannot be empty");
+        }
+        if (!schemeJson.trim().startsWith("{")) {
+            throw new IllegalArgumentException("Invalid JSON format");
+        }
+        
+        // Проверяем структуру JSON
+        try {
+            Map<String, Object> jsonMap = objectMapper.readValue(schemeJson, new TypeReference<Map<String, Object>>() {});
+            
+            // Проверяем наличие usedBuffers
+            if (!jsonMap.containsKey("usedBuffers")) {
+                throw new IllegalArgumentException("JSON must contain 'usedBuffers' field");
+            }
+            
+            // Проверяем наличие bufferTransitions
+            if (!jsonMap.containsKey("bufferTransitions")) {
+                throw new IllegalArgumentException("JSON must contain 'bufferTransitions' field");
+            }
+            
+            // Проверяем формат usedBuffers
+            Object usedBuffersObj = jsonMap.get("usedBuffers");
+            if (!(usedBuffersObj instanceof List)) {
+                throw new IllegalArgumentException("'usedBuffers' must be an array");
+            }
+            
+            // Проверяем формат bufferTransitions
+            Object transitionsObj = jsonMap.get("bufferTransitions");
+            if (!(transitionsObj instanceof Map)) {
+                throw new IllegalArgumentException("'bufferTransitions' must be an object");
+            }
+            
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid JSON structure: " + e.getMessage());
+        }
+    }
+    
+    private void validateUsedBuffers(List<UUID> usedBuffers) {
+        if (usedBuffers == null) {
+            throw new IllegalArgumentException("Used buffers cannot be null");
+        }
+        // usedBuffers может быть пустым, но не null
+    }
+    
+    private void validateBufferTransitions(Map<UUID, List<UUID>> bufferTransitions) {
+        if (bufferTransitions == null) {
+            throw new IllegalArgumentException("Buffer transitions cannot be null");
+        }
+        
+        // Проверяем, что все ключи и значения - валидные UUID
+        for (Map.Entry<UUID, List<UUID>> entry : bufferTransitions.entrySet()) {
+            if (entry.getKey() == null) {
+                throw new IllegalArgumentException("Buffer transition key cannot be null");
+            }
+            if (entry.getValue() == null) {
+                throw new IllegalArgumentException("Buffer transition value list cannot be null");
+            }
+            for (UUID bufferUid : entry.getValue()) {
+                if (bufferUid == null) {
+                    throw new IllegalArgumentException("Buffer UID in transition list cannot be null");
+                }
+            }
+        }
+    }
+}// ConnectionSchemeRepositorySQLImpl.java
+package com.connection.scheme.repository;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
+import com.connection.scheme.exception.ConnectionSchemeNotFoundException;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeRepository {
+
+    private static final String SELECT_SCHEME = "SELECT cs.uid, cs.client_uid, cs.scheme_json";
+    private static final String FROM_SCHEME = " FROM processing.connection_scheme cs";
+
+    private static final String SELECT_SCHEME_BY_UID = SELECT_SCHEME + FROM_SCHEME + " WHERE cs.uid = :uid";
+    private static final String SELECT_SCHEMES_BY_CLIENT = SELECT_SCHEME + FROM_SCHEME
+            + " WHERE cs.client_uid = :client_uid";
+
+    private static final String SELECT_USED_BUFFERS = "SELECT buffer_uid FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid";
+
+    private static final String SELECT_SCHEMES_BY_BUFFER = SELECT_SCHEME +
+            " FROM processing.connection_scheme cs" +
+            " JOIN processing.connection_scheme_buffer csb ON cs.uid = csb.scheme_uid" +
+            " WHERE csb.buffer_uid = :buffer_uid";
+
+    private static final String INSERT_SCHEME = "INSERT INTO processing.connection_scheme (uid, client_uid, scheme_json) "
+            +
+            "VALUES (:uid, :client_uid, :scheme_json)";
+
+    private static final String INSERT_SCHEME_BUFFER = "INSERT INTO processing.connection_scheme_buffer (uid, scheme_uid, buffer_uid) "
+            +
+            "VALUES (:buffer_relation_uid, :scheme_uid, :buffer_uid)";
+
+    private static final String UPDATE_SCHEME = "UPDATE processing.connection_scheme SET scheme_json = :scheme_json " +
+            "WHERE uid = :uid";
+
+    private static final String DELETE_SCHEME_BUFFERS = "DELETE FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid";
+
+    private static final String DELETE_SCHEME = "DELETE FROM processing.connection_scheme WHERE uid = :uid";
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private final RowMapper<ConnectionSchemeDALM> schemeRowMapper = (rs, rowNum) -> {
+        ConnectionSchemeDALM scheme = new ConnectionSchemeDALM();
+        UUID schemeUid = UUID.fromString(rs.getString("uid"));
+
+        scheme.setUid(schemeUid);
+        scheme.setClientUid(UUID.fromString(rs.getString("client_uid")));
+        scheme.setSchemeJson(rs.getString("scheme_json"));
+        scheme.setUsedBuffers(getUsedBuffersForScheme(schemeUid));
+
+        return scheme;
+    };
+
+    public ConnectionSchemeRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    @Transactional
+    public void add(ConnectionSchemeDALM scheme) throws ConnectionSchemeAlreadyExistsException {
+        if (exists(scheme.getUid())) {
+            throw new ConnectionSchemeAlreadyExistsException("Scheme with UID " + scheme.getUid() + " already exists");
+        }
+
+        // Сохраняем основную схему
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", scheme.getUid());
+        params.addValue("client_uid", scheme.getClientUid());
+        params.addValue("scheme_json", scheme.getSchemeJson());
+
+        jdbcTemplate.update(INSERT_SCHEME, params);
+
+        // Сохраняем связи с буферами
+        saveUsedBuffers(scheme.getUid(), scheme.getUsedBuffers());
+    }
+
+    @Override
+    @Transactional
+    public void update(ConnectionSchemeDALM scheme) throws ConnectionSchemeNotFoundException {
+        if (!exists(scheme.getUid())) {
+            throw new ConnectionSchemeNotFoundException("Scheme with UID " + scheme.getUid() + " not found");
+        }
+
+        // Обновляем основную схему
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", scheme.getUid());
+        params.addValue("scheme_json", scheme.getSchemeJson());
+
+        jdbcTemplate.update(UPDATE_SCHEME, params);
+
+        // Обновляем связи с буферами
+        updateUsedBuffers(scheme.getUid(), scheme.getUsedBuffers());
+    }
+
+    @Override
+    @Transactional
+    public void delete(UUID uid) throws ConnectionSchemeNotFoundException {
+        if (!exists(uid)) {
+            throw new ConnectionSchemeNotFoundException("Scheme with UID " + uid + " not found");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+
+        jdbcTemplate.update(DELETE_SCHEME, params);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ConnectionSchemeDALM findByUid(UUID uid) throws ConnectionSchemeNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_SCHEME_BY_UID, params, schemeRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new ConnectionSchemeNotFoundException("Scheme with UID " + uid + " not found");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConnectionSchemeDALM> findByClientUid(UUID clientUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("client_uid", clientUid);
+        return jdbcTemplate.query(SELECT_SCHEMES_BY_CLIENT, params, schemeRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConnectionSchemeDALM> findByBufferUid(UUID bufferUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        return jdbcTemplate.query(SELECT_SCHEMES_BY_BUFFER, params, schemeRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean exists(UUID uid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            jdbcTemplate.queryForObject(SELECT_SCHEME_BY_UID, params, schemeRowMapper);
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+
+    private List<UUID> getUsedBuffersForScheme(UUID schemeUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("scheme_uid", schemeUid);
+
+        return jdbcTemplate.query(SELECT_USED_BUFFERS, params,
+                (rs, rowNum) -> UUID.fromString(rs.getString("buffer_uid")));
+    }
+
+    private void saveUsedBuffers(UUID schemeUid, List<UUID> usedBuffers) {
+        if (usedBuffers == null || usedBuffers.isEmpty()) {
+            return;
+        }
+
+        for (UUID bufferUid : usedBuffers) {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("buffer_relation_uid", UUID.randomUUID());
+            params.addValue("scheme_uid", schemeUid);
+            params.addValue("buffer_uid", bufferUid);
+
+            jdbcTemplate.update(INSERT_SCHEME_BUFFER, params);
+        }
+    }
+
+    private void updateUsedBuffers(UUID schemeUid, List<UUID> usedBuffers) {
+        // Удаляем старые связи
+        MapSqlParameterSource deleteParams = new MapSqlParameterSource();
+        deleteParams.addValue("scheme_uid", schemeUid);
+        jdbcTemplate.update(DELETE_SCHEME_BUFFERS, deleteParams);
+
+        // Сохраняем новые связи
+        saveUsedBuffers(schemeUid, usedBuffers);
+    }
+}// ConnectionSchemeRepository.java
+package com.connection.scheme.repository;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
+import com.connection.scheme.exception.ConnectionSchemeNotFoundException;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+
+public interface ConnectionSchemeRepository {
+    void add(ConnectionSchemeDALM scheme) throws ConnectionSchemeAlreadyExistsException;
+    void update(ConnectionSchemeDALM scheme) throws ConnectionSchemeNotFoundException;
+    void delete(UUID uid) throws ConnectionSchemeNotFoundException;
+    ConnectionSchemeDALM findByUid(UUID uid) throws ConnectionSchemeNotFoundException;
+    List<ConnectionSchemeDALM> findByClientUid(UUID clientUid);
+    List<ConnectionSchemeDALM> findByBufferUid(UUID bufferUid);
+    boolean exists(UUID uid);
+}package com.connection.scheme.exception;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Connection Scheme Exception Tests")
+class ConnectionSchemeExceptionTest {
+
+    @Test
+    @DisplayName("BaseConnectionSchemeException toString format")
+    void testBaseConnectionSchemeExceptionToString() {
+        String schemeUid = "test-scheme-123";
+        BaseConnectionSchemeException exception = new BaseConnectionSchemeException(schemeUid);
+        String result = exception.toString();
+        assertThat(result).contains(schemeUid);
+    }
+
+    @Test
+    @DisplayName("ConnectionSchemeValidateException toString format")
+    void testConnectionSchemeValidateExceptionToString() {
+        String schemeUid = "test-scheme-456";
+        String description = "Validation failed";
+        ConnectionSchemeValidateException exception = new ConnectionSchemeValidateException(schemeUid, description);
+        String result = exception.toString();
+        assertThat(result).contains(schemeUid);
+        assertThat(result).contains(description);
+    }
+
+    @Test
+    @DisplayName("ConnectionSchemeNotFoundException toString format")
+    void testConnectionSchemeNotFoundExceptionToString() {
+        String schemeUid = "test-scheme-789";
+        ConnectionSchemeNotFoundException exception = new ConnectionSchemeNotFoundException(schemeUid);
+        String result = exception.toString();
+        assertThat(result).contains(schemeUid);
+    }
+
+    @Test
+    @DisplayName("ConnectionSchemeAlreadyExistsException toString format")
+    void testConnectionSchemeAlreadyExistsExceptionToString() {
+        String schemeUid = "test-scheme-012";
+        ConnectionSchemeAlreadyExistsException exception = new ConnectionSchemeAlreadyExistsException(schemeUid);
+        String result = exception.toString();
+        assertThat(result).contains(schemeUid);
+    }
+
+    @Test
+    @DisplayName("Exception inheritance hierarchy")
+    void testExceptionInheritance() {
+        ConnectionSchemeValidateException validateException = new ConnectionSchemeValidateException("uid", "desc");
+        ConnectionSchemeAlreadyExistsException existsException = new ConnectionSchemeAlreadyExistsException("uid");
+        ConnectionSchemeNotFoundException notFoundException = new ConnectionSchemeNotFoundException("uid");
+
+        assertThat(validateException).isInstanceOf(BaseConnectionSchemeException.class);
+        assertThat(existsException).isInstanceOf(BaseConnectionSchemeException.class);
+        assertThat(notFoundException).isInstanceOf(BaseConnectionSchemeException.class);
+        assertThat(validateException).isInstanceOf(RuntimeException.class);
+    }
+}// ConnectionSchemeConverterTest.java
+package com.connection.scheme.converter;
+
+import static com.connection.scheme.mother.ConnectionSchemeObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Arrays;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Connection Scheme Converter Tests")
+class ConnectionSchemeConverterTest {
+
+    private ConnectionSchemeConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        converter = new ConnectionSchemeConverter();
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        ConnectionSchemeDALM dalM = createValidConnectionSchemeDALM();
+        ConnectionSchemeBLM result = converter.toBLM(dalM);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dalM.getUid());
+        assertThat(result.getClientUid()).isEqualTo(dalM.getClientUid());
+        assertThat(result.getSchemeJson()).isEqualTo(dalM.getSchemeJson());
+        assertThat(result.getUsedBuffers()).isEqualTo(dalM.getUsedBuffers());
+        assertThat(result.getBufferTransitions()).isNotEmpty();
+        assertThat(result.getBufferTransitions()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        ConnectionSchemeDTO dto = createValidConnectionSchemeDTO();
+        ConnectionSchemeBLM result = converter.toBLM(dto);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUid().toString()).isEqualTo(dto.getUid());
+        assertThat(result.getClientUid().toString()).isEqualTo(dto.getClientUid());
+        assertThat(result.getSchemeJson()).isEqualTo(dto.getSchemeJson());
+        assertThat(result.getUsedBuffers()).isNotEmpty();
+        assertThat(result.getUsedBuffers()).hasSize(2);
+        assertThat(result.getBufferTransitions()).isNotEmpty();
+        assertThat(result.getBufferTransitions()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        ConnectionSchemeBLM blm = createValidConnectionSchemeBLM();
+        ConnectionSchemeDTO result = converter.toDTO(blm);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid().toString());
+        assertThat(result.getClientUid()).isEqualTo(blm.getClientUid().toString());
+        assertThat(result.getSchemeJson()).isEqualTo(blm.getSchemeJson());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        ConnectionSchemeBLM blm = createValidConnectionSchemeBLM();
+        ConnectionSchemeDALM result = converter.toDALM(blm);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getClientUid()).isEqualTo(blm.getClientUid());
+        assertThat(result.getSchemeJson()).isEqualTo(blm.getSchemeJson());
+        assertThat(result.getUsedBuffers()).isEqualTo(blm.getUsedBuffers());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
+    void testRoundTripDTOToBLMToDTO() {
+        ConnectionSchemeDTO original = createValidConnectionSchemeDTO();
+        ConnectionSchemeBLM blm = converter.toBLM(original);
+        ConnectionSchemeDTO result = converter.toDTO(blm);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getClientUid()).isEqualTo(original.getClientUid());
+        assertThat(result.getSchemeJson()).isEqualTo(original.getSchemeJson());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
+    void testRoundTripDALMToBLMToDALM() {
+        ConnectionSchemeDALM original = createValidConnectionSchemeDALM();
+        ConnectionSchemeBLM blm = converter.toBLM(original);
+        ConnectionSchemeDALM result = converter.toDALM(blm);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getClientUid()).isEqualTo(original.getClientUid());
+        assertThat(result.getSchemeJson()).isEqualTo(original.getSchemeJson());
+        assertThat(result.getUsedBuffers()).isEqualTo(original.getUsedBuffers());
+    }
+
+    @Test
+    @DisplayName("Convert with empty used buffers")
+    void testConvertWithEmptyUsedBuffers() {
+        ConnectionSchemeDALM dalM = createConnectionSchemeDALMWithUsedBuffers(Arrays.asList());
+        ConnectionSchemeBLM result = converter.toBLM(dalM);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUsedBuffers()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Convert with null used buffers")
+    void testConvertWithNullUsedBuffers() {
+        ConnectionSchemeDALM dalM = createConnectionSchemeDALMWithUsedBuffers(null);
+        ConnectionSchemeBLM result = converter.toBLM(dalM);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUsedBuffers()).isNull();
+    }
+}// ConnectionSchemeValidatorTest.java
+package com.connection.scheme.validator;
+
+import static com.connection.scheme.mother.ConnectionSchemeObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.scheme.exception.ConnectionSchemeValidateException;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Connection Scheme Validator Tests")
+class ConnectionSchemeValidatorTest {
+
+    private ConnectionSchemeValidator validator;
+
+    @BeforeEach
+    void setUp() {
+        validator = new ConnectionSchemeValidator();
+    }
+
+    @Test
+    @DisplayName("Validate valid ConnectionSchemeDTO - Positive")
+    void testValidateConnectionSchemeDTO_Positive() {
+        ConnectionSchemeDTO scheme = createValidConnectionSchemeDTO();
+        assertThat(scheme).isNotNull();
+        validator.validate(scheme);
+    }
+
+    @Test
+    @DisplayName("Validate valid ConnectionSchemeBLM - Positive")
+    void testValidateConnectionSchemeBLM_Positive() {
+        ConnectionSchemeBLM scheme = createValidConnectionSchemeBLM();
+        assertThat(scheme).isNotNull();
+        validator.validate(scheme);
+    }
+
+    @Test
+    @DisplayName("Validate valid ConnectionSchemeDALM - Positive")
+    void testValidateConnectionSchemeDALM_Positive() {
+        ConnectionSchemeDALM scheme = createValidConnectionSchemeDALM();
+        assertThat(scheme).isNotNull();
+        validator.validate(scheme);
+    }
+
+    @Test
+    @DisplayName("Validate null ConnectionSchemeDTO - Negative")
+    void testValidateNullConnectionSchemeDTO_Negative() {
+        ConnectionSchemeDTO scheme = null;
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeDTO with null UID - Negative")
+    void testValidateConnectionSchemeDTOWithNullUid_Negative() {
+        ConnectionSchemeDTO scheme = createConnectionSchemeDTOWithNullUid();
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeDTO with invalid UID - Negative")
+    void testValidateConnectionSchemeDTOWithInvalidUid_Negative() {
+        ConnectionSchemeDTO scheme = createConnectionSchemeDTOWithInvalidUid();
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeDTO with empty JSON - Negative")
+    void testValidateConnectionSchemeDTOWithEmptyJson_Negative() {
+        ConnectionSchemeDTO scheme = createConnectionSchemeDTOWithEmptyJson();
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeDTO with invalid JSON - Negative")
+    void testValidateConnectionSchemeDTOWithInvalidJson_Negative() {
+        ConnectionSchemeDTO scheme = createConnectionSchemeDTOWithInvalidJson();
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeDTO with missing usedBuffers - Negative")
+    void testValidateConnectionSchemeDTOWithMissingUsedBuffers_Negative() {
+        ConnectionSchemeDTO scheme = createConnectionSchemeDTOWithMissingUsedBuffers();
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeDTO with missing bufferTransitions - Negative")
+    void testValidateConnectionSchemeDTOWithMissingBufferTransitions_Negative() {
+        ConnectionSchemeDTO scheme = createConnectionSchemeDTOWithMissingBufferTransitions();
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate null ConnectionSchemeBLM - Negative")
+    void testValidateNullConnectionSchemeBLM_Negative() {
+        ConnectionSchemeBLM scheme = null;
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeBLM with null fields - Negative")
+    void testValidateConnectionSchemeBLMWithNullFields_Negative() {
+        ConnectionSchemeBLM scheme = createConnectionSchemeBLMWithNullFields();
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeBLM with null usedBuffers - Negative")
+    void testValidateConnectionSchemeBLMWithNullUsedBuffers_Negative() {
+        Map<UUID, List<UUID>> transitions = new HashMap<>();
+        transitions.put(UUID.randomUUID(), Arrays.asList(UUID.randomUUID()));
+        
+        ConnectionSchemeBLM scheme = ConnectionSchemeBLM.builder()
+                .uid(UUID.randomUUID())
+                .clientUid(UUID.randomUUID())
+                .schemeJson("{\"usedBuffers\": [], \"bufferTransitions\": {}}")
+                .usedBuffers(null)
+                .bufferTransitions(transitions)
+                .build();
+        
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeBLM with null bufferTransitions - Negative")
+    void testValidateConnectionSchemeBLMWithNullBufferTransitions_Negative() {
+        ConnectionSchemeBLM scheme = ConnectionSchemeBLM.builder()
+                .uid(UUID.randomUUID())
+                .clientUid(UUID.randomUUID())
+                .schemeJson("{\"usedBuffers\": [], \"bufferTransitions\": {}}")
+                .usedBuffers(Arrays.asList(UUID.randomUUID()))
+                .bufferTransitions(null)
+                .build();
+        
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeDTO with null client UID - Negative")
+    void testValidateConnectionSchemeDTOWithNullClientUid_Negative() {
+        ConnectionSchemeDTO scheme = ConnectionSchemeDTO.builder()
+                .uid(UUID.randomUUID().toString())
+                .clientUid(null)
+                .schemeJson("{\"usedBuffers\": [], \"bufferTransitions\": {}}")
+                .build();
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate ConnectionSchemeDTO with whitespace JSON - Negative")
+    void testValidateConnectionSchemeDTOWithWhitespaceJson_Negative() {
+        ConnectionSchemeDTO scheme = ConnectionSchemeDTO.builder()
+                .uid(UUID.randomUUID().toString())
+                .clientUid(UUID.randomUUID().toString())
+                .schemeJson("   ")
+                .build();
+        assertThatThrownBy(() -> validator.validate(scheme))
+                .isInstanceOf(ConnectionSchemeValidateException.class);
+    }
+}// ConnectionSchemeObjectMother.java
+package com.connection.scheme.mother;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+public class ConnectionSchemeObjectMother {
+
+    private static final UUID DEFAULT_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    private static final UUID DEFAULT_CLIENT_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
+    private static final UUID BUFFER_UID_1 = UUID.fromString("223e4567-e89b-12d3-a456-426614174002");
+    private static final UUID BUFFER_UID_2 = UUID.fromString("223e4567-e89b-12d3-a456-426614174003");
+    private static final UUID BUFFER_UID_3 = UUID.fromString("223e4567-e89b-12d3-a456-426614174004");
+    
+    private static final String DEFAULT_SCHEME_JSON = "{" +
+        "\"usedBuffers\": [\"" + BUFFER_UID_1 + "\", \"" + BUFFER_UID_2 + "\"], " +
+        "\"bufferTransitions\": {" +
+            "\"" + BUFFER_UID_1 + "\": [\"" + BUFFER_UID_2 + "\"], " +
+            "\"" + BUFFER_UID_2 + "\": [\"" + BUFFER_UID_3 + "\"]" +
+        "}" +
+    "}";
+
+    public static ConnectionSchemeDTO createValidConnectionSchemeDTO() {
+        return ConnectionSchemeDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .build();
+    }
+
+    public static ConnectionSchemeBLM createValidConnectionSchemeBLM() {
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UID_1, Arrays.asList(BUFFER_UID_2));
+        bufferTransitions.put(BUFFER_UID_2, Arrays.asList(BUFFER_UID_3));
+        
+        return ConnectionSchemeBLM.builder()
+                .uid(DEFAULT_UID)
+                .clientUid(DEFAULT_CLIENT_UID)
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(Arrays.asList(BUFFER_UID_1, BUFFER_UID_2))
+                .bufferTransitions(bufferTransitions)
+                .build();
+    }
+
+    public static ConnectionSchemeDALM createValidConnectionSchemeDALM() {
+        return ConnectionSchemeDALM.builder()
+                .uid(DEFAULT_UID)
+                .clientUid(DEFAULT_CLIENT_UID)
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(Arrays.asList(BUFFER_UID_1, BUFFER_UID_2))
+                .build();
+    }
+
+    public static ConnectionSchemeDTO createConnectionSchemeDTOWithNullUid() {
+        return ConnectionSchemeDTO.builder()
+                .uid(null)
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .build();
+    }
+
+    public static ConnectionSchemeDTO createConnectionSchemeDTOWithInvalidUid() {
+        return ConnectionSchemeDTO.builder()
+                .uid("invalid-uuid")
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .build();
+    }
+
+    public static ConnectionSchemeDTO createConnectionSchemeDTOWithEmptyJson() {
+        return ConnectionSchemeDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson("")
+                .build();
+    }
+
+    public static ConnectionSchemeDTO createConnectionSchemeDTOWithInvalidJson() {
+        return ConnectionSchemeDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson("invalid json")
+                .build();
+    }
+
+    public static ConnectionSchemeDTO createConnectionSchemeDTOWithMissingUsedBuffers() {
+        return ConnectionSchemeDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson("{\"bufferTransitions\": {}}")
+                .build();
+    }
+
+    public static ConnectionSchemeDTO createConnectionSchemeDTOWithMissingBufferTransitions() {
+        return ConnectionSchemeDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson("{\"usedBuffers\": []}")
+                .build();
+    }
+
+    public static ConnectionSchemeBLM createConnectionSchemeBLMWithNullFields() {
+        return ConnectionSchemeBLM.builder()
+                .uid(null)
+                .clientUid(null)
+                .schemeJson(null)
+                .usedBuffers(null)
+                .bufferTransitions(null)
+                .build();
+    }
+
+    public static ConnectionSchemeDALM createConnectionSchemeForClient(UUID clientUid) {
+        String clientSpecificJson = "{" +
+            "\"usedBuffers\": [\"" + BUFFER_UID_1 + "\"], " +
+            "\"bufferTransitions\": {\"" + BUFFER_UID_1 + "\": []}" +
+        "}";
+        
+        return ConnectionSchemeDALM.builder()
+                .uid(UUID.randomUUID())
+                .clientUid(clientUid)
+                .schemeJson(clientSpecificJson)
+                .usedBuffers(Arrays.asList(BUFFER_UID_1))
+                .build();
+    }
+
+    public static ConnectionSchemeDALM createConnectionSchemeDALMWithUsedBuffers(List<UUID> usedBuffers) {
+        return ConnectionSchemeDALM.builder()
+                .uid(UUID.randomUUID())
+                .clientUid(DEFAULT_CLIENT_UID)
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(usedBuffers)
+                .build();
+    }
+}// ConnectionSchemeRepositorySQLImplTest.java
+package com.connection.scheme.repository;
+
+import static com.connection.scheme.mother.ConnectionSchemeObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
+import com.connection.scheme.exception.ConnectionSchemeNotFoundException;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Connection Scheme Repository Tests - SQL implementation tests")
+class ConnectionSchemeRepositorySQLImplTest {
+
+    @Mock
+    private NamedParameterJdbcTemplate jdbcTemplate;
+
+    @InjectMocks
+    private ConnectionSchemeRepositorySQLImpl repository;
+
+    private ConnectionSchemeDALM testScheme;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        testScheme = createValidConnectionSchemeDALM();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Add scheme - Positive")
+    void testAddScheme_Positive() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenThrow(new EmptyResultDataAccessException(1));
+        when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+        repository.add(testScheme);
+
+        verify(jdbcTemplate, times(1)).queryForObject(
+                eq("SELECT cs.uid, cs.client_uid, cs.scheme_json FROM processing.connection_scheme cs WHERE cs.uid = :uid"),
+                any(MapSqlParameterSource.class),
+                any(RowMapper.class));
+        verify(jdbcTemplate, times(1)).update(
+                eq("INSERT INTO processing.connection_scheme (uid, client_uid, scheme_json) VALUES (:uid, :client_uid, :scheme_json)"),
+                any(MapSqlParameterSource.class));
+        
+        // Verify that used buffers are saved
+        verify(jdbcTemplate, times(testScheme.getUsedBuffers().size())).update(
+                eq("INSERT INTO processing.connection_scheme_buffer (uid, scheme_uid, buffer_uid) VALUES (:buffer_relation_uid, :scheme_uid, :buffer_uid)"),
+                any(MapSqlParameterSource.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Add scheme with empty used buffers - Positive")
+    void testAddSchemeWithEmptyUsedBuffers_Positive() {
+        ConnectionSchemeDALM scheme = createConnectionSchemeDALMWithUsedBuffers(Arrays.asList());
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenThrow(new EmptyResultDataAccessException(1));
+        when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+        repository.add(scheme);
+
+        verify(jdbcTemplate, times(1)).update(
+                eq("INSERT INTO processing.connection_scheme (uid, client_uid, scheme_json) VALUES (:uid, :client_uid, :scheme_json)"),
+                any(MapSqlParameterSource.class));
+        
+        // No buffer relations should be inserted for empty used buffers
+        verify(jdbcTemplate, never()).update(
+                eq("INSERT INTO processing.connection_scheme_buffer (uid, scheme_uid, buffer_uid) VALUES (:buffer_relation_uid, :scheme_uid, :buffer_uid)"),
+                any(MapSqlParameterSource.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Add existing scheme - Negative")
+    void testAddExistingScheme_Negative() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(testScheme);
+
+        assertThatThrownBy(() -> repository.add(testScheme))
+                .isInstanceOf(ConnectionSchemeAlreadyExistsException.class);
+
+        verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Update scheme - Positive")
+    void testUpdateScheme_Positive() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(testScheme);
+        when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+        repository.update(testScheme);
+
+        verify(jdbcTemplate, times(1)).update(
+                eq("UPDATE processing.connection_scheme SET scheme_json = :scheme_json WHERE uid = :uid"),
+                any(MapSqlParameterSource.class));
+        
+        // Verify that buffer relations are updated
+        verify(jdbcTemplate, times(1)).update(
+                eq("DELETE FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid"),
+                any(MapSqlParameterSource.class));
+        verify(jdbcTemplate, times(testScheme.getUsedBuffers().size())).update(
+                eq("INSERT INTO processing.connection_scheme_buffer (uid, scheme_uid, buffer_uid) VALUES (:buffer_relation_uid, :scheme_uid, :buffer_uid)"),
+                any(MapSqlParameterSource.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Update non-existent scheme - Negative")
+    void testUpdateNonExistentScheme_Negative() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenThrow(new EmptyResultDataAccessException(1));
+
+        assertThatThrownBy(() -> repository.update(testScheme))
+                .isInstanceOf(ConnectionSchemeNotFoundException.class);
+
+        verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Delete scheme - Positive")
+    void testDeleteScheme_Positive() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(testScheme);
+        when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+        repository.delete(testScheme.getUid());
+
+        verify(jdbcTemplate, times(1)).update(
+                eq("DELETE FROM processing.connection_scheme WHERE uid = :uid"),
+                any(MapSqlParameterSource.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Delete non-existent scheme - Negative")
+    void testDeleteNonExistentScheme_Negative() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenThrow(new EmptyResultDataAccessException(1));
+
+        assertThatThrownBy(() -> repository.delete(testScheme.getUid()))
+                .isInstanceOf(ConnectionSchemeNotFoundException.class);
+
+        verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Find scheme by UID - Positive")
+    void testFindByUid_Positive() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(testScheme);
+
+        ConnectionSchemeDALM result = repository.findByUid(testScheme.getUid());
+
+        assertThat(result).isEqualTo(testScheme);
+        assertThat(result.getUsedBuffers()).isEqualTo(testScheme.getUsedBuffers());
+        verify(jdbcTemplate, times(1)).queryForObject(
+                eq("SELECT cs.uid, cs.client_uid, cs.scheme_json FROM processing.connection_scheme cs WHERE cs.uid = :uid"),
+                any(MapSqlParameterSource.class),
+                any(RowMapper.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Find non-existent scheme by UID - Negative")
+    void testFindByUid_Negative() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenThrow(new EmptyResultDataAccessException(1));
+
+        assertThatThrownBy(() -> repository.findByUid(testScheme.getUid()))
+                .isInstanceOf(ConnectionSchemeNotFoundException.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Find schemes by client UID - Positive")
+    void testFindByClientUid_Positive() {
+        when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(List.of(testScheme));
+
+        List<ConnectionSchemeDALM> result = repository.findByClientUid(testScheme.getClientUid());
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0)).isEqualTo(testScheme);
+        assertThat(result.get(0).getUsedBuffers()).isEqualTo(testScheme.getUsedBuffers());
+        verify(jdbcTemplate, times(1)).query(
+                eq("SELECT cs.uid, cs.client_uid, cs.scheme_json FROM processing.connection_scheme cs WHERE cs.client_uid = :client_uid"),
+                any(MapSqlParameterSource.class),
+                any(RowMapper.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Find schemes by buffer UID - Positive")
+    void testFindByBufferUid_Positive() {
+        UUID bufferUid = UUID.randomUUID();
+        when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(List.of(testScheme));
+
+        List<ConnectionSchemeDALM> result = repository.findByBufferUid(bufferUid);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0)).isEqualTo(testScheme);
+        verify(jdbcTemplate, times(1)).query(
+                eq("SELECT cs.uid, cs.client_uid, cs.scheme_json FROM processing.connection_scheme cs JOIN processing.connection_scheme_buffer csb ON cs.uid = csb.scheme_uid WHERE csb.buffer_uid = :buffer_uid"),
+                any(MapSqlParameterSource.class),
+                any(RowMapper.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Check scheme exists - Positive")
+    void testExists_Positive() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(testScheme);
+
+        boolean result = repository.exists(testScheme.getUid());
+
+        assertThat(result).isTrue();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Check scheme exists - Negative")
+    void testExists_Negative() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenThrow(new EmptyResultDataAccessException(1));
+
+        boolean result = repository.exists(testScheme.getUid());
+
+        assertThat(result).isFalse();
+    }
+}

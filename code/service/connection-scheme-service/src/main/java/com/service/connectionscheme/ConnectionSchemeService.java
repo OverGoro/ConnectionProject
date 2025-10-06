@@ -9,12 +9,11 @@ import com.connection.scheme.model.ConnectionSchemeBLM;
 import com.connection.scheme.model.ConnectionSchemeDTO;
 
 public interface ConnectionSchemeService {
-    ConnectionSchemeBLM createScheme(String accessToken, ConnectionSchemeDTO schemeDTO);
-    ConnectionSchemeBLM getScheme(String accessToken, UUID schemeUid);
-    List<ConnectionSchemeBLM> getSchemesByClient(String accessToken);
-    List<ConnectionSchemeBLM> getSchemesByBuffer(String accessToken, UUID bufferUuid);
-    ConnectionSchemeBLM updateScheme(String accessToken, UUID schemeUid, ConnectionSchemeDTO schemeDTO);
-    void deleteScheme(String accessToken, UUID schemeUid);
-    boolean schemeExists(String accessToken, UUID schemeUid);
+    ConnectionSchemeBLM createScheme(UUID clientUuid, ConnectionSchemeDTO schemeDTO);
+    ConnectionSchemeBLM getSchemeByUid(UUID clientUuid, UUID schemeUid);
+    List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUuid);
+    ConnectionSchemeBLM updateScheme(UUID clientUuid, UUID schemeUid, ConnectionSchemeDTO schemeDTO);
+    void deleteScheme(UUID clientUuid, UUID schemeUid);
+    boolean schemeExists(UUID clientUuid, UUID schemeUid);
     Map<String, Object> getHealthStatus();
 }

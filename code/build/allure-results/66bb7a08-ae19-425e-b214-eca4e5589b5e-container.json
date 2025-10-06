@@ -1,1 +1,0 @@
-{"uuid":"66bb7a08-ae19-425e-b214-eca4e5589b5e","name":"Validate ClientDTO with long email - Negative","children":["300100ab-544b-4d21-adf4-163483562ae2"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758359009070,"stop":1758359009071}],"afters":[],"start":1758359009069,"stop":1758359009072}

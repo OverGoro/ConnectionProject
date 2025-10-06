@@ -31,7 +31,7 @@ class BufferConverterTest {
         BufferBLM result = converter.toBLM(dalM);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(dalM.getUid());
-        assertThat(result.getConnectionSchemeUid()).isEqualTo(dalM.getConnectionSchemeUid());
+        assertThat(result.getDeviceUid()).isEqualTo(dalM.getDeviceUid()); // Изменено
         assertThat(result.getMaxMessagesNumber()).isEqualTo(dalM.getMaxMessagesNumber());
         assertThat(result.getMaxMessageSize()).isEqualTo(dalM.getMaxMessageSize());
         assertThat(result.getMessagePrototype()).isEqualTo(dalM.getMessagePrototype());
@@ -44,7 +44,7 @@ class BufferConverterTest {
         BufferBLM result = converter.toBLM(dto);
         assertThat(result).isNotNull();
         assertThat(result.getUid().toString()).isEqualTo(dto.getUid());
-        assertThat(result.getConnectionSchemeUid().toString()).isEqualTo(dto.getConnectionSchemeUid());
+        assertThat(result.getDeviceUid().toString()).isEqualTo(dto.getDeviceUid()); // Изменено
         assertThat(result.getMaxMessagesNumber()).isEqualTo(dto.getMaxMessagesNumber());
         assertThat(result.getMaxMessageSize()).isEqualTo(dto.getMaxMessageSize());
         assertThat(result.getMessagePrototype()).isEqualTo(dto.getMessagePrototype());
@@ -57,7 +57,7 @@ class BufferConverterTest {
         BufferDTO result = converter.toDTO(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid().toString());
-        assertThat(result.getConnectionSchemeUid()).isEqualTo(blm.getConnectionSchemeUid().toString());
+        assertThat(result.getDeviceUid()).isEqualTo(blm.getDeviceUid().toString()); // Изменено
         assertThat(result.getMaxMessagesNumber()).isEqualTo(blm.getMaxMessagesNumber());
         assertThat(result.getMaxMessageSize()).isEqualTo(blm.getMaxMessageSize());
         assertThat(result.getMessagePrototype()).isEqualTo(blm.getMessagePrototype());
@@ -70,7 +70,7 @@ class BufferConverterTest {
         BufferDALM result = converter.toDALM(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid());
-        assertThat(result.getConnectionSchemeUid()).isEqualTo(blm.getConnectionSchemeUid());
+        assertThat(result.getDeviceUid()).isEqualTo(blm.getDeviceUid()); // Изменено
         assertThat(result.getMaxMessagesNumber()).isEqualTo(blm.getMaxMessagesNumber());
         assertThat(result.getMaxMessageSize()).isEqualTo(blm.getMaxMessageSize());
         assertThat(result.getMessagePrototype()).isEqualTo(blm.getMessagePrototype());
@@ -84,7 +84,7 @@ class BufferConverterTest {
         BufferDTO result = converter.toDTO(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(original.getUid());
-        assertThat(result.getConnectionSchemeUid()).isEqualTo(original.getConnectionSchemeUid());
+        assertThat(result.getDeviceUid()).isEqualTo(original.getDeviceUid()); // Изменено
         assertThat(result.getMaxMessagesNumber()).isEqualTo(original.getMaxMessagesNumber());
         assertThat(result.getMaxMessageSize()).isEqualTo(original.getMaxMessageSize());
         assertThat(result.getMessagePrototype()).isEqualTo(original.getMessagePrototype());
@@ -98,7 +98,7 @@ class BufferConverterTest {
         BufferDALM result = converter.toDALM(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(original.getUid());
-        assertThat(result.getConnectionSchemeUid()).isEqualTo(original.getConnectionSchemeUid());
+        assertThat(result.getDeviceUid()).isEqualTo(original.getDeviceUid()); // Изменено
         assertThat(result.getMaxMessagesNumber()).isEqualTo(original.getMaxMessagesNumber());
         assertThat(result.getMaxMessageSize()).isEqualTo(original.getMaxMessageSize());
         assertThat(result.getMessagePrototype()).isEqualTo(original.getMessagePrototype());

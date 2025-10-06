@@ -13,14 +13,9 @@ import lombok.Setter;
 @Setter
 @Builder
 public class BufferDTO {
-    
     protected String uid;
-    
-    protected String connectionSchemeUid;
-    
+    protected String deviceUid;
     protected Integer maxMessagesNumber;
-    
     protected Integer maxMessageSize;
-    
     protected String messagePrototype;
 }

@@ -1,3 +1,4 @@
+// AuthResponseConsumer.java
 package com.service.buffer.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;

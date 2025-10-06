@@ -1,0 +1,3514 @@
+// BufferValidateException.java
+package com.connection.processing.buffer.exception;
+
+public class BufferValidateException extends BaseBufferException {
+    private final String description;
+
+    public BufferValidateException(String bufferUid, String description) {
+        super(bufferUid);
+        this.description = description;
+    }
+
+    public String toString() {
+        return super.toString() + "\ndescription: " + description;
+    }
+}// BufferAlreadyExistsException.java
+package com.connection.processing.buffer.exception;
+
+public class BufferAlreadyExistsException extends BaseBufferException {
+    public BufferAlreadyExistsException(String bufferUid) {
+        super(bufferUid);
+    }
+
+    public String toString() {
+        return super.toString() + "\ndescription: buffer already exists";
+    }
+}// BaseBufferException.java
+package com.connection.processing.buffer.exception;
+
+public class BaseBufferException extends RuntimeException {
+    private final String bufferUid;
+
+    public BaseBufferException(String bufferUid) {
+        super("buffer");
+        this.bufferUid = bufferUid;
+    }
+
+    public String toString() {
+        return super.toString() + "\nbuffer: " + bufferUid;
+    }
+}// BufferNotFoundException.java
+package com.connection.processing.buffer.exception;
+
+public class BufferNotFoundException extends BaseBufferException {
+    public BufferNotFoundException(String bufferUid) {
+        super(bufferUid);
+    }
+
+    public String toString() {
+        return super.toString() + "\ndescription: buffer not found";
+    }
+}// BufferBLM.java
+package com.connection.processing.buffer.model;
+
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class BufferBLM {
+    
+    protected UUID uid;
+    
+    protected UUID connectionSchemeUid;
+    
+    protected Integer maxMessagesNumber;
+    
+    protected Integer maxMessageSize;
+    
+    protected String messagePrototype;
+}// BufferDTO.java
+package com.connection.processing.buffer.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class BufferDTO {
+    
+    protected String uid;
+    
+    protected String connectionSchemeUid;
+    
+    protected Integer maxMessagesNumber;
+    
+    protected Integer maxMessageSize;
+    
+    protected String messagePrototype;
+}// BufferDALM.java
+package com.connection.processing.buffer.model;
+
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+
+public class BufferDALM {
+    
+    protected UUID uid;
+    
+    protected UUID connectionSchemeUid;
+    
+    protected Integer maxMessagesNumber;
+    
+    protected Integer maxMessageSize;
+    
+    protected String messagePrototype;
+}// BufferConverter.java
+package com.connection.processing.buffer.converter;
+
+import java.util.UUID;
+
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferDTO;
+
+public class BufferConverter {
+    public BufferBLM toBLM(BufferDALM dalm) {
+        return new BufferBLM(
+            dalm.getUid(),
+            dalm.getConnectionSchemeUid(),
+            dalm.getMaxMessagesNumber(),
+            dalm.getMaxMessageSize(),
+            dalm.getMessagePrototype()
+        );
+    }
+
+    public BufferBLM toBLM(BufferDTO dto) {
+        return new BufferBLM(
+            UUID.fromString(dto.getUid()),
+            UUID.fromString(dto.getConnectionSchemeUid()),
+            dto.getMaxMessagesNumber(),
+            dto.getMaxMessageSize(),
+            dto.getMessagePrototype()
+        );
+    }
+
+    public BufferDTO toDTO(BufferBLM blm) {
+        return new BufferDTO(
+            blm.getUid().toString(),
+            blm.getConnectionSchemeUid().toString(),
+            blm.getMaxMessagesNumber(),
+            blm.getMaxMessageSize(),
+            blm.getMessagePrototype()
+        );
+    }
+
+    public BufferDALM toDALM(BufferBLM blm) {
+        return new BufferDALM(
+            blm.getUid(),
+            blm.getConnectionSchemeUid(),
+            blm.getMaxMessagesNumber(),
+            blm.getMaxMessageSize(),
+            blm.getMessagePrototype()
+        );
+    }
+}// BufferJsonDataNotFoundException.java
+package com.connection.processing.buffer.objects.json.exception;
+
+public class BufferJsonDataNotFoundException extends BaseBufferJsonDataException {
+    public BufferJsonDataNotFoundException(String dataUid) {
+        super(dataUid);
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: buffer JSON data not found";
+        return res;
+    }
+}// BufferJsonDataValidateException.java
+package com.connection.processing.buffer.objects.json.exception;
+
+public class BufferJsonDataValidateException extends BaseBufferJsonDataException {
+    String descriptionString;
+
+    public BufferJsonDataValidateException(String dataUid, String description) {
+        super(dataUid);
+        this.descriptionString = description;
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: buffer JSON data is invalid";
+        res += "\n" + descriptionString;
+        return res;
+    }
+}// BufferJsonDataAlreadyExistsException.java
+package com.connection.processing.buffer.objects.json.exception;
+
+public class BufferJsonDataAlreadyExistsException extends BaseBufferJsonDataException {
+    public BufferJsonDataAlreadyExistsException(String dataUid) {
+        super(dataUid);
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: buffer JSON data already exists";
+        return res;
+    }
+}// BaseBufferJsonDataException.java
+package com.connection.processing.buffer.objects.json.exception;
+
+public class BaseBufferJsonDataException extends RuntimeException {
+    private final String dataUid;
+
+    public BaseBufferJsonDataException(String dataUid) {
+        super("buffer_json_data");
+        this.dataUid = dataUid;
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "data: " + dataUid;
+        return res;
+    }
+}// BufferJsonDataDALM.java
+package com.connection.processing.buffer.objects.json.model;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class BufferJsonDataDALM {
+    
+    protected UUID uid;
+    
+    protected UUID bufferUid;
+    
+    protected String data;
+    
+    protected Instant createdAt;
+}// BufferJsonDataBLM.java
+package com.connection.processing.buffer.objects.json.model;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class BufferJsonDataBLM {
+    
+    protected UUID uid;
+    
+    protected UUID bufferUid;
+    
+    protected String data;
+    
+    protected Instant createdAt;
+}// BufferJsonDataDTO.java
+package com.connection.processing.buffer.objects.json.model;
+
+import java.time.Instant;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class BufferJsonDataDTO {
+    
+    protected String uid;
+    
+    protected String bufferUid;
+    
+    protected String data;
+    
+    protected Instant createdAt;
+}// BufferJsonDataConverter.java
+package com.connection.processing.buffer.objects.json.converter;
+
+import java.util.UUID;
+
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataBLM;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDTO;
+
+public class BufferJsonDataConverter {
+    public BufferJsonDataBLM toBLM(BufferJsonDataDALM dalm) {
+        return new BufferJsonDataBLM(
+            dalm.getUid(),
+            dalm.getBufferUid(),
+            dalm.getData(),
+            dalm.getCreatedAt()
+        );
+    }
+
+    public BufferJsonDataBLM toBLM(BufferJsonDataDTO dto) {
+        return new BufferJsonDataBLM(
+            UUID.fromString(dto.getUid()),
+            UUID.fromString(dto.getBufferUid()),
+            dto.getData(),
+            dto.getCreatedAt()
+        );
+    }
+
+    public BufferJsonDataDTO toDTO(BufferJsonDataBLM blm) {
+        return new BufferJsonDataDTO(
+            blm.getUid().toString(),
+            blm.getBufferUid().toString(),
+            blm.getData(),
+            blm.getCreatedAt()
+        );
+    }
+
+    public BufferJsonDataDALM toDALM(BufferJsonDataBLM blm) {
+        return new BufferJsonDataDALM(
+            blm.getUid(),
+            blm.getBufferUid(),
+            blm.getData(),
+            blm.getCreatedAt()
+        );
+    }
+}// BufferJsonDataValidator.java
+package com.connection.processing.buffer.objects.json.validator;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import com.connection.processing.buffer.objects.json.exception.BufferJsonDataValidateException;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataBLM;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDTO;
+
+public class BufferJsonDataValidator {
+    public void validate(BufferJsonDataDTO data) {
+        if (data == null) {
+            throw new BufferJsonDataValidateException("null", "Buffer JSON data is null");
+        }
+        try {
+            validateUid(data.getUid());
+            validateBufferUid(data.getBufferUid());
+            validateData(data.getData());
+            validateCreatedAt(data.getCreatedAt());
+        } catch (IllegalArgumentException e) {
+            throw new BufferJsonDataValidateException(data.getUid(), e.getMessage());
+        }
+    }
+
+    public void validate(BufferJsonDataBLM data) {
+        if (data == null) {
+            throw new BufferJsonDataValidateException("null", "Buffer JSON data is null");
+        }
+        try {
+            validateUid(data.getUid());
+            validateBufferUid(data.getBufferUid());
+            validateData(data.getData());
+            validateCreatedAt(data.getCreatedAt());
+        } catch (IllegalArgumentException e) {
+            throw new BufferJsonDataValidateException(data.getUid() != null ? data.getUid().toString() : "null", e.getMessage());
+        }
+    }
+
+    public void validate(BufferJsonDataDALM data) {
+        if (data == null) {
+            throw new BufferJsonDataValidateException("null", "Buffer JSON data is null");
+        }
+        try {
+            validateUid(data.getUid());
+            validateBufferUid(data.getBufferUid());
+            validateData(data.getData());
+            validateCreatedAt(data.getCreatedAt());
+        } catch (IllegalArgumentException e) {
+            throw new BufferJsonDataValidateException(data.getUid() != null ? data.getUid().toString() : "null", e.getMessage());
+        }
+    }
+
+    private void validateUid(UUID uid) {
+        if (uid == null) {
+            throw new IllegalArgumentException("UID cannot be null");
+        }
+    }
+
+    private void validateUid(String uid) {
+        if (uid == null || uid.trim().isEmpty()) {
+            throw new IllegalArgumentException("UID cannot be empty");
+        }
+        try {
+            UUID.fromString(uid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid UID format");
+        }
+    }
+
+    private void validateBufferUid(UUID bufferUid) {
+        if (bufferUid == null) {
+            throw new IllegalArgumentException("Buffer UID cannot be null");
+        }
+    }
+
+    private void validateBufferUid(String bufferUid) {
+        if (bufferUid == null || bufferUid.trim().isEmpty()) {
+            throw new IllegalArgumentException("Buffer UID cannot be empty");
+        }
+        try {
+            UUID.fromString(bufferUid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid Buffer UID format");
+        }
+    }
+
+    private void validateData(String data) {
+        if (data == null || data.trim().isEmpty()) {
+            throw new IllegalArgumentException("JSON data cannot be empty");
+        }
+        // Можно добавить дополнительную валидацию JSON формата
+        try {
+            // Простая проверка что это похоже на JSON
+            if (!data.trim().startsWith("{") || !data.trim().endsWith("}")) {
+                throw new IllegalArgumentException("Data must be a valid JSON object");
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid JSON format");
+        }
+    }
+
+    private void validateCreatedAt(Instant createdAt) {
+        if (createdAt == null) {
+            throw new IllegalArgumentException("Creation timestamp cannot be null");
+        }
+        
+        Instant now = Instant.now();
+        if (createdAt.isAfter(now)) {
+            throw new IllegalArgumentException("Creation timestamp cannot be in the future");
+        }
+    }
+}// BufferJsonDataRepository.java
+package com.connection.processing.buffer.objects.json.repository;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+import com.connection.processing.buffer.objects.json.exception.BufferJsonDataAlreadyExistsException;
+import com.connection.processing.buffer.objects.json.exception.BufferJsonDataNotFoundException;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
+
+public interface BufferJsonDataRepository {
+    /**
+     * Добавить новое JSON сообщение в буфер
+     */
+    void add(BufferJsonDataDALM data) throws BufferJsonDataAlreadyExistsException;
+
+    /**
+     * Удалить JSON сообщение
+     */
+    void delete(UUID uid) throws BufferJsonDataNotFoundException;
+
+    /**
+     * Найти JSON сообщение по UID
+     */
+    BufferJsonDataDALM findByUid(UUID uid) throws BufferJsonDataNotFoundException;
+
+    /**
+     * Найти все JSON сообщения буфера
+     */
+    List<BufferJsonDataDALM> findByBufferUid(UUID bufferUid);
+
+    /**
+     * Найти JSON сообщения буфера созданные после указанной даты
+     */
+    List<BufferJsonDataDALM> findByBufferUidAndCreatedAfter(UUID bufferUid, Instant createdAfter);
+
+    /**
+     * Найти JSON сообщения буфера созданные до указанной даты
+     */
+    List<BufferJsonDataDALM> findByBufferUidAndCreatedBefore(UUID bufferUid, Instant createdBefore);
+
+    /**
+     * Найти JSON сообщения буфера в указанном временном диапазоне
+     */
+    List<BufferJsonDataDALM> findByBufferUidAndCreatedBetween(UUID bufferUid, Instant startDate, Instant endDate);
+
+    /**
+     * Найти самое новое JSON сообщение буфера
+     */
+    BufferJsonDataDALM findNewestByBufferUid(UUID bufferUid) throws BufferJsonDataNotFoundException;
+
+    /**
+     * Найти самое старое JSON сообщение буфера
+     */
+    BufferJsonDataDALM findOldestByBufferUid(UUID bufferUid) throws BufferJsonDataNotFoundException;
+
+    /**
+     * Найти N самых новых JSON сообщений буфера
+     */
+    List<BufferJsonDataDALM> findNewestByBufferUid(UUID bufferUid, int limit);
+
+    /**
+     * Найти N самых старых JSON сообщений буфера
+     */
+    List<BufferJsonDataDALM> findOldestByBufferUid(UUID bufferUid, int limit);
+
+    /**
+     * Проверить существование JSON сообщения
+     */
+    boolean exists(UUID uid);
+
+    /**
+     * Удалить все JSON сообщения буфера
+     */
+    void deleteByBufferUid(UUID bufferUid);
+
+    /**
+     * Удалить старые JSON сообщения (до указанной даты)
+     */
+    void deleteOldData(Instant olderThan);
+
+    /**
+     * Получить количество сообщений в буфере
+     */
+    int countByBufferUid(UUID bufferUid);
+}// BufferJsonDataRepositorySQLImpl.java
+package com.connection.processing.buffer.objects.json.repository;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.processing.buffer.objects.json.exception.BufferJsonDataAlreadyExistsException;
+import com.connection.processing.buffer.objects.json.exception.BufferJsonDataNotFoundException;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public class BufferJsonDataRepositorySQLImpl implements BufferJsonDataRepository {
+
+    private static final String SELECT_DATA = "SELECT uid, buffer_uid, data, created_at";
+    private static final String FROM_DATA = " FROM processing.buffer_json_datas";
+
+    private static final String SELECT_DATA_BY_UID = SELECT_DATA + FROM_DATA + " WHERE uid = :uid";
+    private static final String SELECT_DATA_BY_BUFFER = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid";
+    private static final String SELECT_DATA_BY_BUFFER_AFTER = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid AND created_at > :created_after";
+    private static final String SELECT_DATA_BY_BUFFER_BEFORE = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid AND created_at < :created_before";
+    private static final String SELECT_DATA_BY_BUFFER_BETWEEN = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid AND created_at BETWEEN :start_date AND :end_date";
+
+    private static final String SELECT_NEWEST_BY_BUFFER = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid ORDER BY created_at DESC LIMIT 1";
+    private static final String SELECT_OLDEST_BY_BUFFER = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid ORDER BY created_at ASC LIMIT 1";
+    private static final String SELECT_NEWEST_N_BY_BUFFER = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid ORDER BY created_at DESC LIMIT :limit";
+    private static final String SELECT_OLDEST_N_BY_BUFFER = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid ORDER BY created_at ASC LIMIT :limit";
+
+    private static final String INSERT_DATA = "INSERT INTO processing.buffer_json_datas (uid, buffer_uid, data, created_at) " +
+            "VALUES (:uid, :buffer_uid, :data, :created_at)";
+
+    private static final String DELETE_DATA = "DELETE FROM processing.buffer_json_datas WHERE uid = :uid";
+    private static final String DELETE_DATA_BY_BUFFER = "DELETE FROM processing.buffer_json_datas WHERE buffer_uid = :buffer_uid";
+    private static final String DELETE_OLD_DATA = "DELETE FROM processing.buffer_json_datas WHERE created_at < :older_than";
+
+    private static final String COUNT_DATA_BY_BUFFER = "SELECT COUNT(*) FROM processing.buffer_json_datas WHERE buffer_uid = :buffer_uid";
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private final RowMapper<BufferJsonDataDALM> dataRowMapper = (rs, rowNum) -> {
+        BufferJsonDataDALM data = new BufferJsonDataDALM();
+        data.setUid(UUID.fromString(rs.getString("uid")));
+        data.setBufferUid(UUID.fromString(rs.getString("buffer_uid")));
+        data.setData(rs.getString("data"));
+        data.setCreatedAt(rs.getTimestamp("created_at").toInstant());
+        return data;
+    };
+
+    public BufferJsonDataRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    @Transactional
+    public void add(BufferJsonDataDALM data) throws BufferJsonDataAlreadyExistsException {
+        if (exists(data.getUid())) {
+            throw new BufferJsonDataAlreadyExistsException("Buffer JSON data with UID " + data.getUid() + " already exists");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", data.getUid());
+        params.addValue("buffer_uid", data.getBufferUid());
+        params.addValue("data", data.getData());
+        params.addValue("created_at", data.getCreatedAt());
+
+        jdbcTemplate.update(INSERT_DATA, params);
+    }
+
+    @Override
+    @Transactional
+    public void delete(UUID uid) throws BufferJsonDataNotFoundException {
+        if (!exists(uid)) {
+            throw new BufferJsonDataNotFoundException("Buffer JSON data with UID " + uid + " not found");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+
+        jdbcTemplate.update(DELETE_DATA, params);
+    }
+
+    @Override
+    @Transactional
+    public void deleteByBufferUid(UUID bufferUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+
+        jdbcTemplate.update(DELETE_DATA_BY_BUFFER, params);
+    }
+
+    @Override
+    @Transactional
+    public void deleteOldData(Instant olderThan) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("older_than", olderThan);
+
+        jdbcTemplate.update(DELETE_OLD_DATA, params);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BufferJsonDataDALM findByUid(UUID uid) throws BufferJsonDataNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_DATA_BY_UID, params, dataRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new BufferJsonDataNotFoundException("Buffer JSON data with UID " + uid + " not found");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BufferJsonDataDALM> findByBufferUid(UUID bufferUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        return jdbcTemplate.query(SELECT_DATA_BY_BUFFER, params, dataRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BufferJsonDataDALM> findByBufferUidAndCreatedAfter(UUID bufferUid, Instant createdAfter) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        params.addValue("created_after", createdAfter);
+        return jdbcTemplate.query(SELECT_DATA_BY_BUFFER_AFTER, params, dataRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BufferJsonDataDALM> findByBufferUidAndCreatedBefore(UUID bufferUid, Instant createdBefore) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        params.addValue("created_before", createdBefore);
+        return jdbcTemplate.query(SELECT_DATA_BY_BUFFER_BEFORE, params, dataRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BufferJsonDataDALM> findByBufferUidAndCreatedBetween(UUID bufferUid, Instant startDate, Instant endDate) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        params.addValue("start_date", startDate);
+        params.addValue("end_date", endDate);
+        return jdbcTemplate.query(SELECT_DATA_BY_BUFFER_BETWEEN, params, dataRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BufferJsonDataDALM findNewestByBufferUid(UUID bufferUid) throws BufferJsonDataNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_NEWEST_BY_BUFFER, params, dataRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new BufferJsonDataNotFoundException("No JSON data found for buffer UID " + bufferUid);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BufferJsonDataDALM findOldestByBufferUid(UUID bufferUid) throws BufferJsonDataNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_OLDEST_BY_BUFFER, params, dataRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new BufferJsonDataNotFoundException("No JSON data found for buffer UID " + bufferUid);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BufferJsonDataDALM> findNewestByBufferUid(UUID bufferUid, int limit) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        params.addValue("limit", limit);
+        return jdbcTemplate.query(SELECT_NEWEST_N_BY_BUFFER, params, dataRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BufferJsonDataDALM> findOldestByBufferUid(UUID bufferUid, int limit) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        params.addValue("limit", limit);
+        return jdbcTemplate.query(SELECT_OLDEST_N_BY_BUFFER, params, dataRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean exists(UUID uid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            jdbcTemplate.queryForObject(SELECT_DATA_BY_UID, params, dataRowMapper);
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countByBufferUid(UUID bufferUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        return jdbcTemplate.queryForObject(COUNT_DATA_BY_BUFFER, params, Integer.class);
+    }
+}// BufferValidator.java
+package com.connection.processing.buffer.validator;
+
+import java.util.UUID;
+
+import com.connection.processing.buffer.exception.BufferValidateException;
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferDTO;
+
+public class BufferValidator {
+    public void validate(BufferDTO buffer) {
+        if (buffer == null) {
+            throw new BufferValidateException("null", "Buffer is null");
+        }
+        try {
+            validateUid(buffer.getUid());
+            validateConnectionSchemeUid(buffer.getConnectionSchemeUid());
+            validateMaxMessagesNumber(buffer.getMaxMessagesNumber());
+            validateMaxMessageSize(buffer.getMaxMessageSize());
+            validateMessagePrototype(buffer.getMessagePrototype());
+        } catch (IllegalArgumentException e) {
+            throw new BufferValidateException(buffer.getUid(), e.getMessage());
+        }
+    }
+
+    public void validate(BufferBLM buffer) {
+        if (buffer == null) {
+            throw new BufferValidateException("null", "Buffer is null");
+        }
+        try {
+            validateUid(buffer.getUid());
+            validateConnectionSchemeUid(buffer.getConnectionSchemeUid());
+            validateMaxMessagesNumber(buffer.getMaxMessagesNumber());
+            validateMaxMessageSize(buffer.getMaxMessageSize());
+            validateMessagePrototype(buffer.getMessagePrototype());
+        } catch (IllegalArgumentException e) {
+            throw new BufferValidateException(buffer.getUid() != null ? buffer.getUid().toString() : "null", e.getMessage());
+        }
+    }
+
+    public void validate(BufferDALM buffer) {
+        if (buffer == null) {
+            throw new BufferValidateException("null", "Buffer is null");
+        }
+        try {
+            validateUid(buffer.getUid());
+            validateConnectionSchemeUid(buffer.getConnectionSchemeUid());
+            validateMaxMessagesNumber(buffer.getMaxMessagesNumber());
+            validateMaxMessageSize(buffer.getMaxMessageSize());
+            validateMessagePrototype(buffer.getMessagePrototype());
+        } catch (IllegalArgumentException e) {
+            throw new BufferValidateException(buffer.getUid() != null ? buffer.getUid().toString() : "null", e.getMessage());
+        }
+    }
+
+    private void validateUid(UUID uid) {
+        if (uid == null) {
+            throw new IllegalArgumentException("UID cannot be null");
+        }
+    }
+
+    private void validateUid(String uid) {
+        if (uid == null || uid.trim().isEmpty()) {
+            throw new IllegalArgumentException("UID cannot be empty");
+        }
+        try {
+            UUID.fromString(uid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid UID format");
+        }
+    }
+
+    private void validateConnectionSchemeUid(UUID connectionSchemeUid) {
+        if (connectionSchemeUid == null) {
+            throw new IllegalArgumentException("Connection Scheme UID cannot be null");
+        }
+    }
+
+    private void validateConnectionSchemeUid(String connectionSchemeUid) {
+        if (connectionSchemeUid == null || connectionSchemeUid.trim().isEmpty()) {
+            throw new IllegalArgumentException("Connection Scheme UID cannot be empty");
+        }
+        try {
+            UUID.fromString(connectionSchemeUid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid Connection Scheme UID format");
+        }
+    }
+
+    private void validateMaxMessagesNumber(Integer maxMessagesNumber) {
+        if (maxMessagesNumber == null) {
+            throw new IllegalArgumentException("Max messages number cannot be null");
+        }
+        if (maxMessagesNumber <= 0) {
+            throw new IllegalArgumentException("Max messages number must be greater than 0");
+        }
+    }
+
+    private void validateMaxMessageSize(Integer maxMessageSize) {
+        if (maxMessageSize == null) {
+            throw new IllegalArgumentException("Max message size cannot be null");
+        }
+        if (maxMessageSize <= 0) {
+            throw new IllegalArgumentException("Max message size must be greater than 0");
+        }
+    }
+
+    private void validateMessagePrototype(String messagePrototype) {
+        if (messagePrototype == null || messagePrototype.trim().isEmpty()) {
+            throw new IllegalArgumentException("Message prototype cannot be empty");
+        }
+    }
+}// BaseBufferDeviceException.java
+package com.connection.processing.buffer.bufferdevice.exception;
+
+public class BaseBufferDeviceException extends RuntimeException {
+    private final String bufferUid;
+    private final String deviceUid;
+
+    public BaseBufferDeviceException(String bufferUid, String deviceUid) {
+        super("buffer_device");
+        this.bufferUid = bufferUid;
+        this.deviceUid = deviceUid;
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "buffer: " + bufferUid;
+        res += "\n" + "device: " + deviceUid;
+        return res;
+    }
+}// BufferDeviceNotFoundException.java
+package com.connection.processing.buffer.bufferdevice.exception;
+
+public class BufferDeviceNotFoundException extends BaseBufferDeviceException {
+    public BufferDeviceNotFoundException(String bufferUid, String deviceUid) {
+        super(bufferUid, deviceUid);
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: buffer-device relationship not found";
+        return res;
+    }
+}// BufferDeviceAlreadyExistsException.java
+package com.connection.processing.buffer.bufferdevice.exception;
+
+public class BufferDeviceAlreadyExistsException extends BaseBufferDeviceException {
+    public BufferDeviceAlreadyExistsException(String bufferUid, String deviceUid) {
+        super(bufferUid, deviceUid);
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: buffer-device relationship already exists";
+        return res;
+    }
+}// BufferDeviceValidateException.java
+package com.connection.processing.buffer.bufferdevice.exception;
+
+public class BufferDeviceValidateException extends BaseBufferDeviceException {
+    String descriptionString;
+
+    public BufferDeviceValidateException(String bufferUid, String deviceUid, String description) {
+        super(bufferUid, deviceUid);
+        this.descriptionString = description;
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: buffer-device relationship is invalid";
+        res += "\n" + descriptionString;
+        return res;
+    }
+}// BufferDeviceDALM.java
+package com.connection.processing.buffer.bufferdevice.model;
+
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class BufferDeviceDALM {
+    
+    protected UUID bufferUid;
+    
+    protected UUID deviceUid;
+}// BufferDeviceBLM.java
+package com.connection.processing.buffer.bufferdevice.model;
+
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class BufferDeviceBLM {
+    
+    protected UUID bufferUid;
+    
+    protected UUID deviceUid;
+}// BufferDeviceDTO.java
+package com.connection.processing.buffer.bufferdevice.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class BufferDeviceDTO {
+    
+    protected String bufferUid;
+    
+    protected String deviceUid;
+}// BufferDeviceConverter.java
+package com.connection.processing.buffer.bufferdevice.converter;
+
+import java.util.UUID;
+
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceBLM;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDALM;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDTO;
+
+public class BufferDeviceConverter {
+    public BufferDeviceBLM toBLM(BufferDeviceDALM dalm) {
+        return new BufferDeviceBLM(
+            dalm.getBufferUid(),
+            dalm.getDeviceUid()
+        );
+    }
+
+    public BufferDeviceBLM toBLM(BufferDeviceDTO dto) {
+        return new BufferDeviceBLM(
+            UUID.fromString(dto.getBufferUid()),
+            UUID.fromString(dto.getDeviceUid())
+        );
+    }
+
+    public BufferDeviceDTO toDTO(BufferDeviceBLM blm) {
+        return new BufferDeviceDTO(
+            blm.getBufferUid().toString(),
+            blm.getDeviceUid().toString()
+        );
+    }
+
+    public BufferDeviceDALM toDALM(BufferDeviceBLM blm) {
+        return new BufferDeviceDALM(
+            blm.getBufferUid(),
+            blm.getDeviceUid()
+        );
+    }
+}// BufferDeviceValidator.java
+package com.connection.processing.buffer.bufferdevice.validator;
+
+import java.util.UUID;
+
+import com.connection.processing.buffer.bufferdevice.exception.BufferDeviceValidateException;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceBLM;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDALM;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDTO;
+
+public class BufferDeviceValidator {
+    public void validate(BufferDeviceDTO bufferDevice) {
+        if (bufferDevice == null) {
+            throw new BufferDeviceValidateException("null", "null", "BufferDevice is null");
+        }
+        try {
+            validateBufferUid(bufferDevice.getBufferUid());
+            validateDeviceUid(bufferDevice.getDeviceUid());
+        } catch (IllegalArgumentException e) {
+            throw new BufferDeviceValidateException(bufferDevice.getBufferUid(), bufferDevice.getDeviceUid(),
+                    e.getMessage());
+        }
+    }
+
+    public void validate(BufferDeviceBLM bufferDevice) {
+        if (bufferDevice == null) {
+            throw new BufferDeviceValidateException("null", "null", "BufferDevice is null");
+        }
+        try {
+            validateBufferUid(bufferDevice.getBufferUid());
+            validateDeviceUid(bufferDevice.getDeviceUid());
+        } catch (IllegalArgumentException e) {
+            throw new BufferDeviceValidateException(
+                    bufferDevice.getBufferUid() != null ? bufferDevice.getBufferUid().toString() : "null",
+                    bufferDevice.getDeviceUid() != null ? bufferDevice.getDeviceUid().toString() : "null",
+                    e.getMessage());
+        }
+    }
+
+    public void validate(BufferDeviceDALM bufferDevice) {
+        if (bufferDevice == null) {
+            throw new BufferDeviceValidateException("null", "null", "BufferDevice is null");
+        }
+        try {
+            validateBufferUid(bufferDevice.getBufferUid());
+            validateDeviceUid(bufferDevice.getDeviceUid());
+        } catch (IllegalArgumentException e) {
+            throw new BufferDeviceValidateException(
+                    bufferDevice.getBufferUid() != null ? bufferDevice.getBufferUid().toString() : "null",
+                    bufferDevice.getDeviceUid() != null ? bufferDevice.getDeviceUid().toString() : "null", e.getMessage());
+        }
+    }
+
+    private void validateBufferUid(UUID bufferUid) {
+        if (bufferUid == null) {
+            throw new IllegalArgumentException("Buffer UID cannot be null");
+        }
+    }
+
+    private void validateBufferUid(String bufferUid) {
+        if (bufferUid == null || bufferUid.trim().isEmpty()) {
+            throw new IllegalArgumentException("Buffer UID cannot be empty");
+        }
+        try {
+            UUID.fromString(bufferUid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid Buffer UID format");
+        }
+    }
+
+    private void validateDeviceUid(UUID deviceUid) {
+        if (deviceUid == null) {
+            throw new IllegalArgumentException("Device UID cannot be null");
+        }
+    }
+
+    private void validateDeviceUid(String deviceUid) {
+        if (deviceUid == null || deviceUid.trim().isEmpty()) {
+            throw new IllegalArgumentException("Device UID cannot be empty");
+        }
+        try {
+            UUID.fromString(deviceUid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid Device UID format");
+        }
+    }
+}// BufferDeviceRepositorySQLImpl.java
+package com.connection.processing.buffer.bufferdevice.repository;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.processing.buffer.bufferdevice.exception.BufferDeviceAlreadyExistsException;
+import com.connection.processing.buffer.bufferdevice.exception.BufferDeviceNotFoundException;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDALM;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Repository
+public class BufferDeviceRepositorySQLImpl implements BufferDeviceRepository {
+
+    private static final String SELECT_DEVICE_UIDS = "SELECT device_uid";
+    private static final String SELECT_BUFFER_UIDS = "SELECT buffer_uid";
+    private static final String FROM_BUFFER_DEVICES = " FROM processing.buffer_devices";
+
+    private static final String SELECT_DEVICES_BY_BUFFER = SELECT_DEVICE_UIDS + FROM_BUFFER_DEVICES + " WHERE buffer_uid = :buffer_uid";
+    private static final String SELECT_BUFFERS_BY_DEVICE = SELECT_BUFFER_UIDS + FROM_BUFFER_DEVICES + " WHERE device_uid = :device_uid";
+    private static final String SELECT_RELATIONSHIP = "SELECT buffer_uid, device_uid" + FROM_BUFFER_DEVICES + " WHERE buffer_uid = :buffer_uid AND device_uid = :device_uid";
+
+    private static final String INSERT_RELATIONSHIP = "INSERT INTO processing.buffer_devices (buffer_uid, device_uid) " +
+            "VALUES (:buffer_uid, :device_uid)";
+
+    private static final String DELETE_RELATIONSHIP = "DELETE FROM processing.buffer_devices WHERE buffer_uid = :buffer_uid AND device_uid = :device_uid";
+    private static final String DELETE_ALL_BY_BUFFER = "DELETE FROM processing.buffer_devices WHERE buffer_uid = :buffer_uid";
+    private static final String DELETE_ALL_BY_DEVICE = "DELETE FROM processing.buffer_devices WHERE device_uid = :device_uid";
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private final RowMapper<UUID> uuidRowMapper = (rs, rowNum) -> UUID.fromString(rs.getString(1));
+
+    private final RowMapper<BufferDeviceDALM> bufferDeviceRowMapper = (rs, rowNum) -> {
+        BufferDeviceDALM bufferDevice = new BufferDeviceDALM();
+        bufferDevice.setBufferUid(UUID.fromString(rs.getString("buffer_uid")));
+        bufferDevice.setDeviceUid(UUID.fromString(rs.getString("device_uid")));
+        return bufferDevice;
+    };
+
+    public BufferDeviceRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    @Transactional
+    public void add(BufferDeviceDALM bufferDevice) throws BufferDeviceAlreadyExistsException {
+        if (exists(bufferDevice.getBufferUid(), bufferDevice.getDeviceUid())) {
+            throw new BufferDeviceAlreadyExistsException(
+                bufferDevice.getBufferUid().toString(),
+                bufferDevice.getDeviceUid().toString()
+            );
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferDevice.getBufferUid());
+        params.addValue("device_uid", bufferDevice.getDeviceUid());
+
+        jdbcTemplate.update(INSERT_RELATIONSHIP, params);
+    }
+
+    @Override
+    @Transactional
+    public void delete(BufferDeviceDALM bufferDevice) throws BufferDeviceNotFoundException {
+        if (!exists(bufferDevice.getBufferUid(), bufferDevice.getDeviceUid())) {
+            throw new BufferDeviceNotFoundException(
+                bufferDevice.getBufferUid().toString(),
+                bufferDevice.getDeviceUid().toString()
+            );
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferDevice.getBufferUid());
+        params.addValue("device_uid", bufferDevice.getDeviceUid());
+
+        jdbcTemplate.update(DELETE_RELATIONSHIP, params);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllByBufferUid(UUID bufferUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+
+        jdbcTemplate.update(DELETE_ALL_BY_BUFFER, params);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllByDeviceUid(UUID deviceUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_uid", deviceUid);
+
+        jdbcTemplate.update(DELETE_ALL_BY_DEVICE, params);
+    }
+
+    @Override
+    @Transactional
+    public void addDevicesToBuffer(UUID bufferUid, List<UUID> deviceUids) throws BufferDeviceAlreadyExistsException {
+        for (UUID deviceUid : deviceUids) {
+            if (exists(bufferUid, deviceUid)) {
+                throw new BufferDeviceAlreadyExistsException(bufferUid.toString(), deviceUid.toString());
+            }
+        }
+
+        // Пакетная вставка
+        List<MapSqlParameterSource> paramsList = deviceUids.stream()
+            .map(deviceUid -> {
+                MapSqlParameterSource params = new MapSqlParameterSource();
+                params.addValue("buffer_uid", bufferUid);
+                params.addValue("device_uid", deviceUid);
+                return params;
+            })
+            .collect(Collectors.toList());
+
+        jdbcTemplate.batchUpdate(INSERT_RELATIONSHIP, paramsList.toArray(new MapSqlParameterSource[0]));
+    }
+
+    @Override
+    @Transactional
+    public void addBuffersToDevice(UUID deviceUid, List<UUID> bufferUids) throws BufferDeviceAlreadyExistsException {
+        for (UUID bufferUid : bufferUids) {
+            if (exists(bufferUid, deviceUid)) {
+                throw new BufferDeviceAlreadyExistsException(bufferUid.toString(), deviceUid.toString());
+            }
+        }
+
+        // Пакетная вставка
+        List<MapSqlParameterSource> paramsList = bufferUids.stream()
+            .map(bufferUid -> {
+                MapSqlParameterSource params = new MapSqlParameterSource();
+                params.addValue("buffer_uid", bufferUid);
+                params.addValue("device_uid", deviceUid);
+                return params;
+            })
+            .collect(Collectors.toList());
+
+        jdbcTemplate.batchUpdate(INSERT_RELATIONSHIP, paramsList.toArray(new MapSqlParameterSource[0]));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean exists(UUID bufferUid, UUID deviceUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        params.addValue("device_uid", deviceUid);
+        try {
+            jdbcTemplate.queryForObject(SELECT_RELATIONSHIP, params, bufferDeviceRowMapper);
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UUID> findDeviceUidsByBufferUid(UUID bufferUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        return jdbcTemplate.query(SELECT_DEVICES_BY_BUFFER, params, uuidRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UUID> findBufferUidsByDeviceUid(UUID deviceUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_uid", deviceUid);
+        return jdbcTemplate.query(SELECT_BUFFERS_BY_DEVICE, params, uuidRowMapper);
+    }
+}// BufferDeviceRepository.java
+package com.connection.processing.buffer.bufferdevice.repository;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.connection.processing.buffer.bufferdevice.exception.BufferDeviceAlreadyExistsException;
+import com.connection.processing.buffer.bufferdevice.exception.BufferDeviceNotFoundException;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDALM;
+
+public interface BufferDeviceRepository {
+    /**
+     * Добавить связь буфер-устройство
+     */
+    void add(BufferDeviceDALM bufferDevice) throws BufferDeviceAlreadyExistsException;
+
+    /**
+     * Удалить связь буфер-устройство
+     */
+    void delete(BufferDeviceDALM bufferDevice) throws BufferDeviceNotFoundException;
+
+    /**
+     * Проверить существование связи буфер-устройство
+     */
+    boolean exists(UUID bufferUid, UUID deviceUid);
+
+    /**
+     * Найти все устройства связанные с буфером
+     */
+    List<UUID> findDeviceUidsByBufferUid(UUID bufferUid);
+
+    /**
+     * Найти все буферы связанные с устройством
+     */
+    List<UUID> findBufferUidsByDeviceUid(UUID deviceUid);
+
+    /**
+     * Удалить все связи для буфера
+     */
+    void deleteAllByBufferUid(UUID bufferUid);
+
+    /**
+     * Удалить все связи для устройства
+     */
+    void deleteAllByDeviceUid(UUID deviceUid);
+
+    /**
+     * Добавить несколько связей для буфера
+     */
+    void addDevicesToBuffer(UUID bufferUid, List<UUID> deviceUids) throws BufferDeviceAlreadyExistsException;
+
+    /**
+     * Добавить несколько связей для устройства
+     */
+    void addBuffersToDevice(UUID deviceUid, List<UUID> bufferUids) throws BufferDeviceAlreadyExistsException;
+}// BufferRepositorySQLImpl.java
+package com.connection.processing.buffer.repository;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
+import com.connection.processing.buffer.exception.BufferNotFoundException;
+import com.connection.processing.buffer.model.BufferDALM;
+
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public class BufferRepositorySQLImpl implements BufferRepository {
+
+    private static final String SELECT_BUFFER = "SELECT uid, connection_scheme_uid, max_messages_number, max_message_size, message_prototype";
+    private static final String FROM_BUFFER = " FROM processing.buffer";
+
+    private static final String SELECT_BUFFER_BY_UID = SELECT_BUFFER + FROM_BUFFER + " WHERE uid = :uid";
+    private static final String SELECT_BUFFERS_BY_SCHEME = SELECT_BUFFER + FROM_BUFFER + " WHERE connection_scheme_uid = :connection_scheme_uid";
+
+    private static final String INSERT_BUFFER = "INSERT INTO processing.buffer (uid, connection_scheme_uid, max_messages_number, max_message_size, message_prototype) " +
+            "VALUES (:uid, :connection_scheme_uid, :max_messages_number, :max_message_size, :message_prototype)";
+
+    private static final String UPDATE_BUFFER = "UPDATE processing.buffer SET max_messages_number = :max_messages_number, " +
+            "max_message_size = :max_message_size, message_prototype = :message_prototype " +
+            "WHERE uid = :uid";
+
+    private static final String DELETE_BUFFER = "DELETE FROM processing.buffer WHERE uid = :uid";
+    private static final String DELETE_BUFFERS_BY_SCHEME = "DELETE FROM processing.buffer WHERE connection_scheme_uid = :connection_scheme_uid";
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private final RowMapper<BufferDALM> bufferRowMapper = (rs, rowNum) -> {
+        BufferDALM buffer = new BufferDALM();
+        buffer.setUid(UUID.fromString(rs.getString("uid")));
+        buffer.setConnectionSchemeUid(UUID.fromString(rs.getString("connection_scheme_uid")));
+        buffer.setMaxMessagesNumber(rs.getInt("max_messages_number"));
+        buffer.setMaxMessageSize(rs.getInt("max_message_size"));
+        buffer.setMessagePrototype(rs.getString("message_prototype"));
+        return buffer;
+    };
+
+    public BufferRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    @Transactional
+    public void add(BufferDALM buffer) throws BufferAlreadyExistsException {
+        if (exists(buffer.getUid())) {
+            throw new BufferAlreadyExistsException("Buffer with UID " + buffer.getUid() + " already exists");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", buffer.getUid());
+        params.addValue("connection_scheme_uid", buffer.getConnectionSchemeUid());
+        params.addValue("max_messages_number", buffer.getMaxMessagesNumber());
+        params.addValue("max_message_size", buffer.getMaxMessageSize());
+        params.addValue("message_prototype", buffer.getMessagePrototype());
+
+        jdbcTemplate.update(INSERT_BUFFER, params);
+    }
+
+    @Override
+    @Transactional
+    public void update(BufferDALM buffer) throws BufferNotFoundException {
+        if (!exists(buffer.getUid())) {
+            throw new BufferNotFoundException("Buffer with UID " + buffer.getUid() + " not found");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", buffer.getUid());
+        params.addValue("max_messages_number", buffer.getMaxMessagesNumber());
+        params.addValue("max_message_size", buffer.getMaxMessageSize());
+        params.addValue("message_prototype", buffer.getMessagePrototype());
+
+        jdbcTemplate.update(UPDATE_BUFFER, params);
+    }
+
+    @Override
+    @Transactional
+    public void delete(UUID uid) throws BufferNotFoundException {
+        if (!exists(uid)) {
+            throw new BufferNotFoundException("Buffer with UID " + uid + " not found");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+
+        jdbcTemplate.update(DELETE_BUFFER, params);
+    }
+
+    @Override
+    @Transactional
+    public void deleteByConnectionSchemeUid(UUID connectionSchemeUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("connection_scheme_uid", connectionSchemeUid);
+
+        jdbcTemplate.update(DELETE_BUFFERS_BY_SCHEME, params);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BufferDALM findByUid(UUID uid) throws BufferNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_BUFFER_BY_UID, params, bufferRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new BufferNotFoundException("Buffer with UID " + uid + " not found");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BufferDALM> findByConnectionSchemeUid(UUID connectionSchemeUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("connection_scheme_uid", connectionSchemeUid);
+        return jdbcTemplate.query(SELECT_BUFFERS_BY_SCHEME, params, bufferRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean exists(UUID uid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            jdbcTemplate.queryForObject(SELECT_BUFFER_BY_UID, params, bufferRowMapper);
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+}// BufferRepository.java
+package com.connection.processing.buffer.repository;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
+import com.connection.processing.buffer.exception.BufferNotFoundException;
+import com.connection.processing.buffer.model.BufferDALM;
+
+public interface BufferRepository {
+    /**
+     * Добавить новый буфер
+     */
+    void add(BufferDALM buffer) throws BufferAlreadyExistsException;
+
+    /**
+     * Обновить буфер
+     */
+    void update(BufferDALM buffer) throws BufferNotFoundException;
+
+    /**
+     * Удалить буфер
+     */
+    void delete(UUID uid) throws BufferNotFoundException;
+
+    /**
+     * Найти буфер по UID
+     */
+    BufferDALM findByUid(UUID uid) throws BufferNotFoundException;
+
+    /**
+     * Найти все буферы схемы соединения
+     */
+    List<BufferDALM> findByConnectionSchemeUid(UUID connectionSchemeUid);
+
+    /**
+     * Проверить существование буфера
+     */
+    boolean exists(UUID uid);
+
+    /**
+     * Удалить все буферы схемы соединения
+     */
+    void deleteByConnectionSchemeUid(UUID connectionSchemeUid);
+}package com.connection.processing.buffer.exception;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Buffer Exception Tests")
+class BufferExceptionTest {
+
+    @Test
+    @DisplayName("BaseBufferException toString format")
+    void testBaseBufferExceptionToString() {
+        String bufferUid = "test-uid-123";
+        BaseBufferException exception = new BaseBufferException(bufferUid);
+        String result = exception.toString();
+        assertThat(result).contains(bufferUid);
+    }
+
+    @Test
+    @DisplayName("BufferValidateException toString format")
+    void testBufferValidateExceptionToString() {
+        String bufferUid = "test-uid-456";
+        String description = "Validation failed";
+        BufferValidateException exception = new BufferValidateException(bufferUid, description);
+        String result = exception.toString();
+        assertThat(result).contains(bufferUid);
+    }
+
+    @Test
+    @DisplayName("BufferAlreadyExistsException toString format")
+    void testBufferAlreadyExistsExceptionToString() {
+        String bufferUid = "test-uid-789";
+        BufferAlreadyExistsException exception = new BufferAlreadyExistsException(bufferUid);
+        String result = exception.toString();
+        assertThat(result).contains(bufferUid);
+    }
+
+    @Test
+    @DisplayName("BufferNotFoundException toString format")
+    void testBufferNotFoundExceptionToString() {
+        String bufferUid = "test-uid-012";
+        BufferNotFoundException exception = new BufferNotFoundException(bufferUid);
+        String result = exception.toString();
+        assertThat(result).contains(bufferUid);
+    }
+
+    @Test
+    @DisplayName("Exception inheritance hierarchy")
+    void testExceptionInheritance() {
+        BufferValidateException validateException = new BufferValidateException("uid", "desc");
+        BufferAlreadyExistsException existsException = new BufferAlreadyExistsException("uid");
+        BufferNotFoundException notFoundException = new BufferNotFoundException("uid");
+
+        assertThat(validateException).isInstanceOf(BaseBufferException.class);
+        assertThat(existsException).isInstanceOf(BaseBufferException.class);
+        assertThat(notFoundException).isInstanceOf(BaseBufferException.class);
+        assertThat(validateException).isInstanceOf(RuntimeException.class);
+    }
+}package com.connection.processing.buffer.converter;
+
+import static com.connection.processing.buffer.mother.BufferObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Buffer Converter Tests")
+class BufferConverterTest {
+
+    private BufferConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        converter = new BufferConverter();
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        BufferDALM dalM = createValidBufferDALM();
+        BufferBLM result = converter.toBLM(dalM);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dalM.getUid());
+        assertThat(result.getConnectionSchemeUid()).isEqualTo(dalM.getConnectionSchemeUid());
+        assertThat(result.getMaxMessagesNumber()).isEqualTo(dalM.getMaxMessagesNumber());
+        assertThat(result.getMaxMessageSize()).isEqualTo(dalM.getMaxMessageSize());
+        assertThat(result.getMessagePrototype()).isEqualTo(dalM.getMessagePrototype());
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        BufferDTO dto = createValidBufferDTO();
+        BufferBLM result = converter.toBLM(dto);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid().toString()).isEqualTo(dto.getUid());
+        assertThat(result.getConnectionSchemeUid().toString()).isEqualTo(dto.getConnectionSchemeUid());
+        assertThat(result.getMaxMessagesNumber()).isEqualTo(dto.getMaxMessagesNumber());
+        assertThat(result.getMaxMessageSize()).isEqualTo(dto.getMaxMessageSize());
+        assertThat(result.getMessagePrototype()).isEqualTo(dto.getMessagePrototype());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        BufferBLM blm = createValidBufferBLM();
+        BufferDTO result = converter.toDTO(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid().toString());
+        assertThat(result.getConnectionSchemeUid()).isEqualTo(blm.getConnectionSchemeUid().toString());
+        assertThat(result.getMaxMessagesNumber()).isEqualTo(blm.getMaxMessagesNumber());
+        assertThat(result.getMaxMessageSize()).isEqualTo(blm.getMaxMessageSize());
+        assertThat(result.getMessagePrototype()).isEqualTo(blm.getMessagePrototype());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        BufferBLM blm = createValidBufferBLM();
+        BufferDALM result = converter.toDALM(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getConnectionSchemeUid()).isEqualTo(blm.getConnectionSchemeUid());
+        assertThat(result.getMaxMessagesNumber()).isEqualTo(blm.getMaxMessagesNumber());
+        assertThat(result.getMaxMessageSize()).isEqualTo(blm.getMaxMessageSize());
+        assertThat(result.getMessagePrototype()).isEqualTo(blm.getMessagePrototype());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
+    void testRoundTripDTOToBLMToDTO() {
+        BufferDTO original = createValidBufferDTO();
+        BufferBLM blm = converter.toBLM(original);
+        BufferDTO result = converter.toDTO(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getConnectionSchemeUid()).isEqualTo(original.getConnectionSchemeUid());
+        assertThat(result.getMaxMessagesNumber()).isEqualTo(original.getMaxMessagesNumber());
+        assertThat(result.getMaxMessageSize()).isEqualTo(original.getMaxMessageSize());
+        assertThat(result.getMessagePrototype()).isEqualTo(original.getMessagePrototype());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
+    void testRoundTripDALMToBLMToDALM() {
+        BufferDALM original = createValidBufferDALM();
+        BufferBLM blm = converter.toBLM(original);
+        BufferDALM result = converter.toDALM(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getConnectionSchemeUid()).isEqualTo(original.getConnectionSchemeUid());
+        assertThat(result.getMaxMessagesNumber()).isEqualTo(original.getMaxMessagesNumber());
+        assertThat(result.getMaxMessageSize()).isEqualTo(original.getMaxMessageSize());
+        assertThat(result.getMessagePrototype()).isEqualTo(original.getMessagePrototype());
+    }
+}package com.connection.processing.buffer.objects.json.exception;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Buffer Json Data Exception Tests")
+class BufferJsonDataExceptionTest {
+
+    @Test
+    @DisplayName("BaseBufferJsonDataException toString format")
+    void testBaseBufferJsonDataExceptionToString() {
+        String dataUid = "test-uid-123";
+        BaseBufferJsonDataException exception = new BaseBufferJsonDataException(dataUid);
+        String result = exception.toString();
+        assertThat(result).contains(dataUid);
+    }
+
+    @Test
+    @DisplayName("BufferJsonDataValidateException toString format")
+    void testBufferJsonDataValidateExceptionToString() {
+        String dataUid = "test-uid-456";
+        String description = "Validation failed";
+        BufferJsonDataValidateException exception = new BufferJsonDataValidateException(dataUid, description);
+        String result = exception.toString();
+        assertThat(result).contains(dataUid);
+    }
+
+    @Test
+    @DisplayName("BufferJsonDataAlreadyExistsException toString format")
+    void testBufferJsonDataAlreadyExistsExceptionToString() {
+        String dataUid = "test-uid-789";
+        BufferJsonDataAlreadyExistsException exception = new BufferJsonDataAlreadyExistsException(dataUid);
+        String result = exception.toString();
+        assertThat(result).contains(dataUid);
+    }
+
+    @Test
+    @DisplayName("BufferJsonDataNotFoundException toString format")
+    void testBufferJsonDataNotFoundExceptionToString() {
+        String dataUid = "test-uid-012";
+        BufferJsonDataNotFoundException exception = new BufferJsonDataNotFoundException(dataUid);
+        String result = exception.toString();
+        assertThat(result).contains(dataUid);
+    }
+
+    @Test
+    @DisplayName("Exception inheritance hierarchy")
+    void testExceptionInheritance() {
+        BufferJsonDataValidateException validateException = new BufferJsonDataValidateException("uid", "desc");
+        BufferJsonDataAlreadyExistsException existsException = new BufferJsonDataAlreadyExistsException("uid");
+        BufferJsonDataNotFoundException notFoundException = new BufferJsonDataNotFoundException("uid");
+
+        assertThat(validateException).isInstanceOf(BaseBufferJsonDataException.class);
+        assertThat(existsException).isInstanceOf(BaseBufferJsonDataException.class);
+        assertThat(notFoundException).isInstanceOf(BaseBufferJsonDataException.class);
+        assertThat(validateException).isInstanceOf(RuntimeException.class);
+    }
+}package com.connection.processing.buffer.objects.json.converter;
+
+import static com.connection.processing.buffer.objects.json.mother.BufferJsonDataObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataBLM;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Buffer Json Data Converter Tests")
+class BufferJsonDataConverterTest {
+
+    private BufferJsonDataConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        converter = new BufferJsonDataConverter();
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        BufferJsonDataDALM dalM = createValidBufferJsonDataDALM();
+        BufferJsonDataBLM result = converter.toBLM(dalM);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dalM.getUid());
+        assertThat(result.getBufferUid()).isEqualTo(dalM.getBufferUid());
+        assertThat(result.getData()).isEqualTo(dalM.getData());
+        assertThat(result.getCreatedAt()).isEqualTo(dalM.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        BufferJsonDataDTO dto = createValidBufferJsonDataDTO();
+        BufferJsonDataBLM result = converter.toBLM(dto);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid().toString()).isEqualTo(dto.getUid());
+        assertThat(result.getBufferUid().toString()).isEqualTo(dto.getBufferUid());
+        assertThat(result.getData()).isEqualTo(dto.getData());
+        assertThat(result.getCreatedAt()).isEqualTo(dto.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        BufferJsonDataBLM blm = createValidBufferJsonDataBLM();
+        BufferJsonDataDTO result = converter.toDTO(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid().toString());
+        assertThat(result.getBufferUid()).isEqualTo(blm.getBufferUid().toString());
+        assertThat(result.getData()).isEqualTo(blm.getData());
+        assertThat(result.getCreatedAt()).isEqualTo(blm.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        BufferJsonDataBLM blm = createValidBufferJsonDataBLM();
+        BufferJsonDataDALM result = converter.toDALM(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getBufferUid()).isEqualTo(blm.getBufferUid());
+        assertThat(result.getData()).isEqualTo(blm.getData());
+        assertThat(result.getCreatedAt()).isEqualTo(blm.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
+    void testRoundTripDTOToBLMToDTO() {
+        BufferJsonDataDTO original = createValidBufferJsonDataDTO();
+        BufferJsonDataBLM blm = converter.toBLM(original);
+        BufferJsonDataDTO result = converter.toDTO(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getBufferUid()).isEqualTo(original.getBufferUid());
+        assertThat(result.getData()).isEqualTo(original.getData());
+        assertThat(result.getCreatedAt()).isEqualTo(original.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
+    void testRoundTripDALMToBLMToDALM() {
+        BufferJsonDataDALM original = createValidBufferJsonDataDALM();
+        BufferJsonDataBLM blm = converter.toBLM(original);
+        BufferJsonDataDALM result = converter.toDALM(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getBufferUid()).isEqualTo(original.getBufferUid());
+        assertThat(result.getData()).isEqualTo(original.getData());
+        assertThat(result.getCreatedAt()).isEqualTo(original.getCreatedAt());
+    }
+}package com.connection.processing.buffer.objects.json.validator;
+
+import static com.connection.processing.buffer.objects.json.mother.BufferJsonDataObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.time.Instant;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.processing.buffer.objects.json.exception.BufferJsonDataValidateException;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataBLM;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Buffer Json Data Validator Tests")
+class BufferJsonDataValidatorTest {
+
+    private BufferJsonDataValidator validator;
+
+    @BeforeEach
+    void setUp() {
+        validator = new BufferJsonDataValidator();
+    }
+
+    @Test
+    @DisplayName("Validate valid BufferJsonDataDTO - Positive")
+    void testValidateBufferJsonDataDTO_Positive() {
+        BufferJsonDataDTO data = createValidBufferJsonDataDTO();
+        assertThat(data).isNotNull();
+        validator.validate(data);
+    }
+
+    @Test
+    @DisplayName("Validate valid BufferJsonDataBLM - Positive")
+    void testValidateBufferJsonDataBLM_Positive() {
+        BufferJsonDataBLM data = createValidBufferJsonDataBLM();
+        assertThat(data).isNotNull();
+        validator.validate(data);
+    }
+
+    @Test
+    @DisplayName("Validate valid BufferJsonDataDALM - Positive")
+    void testValidateBufferJsonDataDALM_Positive() {
+        BufferJsonDataDALM data = createValidBufferJsonDataDALM();
+        assertThat(data).isNotNull();
+        validator.validate(data);
+    }
+
+    @Test
+    @DisplayName("Validate null BufferJsonDataDTO - Negative")
+    void testValidateNullBufferJsonDataDTO_Negative() {
+        BufferJsonDataDTO data = null;
+        assertThatThrownBy(() -> validator.validate(data))
+                .isInstanceOf(BufferJsonDataValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferJsonDataDTO with null UID - Negative")
+    void testValidateBufferJsonDataDTOWithNullUid_Negative() {
+        BufferJsonDataDTO data = createBufferJsonDataDTOWithNullUid();
+        assertThatThrownBy(() -> validator.validate(data))
+                .isInstanceOf(BufferJsonDataValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferJsonDataDTO with invalid UID - Negative")
+    void testValidateBufferJsonDataDTOWithInvalidUid_Negative() {
+        BufferJsonDataDTO data = createBufferJsonDataDTOWithInvalidUid();
+        assertThatThrownBy(() -> validator.validate(data))
+                .isInstanceOf(BufferJsonDataValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferJsonDataDTO with empty data - Negative")
+    void testValidateBufferJsonDataDTOWithEmptyData_Negative() {
+        BufferJsonDataDTO data = createBufferJsonDataDTOWithEmptyData();
+        assertThatThrownBy(() -> validator.validate(data))
+                .isInstanceOf(BufferJsonDataValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferJsonDataDTO with null data - Negative")
+    void testValidateBufferJsonDataDTOWithNullData_Negative() {
+        BufferJsonDataDTO data = createBufferJsonDataDTOWithNullData();
+        assertThatThrownBy(() -> validator.validate(data))
+                .isInstanceOf(BufferJsonDataValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate null BufferJsonDataBLM - Negative")
+    void testValidateNullBufferJsonDataBLM_Negative() {
+        BufferJsonDataBLM data = null;
+        assertThatThrownBy(() -> validator.validate(data))
+                .isInstanceOf(BufferJsonDataValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferJsonDataBLM with null fields - Negative")
+    void testValidateBufferJsonDataBLMWithNullFields_Negative() {
+        BufferJsonDataBLM data = createBufferJsonDataBLMWithNullFields();
+        assertThatThrownBy(() -> validator.validate(data))
+                .isInstanceOf(BufferJsonDataValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferJsonDataDTO with invalid JSON - Negative")
+    void testValidateBufferJsonDataDTOWithInvalidJson_Negative() {
+        BufferJsonDataDTO data = BufferJsonDataDTO.builder()
+                .uid("123e4567-e89b-12d3-a456-426614174000")
+                .bufferUid("123e4567-e89b-12d3-a456-426614174001")
+                .data("invalid json")
+                .createdAt(Instant.now())
+                .build();
+
+        assertThatThrownBy(() -> validator.validate(data))
+                .isInstanceOf(BufferJsonDataValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferJsonDataDTO with array JSON - Negative")
+    void testValidateBufferJsonDataDTOWithArrayJson_Negative() {
+        BufferJsonDataDTO data = BufferJsonDataDTO.builder()
+                .uid("123e4567-e89b-12d3-a456-426614174000")
+                .bufferUid("123e4567-e89b-12d3-a456-426614174001")
+                .data("[1, 2, 3]")
+                .createdAt(Instant.now())
+                .build();
+
+        assertThatThrownBy(() -> validator.validate(data))
+                .isInstanceOf(BufferJsonDataValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferJsonDataDTO with future timestamp - Negative")
+    void testValidateBufferJsonDataDTOWithFutureTimestamp_Negative() {
+        BufferJsonDataDTO data = BufferJsonDataDTO.builder()
+                .uid("123e4567-e89b-12d3-a456-426614174000")
+                .bufferUid("123e4567-e89b-12d3-a456-426614174001")
+                .data("{\"key\": \"value\"}")
+                .createdAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        assertThatThrownBy(() -> validator.validate(data))
+                .isInstanceOf(BufferJsonDataValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferJsonDataDTO with null timestamp - Negative")
+    void testValidateBufferJsonDataDTOWithNullTimestamp_Negative() {
+        BufferJsonDataDTO data = BufferJsonDataDTO.builder()
+                .uid("123e4567-e89b-12d3-a456-426614174000")
+                .bufferUid("123e4567-e89b-12d3-a456-426614174001")
+                .data("{\"key\": \"value\"}")
+                .createdAt(null)
+                .build();
+
+        assertThatThrownBy(() -> validator.validate(data))
+                .isInstanceOf(BufferJsonDataValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferJsonDataDTO with valid complex JSON - Positive")
+    void testValidateBufferJsonDataDTOWithComplexJson_Positive() {
+        BufferJsonDataDTO data = BufferJsonDataDTO.builder()
+                .uid("123e4567-e89b-12d3-a456-426614174000")
+                .bufferUid("123e4567-e89b-12d3-a456-426614174001")
+                .data("{\"name\": \"test\", \"values\": [1, 2, 3], \"nested\": {\"key\": \"value\"}}")
+                .createdAt(Instant.now().minusSeconds(60))
+                .build();
+
+        assertThat(data).isNotNull();
+        validator.validate(data);
+    }
+
+    @Test
+    @DisplayName("Validate BufferJsonDataDTO with minimal valid JSON - Positive")
+    void testValidateBufferJsonDataDTOWithMinimalJson_Positive() {
+        BufferJsonDataDTO data = BufferJsonDataDTO.builder()
+                .uid("123e4567-e89b-12d3-a456-426614174000")
+                .bufferUid("123e4567-e89b-12d3-a456-426614174001")
+                .data("{}")
+                .createdAt(Instant.now().minusSeconds(60))
+                .build();
+
+        assertThat(data).isNotNull();
+        validator.validate(data);
+    }
+
+    @Test
+    @DisplayName("Validate BufferJsonDataDTO with whitespace JSON - Negative")
+    void testValidateBufferJsonDataDTOWithWhitespaceJson_Negative() {
+        BufferJsonDataDTO data = BufferJsonDataDTO.builder()
+                .uid("123e4567-e89b-12d3-a456-426614174000")
+                .bufferUid("123e4567-e89b-12d3-a456-426614174001")
+                .data("   ")
+                .createdAt(Instant.now())
+                .build();
+
+        assertThatThrownBy(() -> validator.validate(data))
+                .isInstanceOf(BufferJsonDataValidateException.class);
+    }
+}package com.connection.processing.buffer.objects.json.mother;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.UUID;
+
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataBLM;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDTO;
+
+public class BufferJsonDataObjectMother {
+
+    private static final UUID DEFAULT_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    private static final UUID DEFAULT_BUFFER_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
+    private static final String DEFAULT_DATA = "{\"key\": \"value\", \"number\": 42}";
+    private static final Instant DEFAULT_CREATED_AT = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+
+    public static BufferJsonDataDTO createValidBufferJsonDataDTO() {
+        return BufferJsonDataDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .bufferUid(DEFAULT_BUFFER_UID.toString())
+                .data(DEFAULT_DATA)
+                .createdAt(DEFAULT_CREATED_AT)
+                .build();
+    }
+
+    public static BufferJsonDataBLM createValidBufferJsonDataBLM() {
+        return BufferJsonDataBLM.builder()
+                .uid(DEFAULT_UID)
+                .bufferUid(DEFAULT_BUFFER_UID)
+                .data(DEFAULT_DATA)
+                .createdAt(DEFAULT_CREATED_AT)
+                .build();
+    }
+
+    public static BufferJsonDataDALM createValidBufferJsonDataDALM() {
+        return BufferJsonDataDALM.builder()
+                .uid(DEFAULT_UID)
+                .bufferUid(DEFAULT_BUFFER_UID)
+                .data(DEFAULT_DATA)
+                .createdAt(DEFAULT_CREATED_AT)
+                .build();
+    }
+
+    public static BufferJsonDataDTO createBufferJsonDataDTOWithNullUid() {
+        return BufferJsonDataDTO.builder()
+                .uid(null)
+                .bufferUid(DEFAULT_BUFFER_UID.toString())
+                .data(DEFAULT_DATA)
+                .createdAt(DEFAULT_CREATED_AT)
+                .build();
+    }
+
+    public static BufferJsonDataDTO createBufferJsonDataDTOWithInvalidUid() {
+        return BufferJsonDataDTO.builder()
+                .uid("invalid-uuid")
+                .bufferUid(DEFAULT_BUFFER_UID.toString())
+                .data(DEFAULT_DATA)
+                .createdAt(DEFAULT_CREATED_AT)
+                .build();
+    }
+
+    public static BufferJsonDataDTO createBufferJsonDataDTOWithEmptyData() {
+        return BufferJsonDataDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .bufferUid(DEFAULT_BUFFER_UID.toString())
+                .data("")
+                .createdAt(DEFAULT_CREATED_AT)
+                .build();
+    }
+
+    public static BufferJsonDataDTO createBufferJsonDataDTOWithNullData() {
+        return BufferJsonDataDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .bufferUid(DEFAULT_BUFFER_UID.toString())
+                .data(null)
+                .createdAt(DEFAULT_CREATED_AT)
+                .build();
+    }
+
+    public static BufferJsonDataBLM createBufferJsonDataBLMWithNullFields() {
+        return BufferJsonDataBLM.builder()
+                .uid(null)
+                .bufferUid(null)
+                .data(null)
+                .createdAt(null)
+                .build();
+    }
+
+    public static BufferJsonDataDALM createBufferJsonDataForBuffer(UUID bufferUid) {
+        return BufferJsonDataDALM.builder()
+                .uid(UUID.randomUUID())
+                .bufferUid(bufferUid)
+                .data("{\"buffer\": \"" + bufferUid + "\", \"timestamp\": \"" + Instant.now() + "\"}")
+                .createdAt(Instant.now().truncatedTo(ChronoUnit.MILLIS))
+                .build();
+    }
+
+    public static BufferJsonDataDALM createBufferJsonDataWithTimestamp(UUID bufferUid, Instant timestamp) {
+        return BufferJsonDataDALM.builder()
+                .uid(UUID.randomUUID())
+                .bufferUid(bufferUid)
+                .data("{\"timestamp\": \"" + timestamp + "\"}")
+                .createdAt(timestamp)
+                .build();
+    }
+    // Добавляем в существующий BufferJsonDataObjectMother.java
+
+    public static BufferJsonDataDTO createBufferJsonDataDTOWithInvalidJson() {
+        return BufferJsonDataDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .bufferUid(DEFAULT_BUFFER_UID.toString())
+                .data("invalid json")
+                .createdAt(DEFAULT_CREATED_AT)
+                .build();
+    }
+
+    public static BufferJsonDataDTO createBufferJsonDataDTOWithArrayJson() {
+        return BufferJsonDataDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .bufferUid(DEFAULT_BUFFER_UID.toString())
+                .data("[1, 2, 3]")
+                .createdAt(DEFAULT_CREATED_AT)
+                .build();
+    }
+
+    public static BufferJsonDataDTO createBufferJsonDataDTOWithFutureTimestamp() {
+        return BufferJsonDataDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .bufferUid(DEFAULT_BUFFER_UID.toString())
+                .data(DEFAULT_DATA)
+                .createdAt(Instant.now().plusSeconds(3600))
+                .build();
+    }
+
+    public static BufferJsonDataDTO createBufferJsonDataDTOWithNullTimestamp() {
+        return BufferJsonDataDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .bufferUid(DEFAULT_BUFFER_UID.toString())
+                .data(DEFAULT_DATA)
+                .createdAt(null)
+                .build();
+    }
+}package com.connection.processing.buffer.objects.json.repository;
+
+import static com.connection.processing.buffer.objects.json.mother.BufferJsonDataObjectMother.createValidBufferJsonDataDALM;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.processing.buffer.objects.json.exception.BufferJsonDataAlreadyExistsException;
+import com.connection.processing.buffer.objects.json.exception.BufferJsonDataNotFoundException;
+import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Buffer Json Data Repository Tests - SQL implementation tests")
+class BufferJsonDataRepositorySQLImplTest {
+
+        @Mock
+        private NamedParameterJdbcTemplate jdbcTemplate;
+
+        @InjectMocks
+        private BufferJsonDataRepositorySQLImpl repository;
+
+        private BufferJsonDataDALM testData;
+
+        @BeforeEach
+        void setUp() {
+                MockitoAnnotations.openMocks(this);
+                testData = createValidBufferJsonDataDALM();
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Add data - Positive")
+        void testAddData_Positive() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1));
+                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+                repository.add(testData);
+
+                verify(jdbcTemplate, times(1)).queryForObject(
+                                eq("SELECT uid, buffer_uid, data, created_at FROM processing.buffer_json_datas WHERE uid = :uid"),
+                                any(MapSqlParameterSource.class),
+                                any(RowMapper.class));
+                verify(jdbcTemplate, times(1)).update(
+                                eq("INSERT INTO processing.buffer_json_datas (uid, buffer_uid, data, created_at) VALUES (:uid, :buffer_uid, :data, :created_at)"),
+                                any(MapSqlParameterSource.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Add existing data - Negative")
+        void testAddExistingData_Negative() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testData);
+
+                assertThatThrownBy(() -> repository.add(testData))
+                                .isInstanceOf(BufferJsonDataAlreadyExistsException.class);
+
+                verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Delete data - Positive")
+        void testDeleteData_Positive() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testData);
+                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+                repository.delete(testData.getUid());
+
+                verify(jdbcTemplate, times(1)).update(
+                                eq("DELETE FROM processing.buffer_json_datas WHERE uid = :uid"),
+                                any(MapSqlParameterSource.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Delete non-existent data - Negative")
+        void testDeleteNonExistentData_Negative() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1));
+
+                assertThatThrownBy(() -> repository.delete(testData.getUid()))
+                                .isInstanceOf(BufferJsonDataNotFoundException.class);
+
+                verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+        }
+
+        @Test
+        @DisplayName("Delete data by buffer UID - Positive")
+        void testDeleteByBufferUid_Positive() {
+                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+                repository.deleteByBufferUid(testData.getBufferUid());
+
+                verify(jdbcTemplate, times(1)).update(
+                                eq("DELETE FROM processing.buffer_json_datas WHERE buffer_uid = :buffer_uid"),
+                                any(MapSqlParameterSource.class));
+        }
+
+        @Test
+        @DisplayName("Delete old data - Positive")
+        void testDeleteOldData_Positive() {
+                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+                Instant olderThan = Instant.now().minusSeconds(3600);
+                repository.deleteOldData(olderThan);
+
+                verify(jdbcTemplate, times(1)).update(
+                                eq("DELETE FROM processing.buffer_json_datas WHERE created_at < :older_than"),
+                                any(MapSqlParameterSource.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Find data by UID - Positive")
+        void testFindByUid_Positive() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testData);
+
+                BufferJsonDataDALM result = repository.findByUid(testData.getUid());
+
+                assertThat(result).isEqualTo(testData);
+                verify(jdbcTemplate, times(1)).queryForObject(
+                                eq("SELECT uid, buffer_uid, data, created_at FROM processing.buffer_json_datas WHERE uid = :uid"),
+                                any(MapSqlParameterSource.class),
+                                any(RowMapper.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Find non-existent data by UID - Negative")
+        void testFindByUid_Negative() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1));
+
+                assertThatThrownBy(() -> repository.findByUid(testData.getUid()))
+                                .isInstanceOf(BufferJsonDataNotFoundException.class);
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Find data by buffer UID - Positive")
+        void testFindByBufferUid_Positive() {
+                when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(List.of(testData));
+
+                List<BufferJsonDataDALM> result = repository.findByBufferUid(testData.getBufferUid());
+
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0)).isEqualTo(testData);
+                verify(jdbcTemplate, times(1)).query(
+                                eq("SELECT uid, buffer_uid, data, created_at FROM processing.buffer_json_datas WHERE buffer_uid = :buffer_uid"),
+                                any(MapSqlParameterSource.class),
+                                any(RowMapper.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Find newest data by buffer UID - Positive")
+        void testFindNewestByBufferUid_Positive() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testData);
+
+                BufferJsonDataDALM result = repository.findNewestByBufferUid(testData.getBufferUid());
+
+                assertThat(result).isEqualTo(testData);
+                verify(jdbcTemplate, times(1)).queryForObject(
+                                eq("SELECT uid, buffer_uid, data, created_at FROM processing.buffer_json_datas WHERE buffer_uid = :buffer_uid ORDER BY created_at DESC LIMIT 1"),
+                                any(MapSqlParameterSource.class),
+                                any(RowMapper.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Find oldest data by buffer UID - Positive")
+        void testFindOldestByBufferUid_Positive() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testData);
+
+                BufferJsonDataDALM result = repository.findOldestByBufferUid(testData.getBufferUid());
+
+                assertThat(result).isEqualTo(testData);
+                verify(jdbcTemplate, times(1)).queryForObject(
+                                eq("SELECT uid, buffer_uid, data, created_at FROM processing.buffer_json_datas WHERE buffer_uid = :buffer_uid ORDER BY created_at ASC LIMIT 1"),
+                                any(MapSqlParameterSource.class),
+                                any(RowMapper.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Find newest N data by buffer UID - Positive")
+        void testFindNewestByBufferUidWithLimit_Positive() {
+                when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(List.of(testData));
+
+                List<BufferJsonDataDALM> result = repository.findNewestByBufferUid(testData.getBufferUid(), 5);
+
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0)).isEqualTo(testData);
+                verify(jdbcTemplate, times(1)).query(
+                                eq("SELECT uid, buffer_uid, data, created_at FROM processing.buffer_json_datas WHERE buffer_uid = :buffer_uid ORDER BY created_at DESC LIMIT :limit"),
+                                any(MapSqlParameterSource.class),
+                                any(RowMapper.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Check data exists - Positive")
+        void testExists_Positive() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testData);
+
+                boolean result = repository.exists(testData.getUid());
+
+                assertThat(result).isTrue();
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Check data exists - Negative")
+        void testExists_Negative() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1));
+
+                boolean result = repository.exists(testData.getUid());
+
+                assertThat(result).isFalse();
+        }
+        
+        @Test
+        @DisplayName("Count data by buffer UID - Positive")
+        void testCountByBufferUid_Positive() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), eq(Integer.class)))
+                                .thenReturn(5);
+
+                int result = repository.countByBufferUid(testData.getBufferUid());
+
+                assertThat(result).isEqualTo(5);
+                verify(jdbcTemplate, times(1)).queryForObject(
+                                eq("SELECT COUNT(*) FROM processing.buffer_json_datas WHERE buffer_uid = :buffer_uid"),
+                                any(MapSqlParameterSource.class),
+                                eq(Integer.class));
+        }
+}package com.connection.processing.buffer.validator;
+
+import static com.connection.processing.buffer.mother.BufferObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.processing.buffer.exception.BufferValidateException;
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Buffer Validator Tests")
+class BufferValidatorTest {
+
+    private BufferValidator validator;
+
+    @BeforeEach
+    void setUp() {
+        validator = new BufferValidator();
+    }
+
+    @Test
+    @DisplayName("Validate valid BufferDTO - Positive")
+    void testValidateBufferDTO_Positive() {
+        BufferDTO buffer = createValidBufferDTO();
+        assertThat(buffer).isNotNull();
+        validator.validate(buffer);
+    }
+
+    @Test
+    @DisplayName("Validate valid BufferBLM - Positive")
+    void testValidateBufferBLM_Positive() {
+        BufferBLM buffer = createValidBufferBLM();
+        assertThat(buffer).isNotNull();
+        validator.validate(buffer);
+    }
+
+    @Test
+    @DisplayName("Validate valid BufferDALM - Positive")
+    void testValidateBufferDALM_Positive() {
+        BufferDALM buffer = createValidBufferDALM();
+        assertThat(buffer).isNotNull();
+        validator.validate(buffer);
+    }
+
+    @Test
+    @DisplayName("Validate null BufferDTO - Negative")
+    void testValidateNullBufferDTO_Negative() {
+        BufferDTO buffer = null;
+        assertThatThrownBy(() -> validator.validate(buffer))
+                .isInstanceOf(BufferValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferDTO with null UID - Negative")
+    void testValidateBufferDTOWithNullUid_Negative() {
+        BufferDTO buffer = createBufferDTOWithNullUid();
+        assertThatThrownBy(() -> validator.validate(buffer))
+                .isInstanceOf(BufferValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferDTO with invalid UID - Negative")
+    void testValidateBufferDTOWithInvalidUid_Negative() {
+        BufferDTO buffer = createBufferDTOWithInvalidUid();
+        assertThatThrownBy(() -> validator.validate(buffer))
+                .isInstanceOf(BufferValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferDTO with zero max messages - Negative")
+    void testValidateBufferDTOWithZeroMaxMessages_Negative() {
+        BufferDTO buffer = createBufferDTOWithZeroMaxMessages();
+        assertThatThrownBy(() -> validator.validate(buffer))
+                .isInstanceOf(BufferValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferDTO with negative max size - Negative")
+    void testValidateBufferDTOWithNegativeMaxSize_Negative() {
+        BufferDTO buffer = createBufferDTOWithNegativeMaxSize();
+        assertThatThrownBy(() -> validator.validate(buffer))
+                .isInstanceOf(BufferValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferDTO with empty prototype - Negative")
+    void testValidateBufferDTOWithEmptyPrototype_Negative() {
+        BufferDTO buffer = createBufferDTOWithEmptyPrototype();
+        assertThatThrownBy(() -> validator.validate(buffer))
+                .isInstanceOf(BufferValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate null BufferBLM - Negative")
+    void testValidateNullBufferBLM_Negative() {
+        BufferBLM buffer = null;
+        assertThatThrownBy(() -> validator.validate(buffer))
+                .isInstanceOf(BufferValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferBLM with null fields - Negative")
+    void testValidateBufferBLMWithNullFields_Negative() {
+        BufferBLM buffer = createBufferBLMWithNullFields();
+        assertThatThrownBy(() -> validator.validate(buffer))
+                .isInstanceOf(BufferValidateException.class);
+    }
+}package com.connection.processing.buffer.mother;
+
+import java.util.UUID;
+
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferDTO;
+
+public class BufferObjectMother {
+
+    private static final UUID DEFAULT_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    private static final UUID DEFAULT_SCHEME_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
+    private static final Integer DEFAULT_MAX_MESSAGES = 100;
+    private static final Integer DEFAULT_MAX_SIZE = 1024;
+    private static final String DEFAULT_PROTOTYPE = "message prototype";
+
+    public static BufferDTO createValidBufferDTO() {
+        return BufferDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .connectionSchemeUid(DEFAULT_SCHEME_UID.toString())
+                .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
+                .maxMessageSize(DEFAULT_MAX_SIZE)
+                .messagePrototype(DEFAULT_PROTOTYPE)
+                .build();
+    }
+
+    public static BufferBLM createValidBufferBLM() {
+        return BufferBLM.builder()
+                .uid(DEFAULT_UID)
+                .connectionSchemeUid(DEFAULT_SCHEME_UID)
+                .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
+                .maxMessageSize(DEFAULT_MAX_SIZE)
+                .messagePrototype(DEFAULT_PROTOTYPE)
+                .build();
+    }
+
+    public static BufferDALM createValidBufferDALM() {
+        return BufferDALM.builder()
+                .uid(DEFAULT_UID)
+                .connectionSchemeUid(DEFAULT_SCHEME_UID)
+                .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
+                .maxMessageSize(DEFAULT_MAX_SIZE)
+                .messagePrototype(DEFAULT_PROTOTYPE)
+                .build();
+    }
+
+    public static BufferDTO createBufferDTOWithNullUid() {
+        return BufferDTO.builder()
+                .uid(null)
+                .connectionSchemeUid(DEFAULT_SCHEME_UID.toString())
+                .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
+                .maxMessageSize(DEFAULT_MAX_SIZE)
+                .messagePrototype(DEFAULT_PROTOTYPE)
+                .build();
+    }
+
+    public static BufferDTO createBufferDTOWithInvalidUid() {
+        return BufferDTO.builder()
+                .uid("invalid-uuid")
+                .connectionSchemeUid(DEFAULT_SCHEME_UID.toString())
+                .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
+                .maxMessageSize(DEFAULT_MAX_SIZE)
+                .messagePrototype(DEFAULT_PROTOTYPE)
+                .build();
+    }
+
+    public static BufferDTO createBufferDTOWithZeroMaxMessages() {
+        return BufferDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .connectionSchemeUid(DEFAULT_SCHEME_UID.toString())
+                .maxMessagesNumber(0)
+                .maxMessageSize(DEFAULT_MAX_SIZE)
+                .messagePrototype(DEFAULT_PROTOTYPE)
+                .build();
+    }
+
+    public static BufferDTO createBufferDTOWithNegativeMaxSize() {
+        return BufferDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .connectionSchemeUid(DEFAULT_SCHEME_UID.toString())
+                .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
+                .maxMessageSize(-1)
+                .messagePrototype(DEFAULT_PROTOTYPE)
+                .build();
+    }
+
+    public static BufferDTO createBufferDTOWithEmptyPrototype() {
+        return BufferDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .connectionSchemeUid(DEFAULT_SCHEME_UID.toString())
+                .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
+                .maxMessageSize(DEFAULT_MAX_SIZE)
+                .messagePrototype("")
+                .build();
+    }
+
+    public static BufferBLM createBufferBLMWithNullFields() {
+        return BufferBLM.builder()
+                .uid(null)
+                .connectionSchemeUid(null)
+                .maxMessagesNumber(null)
+                .maxMessageSize(null)
+                .messagePrototype(null)
+                .build();
+    }
+
+    public static BufferDALM createBufferForScheme(UUID schemeUid) {
+        return BufferDALM.builder()
+                .uid(UUID.randomUUID())
+                .connectionSchemeUid(schemeUid)
+                .maxMessagesNumber(50)
+                .maxMessageSize(512)
+                .messagePrototype("scheme-specific prototype")
+                .build();
+    }
+}package com.connection.processing.buffer.bufferdevice.exception;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("BufferDevice Exception Tests")
+class BufferDeviceExceptionTest {
+
+    @Test
+    @DisplayName("BaseBufferDeviceException toString format")
+    void testBaseBufferDeviceExceptionToString() {
+        String bufferUid = "test-buffer-123";
+        String deviceUid = "test-device-456";
+        BaseBufferDeviceException exception = new BaseBufferDeviceException(bufferUid, deviceUid);
+        String result = exception.toString();
+        assertThat(result).contains(bufferUid);
+        assertThat(result).contains(deviceUid);
+    }
+
+    @Test
+    @DisplayName("BufferDeviceValidateException toString format")
+    void testBufferDeviceValidateExceptionToString() {
+        String bufferUid = "test-buffer-789";
+        String deviceUid = "test-device-012";
+        String description = "Validation failed";
+        BufferDeviceValidateException exception = new BufferDeviceValidateException(bufferUid, deviceUid, description);
+        String result = exception.toString();
+        assertThat(result).contains(bufferUid);
+        assertThat(result).contains(deviceUid);
+    }
+
+    @Test
+    @DisplayName("BufferDeviceAlreadyExistsException toString format")
+    void testBufferDeviceAlreadyExistsExceptionToString() {
+        String bufferUid = "test-buffer-345";
+        String deviceUid = "test-device-678";
+        BufferDeviceAlreadyExistsException exception = new BufferDeviceAlreadyExistsException(bufferUid, deviceUid);
+        String result = exception.toString();
+        assertThat(result).contains(bufferUid);
+        assertThat(result).contains(deviceUid);
+    }
+
+    @Test
+    @DisplayName("BufferDeviceNotFoundException toString format")
+    void testBufferDeviceNotFoundExceptionToString() {
+        String bufferUid = "test-buffer-901";
+        String deviceUid = "test-device-234";
+        BufferDeviceNotFoundException exception = new BufferDeviceNotFoundException(bufferUid, deviceUid);
+        String result = exception.toString();
+        assertThat(result).contains(bufferUid);
+        assertThat(result).contains(deviceUid);
+    }
+
+    @Test
+    @DisplayName("Exception inheritance hierarchy")
+    void testExceptionInheritance() {
+        BufferDeviceValidateException validateException = new BufferDeviceValidateException("buf", "dev", "desc");
+        BufferDeviceAlreadyExistsException existsException = new BufferDeviceAlreadyExistsException("buf", "dev");
+        BufferDeviceNotFoundException notFoundException = new BufferDeviceNotFoundException("buf", "dev");
+
+        assertThat(validateException).isInstanceOf(BaseBufferDeviceException.class);
+        assertThat(existsException).isInstanceOf(BaseBufferDeviceException.class);
+        assertThat(notFoundException).isInstanceOf(BaseBufferDeviceException.class);
+        assertThat(validateException).isInstanceOf(RuntimeException.class);
+    }
+}package com.connection.processing.buffer.bufferdevice.converter;
+
+import static com.connection.processing.buffer.bufferdevice.mother.BufferDeviceObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceBLM;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDALM;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("BufferDevice Converter Tests")
+class BufferDeviceConverterTest {
+
+    private BufferDeviceConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        converter = new BufferDeviceConverter();
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        BufferDeviceDALM dalM = createValidBufferDeviceDALM();
+        BufferDeviceBLM result = converter.toBLM(dalM);
+        assertThat(result).isNotNull();
+        assertThat(result.getBufferUid()).isEqualTo(dalM.getBufferUid());
+        assertThat(result.getDeviceUid()).isEqualTo(dalM.getDeviceUid());
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        BufferDeviceDTO dto = createValidBufferDeviceDTO();
+        BufferDeviceBLM result = converter.toBLM(dto);
+        assertThat(result).isNotNull();
+        assertThat(result.getBufferUid().toString()).isEqualTo(dto.getBufferUid());
+        assertThat(result.getDeviceUid().toString()).isEqualTo(dto.getDeviceUid());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        BufferDeviceBLM blm = createValidBufferDeviceBLM();
+        BufferDeviceDTO result = converter.toDTO(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getBufferUid()).isEqualTo(blm.getBufferUid().toString());
+        assertThat(result.getDeviceUid()).isEqualTo(blm.getDeviceUid().toString());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        BufferDeviceBLM blm = createValidBufferDeviceBLM();
+        BufferDeviceDALM result = converter.toDALM(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getBufferUid()).isEqualTo(blm.getBufferUid());
+        assertThat(result.getDeviceUid()).isEqualTo(blm.getDeviceUid());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
+    void testRoundTripDTOToBLMToDTO() {
+        BufferDeviceDTO original = createValidBufferDeviceDTO();
+        BufferDeviceBLM blm = converter.toBLM(original);
+        BufferDeviceDTO result = converter.toDTO(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getBufferUid()).isEqualTo(original.getBufferUid());
+        assertThat(result.getDeviceUid()).isEqualTo(original.getDeviceUid());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
+    void testRoundTripDALMToBLMToDALM() {
+        BufferDeviceDALM original = createValidBufferDeviceDALM();
+        BufferDeviceBLM blm = converter.toBLM(original);
+        BufferDeviceDALM result = converter.toDALM(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getBufferUid()).isEqualTo(original.getBufferUid());
+        assertThat(result.getDeviceUid()).isEqualTo(original.getDeviceUid());
+    }
+}package com.connection.processing.buffer.bufferdevice.validator;
+
+import static com.connection.processing.buffer.bufferdevice.mother.BufferDeviceObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.processing.buffer.bufferdevice.exception.BufferDeviceValidateException;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceBLM;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDALM;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("BufferDevice Validator Tests")
+class BufferDeviceValidatorTest {
+
+    private BufferDeviceValidator validator;
+
+    @BeforeEach
+    void setUp() {
+        validator = new BufferDeviceValidator();
+    }
+
+    @Test
+    @DisplayName("Validate valid BufferDeviceDTO - Positive")
+    void testValidateBufferDeviceDTO_Positive() {
+        BufferDeviceDTO bufferDevice = createValidBufferDeviceDTO();
+        assertThat(bufferDevice).isNotNull();
+        validator.validate(bufferDevice);
+    }
+
+    @Test
+    @DisplayName("Validate valid BufferDeviceBLM - Positive")
+    void testValidateBufferDeviceBLM_Positive() {
+        BufferDeviceBLM bufferDevice = createValidBufferDeviceBLM();
+        assertThat(bufferDevice).isNotNull();
+        validator.validate(bufferDevice);
+    }
+
+    @Test
+    @DisplayName("Validate valid BufferDeviceDALM - Positive")
+    void testValidateBufferDeviceDALM_Positive() {
+        BufferDeviceDALM bufferDevice = createValidBufferDeviceDALM();
+        assertThat(bufferDevice).isNotNull();
+        validator.validate(bufferDevice);
+    }
+
+    @Test
+    @DisplayName("Validate null BufferDeviceDTO - Negative")
+    void testValidateNullBufferDeviceDTO_Negative() {
+        BufferDeviceDTO bufferDevice = null;
+        assertThatThrownBy(() -> validator.validate(bufferDevice))
+                .isInstanceOf(BufferDeviceValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferDeviceDTO with null buffer UID - Negative")
+    void testValidateBufferDeviceDTOWithNullBufferUid_Negative() {
+        BufferDeviceDTO bufferDevice = createBufferDeviceDTOWithNullBufferUid();
+        assertThatThrownBy(() -> validator.validate(bufferDevice))
+                .isInstanceOf(BufferDeviceValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferDeviceDTO with null device UID - Negative")
+    void testValidateBufferDeviceDTOWithNullDeviceUid_Negative() {
+        BufferDeviceDTO bufferDevice = createBufferDeviceDTOWithNullDeviceUid();
+        assertThatThrownBy(() -> validator.validate(bufferDevice))
+                .isInstanceOf(BufferDeviceValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferDeviceDTO with invalid buffer UID - Negative")
+    void testValidateBufferDeviceDTOWithInvalidBufferUid_Negative() {
+        BufferDeviceDTO bufferDevice = createBufferDeviceDTOWithInvalidBufferUid();
+        assertThatThrownBy(() -> validator.validate(bufferDevice))
+                .isInstanceOf(BufferDeviceValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferDeviceDTO with invalid device UID - Negative")
+    void testValidateBufferDeviceDTOWithInvalidDeviceUid_Negative() {
+        BufferDeviceDTO bufferDevice = createBufferDeviceDTOWithInvalidDeviceUid();
+        assertThatThrownBy(() -> validator.validate(bufferDevice))
+                .isInstanceOf(BufferDeviceValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate null BufferDeviceBLM - Negative")
+    void testValidateNullBufferDeviceBLM_Negative() {
+        BufferDeviceBLM bufferDevice = null;
+        assertThatThrownBy(() -> validator.validate(bufferDevice))
+                .isInstanceOf(BufferDeviceValidateException.class);
+    }
+
+    @Test
+    @DisplayName("Validate BufferDeviceBLM with null fields - Negative")
+    void testValidateBufferDeviceBLMWithNullFields_Negative() {
+        BufferDeviceBLM bufferDevice = createBufferDeviceBLMWithNullFields();
+        assertThatThrownBy(() -> validator.validate(bufferDevice))
+                .isInstanceOf(BufferDeviceValidateException.class);
+    }
+}package com.connection.processing.buffer.bufferdevice.mother;
+
+import java.util.UUID;
+
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceBLM;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDALM;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDTO;
+
+public class BufferDeviceObjectMother {
+
+    private static final UUID DEFAULT_BUFFER_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    private static final UUID DEFAULT_DEVICE_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
+
+    public static BufferDeviceDTO createValidBufferDeviceDTO() {
+        return BufferDeviceDTO.builder()
+                .bufferUid(DEFAULT_BUFFER_UID.toString())
+                .deviceUid(DEFAULT_DEVICE_UID.toString())
+                .build();
+    }
+
+    public static BufferDeviceBLM createValidBufferDeviceBLM() {
+        return BufferDeviceBLM.builder()
+                .bufferUid(DEFAULT_BUFFER_UID)
+                .deviceUid(DEFAULT_DEVICE_UID)
+                .build();
+    }
+
+    public static BufferDeviceDALM createValidBufferDeviceDALM() {
+        return BufferDeviceDALM.builder()
+                .bufferUid(DEFAULT_BUFFER_UID)
+                .deviceUid(DEFAULT_DEVICE_UID)
+                .build();
+    }
+
+    public static BufferDeviceDTO createBufferDeviceDTOWithNullBufferUid() {
+        return BufferDeviceDTO.builder()
+                .bufferUid(null)
+                .deviceUid(DEFAULT_DEVICE_UID.toString())
+                .build();
+    }
+
+    public static BufferDeviceDTO createBufferDeviceDTOWithNullDeviceUid() {
+        return BufferDeviceDTO.builder()
+                .bufferUid(DEFAULT_BUFFER_UID.toString())
+                .deviceUid(null)
+                .build();
+    }
+
+    public static BufferDeviceDTO createBufferDeviceDTOWithInvalidBufferUid() {
+        return BufferDeviceDTO.builder()
+                .bufferUid("invalid-uuid")
+                .deviceUid(DEFAULT_DEVICE_UID.toString())
+                .build();
+    }
+
+    public static BufferDeviceDTO createBufferDeviceDTOWithInvalidDeviceUid() {
+        return BufferDeviceDTO.builder()
+                .bufferUid(DEFAULT_BUFFER_UID.toString())
+                .deviceUid("invalid-uuid")
+                .build();
+    }
+
+    public static BufferDeviceBLM createBufferDeviceBLMWithNullFields() {
+        return BufferDeviceBLM.builder()
+                .bufferUid(null)
+                .deviceUid(null)
+                .build();
+    }
+
+    public static BufferDeviceDALM createBufferDeviceForBuffer(UUID bufferUid) {
+        return BufferDeviceDALM.builder()
+                .bufferUid(bufferUid)
+                .deviceUid(UUID.randomUUID())
+                .build();
+    }
+
+    public static BufferDeviceDALM createBufferDeviceForDevice(UUID deviceUid) {
+        return BufferDeviceDALM.builder()
+                .bufferUid(UUID.randomUUID())
+                .deviceUid(deviceUid)
+                .build();
+    }
+}package com.connection.processing.buffer.bufferdevice.repository;
+
+import static com.connection.processing.buffer.bufferdevice.mother.BufferDeviceObjectMother.createValidBufferDeviceDALM;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.processing.buffer.bufferdevice.exception.BufferDeviceAlreadyExistsException;
+import com.connection.processing.buffer.bufferdevice.exception.BufferDeviceNotFoundException;
+import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDALM;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("BufferDevice Repository Tests - SQL implementation tests")
+class BufferDeviceRepositorySQLImplTest {
+
+    @Mock
+    private NamedParameterJdbcTemplate jdbcTemplate;
+
+    @InjectMocks
+    private BufferDeviceRepositorySQLImpl repository;
+
+    private BufferDeviceDALM testBufferDevice;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        testBufferDevice = createValidBufferDeviceDALM();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Add buffer-device relationship - Positive")
+    void testAddBufferDevice_Positive() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenThrow(new EmptyResultDataAccessException(1));
+        when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+        repository.add(testBufferDevice);
+
+        verify(jdbcTemplate, times(1)).queryForObject(
+                eq("SELECT buffer_uid, device_uid FROM processing.buffer_devices WHERE buffer_uid = :buffer_uid AND device_uid = :device_uid"),
+                any(MapSqlParameterSource.class),
+                any(RowMapper.class));
+        verify(jdbcTemplate, times(1)).update(
+                eq("INSERT INTO processing.buffer_devices (buffer_uid, device_uid) VALUES (:buffer_uid, :device_uid)"),
+                any(MapSqlParameterSource.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Add existing buffer-device relationship - Negative")
+    void testAddExistingBufferDevice_Negative() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(testBufferDevice);
+
+        assertThatThrownBy(() -> repository.add(testBufferDevice))
+                .isInstanceOf(BufferDeviceAlreadyExistsException.class);
+
+        verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Delete buffer-device relationship - Positive")
+    void testDeleteBufferDevice_Positive() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(testBufferDevice);
+        when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+        repository.delete(testBufferDevice);
+
+        verify(jdbcTemplate, times(1)).update(
+                eq("DELETE FROM processing.buffer_devices WHERE buffer_uid = :buffer_uid AND device_uid = :device_uid"),
+                any(MapSqlParameterSource.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Delete non-existent buffer-device relationship - Negative")
+    void testDeleteNonExistentBufferDevice_Negative() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenThrow(new EmptyResultDataAccessException(1));
+
+        assertThatThrownBy(() -> repository.delete(testBufferDevice))
+                .isInstanceOf(BufferDeviceNotFoundException.class);
+
+        verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+    }
+
+    @Test
+    @DisplayName("Delete all by buffer UID - Positive")
+    void testDeleteAllByBufferUid_Positive() {
+        when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+        repository.deleteAllByBufferUid(testBufferDevice.getBufferUid());
+
+        verify(jdbcTemplate, times(1)).update(
+                eq("DELETE FROM processing.buffer_devices WHERE buffer_uid = :buffer_uid"),
+                any(MapSqlParameterSource.class));
+    }
+
+    @Test
+    @DisplayName("Delete all by device UID - Positive")
+    void testDeleteAllByDeviceUid_Positive() {
+        when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+        repository.deleteAllByDeviceUid(testBufferDevice.getDeviceUid());
+
+        verify(jdbcTemplate, times(1)).update(
+                eq("DELETE FROM processing.buffer_devices WHERE device_uid = :device_uid"),
+                any(MapSqlParameterSource.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Add devices to buffer - Positive")
+    void testAddDevicesToBuffer_Positive() {
+        List<UUID> deviceUids = List.of(UUID.randomUUID(), UUID.randomUUID());
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenThrow(new EmptyResultDataAccessException(1));
+        when(jdbcTemplate.batchUpdate(anyString(), any(MapSqlParameterSource[].class))).thenReturn(new int[]{1, 1});
+
+        repository.addDevicesToBuffer(testBufferDevice.getBufferUid(), deviceUids);
+
+        verify(jdbcTemplate, times(2)).queryForObject(
+                eq("SELECT buffer_uid, device_uid FROM processing.buffer_devices WHERE buffer_uid = :buffer_uid AND device_uid = :device_uid"),
+                any(MapSqlParameterSource.class),
+                any(RowMapper.class));
+        verify(jdbcTemplate, times(1)).batchUpdate(
+                eq("INSERT INTO processing.buffer_devices (buffer_uid, device_uid) VALUES (:buffer_uid, :device_uid)"),
+                any(MapSqlParameterSource[].class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Add existing device to buffer - Negative")
+    void testAddExistingDeviceToBuffer_Negative() {
+        List<UUID> deviceUids = List.of(UUID.randomUUID());
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(testBufferDevice);
+
+        assertThatThrownBy(() -> repository.addDevicesToBuffer(testBufferDevice.getBufferUid(), deviceUids))
+                .isInstanceOf(BufferDeviceAlreadyExistsException.class);
+
+        verify(jdbcTemplate, never()).batchUpdate(anyString(), any(MapSqlParameterSource[].class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Check relationship exists - Positive")
+    void testExists_Positive() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(testBufferDevice);
+
+        boolean result = repository.exists(testBufferDevice.getBufferUid(), testBufferDevice.getDeviceUid());
+
+        assertThat(result).isTrue();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Check relationship exists - Negative")
+    void testExists_Negative() {
+        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenThrow(new EmptyResultDataAccessException(1));
+
+        boolean result = repository.exists(testBufferDevice.getBufferUid(), testBufferDevice.getDeviceUid());
+
+        assertThat(result).isFalse();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Find device UIDs by buffer UID - Positive")
+    void testFindDeviceUidsByBufferUid_Positive() {
+        List<UUID> expectedUids = List.of(UUID.randomUUID(), UUID.randomUUID());
+        when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(expectedUids);
+
+        List<UUID> result = repository.findDeviceUidsByBufferUid(testBufferDevice.getBufferUid());
+
+        assertThat(result).isEqualTo(expectedUids);
+        verify(jdbcTemplate, times(1)).query(
+                eq("SELECT device_uid FROM processing.buffer_devices WHERE buffer_uid = :buffer_uid"),
+                any(MapSqlParameterSource.class),
+                any(RowMapper.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Find buffer UIDs by device UID - Positive")
+    void testFindBufferUidsByDeviceUid_Positive() {
+        List<UUID> expectedUids = List.of(UUID.randomUUID(), UUID.randomUUID());
+        when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                .thenReturn(expectedUids);
+
+        List<UUID> result = repository.findBufferUidsByDeviceUid(testBufferDevice.getDeviceUid());
+
+        assertThat(result).isEqualTo(expectedUids);
+        verify(jdbcTemplate, times(1)).query(
+                eq("SELECT buffer_uid FROM processing.buffer_devices WHERE device_uid = :device_uid"),
+                any(MapSqlParameterSource.class),
+                any(RowMapper.class));
+    }
+}package com.connection.processing.buffer.repository;
+
+import static com.connection.processing.buffer.mother.BufferObjectMother.createValidBufferDALM;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
+import com.connection.processing.buffer.exception.BufferNotFoundException;
+import com.connection.processing.buffer.model.BufferDALM;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Buffer Repository Tests - SQL implementation tests")
+class BufferRepositorySQLImplTest {
+
+        @Mock
+        private NamedParameterJdbcTemplate jdbcTemplate;
+
+        @InjectMocks
+        private BufferRepositorySQLImpl repository;
+
+        private BufferDALM testBuffer;
+
+        @BeforeEach
+        void setUp() {
+                MockitoAnnotations.openMocks(this);
+                testBuffer = createValidBufferDALM();
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Add buffer - Positive")
+        void testAddBuffer_Positive() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1));
+                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+                repository.add(testBuffer);
+
+                verify(jdbcTemplate, times(1)).queryForObject(
+                                eq("SELECT uid, connection_scheme_uid, max_messages_number, max_message_size, message_prototype FROM processing.buffer WHERE uid = :uid"),
+                                any(MapSqlParameterSource.class),
+                                any(RowMapper.class));
+                verify(jdbcTemplate, times(1)).update(
+                                eq("INSERT INTO processing.buffer (uid, connection_scheme_uid, max_messages_number, max_message_size, message_prototype) VALUES (:uid, :connection_scheme_uid, :max_messages_number, :max_message_size, :message_prototype)"),
+                                any(MapSqlParameterSource.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Add existing buffer - Negative")
+        void testAddExistingBuffer_Negative() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testBuffer);
+
+                assertThatThrownBy(() -> repository.add(testBuffer))
+                                .isInstanceOf(BufferAlreadyExistsException.class);
+
+                verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Update buffer - Positive")
+        void testUpdateBuffer_Positive() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testBuffer);
+                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+                repository.update(testBuffer);
+
+                verify(jdbcTemplate, times(1)).update(
+                                eq("UPDATE processing.buffer SET max_messages_number = :max_messages_number, max_message_size = :max_message_size, message_prototype = :message_prototype WHERE uid = :uid"),
+                                any(MapSqlParameterSource.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Update non-existent buffer - Negative")
+        void testUpdateNonExistentBuffer_Negative() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1));
+
+                assertThatThrownBy(() -> repository.update(testBuffer))
+                                .isInstanceOf(BufferNotFoundException.class);
+
+                verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Delete buffer - Positive")
+        void testDeleteBuffer_Positive() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testBuffer);
+                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+                repository.delete(testBuffer.getUid());
+
+                verify(jdbcTemplate, times(1)).update(
+                                eq("DELETE FROM processing.buffer WHERE uid = :uid"),
+                                any(MapSqlParameterSource.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Delete non-existent buffer - Negative")
+        void testDeleteNonExistentBuffer_Negative() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1));
+
+                assertThatThrownBy(() -> repository.delete(testBuffer.getUid()))
+                                .isInstanceOf(BufferNotFoundException.class);
+
+                verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+        }
+
+        @Test
+        @DisplayName("Delete buffers by scheme UID - Positive")
+        void testDeleteByConnectionSchemeUid_Positive() {
+                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+                repository.deleteByConnectionSchemeUid(testBuffer.getConnectionSchemeUid());
+
+                verify(jdbcTemplate, times(1)).update(
+                                eq("DELETE FROM processing.buffer WHERE connection_scheme_uid = :connection_scheme_uid"),
+                                any(MapSqlParameterSource.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Find buffer by UID - Positive")
+        void testFindByUid_Positive() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testBuffer);
+
+                BufferDALM result = repository.findByUid(testBuffer.getUid());
+
+                assertThat(result).isEqualTo(testBuffer);
+                verify(jdbcTemplate, times(1)).queryForObject(
+                                eq("SELECT uid, connection_scheme_uid, max_messages_number, max_message_size, message_prototype FROM processing.buffer WHERE uid = :uid"),
+                                any(MapSqlParameterSource.class),
+                                any(RowMapper.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Find non-existent buffer by UID - Negative")
+        void testFindByUid_Negative() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1));
+
+                assertThatThrownBy(() -> repository.findByUid(testBuffer.getUid()))
+                                .isInstanceOf(BufferNotFoundException.class);
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Find buffers by scheme UID - Positive")
+        void testFindByConnectionSchemeUid_Positive() {
+                when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(List.of(testBuffer));
+
+                List<BufferDALM> result = repository.findByConnectionSchemeUid(testBuffer.getConnectionSchemeUid());
+
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0)).isEqualTo(testBuffer);
+                verify(jdbcTemplate, times(1)).query(
+                                eq("SELECT uid, connection_scheme_uid, max_messages_number, max_message_size, message_prototype FROM processing.buffer WHERE connection_scheme_uid = :connection_scheme_uid"),
+                                any(MapSqlParameterSource.class),
+                                any(RowMapper.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Check buffer exists - Positive")
+        void testExists_Positive() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testBuffer);
+
+                boolean result = repository.exists(testBuffer.getUid());
+
+                assertThat(result).isTrue();
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("Check buffer exists - Negative")
+        void testExists_Negative() {
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1));
+
+                boolean result = repository.exists(testBuffer.getUid());
+
+                assertThat(result).isFalse();
+        }
+}

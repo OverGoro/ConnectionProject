@@ -53,7 +53,7 @@ class ConnectionSchemeConverterTest {
         assertThat(result.getClientUid().toString()).isEqualTo(dto.getClientUid());
         assertThat(result.getSchemeJson()).isEqualTo(dto.getSchemeJson());
         assertThat(result.getUsedBuffers()).isNotEmpty();
-        assertThat(result.getUsedBuffers()).hasSize(2);
+        assertThat(result.getUsedBuffers()).hasSize(3);
         assertThat(result.getBufferTransitions()).isNotEmpty();
         assertThat(result.getBufferTransitions()).hasSize(2);
     }

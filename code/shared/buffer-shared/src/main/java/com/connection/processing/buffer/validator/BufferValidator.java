@@ -2,7 +2,6 @@
 package com.connection.processing.buffer.validator;
 
 import java.util.UUID;
-
 import com.connection.processing.buffer.exception.BufferValidateException;
 import com.connection.processing.buffer.model.BufferBLM;
 import com.connection.processing.buffer.model.BufferDALM;
@@ -15,7 +14,7 @@ public class BufferValidator {
         }
         try {
             validateUid(buffer.getUid());
-            validateConnectionSchemeUid(buffer.getConnectionSchemeUid());
+            validateDeviceUid(buffer.getDeviceUid()); // Изменено
             validateMaxMessagesNumber(buffer.getMaxMessagesNumber());
             validateMaxMessageSize(buffer.getMaxMessageSize());
             validateMessagePrototype(buffer.getMessagePrototype());
@@ -30,7 +29,7 @@ public class BufferValidator {
         }
         try {
             validateUid(buffer.getUid());
-            validateConnectionSchemeUid(buffer.getConnectionSchemeUid());
+            validateDeviceUid(buffer.getDeviceUid()); // Изменено
             validateMaxMessagesNumber(buffer.getMaxMessagesNumber());
             validateMaxMessageSize(buffer.getMaxMessageSize());
             validateMessagePrototype(buffer.getMessagePrototype());
@@ -45,7 +44,7 @@ public class BufferValidator {
         }
         try {
             validateUid(buffer.getUid());
-            validateConnectionSchemeUid(buffer.getConnectionSchemeUid());
+            validateDeviceUid(buffer.getDeviceUid()); // Изменено
             validateMaxMessagesNumber(buffer.getMaxMessagesNumber());
             validateMaxMessageSize(buffer.getMaxMessageSize());
             validateMessagePrototype(buffer.getMessagePrototype());
@@ -71,20 +70,20 @@ public class BufferValidator {
         }
     }
 
-    private void validateConnectionSchemeUid(UUID connectionSchemeUid) {
-        if (connectionSchemeUid == null) {
-            throw new IllegalArgumentException("Connection Scheme UID cannot be null");
+    private void validateDeviceUid(UUID deviceUid) { // Новый метод
+        if (deviceUid == null) {
+            throw new IllegalArgumentException("Device UID cannot be null");
         }
     }
 
-    private void validateConnectionSchemeUid(String connectionSchemeUid) {
-        if (connectionSchemeUid == null || connectionSchemeUid.trim().isEmpty()) {
-            throw new IllegalArgumentException("Connection Scheme UID cannot be empty");
+    private void validateDeviceUid(String deviceUid) { // Новый метод
+        if (deviceUid == null || deviceUid.trim().isEmpty()) {
+            throw new IllegalArgumentException("Device UID cannot be empty");
         }
         try {
-            UUID.fromString(connectionSchemeUid);
+            UUID.fromString(deviceUid);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid Connection Scheme UID format");
+            throw new IllegalArgumentException("Invalid Device UID format");
         }
     }
 

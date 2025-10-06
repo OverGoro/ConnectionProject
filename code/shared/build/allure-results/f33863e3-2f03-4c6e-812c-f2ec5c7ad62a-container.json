@@ -1,1 +1,0 @@
-{"uuid":"f33863e3-2f03-4c6e-812c-f2ec5c7ad62a","name":"Validate BufferJsonDataDTO with whitespace JSON - Negative","children":["d7fd19a7-0fc8-4f8a-9cb4-845bb5894ad8"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758353259647,"stop":1758353259647}],"afters":[],"start":1758353259646,"stop":1758353259648}

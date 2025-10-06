@@ -1,4 +1,3 @@
-// ConnectionSchemeServiceImpl.java
 package com.service.connectionscheme;
 
 import java.util.List;
@@ -18,7 +17,7 @@ import com.connection.scheme.model.ConnectionSchemeDALM;
 import com.connection.scheme.model.ConnectionSchemeDTO;
 import com.connection.scheme.repository.ConnectionSchemeRepository;
 import com.connection.scheme.validator.ConnectionSchemeValidator;
-import com.service.connectionscheme.client.AuthServiceClient;
+import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,21 +34,17 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     private final ConnectionSchemeRepository schemeRepository;
     private final ConnectionSchemeConverter schemeConverter;
     private final ConnectionSchemeValidator schemeValidator;
-    private final AuthServiceClient authServiceClient;
+    private final TypedAuthKafkaClient authKafkaClient;
 
     @Override
-    public ConnectionSchemeBLM createScheme(String accessToken, ConnectionSchemeDTO schemeDTO) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
-
+    public ConnectionSchemeBLM createScheme(UUID clientUid, ConnectionSchemeDTO schemeDTO) {
         schemeValidator.validate(schemeDTO);
         ConnectionSchemeBLM schemeBLM = schemeConverter.toBLM(schemeDTO);
 
-        // Проверяем, что клиент из токена совпадает с клиентом схемы
         if (!clientUid.equals(schemeBLM.getClientUid())) {
             throw new SecurityException("Client UID from token doesn't match scheme client UID");
         }
 
-        // Проверяем, что схема с таким UID не существует
         if (schemeRepository.exists(schemeBLM.getUid())) {
             throw new ConnectionSchemeAlreadyExistsException(
                     "Scheme with UID '" + schemeBLM.getUid() + "' already exists");
@@ -63,12 +58,9 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     }
 
     @Override
-    public ConnectionSchemeBLM getScheme(String accessToken, UUID schemeUid) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
-
+    public ConnectionSchemeBLM getSchemeByUid(UUID clientUid, UUID schemeUid) {
         ConnectionSchemeDALM schemeDALM = schemeRepository.findByUid(schemeUid);
 
-        // Проверяем, что схема принадлежит клиенту из токена
         if (!clientUid.equals(schemeDALM.getClientUid())) {
             throw new SecurityException("Scheme doesn't belong to the authenticated client");
         }
@@ -77,9 +69,7 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     }
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemesByClient(String accessToken) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
-
+    public List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUid) {
         List<ConnectionSchemeDALM> schemesDALM = schemeRepository.findByClientUid(clientUid);
         return schemesDALM.stream()
                 .map(schemeConverter::toBLM)
@@ -87,21 +77,7 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     }
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemesByBuffer(String accessToken, UUID bufferUuid) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
-
-        List<ConnectionSchemeDALM> schemesDALM = schemeRepository.findByBufferUid(bufferUuid);
-        return schemesDALM.stream()
-                .map(schemeConverter::toBLM)
-                .filter(arg0 -> arg0.getClientUid().equals(clientUid))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public ConnectionSchemeBLM updateScheme(String accessToken, UUID schemeUid, ConnectionSchemeDTO schemeDTO) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
-
-        // Проверяем существование схемы и принадлежность клиенту
+    public ConnectionSchemeBLM updateScheme(UUID clientUid, UUID schemeUid, ConnectionSchemeDTO schemeDTO) {
         ConnectionSchemeDALM existingScheme = schemeRepository.findByUid(schemeUid);
         if (!clientUid.equals(existingScheme.getClientUid())) {
             throw new SecurityException("Scheme doesn't belong to the authenticated client");
@@ -128,10 +104,7 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     }
 
     @Override
-    public void deleteScheme(String accessToken, UUID schemeUid) {
-        UUID clientUid = validateTokenAndGetClientUid(accessToken);
-
-        // Проверяем существование схемы и принадлежность клиенту
+    public void deleteScheme(UUID clientUid, UUID schemeUid) {
         ConnectionSchemeDALM existingScheme = schemeRepository.findByUid(schemeUid);
         if (!clientUid.equals(existingScheme.getClientUid())) {
             throw new SecurityException("Scheme doesn't belong to the authenticated client");
@@ -142,34 +115,29 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     }
 
     @Override
-    public boolean schemeExists(String accessToken, UUID schemeUid) {
-        validateToken(accessToken);
+    public boolean schemeExists(UUID clientUid, UUID schemeUid) {
         return schemeRepository.exists(schemeUid);
-    }
-
-    private UUID validateTokenAndGetClientUid(String accessToken) {
-        validateToken(accessToken);
-        return authServiceClient.getAccessTokenClientUID(accessToken);
-    }
-
-    private void validateToken(String accessToken) {
-        authServiceClient.validateAccessToken(accessToken);
     }
 
     @Override
     public Map<String, Object> getHealthStatus() {
-        Map<String, Object> authServiceHealth;
         try {
-            authServiceHealth = authServiceClient.healthCheck();
+            var authHealth = authKafkaClient.healthCheck("connection-scheme-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "connection-scheme-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
         } catch (Exception e) {
-            authServiceHealth = Map.of("status", "DOWN");
+            log.error("Kafka Client: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "connection-scheme-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "error", e.getMessage());
         }
-        return Map.of(
-                "status", "OK",
-                "service", "connection-scheme-service",
-                "timestamp", System.currentTimeMillis(),
-                "auth-service: ", authServiceHealth);
     }
-
-
 }

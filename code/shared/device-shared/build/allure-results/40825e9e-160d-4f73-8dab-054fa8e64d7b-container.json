@@ -1,1 +1,0 @@
-{"uuid":"40825e9e-160d-4f73-8dab-054fa8e64d7b","name":"Validate DeviceDTO with null UID - Negative","children":["0e04c4eb-f804-4f24-88ad-f0d5bc34d22f"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758353273386,"stop":1758353273386}],"afters":[],"start":1758353273385,"stop":1758353273388}

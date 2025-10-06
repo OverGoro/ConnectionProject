@@ -1,0 +1,83 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.connection",
+    "module": "common-connection-scheme-events",
+    "version": "1.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.14.3"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "common-connection-scheme-events-1.0.0.jar",
+          "url": "common-connection-scheme-events-1.0.0.jar",
+          "size": 30464,
+          "sha512": "b67efa490a4bd12e9c3b071b1f0691b3722067866b60ed3a9a477558d9fdc600e7c87b998ce6dced43b7fe4ef5ac6554516d091ccc1fa837d1016cc7dd3b478c",
+          "sha256": "934a20d02bf89286ec19c39ddd700adf4781f6f642a996f5bac30934516d8a39",
+          "sha1": "115ec007a1a26bd7d393f93a5156428f9b9828db",
+          "md5": "db389c82768fc343f24c7ef89ef1a9a0"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "com.connection",
+          "module": "common-events",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "connection-scheme-shared",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.fasterxml.jackson.datatype",
+          "module": "jackson-datatype-jsr310",
+          "version": {
+            "requires": "2.18.4"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "common-connection-scheme-events-1.0.0.jar",
+          "url": "common-connection-scheme-events-1.0.0.jar",
+          "size": 30464,
+          "sha512": "b67efa490a4bd12e9c3b071b1f0691b3722067866b60ed3a9a477558d9fdc600e7c87b998ce6dced43b7fe4ef5ac6554516d091ccc1fa837d1016cc7dd3b478c",
+          "sha256": "934a20d02bf89286ec19c39ddd700adf4781f6f642a996f5bac30934516d8a39",
+          "sha1": "115ec007a1a26bd7d393f93a5156428f9b9828db",
+          "md5": "db389c82768fc343f24c7ef89ef1a9a0"
+        }
+      ]
+    }
+  ]
+}

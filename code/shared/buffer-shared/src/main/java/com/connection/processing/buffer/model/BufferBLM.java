@@ -2,7 +2,6 @@
 package com.connection.processing.buffer.model;
 
 import java.util.UUID;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,14 +14,9 @@ import lombok.Setter;
 @Setter
 @Builder
 public class BufferBLM {
-    
     protected UUID uid;
-    
-    protected UUID connectionSchemeUid;
-    
+    protected UUID deviceUid;
     protected Integer maxMessagesNumber;
-    
     protected Integer maxMessageSize;
-    
     protected String messagePrototype;
 }

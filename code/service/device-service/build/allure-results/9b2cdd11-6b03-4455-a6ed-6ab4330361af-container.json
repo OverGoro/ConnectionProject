@@ -1,1 +1,0 @@
-{"uuid":"9b2cdd11-6b03-4455-a6ed-6ab4330361af","name":"Validate token - sends correct command","children":["4c566d98-7c95-42c2-a7d4-8a12053329fb"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1759530957138,"stop":1759530957138}],"afters":[],"start":1759530957136,"stop":1759530957142}

@@ -1,4 +1,3 @@
-// ConnectionSchemeRepositorySQLImpl.java
 package com.connection.scheme.repository;
 
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -18,34 +17,36 @@ import java.util.UUID;
 @Repository
 public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeRepository {
 
+    // Основные запросы для схем
     private static final String SELECT_SCHEME = "SELECT cs.uid, cs.client_uid, cs.scheme_json";
     private static final String FROM_SCHEME = " FROM processing.connection_scheme cs";
 
     private static final String SELECT_SCHEME_BY_UID = SELECT_SCHEME + FROM_SCHEME + " WHERE cs.uid = :uid";
-    private static final String SELECT_SCHEMES_BY_CLIENT = SELECT_SCHEME + FROM_SCHEME
-            + " WHERE cs.client_uid = :client_uid";
+    private static final String SELECT_SCHEMES_BY_CLIENT = SELECT_SCHEME + FROM_SCHEME + " WHERE cs.client_uid = :client_uid";
 
-    private static final String SELECT_USED_BUFFERS = "SELECT buffer_uid FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid";
+    // Запросы для получения usedBuffers из таблицы buffer
+    private static final String SELECT_USED_BUFFERS = 
+        "SELECT b.uid FROM processing.buffer b WHERE b.connection_scheme_uid = :scheme_uid";
 
-    private static final String SELECT_SCHEMES_BY_BUFFER = SELECT_SCHEME +
-            " FROM processing.connection_scheme cs" +
-            " JOIN processing.connection_scheme_buffer csb ON cs.uid = csb.scheme_uid" +
-            " WHERE csb.buffer_uid = :buffer_uid";
+    // Операции со схемами
+    private static final String INSERT_SCHEME = 
+        "INSERT INTO processing.connection_scheme (uid, client_uid, scheme_json) " +
+        "VALUES (:uid, :client_uid, :scheme_json)";
 
-    private static final String INSERT_SCHEME = "INSERT INTO processing.connection_scheme (uid, client_uid, scheme_json) "
-            +
-            "VALUES (:uid, :client_uid, :scheme_json)";
+    private static final String UPDATE_SCHEME = 
+        "UPDATE processing.connection_scheme SET scheme_json = :scheme_json " +
+        "WHERE uid = :uid";
 
-    private static final String INSERT_SCHEME_BUFFER = "INSERT INTO processing.connection_scheme_buffer (uid, scheme_uid, buffer_uid) "
-            +
-            "VALUES (:buffer_relation_uid, :scheme_uid, :buffer_uid)";
+    private static final String DELETE_SCHEME = 
+        "DELETE FROM processing.connection_scheme WHERE uid = :uid";
 
-    private static final String UPDATE_SCHEME = "UPDATE processing.connection_scheme SET scheme_json = :scheme_json " +
-            "WHERE uid = :uid";
+    // Операции с буферами
+    private static final String INSERT_BUFFER = 
+        "INSERT INTO processing.buffer (uid, connection_scheme_uid, max_messages_number, max_message_size, message_prototype) " +
+        "VALUES (:buffer_uid, :scheme_uid, :max_messages_number, :max_message_size, :message_prototype)";
 
-    private static final String DELETE_SCHEME_BUFFERS = "DELETE FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid";
-
-    private static final String DELETE_SCHEME = "DELETE FROM processing.connection_scheme WHERE uid = :uid";
+    private static final String DELETE_SCHEME_BUFFERS = 
+        "DELETE FROM processing.buffer WHERE connection_scheme_uid = :scheme_uid";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -56,6 +57,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
         scheme.setUid(schemeUid);
         scheme.setClientUid(UUID.fromString(rs.getString("client_uid")));
         scheme.setSchemeJson(rs.getString("scheme_json"));
+        // UsedBuffers будут заполняться отдельным запросом
         scheme.setUsedBuffers(getUsedBuffersForScheme(schemeUid));
 
         return scheme;
@@ -80,8 +82,8 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
 
         jdbcTemplate.update(INSERT_SCHEME, params);
 
-        // Сохраняем связи с буферами
-        saveUsedBuffers(scheme.getUid(), scheme.getUsedBuffers());
+        // Сохраняем буферы, если они есть
+        saveBuffers(scheme.getUid(), scheme.getUsedBuffers());
     }
 
     @Override
@@ -98,8 +100,8 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
 
         jdbcTemplate.update(UPDATE_SCHEME, params);
 
-        // Обновляем связи с буферами
-        updateUsedBuffers(scheme.getUid(), scheme.getUsedBuffers());
+        // Обновляем буферы
+        updateBuffers(scheme.getUid(), scheme.getUsedBuffers());
     }
 
     @Override
@@ -109,9 +111,9 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
             throw new ConnectionSchemeNotFoundException("Scheme with UID " + uid + " not found");
         }
 
+        // Удаляем схему (буферы удалятся каскадом благодаря FOREIGN KEY constraint)
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
-
         jdbcTemplate.update(DELETE_SCHEME, params);
     }
 
@@ -137,14 +139,6 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
 
     @Override
     @Transactional(readOnly = true)
-    public List<ConnectionSchemeDALM> findByBufferUid(UUID bufferUid) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("buffer_uid", bufferUid);
-        return jdbcTemplate.query(SELECT_SCHEMES_BY_BUFFER, params, schemeRowMapper);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public boolean exists(UUID uid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -156,36 +150,47 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
         }
     }
 
+    /**
+     * Получает список UID буферов, привязанных к схеме
+     */
     private List<UUID> getUsedBuffersForScheme(UUID schemeUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("scheme_uid", schemeUid);
 
         return jdbcTemplate.query(SELECT_USED_BUFFERS, params,
-                (rs, rowNum) -> UUID.fromString(rs.getString("buffer_uid")));
+                (rs, rowNum) -> UUID.fromString(rs.getString("uid")));
     }
 
-    private void saveUsedBuffers(UUID schemeUid, List<UUID> usedBuffers) {
+    /**
+     * Сохраняет буферы для схемы
+     */
+    private void saveBuffers(UUID schemeUid, List<UUID> usedBuffers) {
         if (usedBuffers == null || usedBuffers.isEmpty()) {
             return;
         }
 
         for (UUID bufferUid : usedBuffers) {
             MapSqlParameterSource params = new MapSqlParameterSource();
-            params.addValue("buffer_relation_uid", UUID.randomUUID());
-            params.addValue("scheme_uid", schemeUid);
             params.addValue("buffer_uid", bufferUid);
+            params.addValue("scheme_uid", schemeUid);
+            params.addValue("max_messages_number", 1000); // Значения по умолчанию
+            params.addValue("max_message_size", 1024);    
+            params.addValue("message_prototype", "default");
 
-            jdbcTemplate.update(INSERT_SCHEME_BUFFER, params);
+            jdbcTemplate.update(INSERT_BUFFER, params);
         }
     }
 
-    private void updateUsedBuffers(UUID schemeUid, List<UUID> usedBuffers) {
-        // Удаляем старые связи
+    /**
+     * Обновляет буферы для схемы
+     */
+    private void updateBuffers(UUID schemeUid, List<UUID> usedBuffers) {
+        // Удаляем старые буферы
         MapSqlParameterSource deleteParams = new MapSqlParameterSource();
         deleteParams.addValue("scheme_uid", schemeUid);
         jdbcTemplate.update(DELETE_SCHEME_BUFFERS, deleteParams);
 
-        // Сохраняем новые связи
-        saveUsedBuffers(schemeUid, usedBuffers);
+        // Сохраняем новые буферы
+        saveBuffers(schemeUid, usedBuffers);
     }
 }
