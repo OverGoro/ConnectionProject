@@ -61,20 +61,15 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok:1.18.38'
 
 	implementation 'com.connection:token-shared:1.0.0'
-	compileOnly 'com.connection:token-shared:1.0.0'
-
 	implementation 'com.connection:connection-scheme-shared:1.0.0'
-	compileOnly 'com.connection:connection-scheme-shared:1.0.0'
-	
 	implementation 'com.connection:buffer-shared:1.0.0'
-	compileOnly 'com.connection:buffer-shared:1.0.0'
+    implementation 'com.connection:device-shared:1.0.0'
 
     implementation 'com.connection:common-events:1.0.0'
-	compileOnly 'com.connection:common-events:1.0.0'
     implementation 'com.connection:common-auth-events:1.0.0'
-	compileOnly 'com.connection:common-auth-events:1.0.0'
     implementation 'com.connection:common-device-events:1.0.0'
     implementation 'com.connection:common-buffer-events:1.0.0'
+    implementation 'com.connection:common-connection-scheme-events:1.0.0'
 
 	// Тестовые зависимости
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
