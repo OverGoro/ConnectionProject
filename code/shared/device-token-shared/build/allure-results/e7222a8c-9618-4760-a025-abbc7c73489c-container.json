@@ -1,0 +1,1 @@
+{"uuid":"e7222a8c-9618-4760-a025-abbc7c73489c","name":"Parse device token with wrong type - Negative","children":["9ff85adb-3927-43b0-ae80-1724cec79c7f"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1760005338971,"stop":1760005338971}],"afters":[],"start":1760005338969,"stop":1760005338974}

@@ -19,10 +19,11 @@ create table if not exists processing.connection_scheme_buffer(
     buffer_uid uuid not null references processing.buffer(uid) on delete cascade
 );
 
-create table if not exists processing.buffer_data(
+create table if not exists processing.message(
     uid uuid primary key, 
     buffer_uid uuid not null references processing.buffer(uid) on delete cascade,
-    data jsonb not null, 
+    content jsonb not null, 
+    content_type varchar not null, -- incomming/outcomming
     created_at TIMESTAMP WITH TIME zone not null
 );
 

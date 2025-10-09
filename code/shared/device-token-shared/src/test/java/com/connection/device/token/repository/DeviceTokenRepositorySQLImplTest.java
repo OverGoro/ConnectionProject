@@ -48,31 +48,67 @@ class DeviceTokenRepositorySQLImplTest {
 
     @SuppressWarnings("unchecked")
 @Test
-    @DisplayName("Add device token - Positive")
-    void testAddDeviceToken_Positive() {
-        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenThrow(new EmptyResultDataAccessException(1));
-        when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+@DisplayName("Add device token - Positive")
+void testAddDeviceToken_Positive() {
+    // Мокируем проверку существования устройства - возвращаем true
+    when(jdbcTemplate.queryForObject(
+        eq("SELECT COUNT(*) FROM core.device WHERE uid = :device_uid"), 
+        any(MapSqlParameterSource.class), 
+        eq(Integer.class)
+    )).thenReturn(1);
+    
+    // Мокируем проверки существования токена и uid - возвращаем исключения (не найдено)
+    when(jdbcTemplate.queryForObject(
+        anyString(), 
+        any(MapSqlParameterSource.class), 
+        any(RowMapper.class)
+    )).thenThrow(new EmptyResultDataAccessException(1));
+    
+    // Мокируем успешное выполнение INSERT
+    when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
-        repository.add(testToken);
+    repository.add(testToken);
 
-        verify(jdbcTemplate, times(2)).queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class));
-        verify(jdbcTemplate, times(1)).update(anyString(), any(MapSqlParameterSource.class));
-    }
-
+    // Проверяем, что были вызваны все необходимые проверки
+    verify(jdbcTemplate, times(1)).queryForObject(
+        eq("SELECT COUNT(*) FROM core.device WHERE uid = :device_uid"), 
+        any(MapSqlParameterSource.class), 
+        eq(Integer.class)
+    );
+    
+    // Проверяем проверки существования токена и uid (по 1 разу каждая)
+    verify(jdbcTemplate, times(2)).queryForObject(
+        anyString(), 
+        any(MapSqlParameterSource.class), 
+        any(RowMapper.class)
+    );
+    
+    // Проверяем выполнение INSERT
+    verify(jdbcTemplate, times(1)).update(anyString(), any(MapSqlParameterSource.class));
+}
     @SuppressWarnings("unchecked")
 @Test
-    @DisplayName("Add existing device token - Negative")
-    void testAddExistingDeviceToken_Negative() {
-        when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testToken);
+@DisplayName("Add existing device token - Negative")
+void testAddExistingDeviceToken_Negative() {
+    // Сначала имитируем, что device существует
+    when(jdbcTemplate.queryForObject(
+        eq("SELECT COUNT(*) FROM core.device WHERE uid = :device_uid"), 
+        any(MapSqlParameterSource.class), 
+        eq(Integer.class)
+    )).thenReturn(1);
+    
+    // Затем имитируем, что токен уже существует (по token)
+    when(jdbcTemplate.queryForObject(
+        anyString(), 
+        any(MapSqlParameterSource.class), 
+        any(RowMapper.class)
+    )).thenReturn(testToken);
 
-        assertThatThrownBy(() -> repository.add(testToken))
-                .isInstanceOf(DeviceTokenAlreadyExistsException.class);
+    assertThatThrownBy(() -> repository.add(testToken))
+            .isInstanceOf(DeviceTokenAlreadyExistsException.class);
 
-        verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
-    }
-
+    verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+}
     @SuppressWarnings("unchecked")
 @Test
     @DisplayName("Find device token by UID - Positive")

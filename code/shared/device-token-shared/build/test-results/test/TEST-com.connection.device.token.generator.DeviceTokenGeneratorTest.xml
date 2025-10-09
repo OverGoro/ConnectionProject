@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Device Token Generator Tests" tests="8" skipped="0" failures="0" errors="0" timestamp="2025-10-09T10:22:18.948Z" hostname="Yurik" time="0.033">
+  <properties/>
+  <testcase name="Generate and parse round trip - Positive" classname="com.connection.device.token.generator.DeviceTokenGeneratorTest" time="0.002"/>
+  <testcase name="Generate device token - Positive" classname="com.connection.device.token.generator.DeviceTokenGeneratorTest" time="0.001"/>
+  <testcase name="Generate multiple tokens for same device - Positive" classname="com.connection.device.token.generator.DeviceTokenGeneratorTest" time="0.003"/>
+  <testcase name="Generate token with different dates - Positive" classname="com.connection.device.token.generator.DeviceTokenGeneratorTest" time="0.002"/>
+  <testcase name="Parse device token with wrong subject - Negative" classname="com.connection.device.token.generator.DeviceTokenGeneratorTest" time="0.003"/>
+  <testcase name="Parse device token with wrong type - Negative" classname="com.connection.device.token.generator.DeviceTokenGeneratorTest" time="0.003"/>
+  <testcase name="Parse invalid device token - Negative" classname="com.connection.device.token.generator.DeviceTokenGeneratorTest" time="0.002"/>
+  <testcase name="Parse valid device token - Positive" classname="com.connection.device.token.generator.DeviceTokenGeneratorTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

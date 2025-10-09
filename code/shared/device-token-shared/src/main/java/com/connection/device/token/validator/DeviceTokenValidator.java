@@ -10,6 +10,8 @@ import com.connection.device.token.model.DeviceTokenDTO;
 
 public class DeviceTokenValidator {
     
+    private static final int MAX_TOKEN_LENGTH = 512;
+    
     public void validate(DeviceTokenDTO deviceToken) {
         if (deviceToken == null) {
             throw new DeviceTokenValidateException("null", "Device token is null");
@@ -32,44 +34,49 @@ public class DeviceTokenValidator {
         }
         validateUid(deviceToken.getUid());
         validateDeviceUid(deviceToken.getDeviceUid());
+        validateToken(deviceToken.getToken());
         validateDates(deviceToken.getCreatedAt(), deviceToken.getExpiresAt());
     }
 
     private void validateToken(String token) {
         if (token == null || token.trim().isEmpty()) {
-            throw new IllegalArgumentException("Token cannot be empty");
+            throw new DeviceTokenValidateException("","Token cannot be empty");
         }
-        if (token.length() > 512) {
-            throw new IllegalArgumentException("Token exceeds maximum length");
+        if (token.length() > MAX_TOKEN_LENGTH) {
+            throw new DeviceTokenValidateException("","Token exceeds maximum length of " + MAX_TOKEN_LENGTH + " characters");
         }
     }
 
     private void validateUid(java.util.UUID uid) {
         if (uid == null) {
-            throw new IllegalArgumentException("UID cannot be null");
+            throw new DeviceTokenValidateException("","UID cannot be null");
         }
     }
 
     private void validateDeviceUid(java.util.UUID deviceUid) {
         if (deviceUid == null) {
-            throw new IllegalArgumentException("Device UID cannot be null");
+            throw new DeviceTokenValidateException("","Device UID cannot be null");
         }
     }
 
     private void validateDates(Date createdAt, Date expiresAt) {
-        if (createdAt == null || expiresAt == null) {
-            throw new IllegalArgumentException("Dates cannot be null");
+        if (createdAt == null) {
+            throw new DeviceTokenValidateException("","Creation date cannot be null");
+        }
+        if (expiresAt == null) {
+            throw new DeviceTokenValidateException("","Expiration date cannot be null");
         }
         
         Date now = new Date();
-        if (createdAt.after(now)) {
-            throw new IllegalArgumentException("Creation date cannot be in the future");
-        }
+        
         if (expiresAt.before(now)) {
-            throw new IllegalArgumentException("Token has already expired");
+            throw new DeviceTokenValidateException("","Token has already expired");
         }
         if (expiresAt.before(createdAt)) {
-            throw new IllegalArgumentException("Expiration date cannot be before creation date");
+            throw new DeviceTokenValidateException("","Expiration date cannot be before creation date");
+        }
+        if (createdAt.after(now)){
+            throw new DeviceTokenValidateException("","Creation date cannot be before creation date");
         }
     }
 }

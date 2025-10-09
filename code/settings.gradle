@@ -1,16 +1,20 @@
 rootProject.name = 'multi-project-tests'
 
 include ':service:auth-service'
-include ':service:buffer-device-service'
 include ':service:buffer-service'
 include ':service:connection-scheme-service'
 include ':service:device-service'
-include ':service:device-auth-service'
 
 include ':shared:buffer-shared'
 include ':shared:client-shared'
 include ':shared:connection-scheme-shared'
 include ':shared:device-shared'
-include ':shared:device-token-shared'
 include ':shared:token-shared'
+
+include ':shared-common-events'
+include ':shared-common-auth-events'
+include ':shared-common-buffer-events'
+include ':shared-common-connection-scheme-events'
+include ':shared-common-device-events'
+
 

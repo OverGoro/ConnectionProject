@@ -29,6 +29,8 @@ public class DeviceAccessTokenConverter {
                     .build();
         } catch (JwtException e) {
             throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid token parameters: " + e.getMessage(), e);
         }
     }
 
@@ -37,6 +39,8 @@ public class DeviceAccessTokenConverter {
             return deviceTokenGenerator.getDeviceAccessTokenBLM(dto.getToken());
         } catch (JwtException e) {
             throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Malformed JWT token", e);
         }
     }
 
@@ -50,7 +54,7 @@ public class DeviceAccessTokenConverter {
         return DeviceAccessTokenDALM.builder()
                 .uid(blm.getUid())
                 .deviceTokenUid(blm.getDeviceTokenUid())
-                .token(blm.getToken()) // Сохраняем сгенерированный токен
+                .token(blm.getToken())
                 .createdAt(blm.getCreatedAt())
                 .expiresAt(blm.getExpiresAt())
                 .build();

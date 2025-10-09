@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Device Access Token Generator Tests" tests="9" skipped="0" failures="0" errors="0" timestamp="2025-10-09T10:22:17.756Z" hostname="Yurik" time="1.188">
+  <properties/>
+  <testcase name="Compare device token and device access token structure" classname="com.connection.device.token.generator.DeviceAccessTokenGeneratorTest" time="1.147"/>
+  <testcase name="Generate and parse round trip - Positive" classname="com.connection.device.token.generator.DeviceAccessTokenGeneratorTest" time="0.002"/>
+  <testcase name="Generate device access token - Positive" classname="com.connection.device.token.generator.DeviceAccessTokenGeneratorTest" time="0.002"/>
+  <testcase name="Generate token with expired date - Negative" classname="com.connection.device.token.generator.DeviceAccessTokenGeneratorTest" time="0.005"/>
+  <testcase name="Generate token with future creation date - Positive" classname="com.connection.device.token.generator.DeviceAccessTokenGeneratorTest" time="0.003"/>
+  <testcase name="Parse device access token with wrong subject - Negative" classname="com.connection.device.token.generator.DeviceAccessTokenGeneratorTest" time="0.002"/>
+  <testcase name="Parse device access token with wrong type - Negative" classname="com.connection.device.token.generator.DeviceAccessTokenGeneratorTest" time="0.002"/>
+  <testcase name="Parse invalid device access token - Negative" classname="com.connection.device.token.generator.DeviceAccessTokenGeneratorTest" time="0.003"/>
+  <testcase name="Parse valid device access token - Positive" classname="com.connection.device.token.generator.DeviceAccessTokenGeneratorTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

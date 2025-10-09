@@ -1,4 +1,8 @@
+// DeviceAccessTokenRepositorySQLImpl.java
 package com.connection.device.token.repository;
+
+import java.sql.Timestamp;
+import java.util.UUID;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -7,12 +11,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
-import java.util.Date;
-import java.util.UUID;
-
 import com.connection.device.token.exception.DeviceAccessTokenExistsException;
 import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
+import com.connection.device.token.exception.DeviceTokenNotFoundException;
 import com.connection.device.token.model.DeviceAccessTokenDALM;
 
 @Repository
@@ -32,6 +33,7 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
     private static final String REVOKE_BY_DEVICE_TOKEN_UID = "DELETE FROM access.device_access_token WHERE device_token_uid = :device_token_uid";
     private static final String CLEANUP_EXPIRED_TOKENS = "DELETE FROM access.device_access_token WHERE expires_at < NOW()";
     private static final String HAS_ACTIVE_TOKEN = "SELECT COUNT(*) FROM access.device_access_token WHERE device_token_uid = :device_token_uid AND expires_at > NOW()";
+    private static final String DEVICE_TOKEN_EXISTS = "SELECT COUNT(*) FROM access.device_token WHERE uid = :device_token_uid";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -52,9 +54,14 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
     @Override
     @Transactional
     public void add(DeviceAccessTokenDALM deviceAccessTokenDALM) throws DeviceAccessTokenExistsException {
+        // Проверяем существование device_token
+        if (!deviceTokenExists(deviceAccessTokenDALM.getDeviceTokenUid())) {
+            throw new DeviceTokenNotFoundException("Device token with UID " + deviceAccessTokenDALM.getDeviceTokenUid() + " not found");
+        }
+
         // Проверяем, что нет активного токена для этого device_token_uid
         if (hasDeviceAccessToken(deviceAccessTokenDALM.getDeviceTokenUid())) {
-            throw new DeviceAccessTokenExistsException("DeviceAccess device access token already exists for device token UID " + deviceAccessTokenDALM.getDeviceTokenUid());
+            throw new DeviceAccessTokenExistsException("Device access token already exists for device token UID " + deviceAccessTokenDALM.getDeviceTokenUid());
         }
 
         // Проверяем существование по token
@@ -153,6 +160,14 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
 
     // Вспомогательные методы
     @Transactional(readOnly = true)
+    boolean deviceTokenExists(UUID deviceTokenUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_token_uid", deviceTokenUid);
+        Integer count = jdbcTemplate.queryForObject(DEVICE_TOKEN_EXISTS, params, Integer.class);
+        return count != null && count > 0;
+    }
+
+    @Transactional(readOnly = true)
     boolean uidExists(UUID uid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -172,27 +187,6 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
             jdbcTemplate.queryForObject(SELECT_TOKEN_BY_TOKEN, params, deviceAccessTokenRowMapper);
             return true;
         } catch (EmptyResultDataAccessException e) {
-            return false;
-        }
-    }
-
-    // Дополнительные методы для внутреннего использования
-    @Transactional(readOnly = true)
-    boolean isTokenValid(String token) {
-        try {
-            DeviceAccessTokenDALM deviceAccessToken = findByToken(token);
-            return deviceAccessToken.getExpiresAt().after(new Date());
-        } catch (DeviceAccessTokenNotFoundException e) {
-            return false;
-        }
-    }
-
-    @Transactional(readOnly = true)
-    boolean isTokenValid(UUID uid) {
-        try {
-            DeviceAccessTokenDALM deviceAccessToken = findByUid(uid);
-            return deviceAccessToken.getExpiresAt().after(new Date());
-        } catch (DeviceAccessTokenNotFoundException e) {
             return false;
         }
     }

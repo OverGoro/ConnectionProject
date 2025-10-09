@@ -17,6 +17,26 @@ task testAll {
     }
 }
 
+// Задача для полной очистки всех подпроектов
+task cleanAll {
+    group = 'build'
+    description = 'Cleans all subprojects including build directories'
+
+    dependsOn {
+        subprojects.findAll { 
+            it.tasks.findByName('clean') != null 
+        }.collect { 
+            it.tasks.clean 
+        }
+    }
+    
+    doLast {
+        // Дополнительно очищаем корневую папку build
+        delete "${project.buildDir}"
+        println "Cleaned all projects and root build directory"
+    }
+}
+
 // Задача для агрегации результатов Allure из всех подпроектов
 task aggregateAllureResults(type: Copy) {
     group = 'reporting'
