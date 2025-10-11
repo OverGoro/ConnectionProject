@@ -1,17 +1,28 @@
 package com.service.auth.controller;
 
+import java.util.Date;
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
+import lombok.Setter;
 
+@Data
 @AllArgsConstructor
 @Getter
+@Setter
+@Schema(description = "Login response with tokens")
 public class LoginResponse {
-    private final String accessToken;
-    private final String refreshToken;
-    private final Object accessTokenExpiresAt;
-    private final Object refreshTokenExpiresAt;
-    private final UUID clientUid;
-}
+    
+    private String accessToken;
+    
+    private String refreshToken;
 
+    private Date accessTokenExpiresAt;  // Используйте конкретный тип
+    
+    private Date refreshTokenExpiresAt;  // Используйте конкретный тип
+    
+    private UUID clientUid;
+}

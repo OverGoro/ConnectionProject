@@ -44,6 +44,7 @@ dependencies {
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign:4.3.0'
 	implementation 'org.springframework.security:spring-security-config:6.5.3'
 	implementation 'org.springframework.security:spring-security-web:6.5.3'
+    implementation 'org.springframework.kafka:spring-kafka:3.3.10'
 
 
 	implementation 'com.atomikos:transactions-spring-boot3-starter:6.0.0'
@@ -63,6 +64,11 @@ dependencies {
 	
 	implementation 'com.connection:connection-scheme-shared:1.0.0'
 	compileOnly 'com.connection:connection-scheme-shared:1.0.0'
+
+    implementation 'com.connection:common-events:1.0.0'
+    implementation 'com.connection:common-auth-events:1.0.0'    
+    implementation 'com.connection:common-events:1.0.0'
+    implementation 'com.connection:common-connection-scheme-events:1.0.0'
 
 	// Тестовые зависимости
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

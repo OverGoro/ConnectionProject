@@ -10,6 +10,7 @@ import com.connection.device.token.model.DeviceAccessTokenBLM;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -51,11 +52,11 @@ public class DeviceAccessTokenGenerator {
         Date expiration = claims.getExpiration();
 
         if (!jwtSubjectString.equals(claims.getSubject())) {
-            throw new RuntimeException("Invalid token subject");
+            throw new JwtException("Invalid token subject");
         }
 
         if (!"device_access_token".equals(claims.get("type", String.class))) {
-            throw new RuntimeException("Invalid token type");
+            throw new JwtException("Invalid token type");
         }
 
         return DeviceAccessTokenBLM.builder()

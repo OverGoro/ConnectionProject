@@ -1,0 +1,112 @@
+plugins {
+    id 'java'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'io.qameta.allure' version '2.11.2'
+    id 'maven-publish'
+
+}
+
+group = 'com.connection'
+version = '1.0.0'
+description = 'token shared module'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    // Зависимости модуля
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.5.3'
+    compileOnly 'org.projectlombok:lombok:1.18.38'
+
+   
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    testImplementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	testImplementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	testImplementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+    
+    annotationProcessor 'org.projectlombok:lombok:1.18.38'
+
+    // Тестовые зависимости
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testImplementation 'org.mockito:mockito-core:5.18.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.18.0'
+    testImplementation 'org.assertj:assertj-core:3.27.3'
+    testImplementation 'io.qameta.allure:allure-junit5:'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// Конфигурация Allure
+allure {
+    version = '2.35.1'
+    useJUnit5 {
+        version = '2.29.1'
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ['-parameters']
+}
+
+compileJava {
+    options.compilerArgs += ['-parameters']
+}
+
+compileTestJava {
+    options.compilerArgs += ['-parameters']
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    systemProperty 'junit.jupiter.execution.order.random.seed', '42'
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
+    systemProperty 'allure.results.directory', 'build/allure-results'
+    
+    // Для оффлайн тестирования
+    systemProperty 'offline.mode', 'false'
+}
+
+// Задача для запуска тестов в оффлайн режиме
+task offlineTest(type: Test) {
+    useJUnitPlatform()
+    systemProperty 'offline.mode', 'true'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            // Добавляем информацию о pom для лучшей совместимости
+            pom {
+                name = 'token Shared Module'
+                description = 'Shared components for token management services'
+                url = 'http://www.example.com'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        mavenLocal()
+    }
+}

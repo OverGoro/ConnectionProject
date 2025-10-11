@@ -1,1 +1,0 @@
-{"uuid":"35d77f9b-da2c-4202-bb04-526e27b3a70a","name":"Validate DeviceTokenDTO with empty token - Negative","children":["4e98dc2d-bc89-4744-8ce3-a19b1f9c6112"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1760005337553,"stop":1760005337553}],"afters":[],"start":1760005337551,"stop":1760005337556}

@@ -77,12 +77,12 @@ class DeviceServiceImplTest {
         DeviceBLM deviceBLM = createValidDeviceBLM();
         DeviceDALM deviceDALM = createValidDeviceDALM();
         
-        setupAuthentication(CLIENT_UUID);
+        // setupAuthentication(CLIENT_UUID);
         when(deviceConverter.toDALM(deviceBLM)).thenReturn(deviceDALM);
         when(deviceRepository.existsByClientAndName(CLIENT_UUID, "Test Device")).thenReturn(false);
 
         // Act
-        DeviceBLM result = deviceService.createDevice(deviceBLM);
+        DeviceBLM result = deviceService.createDevice(CLIENT_UUID, deviceBLM);
 
         // Assert
         assertThat(result).isNotNull();
@@ -102,10 +102,10 @@ class DeviceServiceImplTest {
                 "Test Device",
                 "Test Description");
 
-        setupAuthentication(CLIENT_UUID);
+        // setupAuthentication(CLIENT_UUID);
 
         // Act & Assert
-        assertThatThrownBy(() -> deviceService.createDevice(deviceBLM))
+        assertThatThrownBy(() -> deviceService.createDevice(CLIENT_UUID, deviceBLM))
                 .isInstanceOf(SecurityException.class)
                 .hasMessageContaining("Client UID from token doesn't match device client UID");
 
@@ -119,11 +119,11 @@ class DeviceServiceImplTest {
         // Arrange
         DeviceBLM deviceBLM = createValidDeviceBLM();
         
-        setupAuthentication(CLIENT_UUID);
+        // setupAuthentication(CLIENT_UUID);
         when(deviceRepository.existsByClientAndName(CLIENT_UUID, "Test Device")).thenReturn(true);
 
         // Act & Assert
-        assertThatThrownBy(() -> deviceService.createDevice(deviceBLM))
+        assertThatThrownBy(() -> deviceService.createDevice(CLIENT_UUID, deviceBLM))
                 .isInstanceOf(DeviceAlreadyExistsException.class);
 
         verify(deviceValidator).validate(deviceBLM);
@@ -137,12 +137,12 @@ class DeviceServiceImplTest {
         DeviceDALM deviceDALM = createValidDeviceDALM();
         DeviceBLM expectedBLM = createValidDeviceBLM();
 
-        setupAuthentication(CLIENT_UUID);
+        //setupAuthentication(CLIENT_UUID);
         when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceDALM);
         when(deviceConverter.toBLM(deviceDALM)).thenReturn(expectedBLM);
 
         // Act
-        DeviceBLM result = deviceService.getDevice(DEVICE_UUID);
+        DeviceBLM result = deviceService.getDevice(CLIENT_UUID, DEVICE_UUID);
 
         // Assert
         assertThat(result).isNotNull();
@@ -161,11 +161,11 @@ class DeviceServiceImplTest {
                 "Test Device",
                 "Test Description");
 
-        setupAuthentication(CLIENT_UUID);
+        //setupAuthentication(CLIENT_UUID);
         when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceDALM);
 
         // Act & Assert
-        assertThatThrownBy(() -> deviceService.getDevice(DEVICE_UUID))
+        assertThatThrownBy(() -> deviceService.getDevice(CLIENT_UUID, DEVICE_UUID))
                 .isInstanceOf(SecurityException.class)
                 .hasMessageContaining("doesn't belong");
 
@@ -181,12 +181,12 @@ class DeviceServiceImplTest {
         DeviceBLM expectedBLM = createValidDeviceBLM();
         List<DeviceDALM> devicesDALM = Collections.singletonList(deviceDALM);
 
-        setupAuthentication(CLIENT_UUID);
+        //setupAuthentication(CLIENT_UUID);
         when(deviceRepository.findByClientUuid(CLIENT_UUID)).thenReturn(devicesDALM);
         when(deviceConverter.toBLM(deviceDALM)).thenReturn(expectedBLM);
 
         // Act
-        List<DeviceBLM> result = deviceService.getDevicesByClient();
+        List<DeviceBLM> result = deviceService.getDevicesByClient(CLIENT_UUID);
 
         // Assert
         assertThat(result).isNotEmpty();
@@ -202,12 +202,12 @@ class DeviceServiceImplTest {
         DeviceDALM deviceDALM = createValidDeviceDALM();
         DeviceDALM existingDevice = createValidDeviceDALM();
 
-        setupAuthentication(CLIENT_UUID);
+        //setupAuthentication(CLIENT_UUID);
         when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(existingDevice);
         when(deviceConverter.toDALM(deviceBLM)).thenReturn(deviceDALM);
 
         // Act
-        DeviceBLM result = deviceService.updateDevice(deviceBLM);
+        DeviceBLM result = deviceService.updateDevice(CLIENT_UUID, deviceBLM);
 
         // Assert
         assertThat(result).isNotNull();
@@ -221,11 +221,11 @@ class DeviceServiceImplTest {
         // Arrange
         DeviceDALM existingDevice = createValidDeviceDALM();
 
-        setupAuthentication(CLIENT_UUID);
+        //setupAuthentication(CLIENT_UUID);
         when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(existingDevice);
 
         // Act
-        deviceService.deleteDevice(DEVICE_UUID);
+        deviceService.deleteDevice(CLIENT_UUID, DEVICE_UUID);
 
         // Assert
         verify(deviceRepository).delete(DEVICE_UUID);

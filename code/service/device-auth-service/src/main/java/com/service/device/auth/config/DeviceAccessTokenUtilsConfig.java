@@ -1,3 +1,4 @@
+// DeviceAccessTokenUtilsConfig.java
 package com.service.device.auth.config;
 
 import javax.crypto.SecretKey;
@@ -9,25 +10,25 @@ import org.springframework.context.annotation.Configuration;
 import com.connection.device.token.converter.DeviceAccessTokenConverter;
 import com.connection.device.token.generator.DeviceAccessTokenGenerator;
 import com.connection.device.token.validator.DeviceAccessTokenValidator;
+
 @Configuration
 public class DeviceAccessTokenUtilsConfig {
-    @Bean("DeviceAccessTokenValidator")
+
+    @Bean
     DeviceAccessTokenValidator deviceAccessTokenValidator() {
         return new DeviceAccessTokenValidator();
     }
 
-    @Bean("DeviceAccessTokenGenerator")
+    @Bean
     DeviceAccessTokenGenerator deviceAccessTokenGenerator(
-            @Qualifier("jwtSecretKey") SecretKey secretKey,
+            SecretKey jwtSecretKey,
             @Qualifier("appName") String appNameString,
-            @Qualifier("jwtSubject") String subjecString) {
-        return new DeviceAccessTokenGenerator(secretKey, appNameString, subjecString);
+            @Qualifier("jwtSubject") String subjectString) {
+        return new DeviceAccessTokenGenerator(jwtSecretKey, appNameString, subjectString);
     }
 
-    @Bean("DeviceAccessTokenConverter")
-    DeviceAccessTokenConverter deviceAccessTokenConverter(
-            @Qualifier("DeviceAccessTokenGenerator") DeviceAccessTokenGenerator deviceAccessTokenGenerator) {
+    @Bean
+    DeviceAccessTokenConverter deviceAccessTokenConverter(DeviceAccessTokenGenerator deviceAccessTokenGenerator) {
         return new DeviceAccessTokenConverter(deviceAccessTokenGenerator);
     }
-
 }

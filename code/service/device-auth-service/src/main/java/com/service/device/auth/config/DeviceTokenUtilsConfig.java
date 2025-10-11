@@ -1,3 +1,4 @@
+// DeviceTokenUtilsConfig.java
 package com.service.device.auth.config;
 
 import javax.crypto.SecretKey;
@@ -13,22 +14,21 @@ import com.connection.device.token.validator.DeviceTokenValidator;
 @Configuration
 public class DeviceTokenUtilsConfig {
 
-    @Bean("DeviceTokenValidator")
+    @Bean
     DeviceTokenValidator deviceTokenValidator(){
         return new DeviceTokenValidator();
     }
 
-    @Bean("DeviceTokenGenerator")
+    @Bean
     DeviceTokenGenerator deviceTokenGenerator(
-            @Qualifier("jwtSecretKey") SecretKey secretKey,
+            SecretKey jwtSecretKey,
             @Qualifier("appName") String appNameString,
-            @Qualifier("jwtSubject") String subjecString) {
-        return new DeviceTokenGenerator(secretKey, appNameString, subjecString);
+            @Qualifier("jwtSubject") String subjectString) {
+        return new DeviceTokenGenerator(jwtSecretKey, appNameString, subjectString);
     }
 
-    @Bean("DeviceTokenConverter")
-    DeviceTokenConverter deviceTokenConverter(
-            @Qualifier("DeviceTokenGenerator") DeviceTokenGenerator deviceTokenGenerator) {
+    @Bean
+    DeviceTokenConverter deviceTokenConverter(DeviceTokenGenerator deviceTokenGenerator) {
         return new DeviceTokenConverter(deviceTokenGenerator);
     }
 }

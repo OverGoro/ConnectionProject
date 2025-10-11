@@ -1,0 +1,76 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.connection",
+    "module": "common-device-auth-events",
+    "version": "1.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.14.3"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "common-device-auth-events-1.0.0.jar",
+          "url": "common-device-auth-events-1.0.0.jar",
+          "size": 39424,
+          "sha512": "e268af4cbbb7c57898d2e232d016e1dd2494e189b5651a85f56740b23c1dfd9be7258d080622ec820487263f199579c4e8b04cdb48d055ef4a7f19c5e2624188",
+          "sha256": "aca127153d3e78f3a6e7605161c555007d9534afafc3a3496b5334024ec59e83",
+          "sha1": "2fb28569be24819fefc053d0a93f4aba36b69f97",
+          "md5": "304bc5405a9c4cddd5ec879488f2c30a"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "com.connection",
+          "module": "common-events",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.fasterxml.jackson.datatype",
+          "module": "jackson-datatype-jsr310",
+          "version": {
+            "requires": "2.18.4"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "common-device-auth-events-1.0.0.jar",
+          "url": "common-device-auth-events-1.0.0.jar",
+          "size": 39424,
+          "sha512": "e268af4cbbb7c57898d2e232d016e1dd2494e189b5651a85f56740b23c1dfd9be7258d080622ec820487263f199579c4e8b04cdb48d055ef4a7f19c5e2624188",
+          "sha256": "aca127153d3e78f3a6e7605161c555007d9534afafc3a3496b5334024ec59e83",
+          "sha1": "2fb28569be24819fefc053d0a93f4aba36b69f97",
+          "md5": "304bc5405a9c4cddd5ec879488f2c30a"
+        }
+      ]
+    }
+  ]
+}

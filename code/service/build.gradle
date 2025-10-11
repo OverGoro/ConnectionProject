@@ -114,6 +114,21 @@ task openAllureReport(type: Exec) {
     }
 }
 
+// task copyAllJars {
+//     group = 'build'
+//     description = "Copy all service jars to deploy dir"
+    
+//     doFirst {
+//         println "Copying all jars"
+//     }
+    
+//     dependsOn subprojects.collect { it.tasks.findByName('copyJarTok8s') }.findAll { it != null }
+    
+//     doLast {
+//         println "All jars copied!"
+//     }
+// }
+
 // Основные задачи
 tasks.named('build') {
     dependsOn testAll

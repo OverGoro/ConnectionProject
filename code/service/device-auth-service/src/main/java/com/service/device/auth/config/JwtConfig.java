@@ -1,3 +1,4 @@
+// JwtConfig.java
 package com.service.device.auth.config;
 
 import java.nio.charset.StandardCharsets;
@@ -15,42 +16,42 @@ import io.jsonwebtoken.security.MacAlgorithm;
 
 @Configuration
 public class JwtConfig {
-    @Value("${JWT_KEY:${app.jwt.key:zbhcWhLNkuwmbgJBdLKQU5tEArWPrWyMHrenwYT7e9c}}")
+    @Value("${DEVICE_JWT_KEY:${app.jwt.device.key:deviceJwtSecretKeyForAuthService123}}")
     private String jwtSecretString;
 
-    @Value("AuthToken")
+    @Value("DeviceToken")
     private String jwtSubjectString;
 
-    @Value("${ACCESS_TOKEN_EXPIRATION:${app.jwt.access-token.expiration:600}}")
-    private long accessTokenExpiration;
+    @Value("${DEVICE_ACCESS_TOKEN_EXPIRATION:${app.jwt.device.access-token.expiration:3600}}")
+    private long deviceAccessTokenExpiration;
     
-    @Value("${REFRESH_TOKEN_EXPIRATION:${app.jwt.refresh-token.expiration:86400}}")
-    private long refreshTokenExpiration;
+    @Value("${DEVICE_TOKEN_EXPIRATION:${app.jwt.device.token.expiration:2592000}}") // 30 дней
+    private long deviceTokenExpiration;
 
     private final MacAlgorithm jwtAlgorithmMacAlgorithm = Jwts.SIG.HS256;
 
-    @Bean("jwtSecretKey")
+    @Bean
     SecretKey jwtSecretKey() {
         return createSecretKeyFromString(jwtSecretString, jwtAlgorithmMacAlgorithm);
     }
 
-    @Bean("jwtSubject")
+    @Bean
     String jwtSubject(){
-        return jwtSecretString;
+        return jwtSubjectString;
     }
 
-    @Bean("jwtAccessTokenExpiration")
-    Duration jwtAccessTokenDuration(){
-        return Duration.ofSeconds(accessTokenExpiration);
+    @Bean
+    Duration deviceAccessTokenDuration(){
+        return Duration.ofSeconds(deviceAccessTokenExpiration);
     }
 
-    @Bean("jwtRefreshTokenExpiration")
-    Duration jwtRefreshTokenDuration(){
-        return Duration.ofSeconds(refreshTokenExpiration);
+    @Bean
+    Duration deviceTokenDuration(){
+        return Duration.ofSeconds(deviceTokenExpiration);
     }
     
-    @Bean("jwtAlghorithm")
-    MacAlgorithm jwtAlgorithmMacAlgorithm(){
+    @Bean
+    MacAlgorithm jwtAlgorithm(){
         return jwtAlgorithmMacAlgorithm;
     }
 
@@ -58,6 +59,4 @@ public class JwtConfig {
         byte[] keyBytes = secretString.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
-
-
 }

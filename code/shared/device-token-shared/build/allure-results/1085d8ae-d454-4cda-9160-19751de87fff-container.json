@@ -1,1 +1,0 @@
-{"uuid":"1085d8ae-d454-4cda-9160-19751de87fff","name":"Validate DeviceAccessTokenDTO with long token - Negative","children":["4eebae0f-5427-46cb-9a3a-e8cb4961c841"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1760005338995,"stop":1760005338995}],"afters":[],"start":1760005338994,"stop":1760005338996}

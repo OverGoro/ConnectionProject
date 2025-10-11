@@ -5,19 +5,15 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.connection.device.model.DeviceDALM;
-import com.connection.device.repository.DeviceRepository;
 import com.connection.device.token.converter.DeviceAccessTokenConverter;
 import com.connection.device.token.converter.DeviceTokenConverter;
-import com.connection.device.token.exception.DeviceAccessTokenExistsException;
-import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
-import com.connection.device.token.exception.DeviceTokenNotFoundException;
 import com.connection.device.token.generator.DeviceAccessTokenGenerator;
 import com.connection.device.token.generator.DeviceTokenGenerator;
 import com.connection.device.token.model.DeviceAccessTokenBLM;
@@ -38,97 +34,186 @@ import lombok.extern.slf4j.Slf4j;
 @EnableAutoConfiguration(exclude = {
     JpaRepositoriesAutoConfiguration.class
 })
-@Transactional("atomicosTransactionManager")
+@EnableTransactionManagement
 public class DeviceAuthServiceImpl implements DeviceAuthService {
     
-    private final DeviceRepository deviceRepository;
-    private final DeviceTokenRepository deviceTokenRepository;
-    private final DeviceAccessTokenRepository deviceAccessTokenRepository;
-
     private final DeviceTokenConverter deviceTokenConverter;
     private final DeviceAccessTokenConverter deviceAccessTokenConverter;
-
+    
     private final DeviceTokenValidator deviceTokenValidator;
     private final DeviceAccessTokenValidator deviceAccessTokenValidator;
-
+    
     private final DeviceTokenGenerator deviceTokenGenerator;
     private final DeviceAccessTokenGenerator deviceAccessTokenGenerator;
     
-    @Qualifier("jwtAccessTokenExpiration")
-    private final Duration jwtAccessTokenDuration;
-
-    @Qualifier("jwtRefreshTokenExpiration")
-    private final Duration jwtRefreshTokenDuration;
-
+    private final DeviceTokenRepository deviceTokenRepository;
+    private final DeviceAccessTokenRepository deviceAccessTokenRepository;
+    
+    private final Duration deviceTokenDuration;
+    private final Duration deviceAccessTokenDuration;
 
     @Override
-    public DeviceAccessTokenBLM authorizeByToken(DeviceTokenBLM deviceToken) {
-        log.info("Authorizing device with token");
+    @Transactional
+    public DeviceTokenBLM createDeviceToken(UUID deviceUid) {
+        log.info("Creating device token for device: {}", deviceUid);
+        
+        // Проверяем, нет ли уже активного токена
+        if (deviceTokenRepository.existsByDeviceUid(deviceUid)) {
+            throw new com.connection.device.token.exception.DeviceTokenAlreadyExistsException(
+                "Device token already exists for device: " + deviceUid);
+        }
+        
+        Date createdAt = new Date();
+        Date expiresAt = Date.from(createdAt.toInstant().plus(deviceTokenDuration));
+        UUID tokenUid = UUID.randomUUID();
+        
+        // Генерируем токен
+        String tokenString = deviceTokenGenerator.generateDeviceToken(deviceUid, createdAt, expiresAt);
+        DeviceTokenBLM deviceTokenBLM = DeviceTokenBLM.builder()
+                .token(tokenString)
+                .uid(tokenUid)
+                .deviceUid(deviceUid)
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .build();
+        
+        deviceTokenValidator.validate(deviceTokenBLM);
+        
+        // Сохраняем в БД
+        DeviceTokenDALM deviceTokenDALM = deviceTokenConverter.toDALM(deviceTokenBLM);
+        deviceTokenRepository.add(deviceTokenDALM);
+        
+        log.info("Device token created successfully for device: {}", deviceUid);
+        return deviceTokenBLM;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceTokenBLM getDeviceToken(UUID deviceUid) {
+        log.info("Getting device token for device: {}", deviceUid);
+        
+        DeviceTokenDALM deviceTokenDALM = deviceTokenRepository.findByDeviceUid(deviceUid);
+        DeviceTokenBLM deviceTokenBLM = deviceTokenConverter.toBLM(deviceTokenDALM);
+        
+        deviceTokenValidator.validate(deviceTokenBLM);
+        return deviceTokenBLM;
+    }
+
+    @Override
+    @Transactional
+    public void revokeDeviceToken(UUID deviceUid) {
+        log.info("Revoking device token for device: {}", deviceUid);
+        
+        DeviceTokenDALM deviceTokenDALM = deviceTokenRepository.findByDeviceUid(deviceUid);
+        deviceTokenRepository.revokeByDeviceUid(deviceUid);
+        
+        // Каскадно отзываем все access tokens
+        deviceAccessTokenRepository.revokeByDeviceTokenUid(deviceTokenDALM.getUid());
+        
+        log.info("Device token revoked successfully for device: {}", deviceUid);
+    }
+
+    @Override
+    public void validateDeviceToken(DeviceTokenBLM deviceToken) {
+        log.info("Validating device token for device: {}", deviceToken.getDeviceUid());
+        deviceTokenValidator.validate(deviceToken);
+    }
+
+    @Override
+    @Transactional
+    public Pair<DeviceAccessTokenBLM, DeviceTokenBLM> createDeviceAccessToken(DeviceTokenBLM deviceToken) {
+        log.info("Creating device access token for device token: {}", deviceToken.getUid());
         
         deviceTokenValidator.validate(deviceToken);
         
-        DeviceDALM device = deviceRepository.findByUid(deviceToken.getDeviceUid());
-        log.info("Device found: {}", device.getUid());
-
+        // Проверяем, нет ли активного access token
+        if (deviceAccessTokenRepository.hasDeviceAccessToken(deviceToken.getUid())) {
+            throw new com.connection.device.token.exception.DeviceAccessTokenExistsException(
+                "Active device access token already exists for device token: " + deviceToken.getUid());
+        }
+        
         Date createdAt = new Date();
-        Date expiresAt = Date.from(createdAt.toInstant().plus(jwtRefreshTokenDuration));
+        Date expiresAt = Date.from(createdAt.toInstant().plus(deviceAccessTokenDuration));
+        UUID accessTokenUid = UUID.randomUUID();
         
-        String deviceAccessTokenString = deviceAccessTokenGenerator.generateDeviceAccessToken(deviceToken.getUid(), createdAt , expiresAt);
-        DeviceAccessTokenBLM deviceAccessTokenBLM = deviceAccessTokenGenerator.getDeviceAccessTokenBLM(deviceAccessTokenString);
+        // Генерируем access token
+        String accessTokenString = deviceAccessTokenGenerator.generateDeviceAccessToken(
+            deviceToken.getUid(), createdAt, expiresAt);
+        
+        DeviceAccessTokenBLM deviceAccessTokenBLM = DeviceAccessTokenBLM.builder()
+                .token(accessTokenString)
+                .uid(accessTokenUid)
+                .deviceTokenUid(deviceToken.getUid())
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .build();
+        
+        deviceAccessTokenValidator.validate(deviceAccessTokenBLM);
+        
+        // Сохраняем в БД
         DeviceAccessTokenDALM deviceAccessTokenDALM = deviceAccessTokenConverter.toDALM(deviceAccessTokenBLM);
-
-        DeviceAccessTokenDALM oldDeviceAccessTokenDALM;
-        try{
-            oldDeviceAccessTokenDALM = deviceAccessTokenRepository.findByDeviceTokenUid(deviceToken.getUid());
-        } 
-        catch (DeviceTokenNotFoundException e){
-            oldDeviceAccessTokenDALM = null;
-        }
-
-        if (oldDeviceAccessTokenDALM != null && oldDeviceAccessTokenDALM.getExpiresAt().after(new Date())){
-            throw new DeviceAccessTokenExistsException("Cannot authorize, there are some access tokens created. New token will be available after their expiration.");
-        }
-        
         deviceAccessTokenRepository.add(deviceAccessTokenDALM);
         
-        log.info("Device authorized successfully. Device UID: {}", deviceToken.getDeviceUid());
-        return deviceAccessTokenBLM;
+        log.info("Device access token created successfully for device token: {}", deviceToken.getUid());
+        return Pair.of(deviceAccessTokenBLM, deviceToken);
     }
 
     @Override
-    public void validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessTokenBLM) {
-        log.debug("Validating device access token");
-        deviceAccessTokenValidator.validate(deviceAccessTokenBLM);
-    }
-
-    @Override
-    public void validateDeviceToken(DeviceTokenBLM deviceTokenBLM) {
-        log.debug("Validating device token");
-        deviceTokenValidator.validate(deviceTokenBLM);        
-    }
-
-    @Override
-    public UUID getDeviceUid(DeviceAccessTokenBLM accessTokenBLM) {
-        validateDeviceAccessToken(accessTokenBLM);
+    @Transactional
+    public DeviceAccessTokenBLM refreshDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+        log.info("Refreshing device access token: {}", deviceAccessToken.getUid());
         
-        try {
-            DeviceAccessTokenDALM deviceAccessTokenDALM = deviceAccessTokenRepository.findByToken(accessTokenBLM.getToken());
-            DeviceTokenDALM deviceTokenDALM = deviceTokenRepository.findByUid(deviceAccessTokenDALM.getDeviceTokenUid());
-            return deviceTokenDALM.getDeviceUid();
-        } catch (DeviceAccessTokenNotFoundException | DeviceTokenNotFoundException e) {
-            throw new SecurityException("Failed to extract device UID from token");
-        }
+        deviceAccessTokenValidator.validate(deviceAccessToken);
+        
+        // Отзываем старый токен
+        // DeviceAccessTokenDALM oldAccessTokenDALM = deviceAccessTokenConverter.toDALM(deviceAccessToken);
+        deviceAccessTokenRepository.revoke(deviceAccessToken.getUid());
+        
+        Date createdAt = new Date();
+        Date expiresAt = Date.from(createdAt.toInstant().plus(deviceAccessTokenDuration));
+        UUID newAccessTokenUid = UUID.randomUUID();
+        
+        // Генерируем новый access token
+        String newAccessTokenString = deviceAccessTokenGenerator.generateDeviceAccessToken(
+            deviceAccessToken.getDeviceTokenUid(), createdAt, expiresAt);
+        
+        DeviceAccessTokenBLM newDeviceAccessTokenBLM = DeviceAccessTokenBLM.builder()
+                .token(newAccessTokenString)
+                .uid(newAccessTokenUid)
+                .deviceTokenUid(deviceAccessToken.getDeviceTokenUid())
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .build();
+        
+        deviceAccessTokenValidator.validate(newDeviceAccessTokenBLM);
+        
+        // Сохраняем новый токен
+        DeviceAccessTokenDALM newAccessTokenDALM = deviceAccessTokenConverter.toDALM(newDeviceAccessTokenBLM);
+        deviceAccessTokenRepository.add(newAccessTokenDALM);
+        
+        log.info("Device access token refreshed successfully");
+        return newDeviceAccessTokenBLM;
     }
 
     @Override
-    public UUID getDeviceUid(DeviceTokenBLM deviceTokenBLM) {
-        validateDeviceToken(deviceTokenBLM);
+    public void validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+        log.info("Validating device access token: {}", deviceAccessToken.getUid());
+        // Только JWT валидация, без проверки в БД
+        deviceAccessTokenValidator.validate(deviceAccessToken);
+    }
+
+    @Override
+    public UUID extractDeviceUidFromToken(DeviceTokenBLM deviceToken) {
+        validateDeviceToken(deviceToken);
+        return deviceToken.getDeviceUid();
+    }
+
+    @Override
+    public UUID extractDeviceUidFromAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+        validateDeviceAccessToken(deviceAccessToken);
         
-        try {
-            DeviceTokenDALM deviceTokenDALM = deviceTokenRepository.findByToken(deviceTokenBLM.getToken());
-            return deviceTokenDALM.getDeviceUid();
-        } catch (DeviceTokenNotFoundException e) {
-            throw new SecurityException("Failed to extract device UID from token");
-        }
+        // Получаем device token по deviceTokenUid и извлекаем deviceUid
+        DeviceTokenDALM deviceTokenDALM = deviceTokenRepository.findByUid(deviceAccessToken.getDeviceTokenUid());
+        return deviceTokenDALM.getDeviceUid();
     }
 }

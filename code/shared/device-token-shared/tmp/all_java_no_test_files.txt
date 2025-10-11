@@ -1,0 +1,1503 @@
+// ActiveTokenExistsException.java
+package com.connection.device.token.exception;
+
+public class DeviceAccessTokenExistsException extends BaseTokenException {
+    public DeviceAccessTokenExistsException(String tokenString) {
+        super(tokenString);
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: active device access token already exists";
+        return res;
+    }
+}// DeviceTokenValidateException.java
+package com.connection.device.token.exception;
+
+public class DeviceTokenValidateException extends BaseTokenException {
+    private final String descriptionString;
+    
+    public DeviceTokenValidateException(String tokenString, String description) {
+        super(tokenString);
+        this.descriptionString = description;
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: device token is invalid";
+        res += "\n" + descriptionString;
+        return res;
+    }
+}// DeviceAccessTokenNotFoundException.java
+package com.connection.device.token.exception;
+
+public class DeviceAccessTokenNotFoundException extends BaseTokenException {
+    public DeviceAccessTokenNotFoundException(String tokenString) {
+        super(tokenString);
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: device access token not found";
+        return res;
+    }
+}// DeviceTokenAlreadyExistsException.java
+package com.connection.device.token.exception;
+
+public class DeviceTokenAlreadyExistsException extends BaseTokenException {
+    public DeviceTokenAlreadyExistsException(String tokenString) {
+        super(tokenString);
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: device token already exists";
+        return res;
+    }
+}// DeviceTokenNotFoundException.java
+package com.connection.device.token.exception;
+
+public class DeviceTokenNotFoundException extends BaseTokenException {
+    public DeviceTokenNotFoundException(String tokenString) {
+        super(tokenString);
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: device token not found";
+        return res;
+    }
+}package com.connection.device.token.exception;
+
+public class BaseTokenException extends RuntimeException{
+    private final String tokenString;
+
+    public BaseTokenException(String tokenDescription){
+        super("token");
+        tokenString = tokenDescription;
+    }
+
+    public String toString(){
+        String res = super.toString();
+        res += "\n" + "token: " + tokenString;
+        return res;
+    }
+}
+// DeviceTokenValidateException.java
+package com.connection.device.token.exception;
+
+public class DeviceAccessTokenValidateException extends BaseTokenException {
+    private final String descriptionString;
+    
+    public DeviceAccessTokenValidateException(String tokenString, String description) {
+        super(tokenString);
+        this.descriptionString = description;
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: device access token is invalid";
+        res += "\n" + descriptionString;
+        return res;
+    }
+}// DeviceTokenGenerator.java
+package com.connection.device.token.generator;
+
+import java.util.Date;
+import java.util.UUID;
+
+import javax.crypto.SecretKey;
+
+import com.connection.device.token.model.DeviceTokenBLM;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+public class DeviceTokenGenerator {
+    @NonNull
+    private final SecretKey jwtSecretKey;
+
+    @NonNull
+    private final String appNameString;
+
+    @NonNull
+    private final String jwtSubjectString;
+
+    public String generateDeviceToken(UUID deviceUid, Date createdAt, Date expiresAt) {
+        String token = Jwts.builder()
+                .issuer(appNameString)
+                .subject(jwtSubjectString)
+                .claim("deviceUid", deviceUid.toString())
+                .claim("type", "device_token")
+                .issuedAt(createdAt)
+                .expiration(expiresAt)
+                .signWith(jwtSecretKey)
+                .compact();
+        return token;
+    }
+
+    public DeviceTokenBLM getDeviceTokenBLM(String token) {
+        Jws<Claims> jws = Jwts.parser()
+                .verifyWith(jwtSecretKey)
+                .build()
+                .parseSignedClaims(token);
+
+        Claims claims = jws.getPayload();
+
+        UUID deviceUid = UUID.fromString(claims.get("deviceUid", String.class));
+        Date issuedAt = claims.getIssuedAt();
+        Date expiration = claims.getExpiration();
+
+        if (!jwtSubjectString.equals(claims.getSubject())) {
+            throw new RuntimeException("Invalid token subject");
+        }
+
+        if (!"device_token".equals(claims.get("type", String.class))) {
+            throw new RuntimeException("Invalid token type");
+        }
+
+        return DeviceTokenBLM.builder()
+                .token(token)
+                .deviceUid(deviceUid)
+                .createdAt(issuedAt)
+                .expiresAt(expiration)
+                .build();
+    }
+}// DeviceAccessTokenGenerator.java
+package com.connection.device.token.generator;
+
+import java.util.Date;
+import java.util.UUID;
+
+import javax.crypto.SecretKey;
+
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+public class DeviceAccessTokenGenerator {
+    @NonNull
+    private final SecretKey jwtSecretKey;
+
+    @NonNull
+    private final String appNameString;
+
+    @NonNull
+    private final String jwtSubjectString;
+
+    public String generateDeviceAccessToken(UUID deviceTokenUid, Date createdAt, Date expiresAt) {
+        String token = Jwts.builder()
+                .issuer(appNameString)
+                .subject(jwtSubjectString)
+                .claim("deviceTokenUid", deviceTokenUid.toString())
+                .claim("type", "device_access_token")
+                .issuedAt(createdAt)
+                .expiration(expiresAt)
+                .signWith(jwtSecretKey)
+                .compact();
+        return token;
+    }
+
+    public DeviceAccessTokenBLM getDeviceAccessTokenBLM(String token) {
+        Jws<Claims> jws = Jwts.parser()
+                .verifyWith(jwtSecretKey)
+                .build()
+                .parseSignedClaims(token);
+
+        Claims claims = jws.getPayload();
+
+        UUID deviceTokenUid = UUID.fromString(claims.get("deviceTokenUid", String.class));
+        Date issuedAt = claims.getIssuedAt();
+        Date expiration = claims.getExpiration();
+
+        if (!jwtSubjectString.equals(claims.getSubject())) {
+            throw new RuntimeException("Invalid token subject");
+        }
+
+        if (!"device_access_token".equals(claims.get("type", String.class))) {
+            throw new RuntimeException("Invalid token type");
+        }
+
+        return DeviceAccessTokenBLM.builder()
+                .token(token)
+                .deviceTokenUid(deviceTokenUid)
+                .createdAt(issuedAt)
+                .expiresAt(expiration)
+                .build();
+    }
+}// DeviceAccessTokenDALM.java
+package com.connection.device.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class DeviceAccessTokenDALM {
+    protected UUID uid;
+    protected UUID deviceTokenUid;
+    protected String token;
+    protected Date createdAt;
+    protected Date expiresAt;
+}// DeviceAccessTokenBLM.java
+package com.connection.device.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class DeviceAccessTokenBLM {
+    protected String token;
+    protected UUID uid;
+    protected UUID deviceTokenUid;
+    protected Date createdAt;
+    protected Date expiresAt;
+}// DeviceTokenBLM.java
+package com.connection.device.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class DeviceTokenBLM {
+    protected String token;
+    protected UUID uid;
+    protected UUID deviceUid;
+    protected Date createdAt;
+    protected Date expiresAt;
+}// DeviceAccessTokenDTO.java
+package com.connection.device.token.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class DeviceAccessTokenDTO {
+    protected String token;
+}// DeviceTokenDALM.java
+package com.connection.device.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class DeviceTokenDALM {
+    protected UUID uid;
+    protected UUID deviceUid;
+    protected String token;
+    protected Date createdAt;
+    protected Date expiresAt;
+}// DeviceTokenDTO.java
+package com.connection.device.token.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class DeviceTokenDTO {
+    protected String token;
+}// DeviceAccessTokenConverter.java
+package com.connection.device.token.converter;
+
+import com.connection.device.token.generator.DeviceAccessTokenGenerator;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenDALM;
+import com.connection.device.token.model.DeviceAccessTokenDTO;
+
+import io.jsonwebtoken.JwtException;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+public class DeviceAccessTokenConverter {
+    @NonNull
+    private final DeviceAccessTokenGenerator deviceTokenGenerator;
+
+    public DeviceAccessTokenBLM toBLM(DeviceAccessTokenDALM dalm) {
+        try {
+            String token = deviceTokenGenerator.generateDeviceAccessToken(
+                dalm.getDeviceTokenUid(), dalm.getCreatedAt(), dalm.getExpiresAt());
+            
+            return DeviceAccessTokenBLM.builder()
+                    .token(token)
+                    .uid(dalm.getUid())
+                    .deviceTokenUid(dalm.getDeviceTokenUid())
+                    .createdAt(dalm.getCreatedAt())
+                    .expiresAt(dalm.getExpiresAt())
+                    .build();
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid token parameters: " + e.getMessage(), e);
+        }
+    }
+
+    public DeviceAccessTokenBLM toBLM(DeviceAccessTokenDTO dto) {
+        try {
+            return deviceTokenGenerator.getDeviceAccessTokenBLM(dto.getToken());
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Malformed JWT token", e);
+        }
+    }
+
+    public DeviceAccessTokenDTO toDTO(DeviceAccessTokenBLM blm) {
+        return DeviceAccessTokenDTO.builder()
+                .token(blm.getToken())
+                .build();
+    }
+
+    public DeviceAccessTokenDALM toDALM(DeviceAccessTokenBLM blm) {
+        return DeviceAccessTokenDALM.builder()
+                .uid(blm.getUid())
+                .deviceTokenUid(blm.getDeviceTokenUid())
+                .token(blm.getToken())
+                .createdAt(blm.getCreatedAt())
+                .expiresAt(blm.getExpiresAt())
+                .build();
+    }
+}// DeviceTokenConverter.java
+package com.connection.device.token.converter;
+
+import com.connection.device.token.generator.DeviceTokenGenerator;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceTokenDALM;
+import com.connection.device.token.model.DeviceTokenDTO;
+
+import io.jsonwebtoken.JwtException;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+public class DeviceTokenConverter {
+    @NonNull
+    private final DeviceTokenGenerator deviceTokenGenerator;
+
+    public DeviceTokenBLM toBLM(DeviceTokenDALM dalm) {
+        try {
+            String token = deviceTokenGenerator.generateDeviceToken(
+                dalm.getDeviceUid(), dalm.getCreatedAt(), dalm.getExpiresAt());
+            
+            return DeviceTokenBLM.builder()
+                    .token(token)
+                    .uid(dalm.getUid())
+                    .deviceUid(dalm.getDeviceUid())
+                    .createdAt(dalm.getCreatedAt())
+                    .expiresAt(dalm.getExpiresAt())
+                    .build();
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid token parameters: " + e.getMessage(), e);
+        }
+    }
+
+    public DeviceTokenBLM toBLM(DeviceTokenDTO dto) {
+        try {
+            return deviceTokenGenerator.getDeviceTokenBLM(dto.getToken());
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Malformed JWT token", e);
+        }
+    }
+
+    public DeviceTokenDTO toDTO(DeviceTokenBLM blm) {
+        return DeviceTokenDTO.builder()
+                .token(blm.getToken())
+                .build();
+    }
+
+    public DeviceTokenDALM toDALM(DeviceTokenBLM blm) {
+        return DeviceTokenDALM.builder()
+                .uid(blm.getUid())
+                .deviceUid(blm.getDeviceUid())
+                .token(blm.getToken())
+                .createdAt(blm.getCreatedAt())
+                .expiresAt(blm.getExpiresAt())
+                .build();
+    }
+}// DeviceAccessTokenValidator.java
+package com.connection.device.token.validator;
+
+import java.util.Date;
+
+import com.connection.device.token.exception.DeviceAccessTokenValidateException;
+import com.connection.device.token.exception.DeviceTokenValidateException;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenDALM;
+import com.connection.device.token.model.DeviceAccessTokenDTO;
+
+public class DeviceAccessTokenValidator {
+    
+    private static final int MAX_TOKEN_LENGTH = 512;
+    
+    public void validate(DeviceAccessTokenDTO deviceToken) {
+        if (deviceToken == null) {
+            throw new DeviceAccessTokenValidateException("null", "Device access token is null");
+        }
+        validateToken(deviceToken.getToken());
+    }
+
+    public void validate(DeviceAccessTokenBLM deviceToken) {
+        if (deviceToken == null) {
+            throw new DeviceAccessTokenValidateException("null", "Device access token is null");
+        }
+        validateToken(deviceToken.getToken());
+        validateDeviceTokenUid(deviceToken.getDeviceTokenUid());
+        validateDates(deviceToken.getCreatedAt(), deviceToken.getExpiresAt());
+    }
+
+    public void validate(DeviceAccessTokenDALM deviceToken) {
+        if (deviceToken == null) {
+            throw new DeviceAccessTokenValidateException("null", "Device access token is null");
+        }
+        validateUid(deviceToken.getUid());
+        validateDeviceTokenUid(deviceToken.getDeviceTokenUid());
+        validateToken(deviceToken.getToken());
+        validateDates(deviceToken.getCreatedAt(), deviceToken.getExpiresAt());
+    }
+
+    private void validateToken(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new DeviceAccessTokenValidateException("", "Token cannot be empty");
+        }
+        if (token.length() > MAX_TOKEN_LENGTH) {
+            throw new DeviceAccessTokenValidateException("","Token exceeds maximum length of " + MAX_TOKEN_LENGTH + " characters");
+        }
+    }
+
+    private void validateUid(java.util.UUID uid) {
+        if (uid == null) {
+            throw new DeviceAccessTokenValidateException("","UID cannot be null");
+        }
+    }
+
+    private void validateDeviceTokenUid(java.util.UUID deviceTokenUid) {
+        if (deviceTokenUid == null) {
+            throw new DeviceAccessTokenValidateException("","Device token UID cannot be null");
+        }
+    }
+
+    private void validateDates(Date createdAt, Date expiresAt) {
+        if (createdAt == null) {
+            throw new DeviceAccessTokenValidateException("","Creation date cannot be null");
+        }
+        if (expiresAt == null) {
+            throw new DeviceAccessTokenValidateException("","Expiration date cannot be null");
+        }
+        
+        Date now = new Date();
+        
+        if (expiresAt.before(now)) {
+            throw new DeviceAccessTokenValidateException("","Token has already expired");
+        }
+        if (expiresAt.before(createdAt)) {
+            throw new DeviceAccessTokenValidateException("","Expiration date cannot be before creation date");
+        }
+        if (createdAt.after(now)){
+            throw new DeviceTokenValidateException("","Creation date cannot be before creation date");
+        }
+    }
+}// DeviceTokenValidator.java
+package com.connection.device.token.validator;
+
+import java.util.Date;
+
+import com.connection.device.token.exception.DeviceTokenValidateException;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceTokenDALM;
+import com.connection.device.token.model.DeviceTokenDTO;
+
+public class DeviceTokenValidator {
+    
+    private static final int MAX_TOKEN_LENGTH = 512;
+    
+    public void validate(DeviceTokenDTO deviceToken) {
+        if (deviceToken == null) {
+            throw new DeviceTokenValidateException("null", "Device token is null");
+        }
+        validateToken(deviceToken.getToken());
+    }
+
+    public void validate(DeviceTokenBLM deviceToken) {
+        if (deviceToken == null) {
+            throw new DeviceTokenValidateException("null", "Device token is null");
+        }
+        validateToken(deviceToken.getToken());
+        validateDeviceUid(deviceToken.getDeviceUid());
+        validateDates(deviceToken.getCreatedAt(), deviceToken.getExpiresAt());
+    }
+
+    public void validate(DeviceTokenDALM deviceToken) {
+        if (deviceToken == null) {
+            throw new DeviceTokenValidateException("null", "Device token is null");
+        }
+        validateUid(deviceToken.getUid());
+        validateDeviceUid(deviceToken.getDeviceUid());
+        validateToken(deviceToken.getToken());
+        validateDates(deviceToken.getCreatedAt(), deviceToken.getExpiresAt());
+    }
+
+    private void validateToken(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new DeviceTokenValidateException("","Token cannot be empty");
+        }
+        if (token.length() > MAX_TOKEN_LENGTH) {
+            throw new DeviceTokenValidateException("","Token exceeds maximum length of " + MAX_TOKEN_LENGTH + " characters");
+        }
+    }
+
+    private void validateUid(java.util.UUID uid) {
+        if (uid == null) {
+            throw new DeviceTokenValidateException("","UID cannot be null");
+        }
+    }
+
+    private void validateDeviceUid(java.util.UUID deviceUid) {
+        if (deviceUid == null) {
+            throw new DeviceTokenValidateException("","Device UID cannot be null");
+        }
+    }
+
+    private void validateDates(Date createdAt, Date expiresAt) {
+        if (createdAt == null) {
+            throw new DeviceTokenValidateException("","Creation date cannot be null");
+        }
+        if (expiresAt == null) {
+            throw new DeviceTokenValidateException("","Expiration date cannot be null");
+        }
+        
+        Date now = new Date();
+        
+        if (expiresAt.before(now)) {
+            throw new DeviceTokenValidateException("","Token has already expired");
+        }
+        if (expiresAt.before(createdAt)) {
+            throw new DeviceTokenValidateException("","Expiration date cannot be before creation date");
+        }
+        if (createdAt.after(now)){
+            throw new DeviceTokenValidateException("","Creation date cannot be before creation date");
+        }
+    }
+}// DeviceAccessTokenRepositorySQLImpl.java
+package com.connection.device.token.repository;
+
+import java.sql.Timestamp;
+import java.util.UUID;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.device.token.exception.DeviceAccessTokenExistsException;
+import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
+import com.connection.device.token.exception.DeviceTokenNotFoundException;
+import com.connection.device.token.model.DeviceAccessTokenDALM;
+
+@Repository
+public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepository {
+
+    private static final String SELECT_DEVICE_ACCESS_TOKEN = "SELECT uid, device_token_uid, token, created_at, expires_at";
+    private static final String FROM_DEVICE_ACCESS_TOKEN = " FROM access.device_access_token";
+
+    private static final String SELECT_TOKEN_BY_UID = SELECT_DEVICE_ACCESS_TOKEN + FROM_DEVICE_ACCESS_TOKEN + " WHERE uid = :uid";
+    private static final String SELECT_TOKEN_BY_TOKEN = SELECT_DEVICE_ACCESS_TOKEN + FROM_DEVICE_ACCESS_TOKEN + " WHERE token = :token";
+    private static final String SELECT_TOKEN_BY_DEVICE_TOKEN_UID = SELECT_DEVICE_ACCESS_TOKEN + FROM_DEVICE_ACCESS_TOKEN + " WHERE device_token_uid = :device_token_uid";
+
+    private static final String INSERT_DEVICE_ACCESS_TOKEN = "INSERT INTO access.device_access_token (uid, device_token_uid, token, created_at, expires_at) " +
+            "VALUES (:uid, :device_token_uid, :token, :created_at, :expires_at)";
+
+    private static final String REVOKE_TOKEN = "DELETE FROM access.device_access_token WHERE uid = :uid";
+    private static final String REVOKE_BY_DEVICE_TOKEN_UID = "DELETE FROM access.device_access_token WHERE device_token_uid = :device_token_uid";
+    private static final String CLEANUP_EXPIRED_TOKENS = "DELETE FROM access.device_access_token WHERE expires_at < NOW()";
+    private static final String HAS_ACTIVE_TOKEN = "SELECT COUNT(*) FROM access.device_access_token WHERE device_token_uid = :device_token_uid AND expires_at > NOW()";
+    private static final String DEVICE_TOKEN_EXISTS = "SELECT COUNT(*) FROM access.device_token WHERE uid = :device_token_uid";
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private final RowMapper<DeviceAccessTokenDALM> deviceAccessTokenRowMapper = (rs, rowNum) -> {
+        DeviceAccessTokenDALM token = new DeviceAccessTokenDALM();
+        token.setUid(UUID.fromString(rs.getString("uid")));
+        token.setDeviceTokenUid(UUID.fromString(rs.getString("device_token_uid")));
+        token.setToken(rs.getString("token"));
+        token.setCreatedAt(rs.getTimestamp("created_at"));
+        token.setExpiresAt(rs.getTimestamp("expires_at"));
+        return token;
+    };
+
+    public DeviceAccessTokenRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    @Transactional
+    public void add(DeviceAccessTokenDALM deviceAccessTokenDALM) throws DeviceAccessTokenExistsException {
+        // Проверяем существование device_token
+        if (!deviceTokenExists(deviceAccessTokenDALM.getDeviceTokenUid())) {
+            throw new DeviceTokenNotFoundException("Device token with UID " + deviceAccessTokenDALM.getDeviceTokenUid() + " not found");
+        }
+
+        // Проверяем, что нет активного токена для этого device_token_uid
+        if (hasDeviceAccessToken(deviceAccessTokenDALM.getDeviceTokenUid())) {
+            throw new DeviceAccessTokenExistsException("Device access token already exists for device token UID " + deviceAccessTokenDALM.getDeviceTokenUid());
+        }
+
+        // Проверяем существование по token
+        if (tokenExists(deviceAccessTokenDALM.getToken())) {
+            throw new DeviceAccessTokenExistsException("Device access token already exists");
+        }
+
+        // Проверяем существование по uid
+        if (uidExists(deviceAccessTokenDALM.getUid())) {
+            throw new DeviceAccessTokenExistsException("Device access token with UID " + deviceAccessTokenDALM.getUid() + " already exists");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", deviceAccessTokenDALM.getUid());
+        params.addValue("device_token_uid", deviceAccessTokenDALM.getDeviceTokenUid());
+        params.addValue("token", deviceAccessTokenDALM.getToken());
+        params.addValue("created_at", new Timestamp(deviceAccessTokenDALM.getCreatedAt().getTime()));
+        params.addValue("expires_at", new Timestamp(deviceAccessTokenDALM.getExpiresAt().getTime()));
+
+        jdbcTemplate.update(INSERT_DEVICE_ACCESS_TOKEN, params);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceAccessTokenDALM findByUid(UUID uid) throws DeviceAccessTokenNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_UID, params, deviceAccessTokenRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new DeviceAccessTokenNotFoundException("Device access token with UID " + uid + " not found");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceAccessTokenDALM findByToken(String token) throws DeviceAccessTokenNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("token", token);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_TOKEN, params, deviceAccessTokenRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new DeviceAccessTokenNotFoundException("Device access token not found");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceAccessTokenDALM findByDeviceTokenUid(UUID deviceTokenUid) throws DeviceAccessTokenNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_token_uid", deviceTokenUid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_DEVICE_TOKEN_UID, params, deviceAccessTokenRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new DeviceAccessTokenNotFoundException("Device access token for device token UID " + deviceTokenUid + " not found");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void revoke(UUID uid) throws DeviceAccessTokenNotFoundException {
+        // Проверяем существование токена
+        if (!uidExists(uid)) {
+            throw new DeviceAccessTokenNotFoundException("Device access token with UID " + uid + " not found");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+
+        jdbcTemplate.update(REVOKE_TOKEN, params);
+    }
+
+    @Override
+    @Transactional
+    public void revokeByDeviceTokenUid(UUID deviceTokenUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_token_uid", deviceTokenUid);
+
+        jdbcTemplate.update(REVOKE_BY_DEVICE_TOKEN_UID, params);
+    }
+
+    @Override
+    @Transactional
+    public void revokeAllExpired() {
+        jdbcTemplate.update(CLEANUP_EXPIRED_TOKENS, new MapSqlParameterSource());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasDeviceAccessToken(UUID deviceTokenUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_token_uid", deviceTokenUid);
+        Integer count = jdbcTemplate.queryForObject(HAS_ACTIVE_TOKEN, params, Integer.class);
+        return count != null && count > 0;
+    }
+
+    // Вспомогательные методы
+    @Transactional(readOnly = true)
+    boolean deviceTokenExists(UUID deviceTokenUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_token_uid", deviceTokenUid);
+        Integer count = jdbcTemplate.queryForObject(DEVICE_TOKEN_EXISTS, params, Integer.class);
+        return count != null && count > 0;
+    }
+
+    @Transactional(readOnly = true)
+    boolean uidExists(UUID uid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            jdbcTemplate.queryForObject(SELECT_TOKEN_BY_UID, params, deviceAccessTokenRowMapper);
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+
+    @Transactional(readOnly = true)
+    boolean tokenExists(String token) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("token", token);
+        try {
+            jdbcTemplate.queryForObject(SELECT_TOKEN_BY_TOKEN, params, deviceAccessTokenRowMapper);
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+}// DeviceAccessTokenRepository.java
+package com.connection.device.token.repository;
+
+import java.util.UUID;
+
+import com.connection.device.token.exception.DeviceAccessTokenExistsException;
+import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
+import com.connection.device.token.model.DeviceAccessTokenDALM;
+
+public interface DeviceAccessTokenRepository {
+    /**
+     * Добавить новый device access token
+     * 
+     * @param deviceAccessTokenDALM Новый токен
+     * @throws DeviceAccessTokenExistsException Если активный токен уже существует
+     */
+    void add(DeviceAccessTokenDALM deviceAccessTokenDALM) throws DeviceAccessTokenExistsException;
+
+    /**
+     * Найти токен по UID
+     * 
+     * @param uid UID токена
+     * @return Найденный токен
+     * @throws DeviceAccessTokenNotFoundException Если токен не найден
+     */
+    DeviceAccessTokenDALM findByUid(UUID uid) throws DeviceAccessTokenNotFoundException;
+
+    /**
+     * Найти токен по значению токена
+     * 
+     * @param token Значение токена
+     * @return Найденный токен
+     * @throws DeviceAccessTokenNotFoundException Если токен не найден
+     */
+    DeviceAccessTokenDALM findByToken(String token) throws DeviceAccessTokenNotFoundException;
+
+    /**
+     * Найти токен по UID device token
+     * 
+     * @param deviceTokenUid UID device token
+     * @return Найденный токен
+     * @throws DeviceAccessTokenNotFoundException Если токен не найден
+     */
+    DeviceAccessTokenDALM findByDeviceTokenUid(UUID deviceTokenUid) throws DeviceAccessTokenNotFoundException;
+
+    /**
+     * Отозвать токен по UID
+     * 
+     * @param uid UID токена
+     * @throws DeviceAccessTokenNotFoundException Если токен не найден
+     */
+    void revoke(UUID uid) throws DeviceAccessTokenNotFoundException;
+
+    /**
+     * Отозвать все токены по UID device token
+     * 
+     * @param deviceTokenUid UID device token
+     */
+    void revokeByDeviceTokenUid(UUID deviceTokenUid);
+
+    /**
+     * Отозвать все истекшие токены
+     */
+    void revokeAllExpired();
+
+    /**
+     * Проверить наличие активного токена для device token
+     * 
+     * @param deviceTokenUid UID device token
+     * @return true если активный токен существует
+     */
+    boolean hasDeviceAccessToken(UUID deviceTokenUid);
+}// DeviceTokenRepositorySQLImpl.java
+package com.connection.device.token.repository;
+
+import java.sql.Timestamp;
+import java.util.UUID;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.device.token.exception.DeviceTokenAlreadyExistsException;
+import com.connection.device.token.exception.DeviceTokenNotFoundException;
+import com.connection.device.token.model.DeviceTokenDALM;
+
+@Repository
+public class DeviceTokenRepositorySQLImpl implements DeviceTokenRepository {
+
+    private static final String SELECT_DEVICE_TOKEN = "SELECT uid, device_uid, token, created_at, expires_at";
+    private static final String FROM_DEVICE_TOKEN = " FROM access.device_token";
+
+    private static final String SELECT_TOKEN_BY_UID = SELECT_DEVICE_TOKEN + FROM_DEVICE_TOKEN + " WHERE uid = :uid";
+    private static final String SELECT_TOKEN_BY_TOKEN = SELECT_DEVICE_TOKEN + FROM_DEVICE_TOKEN + " WHERE token = :token";
+    private static final String SELECT_TOKEN_BY_DEVICE_UID = SELECT_DEVICE_TOKEN + FROM_DEVICE_TOKEN + " WHERE device_uid = :device_uid";
+
+    private static final String INSERT_DEVICE_TOKEN = "INSERT INTO access.device_token (uid, device_uid, token, created_at, expires_at) " +
+            "VALUES (:uid, :device_uid, :token, :created_at, :expires_at)";
+
+    private static final String UPDATE_TOKEN = "UPDATE access.device_token SET token = :token, expires_at = :expires_at " +
+            "WHERE uid = :uid";
+
+    private static final String REVOKE_TOKEN = "DELETE FROM access.device_token WHERE uid = :uid";
+    private static final String REVOKE_BY_DEVICE_UID = "DELETE FROM access.device_token WHERE device_uid = :device_uid";
+    private static final String CLEANUP_EXPIRED_TOKENS = "DELETE FROM access.device_token WHERE expires_at < NOW()";
+    private static final String EXISTS_BY_DEVICE_UID = "SELECT COUNT(*) FROM access.device_token WHERE device_uid = :device_uid AND expires_at > NOW()";
+    private static final String DEVICE_EXISTS = "SELECT COUNT(*) FROM core.device WHERE uid = :device_uid";
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private final RowMapper<DeviceTokenDALM> deviceTokenRowMapper = (rs, rowNum) -> {
+        DeviceTokenDALM token = new DeviceTokenDALM();
+        token.setUid(UUID.fromString(rs.getString("uid")));
+        token.setDeviceUid(UUID.fromString(rs.getString("device_uid")));
+        token.setToken(rs.getString("token"));
+        token.setCreatedAt(rs.getTimestamp("created_at"));
+        token.setExpiresAt(rs.getTimestamp("expires_at"));
+        return token;
+    };
+
+    public DeviceTokenRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    @Transactional
+    public void add(DeviceTokenDALM deviceTokenDALM) throws DeviceTokenAlreadyExistsException {
+        // Проверяем существование device
+        if (!deviceExists(deviceTokenDALM.getDeviceUid())) {
+            throw new IllegalArgumentException("Device with UID " + deviceTokenDALM.getDeviceUid() + " not found");
+        }
+
+        // Проверяем существование по token
+        if (tokenExists(deviceTokenDALM.getToken())) {
+            throw new DeviceTokenAlreadyExistsException("Device token already exists");
+        }
+
+        // Проверяем существование по uid
+        if (uidExists(deviceTokenDALM.getUid())) {
+            throw new DeviceTokenAlreadyExistsException("Device token with UID " + deviceTokenDALM.getUid() + " already exists");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", deviceTokenDALM.getUid());
+        params.addValue("device_uid", deviceTokenDALM.getDeviceUid());
+        params.addValue("token", deviceTokenDALM.getToken());
+        params.addValue("created_at", new Timestamp(deviceTokenDALM.getCreatedAt().getTime()));
+        params.addValue("expires_at", new Timestamp(deviceTokenDALM.getExpiresAt().getTime()));
+
+        jdbcTemplate.update(INSERT_DEVICE_TOKEN, params);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceTokenDALM findByUid(UUID uid) throws DeviceTokenNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_UID, params, deviceTokenRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new DeviceTokenNotFoundException("Device token with UID " + uid + " not found");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceTokenDALM findByToken(String token) throws DeviceTokenNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("token", token);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_TOKEN, params, deviceTokenRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new DeviceTokenNotFoundException("Device token not found");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceTokenDALM findByDeviceUid(UUID deviceUid) throws DeviceTokenNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_uid", deviceUid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_DEVICE_UID, params, deviceTokenRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new DeviceTokenNotFoundException("Device token for device UID " + deviceUid + " not found");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void revoke(UUID uid) throws DeviceTokenNotFoundException {
+        // Проверяем существование токена
+        if (!uidExists(uid)) {
+            throw new DeviceTokenNotFoundException("Device token with UID " + uid + " not found");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+
+        jdbcTemplate.update(REVOKE_TOKEN, params);
+    }
+
+    @Override
+    @Transactional
+    public void revokeByDeviceUid(UUID deviceUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_uid", deviceUid);
+
+        jdbcTemplate.update(REVOKE_BY_DEVICE_UID, params);
+    }
+
+    @Override
+    @Transactional
+    public void cleanUpExpired() {
+        jdbcTemplate.update(CLEANUP_EXPIRED_TOKENS, new MapSqlParameterSource());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsByDeviceUid(UUID deviceUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_uid", deviceUid);
+        Integer count = jdbcTemplate.queryForObject(EXISTS_BY_DEVICE_UID, params, Integer.class);
+        return count != null && count > 0;
+    }
+
+    // Вспомогательные методы
+    @Transactional(readOnly = true)
+    boolean deviceExists(UUID deviceUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_uid", deviceUid);
+        Integer count = jdbcTemplate.queryForObject(DEVICE_EXISTS, params, Integer.class);
+        return count != null && count > 0;
+    }
+
+    @Transactional(readOnly = true)
+    boolean uidExists(UUID uid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            jdbcTemplate.queryForObject(SELECT_TOKEN_BY_UID, params, deviceTokenRowMapper);
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+
+    @Transactional(readOnly = true)
+    boolean tokenExists(String token) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("token", token);
+        try {
+            jdbcTemplate.queryForObject(SELECT_TOKEN_BY_TOKEN, params, deviceTokenRowMapper);
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+}// DeviceTokenRepository.java
+package com.connection.device.token.repository;
+
+import java.util.UUID;
+
+import com.connection.device.token.exception.DeviceTokenAlreadyExistsException;
+import com.connection.device.token.exception.DeviceTokenNotFoundException;
+import com.connection.device.token.model.DeviceTokenDALM;
+
+public interface DeviceTokenRepository {
+    /**
+     * Добавить новый device token
+     * 
+     * @param deviceTokenDALM Новый токен
+     * @throws DeviceTokenAlreadyExistsException Если токен уже существует
+     */
+    void add(DeviceTokenDALM deviceTokenDALM) throws DeviceTokenAlreadyExistsException;
+
+    /**
+     * Найти токен по UID
+     * 
+     * @param uid UID токена
+     * @return Найденный токен
+     * @throws DeviceTokenNotFoundException Если токен не найден
+     */
+    DeviceTokenDALM findByUid(UUID uid) throws DeviceTokenNotFoundException;
+
+    /**
+     * Найти токен по значению токена
+     * 
+     * @param token Значение токена
+     * @return Найденный токен
+     * @throws DeviceTokenNotFoundException Если токен не найден
+     */
+    DeviceTokenDALM findByToken(String token) throws DeviceTokenNotFoundException;
+
+    /**
+     * Найти токен по UID устройства
+     * 
+     * @param deviceUid UID устройства
+     * @return Найденный токен
+     * @throws DeviceTokenNotFoundException Если токен не найден
+     */
+    DeviceTokenDALM findByDeviceUid(UUID deviceUid) throws DeviceTokenNotFoundException;
+
+    /**
+     * Отозвать токен по UID
+     * 
+     * @param uid UID токена
+     * @throws DeviceTokenNotFoundException Если токен не найден
+     */
+    void revoke(UUID uid) throws DeviceTokenNotFoundException;
+
+    /**
+     * Отозвать все токены устройства
+     * 
+     * @param deviceUid UID устройства
+     */
+    void revokeByDeviceUid(UUID deviceUid);
+
+    /**
+     * Очистить истекшие токены
+     */
+    void cleanUpExpired();
+
+    /**
+     * Проверить существование активного токена для устройства
+     * 
+     * @param deviceUid UID устройства
+     * @return true если активный токен существует
+     */
+    boolean existsByDeviceUid(UUID deviceUid);
+}package com.connection.device.token.mother;
+
+import java.util.Date;
+import java.util.UUID;
+
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenDALM;
+import com.connection.device.token.model.DeviceAccessTokenDTO;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceTokenDALM;
+import com.connection.device.token.model.DeviceTokenDTO;
+
+public class DeviceTokenObjectMother {
+
+    private static final UUID DEFAULT_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    private static final UUID DEFAULT_DEVICE_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
+    private static final UUID DEFAULT_DEVICE_TOKEN_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174002");
+    private static final String DEFAULT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token";
+    private static final Date DEFAULT_CREATED_AT = new Date(System.currentTimeMillis() - 3600000);
+    private static final Date DEFAULT_EXPIRES_AT = new Date(System.currentTimeMillis() + 3600000);
+
+    // DeviceToken objects
+    public static DeviceTokenDTO createValidDeviceTokenDTO() {
+        return DeviceTokenDTO.builder()
+                .token(DEFAULT_TOKEN)
+                .build();
+    }
+
+    public static DeviceTokenBLM createValidDeviceTokenBLM() {
+        return DeviceTokenBLM.builder()
+                .token(DEFAULT_TOKEN)
+                .uid(DEFAULT_UID)
+                .deviceUid(DEFAULT_DEVICE_UID)
+                .createdAt(DEFAULT_CREATED_AT)
+                .expiresAt(DEFAULT_EXPIRES_AT)
+                .build();
+    }
+
+    public static DeviceTokenDALM createValidDeviceTokenDALM() {
+        return DeviceTokenDALM.builder()
+                .uid(DEFAULT_UID)
+                .deviceUid(DEFAULT_DEVICE_UID)
+                .token(DEFAULT_TOKEN)
+                .createdAt(DEFAULT_CREATED_AT)
+                .expiresAt(DEFAULT_EXPIRES_AT)
+                .build();
+    }
+
+    public static DeviceTokenDTO createDeviceTokenDTOWithEmptyToken() {
+        return DeviceTokenDTO.builder()
+                .token("")
+                .build();
+    }
+
+    public static DeviceTokenBLM createDeviceTokenBLMWithExpiredToken() {
+        return DeviceTokenBLM.builder()
+                .token(DEFAULT_TOKEN)
+                .uid(DEFAULT_UID)
+                .deviceUid(DEFAULT_DEVICE_UID)
+                .createdAt(new Date(System.currentTimeMillis() - 7200000))
+                .expiresAt(new Date(System.currentTimeMillis() - 3600000))
+                .build();
+    }
+
+    public static DeviceTokenBLM createDeviceTokenBLMWithFutureCreationDate() {
+        return DeviceTokenBLM.builder()
+                .token(DEFAULT_TOKEN)
+                .uid(DEFAULT_UID)
+                .deviceUid(DEFAULT_DEVICE_UID)
+                .createdAt(new Date(System.currentTimeMillis() + 3600000))
+                .expiresAt(new Date(System.currentTimeMillis() + 7200000))
+                .build();
+    }
+
+    // DeviceAccessToken objects
+    public static DeviceAccessTokenDTO createValidDeviceAccessTokenDTO() {
+        return DeviceAccessTokenDTO.builder()
+                .token(DEFAULT_TOKEN)
+                .build();
+    }
+
+    public static DeviceAccessTokenBLM createValidDeviceAccessTokenBLM() {
+        return DeviceAccessTokenBLM.builder()
+                .token(DEFAULT_TOKEN)
+                .uid(DEFAULT_UID)
+                .deviceTokenUid(DEFAULT_DEVICE_TOKEN_UID)
+                .createdAt(DEFAULT_CREATED_AT)
+                .expiresAt(DEFAULT_EXPIRES_AT)
+                .build();
+    }
+
+    public static DeviceAccessTokenDALM createValidDeviceAccessTokenDALM() {
+        return DeviceAccessTokenDALM.builder()
+                .uid(DEFAULT_UID)
+                .deviceTokenUid(DEFAULT_DEVICE_TOKEN_UID)
+                .token(DEFAULT_TOKEN)
+                .createdAt(DEFAULT_CREATED_AT)
+                .expiresAt(DEFAULT_EXPIRES_AT)
+                .build();
+    }
+
+    public static DeviceAccessTokenDTO createDeviceAccessTokenDTOWithLongToken() {
+        return DeviceAccessTokenDTO.builder()
+                .token("a".repeat(513))
+                .build();
+    }
+
+    public static DeviceAccessTokenBLM createDeviceAccessTokenBLMWithInvalidDates() {
+        return DeviceAccessTokenBLM.builder()
+                .token(DEFAULT_TOKEN)
+                .uid(DEFAULT_UID)
+                .deviceTokenUid(DEFAULT_DEVICE_TOKEN_UID)
+                .createdAt(new Date(System.currentTimeMillis() + 3600000))
+                .expiresAt(new Date(System.currentTimeMillis() - 3600000))
+                .build();
+    }
+
+    // Helper methods
+    public static DeviceTokenDALM createDeviceTokenForDevice(UUID deviceUid) {
+        return DeviceTokenDALM.builder()
+                .uid(UUID.randomUUID())
+                .deviceUid(deviceUid)
+                .token("token_for_" + deviceUid)
+                .createdAt(DEFAULT_CREATED_AT)
+                .expiresAt(DEFAULT_EXPIRES_AT)
+                .build();
+    }
+
+    public static DeviceAccessTokenDALM createDeviceAccessTokenForDeviceToken(UUID deviceTokenUid) {
+        return DeviceAccessTokenDALM.builder()
+                .uid(UUID.randomUUID())
+                .deviceTokenUid(deviceTokenUid)
+                .token("access_token_for_" + deviceTokenUid)
+                .createdAt(DEFAULT_CREATED_AT)
+                .expiresAt(DEFAULT_EXPIRES_AT)
+                .build();
+    }
+}// DeviceAccessTokenRepositorySQLImpl.java
+package com.connection.device.token.repository;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.sql.Timestamp;
+import java.util.Date;
+import java.util.UUID;
+
+import com.connection.device.token.exception.DeviceAccessTokenExistsException;
+import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
+import com.connection.device.token.exception.DeviceTokenNotFoundException;
+import com.connection.device.token.model.DeviceAccessTokenDALM;
+
+@Repository
+public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepository {
+
+    private static final String SELECT_DEVICE_ACCESS_TOKEN = "SELECT uid, device_token_uid, token, created_at, expires_at";
+    private static final String FROM_DEVICE_ACCESS_TOKEN = " FROM access.device_access_token";
+
+    private static final String SELECT_TOKEN_BY_UID = SELECT_DEVICE_ACCESS_TOKEN + FROM_DEVICE_ACCESS_TOKEN + " WHERE uid = :uid";
+    private static final String SELECT_TOKEN_BY_TOKEN = SELECT_DEVICE_ACCESS_TOKEN + FROM_DEVICE_ACCESS_TOKEN + " WHERE token = :token";
+    private static final String SELECT_TOKEN_BY_DEVICE_TOKEN_UID = SELECT_DEVICE_ACCESS_TOKEN + FROM_DEVICE_ACCESS_TOKEN + " WHERE device_token_uid = :device_token_uid";
+
+    private static final String INSERT_DEVICE_ACCESS_TOKEN = "INSERT INTO access.device_access_token (uid, device_token_uid, token, created_at, expires_at) " +
+            "VALUES (:uid, :device_token_uid, :token, :created_at, :expires_at)";
+
+    private static final String REVOKE_TOKEN = "DELETE FROM access.device_access_token WHERE uid = :uid";
+    private static final String REVOKE_BY_DEVICE_TOKEN_UID = "DELETE FROM access.device_access_token WHERE device_token_uid = :device_token_uid";
+    private static final String CLEANUP_EXPIRED_TOKENS = "DELETE FROM access.device_access_token WHERE expires_at < NOW()";
+    private static final String HAS_ACTIVE_TOKEN = "SELECT COUNT(*) FROM access.device_access_token WHERE device_token_uid = :device_token_uid AND expires_at > NOW()";
+    private static final String DEVICE_TOKEN_EXISTS = "SELECT COUNT(*) FROM access.device_token WHERE uid = :device_token_uid";
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final DeviceTokenRepository deviceTokenRepository;
+
+    private final RowMapper<DeviceAccessTokenDALM> deviceAccessTokenRowMapper = (rs, rowNum) -> {
+        DeviceAccessTokenDALM token = new DeviceAccessTokenDALM();
+        token.setUid(UUID.fromString(rs.getString("uid")));
+        token.setDeviceTokenUid(UUID.fromString(rs.getString("device_token_uid")));
+        token.setToken(rs.getString("token"));
+        token.setCreatedAt(rs.getTimestamp("created_at"));
+        token.setExpiresAt(rs.getTimestamp("expires_at"));
+        return token;
+    };
+
+    public DeviceAccessTokenRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate, DeviceTokenRepository deviceTokenRepository) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.deviceTokenRepository = deviceTokenRepository;
+    }
+
+    @Override
+    @Transactional
+    public void add(DeviceAccessTokenDALM deviceAccessTokenDALM) throws DeviceAccessTokenExistsException {
+        // Проверяем существование device_token
+        if (!deviceTokenExists(deviceAccessTokenDALM.getDeviceTokenUid())) {
+            throw new DeviceTokenNotFoundException("Device token with UID " + deviceAccessTokenDALM.getDeviceTokenUid() + " not found");
+        }
+
+        // Проверяем, что нет активного токена для этого device_token_uid
+        if (hasDeviceAccessToken(deviceAccessTokenDALM.getDeviceTokenUid())) {
+            throw new DeviceAccessTokenExistsException("Device access token already exists for device token UID " + deviceAccessTokenDALM.getDeviceTokenUid());
+        }
+
+        // Проверяем существование по token
+        if (tokenExists(deviceAccessTokenDALM.getToken())) {
+            throw new DeviceAccessTokenExistsException("Device access token already exists");
+        }
+
+        // Проверяем существование по uid
+        if (uidExists(deviceAccessTokenDALM.getUid())) {
+            throw new DeviceAccessTokenExistsException("Device access token with UID " + deviceAccessTokenDALM.getUid() + " already exists");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", deviceAccessTokenDALM.getUid());
+        params.addValue("device_token_uid", deviceAccessTokenDALM.getDeviceTokenUid());
+        params.addValue("token", deviceAccessTokenDALM.getToken());
+        params.addValue("created_at", new Timestamp(deviceAccessTokenDALM.getCreatedAt().getTime()));
+        params.addValue("expires_at", new Timestamp(deviceAccessTokenDALM.getExpiresAt().getTime()));
+
+        jdbcTemplate.update(INSERT_DEVICE_ACCESS_TOKEN, params);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceAccessTokenDALM findByUid(UUID uid) throws DeviceAccessTokenNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_UID, params, deviceAccessTokenRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new DeviceAccessTokenNotFoundException("Device access token with UID " + uid + " not found");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceAccessTokenDALM findByToken(String token) throws DeviceAccessTokenNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("token", token);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_TOKEN, params, deviceAccessTokenRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new DeviceAccessTokenNotFoundException("Device access token not found");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceAccessTokenDALM findByDeviceTokenUid(UUID deviceTokenUid) throws DeviceAccessTokenNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_token_uid", deviceTokenUid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_DEVICE_TOKEN_UID, params, deviceAccessTokenRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new DeviceAccessTokenNotFoundException("Device access token for device token UID " + deviceTokenUid + " not found");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void revoke(UUID uid) throws DeviceAccessTokenNotFoundException {
+        // Проверяем существование токена
+        if (!uidExists(uid)) {
+            throw new DeviceAccessTokenNotFoundException("Device access token with UID " + uid + " not found");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+
+        jdbcTemplate.update(REVOKE_TOKEN, params);
+    }
+
+    @Override
+    @Transactional
+    public void revokeByDeviceTokenUid(UUID deviceTokenUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_token_uid", deviceTokenUid);
+
+        jdbcTemplate.update(REVOKE_BY_DEVICE_TOKEN_UID, params);
+    }
+
+    @Override
+    @Transactional
+    public void revokeAllExpired() {
+        jdbcTemplate.update(CLEANUP_EXPIRED_TOKENS, new MapSqlParameterSource());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasDeviceAccessToken(UUID deviceTokenUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_token_uid", deviceTokenUid);
+        Integer count = jdbcTemplate.queryForObject(HAS_ACTIVE_TOKEN, params, Integer.class);
+        return count != null && count > 0;
+    }
+
+    // Вспомогательные методы
+    @Transactional(readOnly = true)
+    boolean deviceTokenExists(UUID deviceTokenUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_token_uid", deviceTokenUid);
+        Integer count = jdbcTemplate.queryForObject(DEVICE_TOKEN_EXISTS, params, Integer.class);
+        return count != null && count > 0;
+    }
+
+    @Transactional(readOnly = true)
+    boolean uidExists(UUID uid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            jdbcTemplate.queryForObject(SELECT_TOKEN_BY_UID, params, deviceAccessTokenRowMapper);
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+
+    @Transactional(readOnly = true)
+    boolean tokenExists(String token) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("token", token);
+        try {
+            jdbcTemplate.queryForObject(SELECT_TOKEN_BY_TOKEN, params, deviceAccessTokenRowMapper);
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+}

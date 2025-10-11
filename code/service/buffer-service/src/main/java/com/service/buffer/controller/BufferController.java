@@ -2,7 +2,6 @@
 package com.service.buffer.controller;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -14,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.connection.processing.buffer.converter.BufferConverter;
@@ -35,6 +35,11 @@ public class BufferController {
     private final BufferService bufferService;
     private final BufferValidator bufferValidator;
     private final BufferConverter bufferConverter;
+
+    // Константы для пагинации по умолчанию
+    private static final int DEFAULT_OFFSET = 0;
+    private static final int DEFAULT_LIMIT = 50;
+    private static final int MAX_LIMIT = 1000;
 
     @PostMapping("/buffers")
     public ResponseEntity<BufferResponse> createBuffer(@RequestBody BufferDTO bufferDTO) {
@@ -58,12 +63,17 @@ public class BufferController {
     }
 
     @GetMapping("/buffers")
-    public ResponseEntity<BuffersListResponse> getBuffersByClient() {
-        log.info("Getting all buffers for client");
+    public ResponseEntity<BuffersListResponse> getBuffersByClient(
+            @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
+            @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+        log.info("Getting all buffers for client with offset: {}, limit: {}", offset, limit);
 
         UUID clientUid = SecurityUtils.getCurrentClientUid();
         List<BufferBLM> buffers = bufferService.getBuffersByClient(clientUid);
-        List<BufferDTO> bufferDTOs = buffers.stream()
+        
+        // Применяем пагинацию
+        List<BufferDTO> bufferDTOs = applyPagination(buffers, offset, limit)
+                .stream()
                 .map(bufferConverter::toDTO)
                 .collect(Collectors.toList());
 
@@ -71,12 +81,18 @@ public class BufferController {
     }
 
     @GetMapping("/buffers/device/{deviceUid}")
-    public ResponseEntity<BuffersListResponse> getBuffersByDevice(@PathVariable UUID deviceUid) {
-        log.info("Getting buffers for device: {}", deviceUid);
+    public ResponseEntity<BuffersListResponse> getBuffersByDevice(
+            @PathVariable UUID deviceUid,
+            @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
+            @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+        log.info("Getting buffers for device: {} with offset: {}, limit: {}", deviceUid, offset, limit);
 
         UUID clientUid = SecurityUtils.getCurrentClientUid();
         List<BufferBLM> buffers = bufferService.getBuffersByDevice(clientUid, deviceUid);
-        List<BufferDTO> bufferDTOs = buffers.stream()
+        
+        // Применяем пагинацию
+        List<BufferDTO> bufferDTOs = applyPagination(buffers, offset, limit)
+                .stream()
                 .map(bufferConverter::toDTO)
                 .collect(Collectors.toList());
 
@@ -84,12 +100,19 @@ public class BufferController {
     }
 
     @GetMapping("/buffers/scheme/{connectionSchemeUid}")
-    public ResponseEntity<BuffersListResponse> getBuffersByConnectionScheme(@PathVariable UUID connectionSchemeUid) {
-        log.info("Getting buffers for connection scheme: {}", connectionSchemeUid);
+    public ResponseEntity<BuffersListResponse> getBuffersByConnectionScheme(
+            @PathVariable UUID connectionSchemeUid,
+            @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
+            @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+        log.info("Getting buffers for connection scheme: {} with offset: {}, limit: {}", 
+                connectionSchemeUid, offset, limit);
 
         UUID clientUid = SecurityUtils.getCurrentClientUid();
         List<BufferBLM> buffers = bufferService.getBuffersByConnectionScheme(clientUid, connectionSchemeUid);
-        List<BufferDTO> bufferDTOs = buffers.stream()
+        
+        // Применяем пагинацию
+        List<BufferDTO> bufferDTOs = applyPagination(buffers, offset, limit)
+                .stream()
                 .map(bufferConverter::toDTO)
                 .collect(Collectors.toList());
 
@@ -134,7 +157,6 @@ public class BufferController {
         return ResponseEntity.noContent().build();
     }
 
-
     @DeleteMapping("/buffers/scheme/{connectionSchemeUid}")
     public ResponseEntity<Void> deleteBuffersByConnectionScheme(@PathVariable UUID connectionSchemeUid) {
         log.info("Deleting buffers for connection scheme: {}", connectionSchemeUid);
@@ -146,10 +168,35 @@ public class BufferController {
     }
 
     @GetMapping("/health")
-    public ResponseEntity<Map<String, Object>> healthCheck() {
+    public ResponseEntity<HealthResponse> healthCheck() {
         log.info("Health check: status: OK, service: buffer-service, timestamp: {}",
                 System.currentTimeMillis());
 
-        return ResponseEntity.ok().body(bufferService.getHealthStatus());
+        return ResponseEntity.ok().body(new HealthResponse(bufferService.getHealthStatus().toString()));
+    }
+
+    /**
+     * Применяет пагинацию к списку буферов
+     * 
+     * @param buffers полный список буферов
+     * @param offset смещение (начальная позиция)
+     * @param limit максимальное количество элементов
+     * @return пагинированный список буферов
+     */
+    private List<BufferBLM> applyPagination(List<BufferBLM> buffers, int offset, int limit) {
+        // Валидация параметров пагинации
+        if (offset < 0) {
+            offset = DEFAULT_OFFSET;
+        }
+        
+        if (limit <= 0 || limit > MAX_LIMIT) {
+            limit = DEFAULT_LIMIT;
+        }
+        
+        // Применяем пагинацию
+        return buffers.stream()
+                .skip(offset)
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 }

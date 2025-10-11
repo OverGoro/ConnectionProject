@@ -1,0 +1,170 @@
+package com.service.swagger;
+
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+@Data
+@Component
+@ConfigurationProperties(prefix = "swagger")
+public class SwaggerProperties {
+    
+    private Map<String, ServiceConfig> services;
+    
+    @Data
+    public static class ServiceConfig {
+        private String name;
+        private String url;
+        private String apiDocsPath = "/v3/api-docs";
+    }
+}package com.service.swagger;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ApiGatewayApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ApiGatewayApplication.class, args);
+    }
+}package com.service.swagger;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/gateway")
+@RequiredArgsConstructor
+public class HealthController {
+
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        log.info("API Gateway health check");
+        
+        Map<String, Object> healthStatus = new HashMap<>();
+        healthStatus.put("status", "UP");
+        healthStatus.put("service", "api-gateway");
+        healthStatus.put("timestamp", System.currentTimeMillis());
+        
+        return ResponseEntity.ok(healthStatus);
+    }
+
+    @GetMapping("/info")
+    public ResponseEntity<Map<String, Object>> info() {
+        Map<String, Object> info = new HashMap<>();
+        info.put("name", "API Gateway");
+        info.put("description", "Aggregates all microservice APIs");
+        info.put("version", "1.0.0");
+        
+        return ResponseEntity.ok(info);
+    }
+}package com.service.swagger;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Paths;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.servers.Server;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Map;
+
+@Slf4j
+@Configuration
+@RequiredArgsConstructor
+public class SwaggerAggregationConfig {
+
+    private final SwaggerProperties swaggerProperties;
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+
+    @Bean
+    public OpenAPI aggregatedOpenAPI(RestTemplate restTemplate, ObjectMapper objectMapper) {
+        OpenAPI aggregatedOpenAPI = new OpenAPI();
+        Paths aggregatedPaths = new Paths();
+        
+        // Set main info
+        aggregatedOpenAPI.info(new Info()
+                .title("API Gateway - All Microservices")
+                .description("Aggregated APIs from all microservices")
+                .version("1.0"));
+        
+        // Add servers
+        aggregatedOpenAPI.addServersItem(new Server().url("/").description("API Gateway"));
+        
+        // Aggregate from all services
+        for (Map.Entry<String, SwaggerProperties.ServiceConfig> entry : swaggerProperties.getServices().entrySet()) {
+            SwaggerProperties.ServiceConfig serviceConfig = entry.getValue();
+            
+            try {
+                String apiDocsUrl = serviceConfig.getUrl() + serviceConfig.getApiDocsPath();
+                log.info("Fetching OpenAPI docs from: {}", apiDocsUrl);
+                
+                // Get as string and parse manually
+                ResponseEntity<String> response = restTemplate.getForEntity(apiDocsUrl, String.class);
+                
+                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                    JsonNode apiDocs = objectMapper.readTree(response.getBody());
+                    
+                    // Extract and merge paths
+                    if (apiDocs.has("paths")) {
+                        JsonNode pathsNode = apiDocs.get("paths");
+                        pathsNode.fields().forEachRemaining(pathEntry -> {
+                            String path = pathEntry.getKey();
+                            JsonNode pathItem = pathEntry.getValue();
+                            
+                            try {
+                                // Convert JSON to PathItem object
+                                io.swagger.v3.oas.models.PathItem pathItemObj = 
+                                    objectMapper.convertValue(pathItem, io.swagger.v3.oas.models.PathItem.class);
+                                aggregatedPaths.addPathItem(path, pathItemObj);
+                                
+                                log.debug("Added path: {}", path);
+                            } catch (Exception e) {
+                                log.warn("Failed to convert path {}: {}", path, e.getMessage());
+                            }
+                        });
+                    }
+                    
+                    log.info("Successfully aggregated API from {}: {} paths", 
+                            serviceConfig.getName(), apiDocs.has("paths") ? apiDocs.get("paths").size() : 0);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch OpenAPI docs from {}: {}", serviceConfig.getName(), e.getMessage());
+            }
+        }
+        
+        aggregatedOpenAPI.setPaths(aggregatedPaths);
+                aggregatedOpenAPI.components(new Components()
+                        .addSecuritySchemes("bearerAuth", 
+                            new io.swagger.v3.oas.models.security.SecurityScheme()
+                                .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")));
+
+        log.info("Total aggregated paths: {}", aggregatedPaths.size());
+        
+        return aggregatedOpenAPI;
+    }
+}
