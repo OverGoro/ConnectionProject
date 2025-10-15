@@ -30,6 +30,42 @@ public class ConnectionSchemeUtilsConfig {
     ConnectionSchemeValidator connectionSchemeValidator(){
         return new ConnectionSchemeValidator();
     }
+}// SwaggerConfig.java
+package com.service.connectionscheme.config;
+
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@SecurityScheme(
+    name = "bearerAuth",
+    type = SecuritySchemeType.HTTP,
+    bearerFormat = "JWT",
+    scheme = "bearer"
+)
+public class SwaggerConfig {
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Connection Scheme Service API")
+                        .version("1.0")
+                        .description("API для управления схемами подключения"))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
+                .components(new Components()
+                        .addSecuritySchemes("bearerAuth", 
+                            new io.swagger.v3.oas.models.security.SecurityScheme()
+                                .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")));
+    }
 }// ConnectionSchemeRepositoryConfig.java
 package com.service.connectionscheme.config;
 
@@ -294,7 +330,8 @@ public class TransactionConfig {
         jtaTransactionManager.setUserTransaction(userTransactionManager());
         return jtaTransactionManager;
     }
-}package com.service.connectionscheme.config;
+}// SecurityConfig.java
+package com.service.connectionscheme.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -305,7 +342,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
 import com.service.connectionscheme.client.JwtKafkaAuthenticationFilter;
 
 import lombok.RequiredArgsConstructor;
@@ -316,12 +352,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final TypedAuthKafkaClient authKafkaClient;
+    private final JwtKafkaAuthenticationFilter jwtKafkaAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.disable()) // Отключаем CSRF для API
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui.html").permitAll()
@@ -329,17 +365,266 @@ public class SecurityConfig {
                         .requestMatchers("/api-docs/**").permitAll()
                         .requestMatchers("/webjars/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/connection-scheme-service/**").authenticated()
                         .requestMatchers("/api/connection-scheme-service/health").permitAll()
+                        .requestMatchers("/api/connection-scheme-service/**").authenticated()
                         .anyRequest().denyAll()
                 )
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
+}// GlobalExceptionHandler.java
+package com.service.connectionscheme.controller;
 
-    @Bean
-    public JwtKafkaAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtKafkaAuthenticationFilter(authKafkaClient);
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import com.connection.scheme.exception.ConnectionSchemeNotFoundException;
+import com.connection.scheme.exception.ConnectionSchemeValidateException;
+
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<?> handleSecurityException(SecurityException e) {
+        log.warn("Security exception: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse(
+                "invalid_authorization",
+                "Invalid or missing authorization header"));
+    }
+
+    @ExceptionHandler(ConnectionSchemeNotFoundException.class)
+    public ResponseEntity<?> handleConnectionSchemeNotFoundException(
+            ConnectionSchemeNotFoundException e) {
+        log.warn("Connection scheme not found: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(
+                "connection_scheme_not_found",
+                "Connection scheme not found"));
+    }
+
+    @ExceptionHandler(ConnectionSchemeValidateException.class)
+    public ResponseEntity<?> handleConnectionSchemeValidationException(
+            ConnectionSchemeValidateException e) {
+        log.warn("Connection scheme validation failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "validation_failed",
+                e.getMessage() != null ? e.getMessage() : "Invalid connection scheme data"));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handleGenericException(Exception e) {
+        log.error("Unexpected error occurred: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse(
+                "internal_server_error",
+                "An unexpected error occurred"));
+    }
+}// ErrorResponse.java
+package com.service.connectionscheme.controller;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class ErrorResponse {
+    private final String error;
+    private final String message;
+}// HealthResponse.java
+package com.service.connectionscheme.controller;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class HealthResponse {
+    private final String message;
+}// ConnectionSchemeResponse.java
+package com.service.connectionscheme.controller;
+
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class ConnectionSchemeResponse {
+    private final UUID schemeUid;
+}// ConnectionSchemesListResponse.java
+package com.service.connectionscheme.controller;
+
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+import java.util.List;
+
+@AllArgsConstructor
+@Getter
+public class ConnectionSchemesListResponse {
+    private final List<ConnectionSchemeDTO> schemes;
+    private final PaginationInfo pagination;
+
+    @AllArgsConstructor
+    @Getter
+    public static class PaginationInfo {
+        private final int offset;
+        private final int limit;
+        private final int totalCount;
+        private final boolean hasMore;
+    }
+}// ConnectionSchemeController.java
+package com.service.connectionscheme.controller;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.scheme.converter.ConnectionSchemeConverter;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+import com.connection.scheme.validator.ConnectionSchemeValidator;
+import com.service.connectionscheme.ConnectionSchemeService;
+import com.service.connectionscheme.config.SecurityUtils;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/connection-scheme-service")
+public class ConnectionSchemeController {
+    
+    private final ConnectionSchemeService connectionSchemeService;
+    private final ConnectionSchemeValidator schemeValidator;
+    private final ConnectionSchemeConverter schemeConverter;
+
+    // Константы для пагинации по умолчанию
+    private static final int DEFAULT_OFFSET = 0;
+    private static final int DEFAULT_LIMIT = 50;
+    private static final int MAX_LIMIT = 1000;
+
+    @PostMapping("/schemes")
+    public ResponseEntity<ConnectionSchemeResponse> createScheme(@RequestBody ConnectionSchemeDTO schemeDTO) {
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Creating connection scheme for client {}", clientUid);
+
+        schemeValidator.validate(schemeDTO);
+        ConnectionSchemeBLM scheme = connectionSchemeService.createScheme(clientUid, schemeDTO);
+
+        return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
+    }
+
+    @GetMapping("/schemes/{schemeUid}")
+    public ResponseEntity<ConnectionSchemeResponse> getScheme(@PathVariable UUID schemeUid) {
+        log.info("Getting connection scheme: {}", schemeUid);
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        ConnectionSchemeBLM scheme = connectionSchemeService.getSchemeByUid(clientUid, schemeUid);
+
+        return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
+    }
+
+    @GetMapping("/schemes")
+    public ResponseEntity<ConnectionSchemesListResponse> getSchemesByClient(
+            @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
+            @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+        
+        log.info("Getting all connection schemes for client with offset: {}, limit: {}", offset, limit);
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        List<ConnectionSchemeBLM> allSchemes = connectionSchemeService.getSchemesByClient(clientUid);
+        
+        // Применяем пагинацию
+        List<ConnectionSchemeBLM> paginatedSchemes = applyPagination(allSchemes, offset, limit);
+        List<ConnectionSchemeDTO> schemeDTOs = paginatedSchemes.stream()
+                .map(schemeConverter::toDTO)
+                .collect(Collectors.toList());
+
+        // Создаем информацию о пагинации
+        ConnectionSchemesListResponse.PaginationInfo paginationInfo = 
+            new ConnectionSchemesListResponse.PaginationInfo(
+                offset, 
+                limit, 
+                allSchemes.size(), 
+                (offset + limit) < allSchemes.size()
+            );
+
+        return ResponseEntity.ok(new ConnectionSchemesListResponse(schemeDTOs, paginationInfo));
+    }
+
+    @PutMapping("/schemes/{schemeUid}")
+    public ResponseEntity<ConnectionSchemeResponse> updateScheme(
+            @PathVariable UUID schemeUid,
+            @RequestBody ConnectionSchemeDTO schemeDTO) {
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Updating connection scheme: {} for client: {}", schemeUid, clientUid);
+
+        schemeValidator.validate(schemeDTO);
+        ConnectionSchemeBLM scheme = connectionSchemeService.updateScheme(clientUid, schemeUid, schemeDTO);
+
+        return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
+    }
+
+    @DeleteMapping("/schemes/{schemeUid}")
+    public ResponseEntity<Void> deleteScheme(@PathVariable UUID schemeUid) {
+        log.info("Deleting connection scheme: {}", schemeUid);
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        connectionSchemeService.deleteScheme(clientUid, schemeUid);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<HealthResponse> healthCheck() {
+        log.info("Health check: status: OK, service: connection-scheme-service, timestamp: {}", 
+                System.currentTimeMillis());
+                
+        return ResponseEntity.ok().body(new HealthResponse(connectionSchemeService.getHealthStatus().toString()));
+    }
+
+    /**
+     * Применяет пагинацию к списку схем подключения
+     * 
+     * @param schemes полный список схем подключения
+     * @param offset смещение (начальная позиция)
+     * @param limit максимальное количество элементов
+     * @return пагинированный список схем подключения
+     */
+    private List<ConnectionSchemeBLM> applyPagination(List<ConnectionSchemeBLM> schemes, int offset, int limit) {
+        // Валидация параметров пагинации
+        if (offset < 0) {
+            offset = DEFAULT_OFFSET;
+        }
+        
+        if (limit <= 0 || limit > MAX_LIMIT) {
+            limit = DEFAULT_LIMIT;
+        }
+        
+        // Применяем пагинацию
+        return schemes.stream()
+                .skip(offset)
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 }package com.service.connectionscheme;
 
@@ -910,111 +1195,6 @@ public interface ConnectionSchemeService {
     void deleteScheme(UUID clientUuid, UUID schemeUid);
     boolean schemeExists(UUID clientUuid, UUID schemeUid);
     Map<String, Object> getHealthStatus();
-}// ConnectionSchemeController.java
-package com.service.connectionscheme;
-
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.connection.scheme.model.ConnectionSchemeBLM;
-import com.connection.scheme.model.ConnectionSchemeDTO;
-import com.service.connectionscheme.config.SecurityUtils;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
-@RestController
-@RequiredArgsConstructor
-@RequestMapping("/api/connection-scheme-service")
-public class ConnectionSchemeController {
-    
-    private final ConnectionSchemeService connectionSchemeService;
-
-    @PostMapping("/schemes")
-    public ResponseEntity<ConnectionSchemeBLM> createScheme(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @RequestBody ConnectionSchemeDTO schemeDTO) {
-        
-        log.info("Creating connection scheme for client");
-
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        
-        ConnectionSchemeBLM scheme = connectionSchemeService.createScheme(clientUid, schemeDTO);
-        return ResponseEntity.ok(scheme);
-    }
-
-    @GetMapping("/schemes/{schemeUid}")
-    public ResponseEntity<ConnectionSchemeBLM> getScheme(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable UUID schemeUid) {
-        
-        
-        log.info("Getting connection scheme: {}", schemeUid);
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        
-        ConnectionSchemeBLM scheme = connectionSchemeService.getSchemeByUid(clientUid, schemeUid);
-        return ResponseEntity.ok(scheme);
-    }
-
-    @GetMapping("/schemes")
-    public ResponseEntity<List<ConnectionSchemeBLM>> getSchemesByClient(
-            @RequestHeader("Authorization") String authorizationHeader) {
-        
-        
-        log.info("Getting all connection schemes for client");
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        
-        List<ConnectionSchemeBLM> schemes = connectionSchemeService.getSchemesByClient(clientUid);
-        return ResponseEntity.ok(schemes);
-    }
-
-    @PutMapping("/schemes/{schemeUid}")
-    public ResponseEntity<ConnectionSchemeBLM> updateScheme(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable UUID schemeUid,
-            @RequestBody ConnectionSchemeDTO schemeDTO) {
-        
-        
-        log.info("Updating connection scheme: {}", schemeUid);
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        
-        ConnectionSchemeBLM scheme = connectionSchemeService.updateScheme(clientUid, schemeUid, schemeDTO);
-        return ResponseEntity.ok(scheme);
-    }
-
-    @DeleteMapping("/schemes/{schemeUid}")
-    public ResponseEntity<Void> deleteScheme(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable UUID schemeUid) {
-        
-        
-        log.info("Deleting connection scheme: {}", schemeUid);
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        
-        connectionSchemeService.deleteScheme(clientUid, schemeUid);
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/health")
-    public ResponseEntity<?> healthCheck() {
-        log.info("Health check: status: OK, service: connection-scheme-service, timestamp: {}", 
-                System.currentTimeMillis());
-                
-        return ResponseEntity.ok().body(connectionSchemeService.getHealthStatus());
-    }
-
 }package com.service.connectionscheme.mother;
 
 import java.util.Arrays;

@@ -14,18 +14,15 @@ import com.connection.common.events.Command;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class GetBuffersByDeviceUidCommand extends Command {
-    private final UUID clientUid;
     private final UUID deviceUid;
     
     public GetBuffersByDeviceUidCommand() {
         super(BufferEventConstants.COMMAND_GET_BUFFERS_BY_DEVICE_UID, "unknown", BufferEventConstants.BUFFER_RESPONSES_TOPIC);
         this.deviceUid = null;
-        this.clientUid = null;
     }
     
-    public GetBuffersByDeviceUidCommand(UUID clientUid, UUID deviceUid, String sourceService) {
+    public GetBuffersByDeviceUidCommand(UUID deviceUid, String sourceService) {
         super(BufferEventConstants.COMMAND_GET_BUFFERS_BY_DEVICE_UID, sourceService, BufferEventConstants.BUFFER_RESPONSES_TOPIC);
         this.deviceUid = deviceUid;
-        this.clientUid = clientUid;
     }
 }

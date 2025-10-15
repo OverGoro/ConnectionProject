@@ -1,6 +1,6 @@
-// DeviceAuthController.java
 package com.service.device.auth.controller;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.util.Pair;
@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/device-auth")
+@RequestMapping("/api/v1/")
 public class DeviceAuthController {
     
     private final DeviceAuthService deviceAuthService;
@@ -48,10 +48,18 @@ public class DeviceAuthController {
     }
 
     @GetMapping("/device-token")
-    public ResponseEntity<DeviceTokenResponse> getDeviceToken(@RequestParam UUID deviceUid) {
-        log.info("Getting device token for device: {}", deviceUid);
+    public ResponseEntity<DeviceTokenResponse> getDeviceToken(
+            @RequestParam(required = false) UUID deviceUid) {
         
-        DeviceTokenBLM deviceToken = deviceAuthService.getDeviceToken(deviceUid);
+        DeviceTokenBLM deviceToken;
+        
+        if (deviceUid != null) {
+            log.info("Getting device token for device: {}", deviceUid);
+            deviceToken = deviceAuthService.getDeviceToken(deviceUid);
+        } else {
+            log.warn("No valid parameters provided for getting device token");
+            return ResponseEntity.badRequest().build();
+        }
         
         return ResponseEntity.ok(new DeviceTokenResponse(
             deviceToken.getToken(),
@@ -61,10 +69,24 @@ public class DeviceAuthController {
     }
 
     @DeleteMapping("/device-token")
-    public ResponseEntity<Void> revokeDeviceToken(@RequestParam UUID deviceUid) {
-        log.info("Revoking device token for device: {}", deviceUid);
+    public ResponseEntity<Void> revokeDeviceToken(
+            @RequestParam(required = false) List<UUID> deviceUids,
+            @RequestParam(required = false) UUID deviceUid) {
         
-        deviceAuthService.revokeDeviceToken(deviceUid);
+        if (deviceUids != null && !deviceUids.isEmpty()) {
+            // Массовое удаление токенов по deviceUids
+            log.info("Revoking device tokens for devices: {}", deviceUids);
+            for (UUID uid : deviceUids) {
+                deviceAuthService.revokeDeviceToken(uid);
+            }
+        } else if (deviceUid != null) {
+            // Удаление токена по deviceUid
+            log.info("Revoking device token for device: {}", deviceUid);
+            deviceAuthService.revokeDeviceToken(deviceUid);
+        } else {
+            log.warn("No valid parameters provided for revoking device token");
+            return ResponseEntity.badRequest().build();
+        }
         
         return ResponseEntity.ok().build();
     }
@@ -97,48 +119,29 @@ public class DeviceAuthController {
         ));
     }
 
-    @GetMapping("/validate/device-token")
-    public ResponseEntity<ValidationResponse> validateDeviceToken(@RequestParam String deviceToken) {
-        log.info("Validating device token");
+    @PostMapping("/validate")
+    public ResponseEntity<ValidationResponse> validateToken(
+            @RequestParam(required = false) String deviceToken,
+            @RequestParam(required = false) String accessToken) {
         
-        DeviceTokenDTO deviceTokenDTO = new DeviceTokenDTO(deviceToken);
-        DeviceTokenBLM deviceTokenBLM = deviceTokenConverter.toBLM(deviceTokenDTO);
-        deviceAuthService.validateDeviceToken(deviceTokenBLM);
-        
-        return ResponseEntity.ok(new ValidationResponse("VALID"));
-    }
-
-    @GetMapping("/validate/access-token")
-    public ResponseEntity<ValidationResponse> validateAccessToken(@RequestParam String accessToken) {
-        log.info("Validating device access token");
-        
-        DeviceAccessTokenDTO accessTokenDTO = new DeviceAccessTokenDTO(accessToken);
-        DeviceAccessTokenBLM accessTokenBLM = deviceAccessTokenConverter.toBLM(accessTokenDTO);
-        deviceAuthService.validateDeviceAccessToken(accessTokenBLM);
-        
-        return ResponseEntity.ok(new ValidationResponse("VALID"));
-    }
-
-    @GetMapping("/extract/device-uid/device-token")
-    public ResponseEntity<UUID> extractDeviceUidFromDeviceToken(@RequestParam String deviceToken) {
-        log.info("Extracting device UID from device token");
-        
-        DeviceTokenDTO deviceTokenDTO = new DeviceTokenDTO(deviceToken);
-        DeviceTokenBLM deviceTokenBLM = deviceTokenConverter.toBLM(deviceTokenDTO);
-        UUID deviceUid = deviceAuthService.extractDeviceUidFromToken(deviceTokenBLM);
-        
-        return ResponseEntity.ok(deviceUid);
-    }
-
-    @GetMapping("/extract/device-uid/access-token")
-    public ResponseEntity<UUID> extractDeviceUidFromAccessToken(@RequestParam String accessToken) {
-        log.info("Extracting device UID from access token");
-        
-        DeviceAccessTokenDTO accessTokenDTO = new DeviceAccessTokenDTO(accessToken);
-        DeviceAccessTokenBLM accessTokenBLM = deviceAccessTokenConverter.toBLM(accessTokenDTO);
-        UUID deviceUid = deviceAuthService.extractDeviceUidFromAccessToken(accessTokenBLM);
-        
-        return ResponseEntity.ok(deviceUid);
+        if (deviceToken != null) {
+            log.info("Validating device token");
+            DeviceTokenDTO deviceTokenDTO = new DeviceTokenDTO(deviceToken);
+            DeviceTokenBLM deviceTokenBLM = deviceTokenConverter.toBLM(deviceTokenDTO);
+            deviceAuthService.validateDeviceToken(deviceTokenBLM);
+            return ResponseEntity.ok(new ValidationResponse("DEVICE_TOKEN_VALID"));
+            
+        } else if (accessToken != null) {
+            log.info("Validating device access token");
+            DeviceAccessTokenDTO accessTokenDTO = new DeviceAccessTokenDTO(accessToken);
+            DeviceAccessTokenBLM accessTokenBLM = deviceAccessTokenConverter.toBLM(accessTokenDTO);
+            deviceAuthService.validateDeviceAccessToken(accessTokenBLM);
+            return ResponseEntity.ok(new ValidationResponse("ACCESS_TOKEN_VALID"));
+            
+        } else {
+            log.warn("No valid parameters provided for token validation");
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping("/health")

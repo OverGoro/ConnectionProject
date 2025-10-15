@@ -1,0 +1,620 @@
+package com.connection.client.exception;
+
+public class ClientAddException extends BaseClientException{
+    public ClientAddException(String clientString){
+        super(clientString);
+    }
+
+    public String toString(){
+        String res = super.toString();
+        res += "\n" + "description: cannot add client";
+        return res;
+    }
+}
+package com.connection.client.exception;
+
+public class BaseClientException extends RuntimeException{
+    private final String clientString;
+
+    public BaseClientException(String clientDescription){
+        super("client");
+        clientString = clientDescription;
+    }
+
+    public String toString(){
+        String res = super.toString();
+        res += "\n" + "client: " + clientString;
+        return res;
+    }
+}
+package com.connection.client.exception;
+
+public class ClientNotFoundException extends BaseClientException {
+    public ClientNotFoundException(String clientString) {
+        super(clientString);
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: client not found";
+        return res;
+    }
+}
+package com.connection.client.exception;
+
+public class ClientAlreadyExisistsException extends BaseClientException{
+    private final String descriptionString = "client already exists";
+    public ClientAlreadyExisistsException(String clientString){
+        super(clientString);
+    }
+
+    public String toString(){
+        String res = super.toString();
+        res += "\n" + "description: " + descriptionString;
+        return res;
+    }
+}
+package com.connection.client.exception;
+
+public class ClientValidateException extends BaseClientException{
+    String descriptionString;
+    public ClientValidateException(String clientString, String description){
+        super(clientString);
+        this.descriptionString = description;
+    }
+
+    public String toString(){
+        String res = super.toString();
+        res += "\n" + "description: client is invalid";
+        res += "\n" + descriptionString;
+        return res;
+    }
+}
+package com.connection.client.model;
+
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class ClientDALM {
+    protected UUID uid;
+    protected Date birthDate;
+    protected String email;
+    protected String password;
+    protected String username;
+}
+
+package com.connection.client.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class ClientDTO {
+    protected UUID uid;
+    protected Date birthDate;
+    protected String email;
+    protected String password;
+    protected String username;
+}
+package com.connection.client.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class ClientBLM {
+    protected UUID uid;
+    protected Date birthDate;
+    protected String email;
+    protected String password;
+    protected String username;
+}
+package com.connection.client.converter;
+
+import org.springframework.stereotype.Component;
+
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDALM;
+import com.connection.client.model.ClientDTO;
+
+import lombok.RequiredArgsConstructor;
+
+@Component
+@RequiredArgsConstructor
+public class ClientConverter {
+    public ClientBLM toBLM(ClientDTO dto){
+        return new ClientBLM(dto.getUid(), dto.getBirthDate(), dto.getEmail(), dto.getPassword(), dto.getUsername());
+    }
+    public ClientBLM toBLM(ClientDALM dalm){
+        return new ClientBLM(dalm.getUid(), dalm.getBirthDate(), dalm.getEmail(), dalm.getPassword(), dalm.getUsername());
+    }
+    public ClientDTO toDTO(ClientBLM blm){
+        return new ClientDTO(blm.getUid(), blm.getBirthDate(), blm.getEmail(), blm.getPassword(), blm.getUsername());
+    }
+    public ClientDALM toDALM(ClientBLM blm){
+        return new ClientDALM(blm.getUid(), blm.getBirthDate(), blm.getEmail(), blm.getPassword(), blm.getUsername());
+    }
+    
+}
+package com.connection.client.validator;
+
+import com.connection.client.exception.ClientValidateException;
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDALM;
+import com.connection.client.model.ClientDTO;
+
+import java.util.Date;
+import java.util.regex.Pattern;
+import java.util.UUID;
+
+public class ClientValidator {
+
+    private final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+    private final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_]{3,20}$");
+    private final Pattern PASSWORD_PATTERN = Pattern
+            .compile("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=\\S+$).{6,}$");
+
+    public void validate(ClientDTO client) {
+        if (client == null) {
+            throw new ClientValidateException("null", "Client cannot be null");
+        }
+        try {
+            validateUid(client.getUid());
+            validateEmail(client.getEmail());
+            validateUsername(client.getUsername());
+            validatePassword(client.getPassword());
+            validateBirthDate(client.getBirthDate());
+        } catch (IllegalArgumentException e) {
+            if (client.getUid() != null)
+                throw new ClientValidateException(client.getUid().toString(), e.getMessage());
+            else
+                throw new ClientValidateException("null", e.getMessage());
+        }
+    }
+
+    public void validate(ClientBLM client) {
+        if (client == null) {
+            throw new ClientValidateException("null", "Client cannot be null.");
+        }
+        try {
+            validateUid(client.getUid());
+            validateEmail(client.getEmail());
+            validateUsername(client.getUsername());
+            validatePassword(client.getPassword());
+            validateBirthDate(client.getBirthDate());
+        } catch (IllegalArgumentException e) {
+            if (client.getUid() != null)
+                throw new ClientValidateException(client.getUid().toString(), e.getMessage());
+            else
+                throw new ClientValidateException("null", e.getMessage());
+        }
+    }
+
+    public void validate(ClientDALM client) {
+        if (client == null) {
+            throw new ClientValidateException("null", "Client cannot be null");
+        }
+        try {
+            validateUid(client.getUid());
+            validateEmail(client.getEmail());
+            validateUsername(client.getUsername());
+            validatePassword(client.getPassword());
+            // validateBirthDate(client.getBirthDate());
+        } catch (IllegalArgumentException e) {
+            if (client.getUid() != null)
+                throw new ClientValidateException(client.getUid().toString(), e.getMessage());
+            else
+                throw new ClientValidateException("null", e.getMessage());
+        }
+
+    }
+
+    public void validateUid(UUID uid) {
+        if (uid == null) {
+            throw new IllegalArgumentException("Client UID cannot be null");
+        }
+    }
+
+    public void validateEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email cannot be empty");
+        }
+        if (email.length() > 255) {
+            throw new IllegalArgumentException("Email too long (max 255 chars)");
+        }
+        // if (!EMAIL_PATTERN.matcher(email).matches()) {
+        //     throw new IllegalArgumentException("Invalid email format");
+        // }
+    }
+
+    public void validateUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be empty");
+        }
+        if (username.length() < 3) {
+            throw new IllegalArgumentException("Username too short (min 3 chars)");
+        }
+        if (username.length() > 20) {
+            throw new IllegalArgumentException("Username too long (max 20 chars)");
+        }
+        // if (!USERNAME_PATTERN.matcher(username).matches()) {
+        //     throw new IllegalArgumentException("Username can only contain letters, numbers and underscores");
+        // }
+    }
+
+    public void validatePassword(String password) {
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("Password cannot be empty");
+        }
+        if (password.length() < 6) {
+            throw new IllegalArgumentException("Password too short (min 6 chars)");
+        }
+        if (password.length() > 100) {
+            throw new IllegalArgumentException("Password too long (max 100 chars)");
+        }
+        // if (!PASSWORD_PATTERN.matcher(password).matches()) {
+        //     throw new IllegalArgumentException(
+        //             "Password must contain at least one digit, one lowercase and one uppercase letter");
+        // }
+    }
+
+    public void validateBirthDate(Date birthDate) {
+        if (birthDate != null) {
+            Date now = new Date();
+
+            // Проверка что дата рождения не в будущем
+            if (birthDate.after(now)) {
+                throw new IllegalArgumentException("Birth date cannot be in the future");
+            }
+        }
+    }
+}package com.connection.client.repository;
+
+import java.util.UUID;
+
+import com.connection.client.exception.ClientAlreadyExisistsException;
+import com.connection.client.exception.ClientNotFoundException;
+import com.connection.client.model.ClientDALM;
+
+public interface ClientRepository {
+    public void add(ClientDALM clientDALM)
+            throws ClientAlreadyExisistsException;
+
+    public ClientDALM findByUid(UUID uuid)
+            throws ClientNotFoundException;
+
+    public ClientDALM findByEmail(String emailString)
+            throws ClientNotFoundException;
+
+    public ClientDALM findByUsername(String usernameString)
+            throws ClientNotFoundException;
+
+    public ClientDALM findByEmailPassword(String emailString, String passwordString)
+            throws ClientNotFoundException;
+
+    public ClientDALM findByUsernamePassword(String usernameString, String passwordString)
+            throws ClientNotFoundException;
+    
+    public void deleteByUid(UUID uuid)
+        throws ClientNotFoundException;
+    
+}
+package com.connection.client.repository;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import java.sql.Date;
+import java.util.UUID;
+
+import com.connection.client.exception.ClientAlreadyExisistsException;
+import com.connection.client.exception.ClientNotFoundException;
+import com.connection.client.model.ClientDALM;
+
+import org.springframework.transaction.annotation.Transactional;
+
+public class ClientRepositorySQLImpl implements ClientRepository {
+
+    private static final String SELECT_CLIENT = "SELECT uid, email, birth_date, username, password";
+
+    private static final String SELECT_CLIENT_BY_UID = SELECT_CLIENT +
+            " FROM core.client WHERE uid = :uid";
+
+    private static final String SELECT_CLIENT_BY_EMAIL = SELECT_CLIENT +
+            " FROM core.client WHERE email = :email";
+
+    private static final String SELECT_CLIENT_BY_USERNAME = SELECT_CLIENT +
+            " FROM core.client WHERE username = :username";
+
+    private static final String SELECT_CLIENT_BY_EMAIL_PASSWORD = SELECT_CLIENT +
+            " FROM core.client WHERE email = :email AND password = :password";
+
+    private static final String SELECT_CLIENT_BY_USERNAME_PASSWORD = SELECT_CLIENT +
+            " FROM core.client WHERE username = :username AND password = :password";
+
+    private static final String INSERT_CLIENT = "INSERT INTO core.client (uid, email, birth_date, username, password) "
+            +
+            "VALUES (:uid, :email, :birth_date, :username, :password)";
+
+    private static final String DELETE_CLIENT_BY_UID = "DELETE FROM core.client WHERE uid = :uid";
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private final RowMapper<ClientDALM> clientRowMapper = (rs, rowNum) -> {
+        ClientDALM client = new ClientDALM();
+        client.setUid(UUID.fromString(rs.getString("uid")));
+        client.setEmail(rs.getString("email"));
+        client.setBirthDate(rs.getDate("birth_date"));
+        client.setUsername(rs.getString("username"));
+        client.setPassword(rs.getString("password"));
+        return client;
+    };
+
+    public ClientRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    @Transactional
+    public void add(ClientDALM clientDALM) throws ClientAlreadyExisistsException {
+        try {
+            // Проверяем существование по email
+            findByEmail(clientDALM.getEmail());
+            throw new ClientAlreadyExisistsException("Client with email " + clientDALM.getEmail() + " already exists");
+        } catch (ClientNotFoundException e) {
+            // Клиент не найден по email - продолжаем
+        }
+
+        try {
+            // Проверяем существование по username
+            findByUsername(clientDALM.getUsername());
+            throw new ClientAlreadyExisistsException(
+                    "Client with username " + clientDALM.getUsername() + " already exists");
+        } catch (ClientNotFoundException e) {
+            // Клиент не найден по username - продолжаем
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", clientDALM.getUid() != null ? clientDALM.getUid() : UUID.randomUUID());
+        params.addValue("email", clientDALM.getEmail());
+        params.addValue("birth_date",
+                clientDALM.getBirthDate() != null ? new Date(clientDALM.getBirthDate().getTime()) : null);
+        params.addValue("username", clientDALM.getUsername());
+        params.addValue("password", clientDALM.getPassword());
+
+        jdbcTemplate.update(INSERT_CLIENT, params);
+    }
+
+    @Override
+    @Transactional
+    public ClientDALM findByUid(UUID uuid) throws ClientNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uuid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_CLIENT_BY_UID, params, clientRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new ClientNotFoundException("Client with UID " + uuid + " not found");
+        }
+    }
+
+    @Override
+    @Transactional
+    public ClientDALM findByEmail(String emailString) throws ClientNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("email", emailString);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL, params, clientRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new ClientNotFoundException("Client with email " + emailString + " not found");
+        }
+    }
+
+    @Override
+    @Transactional
+    public ClientDALM findByUsername(String usernameString) throws ClientNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("username", usernameString);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME, params, clientRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new ClientNotFoundException("Client with username " + usernameString + " not found");
+        }
+    }
+
+    @Override
+    @Transactional
+    public ClientDALM findByEmailPassword(String emailString, String passwordString) throws ClientNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("email", emailString);
+        params.addValue("password", passwordString);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL_PASSWORD, params, clientRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new ClientNotFoundException("Client with email " + emailString + " and provided password not found");
+        }
+    }
+
+    @Override
+    @Transactional
+    public ClientDALM findByUsernamePassword(String usernameString, String passwordString)
+            throws ClientNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("username", usernameString);
+        params.addValue("password", passwordString);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME_PASSWORD, params, clientRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new ClientNotFoundException(
+                    "Client with username " + usernameString + " and provided password not found");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteByUid(UUID uuid) throws ClientNotFoundException {
+        // Проверяем существование клиента перед удалением
+        findByUid(uuid);
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uuid);
+
+        jdbcTemplate.update(DELETE_CLIENT_BY_UID, params);
+    }
+}package com.connection.client.mother;
+
+import java.util.Date;
+import java.util.UUID;
+
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDALM;
+import com.connection.client.model.ClientDTO;
+
+public class ClientObjectMother {
+
+    private static final UUID DEFAULT_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    private static final Date DEFAULT_BIRTH_DATE = new Date(
+            System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000);
+    private static final String DEFAULT_EMAIL = "test@example.com";
+    private static final String DEFAULT_PASSWORD = "Password123";
+    private static final String DEFAULT_USERNAME = "testuser";
+
+    public static ClientDTO createValidClientDTO() {
+        return ClientDTO.builder()
+                .uid(DEFAULT_UID)
+                .birthDate(DEFAULT_BIRTH_DATE)
+                .email(DEFAULT_EMAIL)
+                .password(DEFAULT_PASSWORD)
+                .username(DEFAULT_USERNAME)
+                .build();
+    }
+
+    public static ClientBLM createValidClientBLM() {
+        return ClientBLM.builder()
+                .uid(DEFAULT_UID)
+                .birthDate(DEFAULT_BIRTH_DATE)
+                .email(DEFAULT_EMAIL)
+                .password(DEFAULT_PASSWORD)
+                .username(DEFAULT_USERNAME)
+                .build();
+    }
+
+    public static ClientDALM createValidClientDALM() {
+        return ClientDALM.builder()
+                .uid(DEFAULT_UID)
+                .birthDate(DEFAULT_BIRTH_DATE)
+                .email(DEFAULT_EMAIL)
+                .password(DEFAULT_PASSWORD)
+                .username(DEFAULT_USERNAME)
+                .build();
+    }
+
+    public static ClientDTO createClientDTOWithInvalidEmail() {
+        return ClientDTO.builder()
+                .uid(DEFAULT_UID)
+                .birthDate(DEFAULT_BIRTH_DATE)
+                .email("invalid-email")
+                .password(DEFAULT_PASSWORD)
+                .username(DEFAULT_USERNAME)
+                .build();
+    }
+
+    public static ClientDTO createClientDTOWithShortPassword() {
+        return ClientDTO.builder()
+                .uid(DEFAULT_UID)
+                .birthDate(DEFAULT_BIRTH_DATE)
+                .email(DEFAULT_EMAIL)
+                .password("short")
+                .username(DEFAULT_USERNAME)
+                .build();
+    }
+
+    public static ClientDTO createClientDTOWithInvalidUsername() {
+        return ClientDTO.builder()
+                .uid(DEFAULT_UID)
+                .birthDate(DEFAULT_BIRTH_DATE)
+                .email(DEFAULT_EMAIL)
+                .password(DEFAULT_PASSWORD)
+                .username("ab")
+                .build();
+    }
+
+    public static ClientDTO createClientDTOWithFutureBirthDate() {
+        return ClientDTO.builder()
+                .uid(DEFAULT_UID)
+                .birthDate(new Date(System.currentTimeMillis() + 365L * 24 * 60 * 60 * 1000))
+                .email(DEFAULT_EMAIL)
+                .password(DEFAULT_PASSWORD)
+                .username(DEFAULT_USERNAME)
+                .build();
+    }
+
+    public static ClientBLM createClientBLMWithNullFields() {
+        return ClientBLM.builder()
+                .uid(null)
+                .birthDate(null)
+                .email(null)
+                .password(null)
+                .username(null)
+                .build();
+    }
+
+    public static ClientDALM createClientForEmail(String email) {
+        return ClientDALM.builder()
+                .uid(UUID.randomUUID())
+                .birthDate(DEFAULT_BIRTH_DATE)
+                .email(email)
+                .password(DEFAULT_PASSWORD)
+                .username("user_" + email.split("@")[0])
+                .build();
+    }
+
+    public static ClientDALM createClientForUsername(String username) {
+        return ClientDALM.builder()
+                .uid(UUID.randomUUID())
+                .birthDate(DEFAULT_BIRTH_DATE)
+                .email(username + "@example.com")
+                .password(DEFAULT_PASSWORD)
+                .username(username)
+                .build();
+    }
+}

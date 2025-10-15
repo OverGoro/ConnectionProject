@@ -87,6 +87,13 @@ public class BufferServiceImpl implements BufferService {
     }
 
     @Override
+    public BufferBLM getBufferByUid(UUID bufferUid) {
+        BufferDALM bufferDALM = bufferRepository.findByUid(bufferUid);
+
+        return bufferConverter.toBLM(bufferDALM);
+    }
+
+    @Override
     public List<BufferBLM> getBuffersByClient(UUID clientUid) {
         try {
             GetDevicesByClientResponse devicesResponse = deviceKafkaClient
@@ -138,12 +145,27 @@ public class BufferServiceImpl implements BufferService {
     }
 
     @Override
+    public List<BufferBLM> getBuffersByDevice(UUID deviceUid) {
+        List<BufferDALM> bufferDALMs = bufferRepository.findByDeviceUid(deviceUid);
+        return bufferDALMs.stream().map(bufferConverter::toBLM).collect(Collectors.toList());
+    }
+
+    @Override
     public List<BufferBLM> getBuffersByConnectionScheme(UUID clientUid, UUID connectionSchemeUid) {
         if (!connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(
                 connectionSchemeUid, clientUid)) {
             throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
         }
 
+        List<BufferDALM> buffersDALM = bufferRepository.findByConnectionSchemeUid(connectionSchemeUid);
+
+        return buffersDALM.stream()
+                .map(bufferConverter::toBLM)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<BufferBLM> getBuffersByConnectionScheme(UUID connectionSchemeUid) {
         List<BufferDALM> buffersDALM = bufferRepository.findByConnectionSchemeUid(connectionSchemeUid);
 
         return buffersDALM.stream()
@@ -280,4 +302,5 @@ public class BufferServiceImpl implements BufferService {
 
         log.info("Deleted buffers for connection scheme: {}", connectionSchemeUid);
     }
+
 }

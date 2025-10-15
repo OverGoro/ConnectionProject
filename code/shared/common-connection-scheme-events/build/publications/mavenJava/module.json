@@ -27,11 +27,11 @@
         {
           "name": "common-connection-scheme-events-1.0.0.jar",
           "url": "common-connection-scheme-events-1.0.0.jar",
-          "size": 30464,
-          "sha512": "b67efa490a4bd12e9c3b071b1f0691b3722067866b60ed3a9a477558d9fdc600e7c87b998ce6dced43b7fe4ef5ac6554516d091ccc1fa837d1016cc7dd3b478c",
-          "sha256": "934a20d02bf89286ec19c39ddd700adf4781f6f642a996f5bac30934516d8a39",
-          "sha1": "115ec007a1a26bd7d393f93a5156428f9b9828db",
-          "md5": "db389c82768fc343f24c7ef89ef1a9a0"
+          "size": 38643,
+          "sha512": "8fcee42f393a85be98554806bf8460760158c9cfb57728c06adc7a19daa3c211b6b8cf30515e741357ba173f68a2e8a4a69cf9adb54d1cf49a6765afd9c19cc2",
+          "sha256": "99ef3a07ed7d0a4120ca3c92462ca7d5461b77b7dd9e00372d70f4602fd40bbc",
+          "sha1": "ca884d3e8a6642dfc6dd8968801915f262916484",
+          "md5": "7181594790cf1a5bac29b60ddc4b379e"
         }
       ]
     },
@@ -71,11 +71,11 @@
         {
           "name": "common-connection-scheme-events-1.0.0.jar",
           "url": "common-connection-scheme-events-1.0.0.jar",
-          "size": 30464,
-          "sha512": "b67efa490a4bd12e9c3b071b1f0691b3722067866b60ed3a9a477558d9fdc600e7c87b998ce6dced43b7fe4ef5ac6554516d091ccc1fa837d1016cc7dd3b478c",
-          "sha256": "934a20d02bf89286ec19c39ddd700adf4781f6f642a996f5bac30934516d8a39",
-          "sha1": "115ec007a1a26bd7d393f93a5156428f9b9828db",
-          "md5": "db389c82768fc343f24c7ef89ef1a9a0"
+          "size": 38643,
+          "sha512": "8fcee42f393a85be98554806bf8460760158c9cfb57728c06adc7a19daa3c211b6b8cf30515e741357ba173f68a2e8a4a69cf9adb54d1cf49a6765afd9c19cc2",
+          "sha256": "99ef3a07ed7d0a4120ca3c92462ca7d5461b77b7dd9e00372d70f4602fd40bbc",
+          "sha1": "ca884d3e8a6642dfc6dd8968801915f262916484",
+          "md5": "7181594790cf1a5bac29b60ddc4b379e"
         }
       ]
     }

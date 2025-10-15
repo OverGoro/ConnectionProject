@@ -41,6 +41,13 @@ public interface ConnectionSchemeRepository {
      * @return
      */
     List<ConnectionSchemeDALM> findByClientUid(UUID clientUid);
+
+    /**
+     * Получить все схемы, в которых участвует буфер
+     * @param bufferUid
+     * @return
+     */
+    List<ConnectionSchemeDALM> findByBufferUid(UUID bufferUid);
     /**
      * Проверить существование схемы
      * @param uid

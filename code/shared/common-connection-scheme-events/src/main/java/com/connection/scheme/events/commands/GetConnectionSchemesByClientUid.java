@@ -20,8 +20,8 @@ public class GetConnectionSchemesByClientUid extends Command {
         this.clientUid = null;
     }
     
-    public GetConnectionSchemesByClientUid(UUID ConnectionSchemeUid, String sourceService) {
+    public GetConnectionSchemesByClientUid(UUID clientUid, String sourceService) {
         super(ConnectionSchemeEventConstants.COMMAND_GET_CONNECTION_SCHEMES_BY_CLIENT_UID, sourceService, ConnectionSchemeEventConstants.CONNECTION_SCHEME_COMMANDS_TOPIC);
-        this.clientUid = ConnectionSchemeUid;
+        this.clientUid = clientUid;
     }
 }

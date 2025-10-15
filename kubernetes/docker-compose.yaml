@@ -38,41 +38,91 @@ services:
     networks:
       - app-network
 
-  # Auth Service
-  # auth-service:
-  #   build:
-  #     context: ./auth-service
-  #     dockerfile: Dockerfile
-  #   container_name: auth-service
-  #   ports:
-  #     - "8081:8080"
-  #   environment:
-  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-  #     SPRING_DATASOURCE_CLIENT_URL: jdbc:postgresql://postgres:5432/test_db
-  #     SPRING_DATASOURCE_REFRESH_TOKEN_URL: jdbc:postgresql://postgres:5432/test_db
-  #   depends_on:
-  #     - kafka
-  #   networks:
-  #     - app-network
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_CLIENT_URL: jdbc:postgresql://postgres:5432/test_db
+      SPRING_DATASOURCE_REFRESH_TOKEN_URL: jdbc:postgresql://postgres:5432/test_db
+    depends_on:
+      - kafka
+    networks:
+      - app-network
 
-  # Buffer Service
-  # buffer-service:
-  #   build:
-  #     context: ./buffer-service
-  #     dockerfile: Dockerfile
-  #   container_name: buffer-service
-  #   ports:
-  #     - "8082:8080"
-  #   environment:
-  #     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-  #     SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
-  #     AUTH_SERVICE_URL: http://auth-service:8080/api/auth-service
-  #     CONNECTION_SCHEME_SERVICE_URL: http://connection-scheme-service:8080/api/connection-scheme-service
-  #   depends_on:
-  #     - kafka
-  #     - auth-service
-  #   networks:
-  #     - app-network
+  buffer-service:
+    build:
+      context: ./buffer-service
+      dockerfile: Dockerfile
+    container_name: buffer-service
+    ports:
+      - "8082:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
+    depends_on:
+      - kafka
+      - auth-service
+    networks:
+      - app-network
+
+  connectionscheme-service:
+    build:
+      context: ./connectionscheme-service
+      dockerfile: Dockerfile
+    container_name: connectionscheme-service
+    ports:
+      - "8083:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
+      AUTH_SERVICE_URL: http://auth-service:8080/api/auth-service
+      CONNECTION_SCHEME_SERVICE_URL: http://connection-scheme-service:8080/api/connection-scheme-service
+    depends_on:
+      - kafka
+      - auth-service
+    networks:
+      - app-network
+  device-auth-service:
+    build:
+      context: ./device-auth-service
+      dockerfile: Dockerfile
+    container_name: device-auth-service
+    ports:
+      - "8084:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
+      AUTH_SERVICE_URL: http://auth-service:8080/api/auth-service
+      CONNECTION_SCHEME_SERVICE_URL: http://connection-scheme-service:8080/api/connection-scheme-service
+    depends_on:
+      - kafka
+      - auth-service
+    networks:
+      - app-network
+
+  device-service:
+    build:
+      context: ./device-service
+      dockerfile: Dockerfile
+    container_name: device-service
+    ports:
+      - "8085:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
+      AUTH_SERVICE_URL: http://auth-service:8080/api/auth-service
+      CONNECTION_SCHEME_SERVICE_URL: http://connection-scheme-service:8080/api/connection-scheme-service
+    depends_on:
+      - kafka
+      - auth-service
+    networks:
+      - app-network
+  
 
   # Kafka UI (опционально - для мониторинга)
   kafka-ui:
@@ -89,21 +139,29 @@ services:
     networks:
       - app-network
 
+  postgres:
+    image: postgres
+    container_name: postgres
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/scheme-init.sql:/docker-entrypoint-initdb.d/01-scheme-init.sql
+      - ./db/core-init.sql:/docker-entrypoint-initdb.d/02-core-init.sql
+      - ./db/token-init.sql:/docker-entrypoint-initdb.d/03-token-init.sql
+      - ./db/transaction-init.sql:/docker-entrypoint-initdb.d/04-transaction-init.sql
+      - ./db/connection-init.sql:/docker-entrypoint-initdb.d/05-connection-init.sql
+    environment:
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_USER: test_user
+      POSTGRES_DB: test_db
+    ports:
+      - "5433:5432"
+    command: postgres -c max_prepared_transactions=100
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
-
-# Внешний PostgreSQL (уже запущен отдельно)
-# Предполагается, что PostgreSQL уже запущен на localhost:5432
-# Или можно добавить его в композ, если нужно:
-# postgres:
-#   image: postgres:15
-#   container_name: postgres
-#   environment:
-#     POSTGRES_DB: test_db
-#     POSTGRES_USER: test_user
-#     POSTGRES_PASSWORD: test_password
-#   ports:
-#     - "5432:5432"
-#   networks:
-#     - app-network
+volumes:
+  postgres_data:

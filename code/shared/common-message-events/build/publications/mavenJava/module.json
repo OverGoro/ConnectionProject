@@ -1,0 +1,83 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.connection",
+    "module": "common-message-events",
+    "version": "1.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.14.3"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "common-message-events-1.0.0.jar",
+          "url": "common-message-events-1.0.0.jar",
+          "size": 54128,
+          "sha512": "74dd83b290577c551258402ecada637965f92a22f3fb6b26f7ccc2ba8436d0ac9c3c0c949f79e28ccafb268da854bd42d19a59112c343b873fb16d6c5db78296",
+          "sha256": "130ad2f9d99c165c5f29a6bcc161e9d2a43d264ec85dc3c4d5d17a151ffa94e7",
+          "sha1": "626dd0a64256a407afd0666a575ad608b3cbd99d",
+          "md5": "a975baa1689c801cec52faa62ab373be"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "com.connection",
+          "module": "common-events",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "message-shared",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.fasterxml.jackson.datatype",
+          "module": "jackson-datatype-jsr310",
+          "version": {
+            "requires": "2.18.4"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "common-message-events-1.0.0.jar",
+          "url": "common-message-events-1.0.0.jar",
+          "size": 54128,
+          "sha512": "74dd83b290577c551258402ecada637965f92a22f3fb6b26f7ccc2ba8436d0ac9c3c0c949f79e28ccafb268da854bd42d19a59112c343b873fb16d6c5db78296",
+          "sha256": "130ad2f9d99c165c5f29a6bcc161e9d2a43d264ec85dc3c4d5d17a151ffa94e7",
+          "sha1": "626dd0a64256a407afd0666a575ad608b3cbd99d",
+          "md5": "a975baa1689c801cec52faa62ab373be"
+        }
+      ]
+    }
+  ]
+}

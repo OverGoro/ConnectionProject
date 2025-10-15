@@ -1,0 +1,1 @@
+{"uuid":"f38a3e76-a9d2-4f95-b04d-8b5f67598a8f","name":"Get buffers by client - Negative: Device service returns error","children":["6c2c37dc-4691-4d53-bc68-e207d2870712"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1760560169663,"stop":1760560169664}],"afters":[],"start":1760560169660,"stop":1760560169689}

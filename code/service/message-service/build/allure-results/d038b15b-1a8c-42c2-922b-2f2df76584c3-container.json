@@ -1,1 +1,0 @@
-{"uuid":"d038b15b-1a8c-42c2-922b-2f2df76584c3","name":"Health check - Negative: Auth service down","children":["96790753-63f4-4113-952d-ddc0cd341cd6"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758337107087,"stop":1758337107087}],"afters":[],"start":1758337107085,"stop":1758337107089}

@@ -1,4 +1,4 @@
-kind delete cluster --name microservices
+# kind delete cluster --name microservices
 docker-compose down
 cd ./db/
 docker-compose down

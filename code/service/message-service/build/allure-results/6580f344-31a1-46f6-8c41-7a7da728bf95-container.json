@@ -1,1 +1,0 @@
-{"uuid":"6580f344-31a1-46f6-8c41-7a7da728bf95","name":"Get JSON data by buffer and date range - Positive","children":["2c62f466-b487-42b1-af9c-7a50ad8f1058"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758337144002,"stop":1758337144002}],"afters":[],"start":1758337143999,"stop":1758337144004}

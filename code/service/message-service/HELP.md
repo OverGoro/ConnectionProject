@@ -1,7 +1,7 @@
 # Read Me First
 The following was discovered as part of building this project:
 
-* The original package name 'com.service.device.device-service' is invalid and this project uses 'com.service.device.device_service' instead.
+* The original package name 'com.connection.device.device-service' is invalid and this project uses 'com.connection.device.device_service' instead.
 
 # Getting Started
 

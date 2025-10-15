@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/device-service")
+@RequestMapping("/api/v1")
 public class DeviceController {
     
     private final DeviceService deviceService;

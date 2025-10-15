@@ -1,1 +1,0 @@
-{"uuid":"6ce343fb-7a48-4ba3-950c-3dfad6828ea8","name":"Get JSON data by buffer - Positive","children":["a818d40e-0b25-4d26-bb5c-903bdd49b5ed"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758337107050,"stop":1758337107050}],"afters":[],"start":1758337107045,"stop":1758337107053}

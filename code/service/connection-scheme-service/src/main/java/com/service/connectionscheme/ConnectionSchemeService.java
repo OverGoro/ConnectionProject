@@ -12,6 +12,7 @@ public interface ConnectionSchemeService {
     ConnectionSchemeBLM createScheme(UUID clientUuid, ConnectionSchemeDTO schemeDTO);
     ConnectionSchemeBLM getSchemeByUid(UUID clientUuid, UUID schemeUid);
     List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUuid);
+    List<ConnectionSchemeBLM> getSchemesByBuffer(UUID bufferUuid);
     ConnectionSchemeBLM updateScheme(UUID clientUuid, UUID schemeUid, ConnectionSchemeDTO schemeDTO);
     void deleteScheme(UUID clientUuid, UUID schemeUid);
     boolean schemeExists(UUID clientUuid, UUID schemeUid);

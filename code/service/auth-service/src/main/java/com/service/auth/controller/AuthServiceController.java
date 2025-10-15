@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/auth-service")
+@RequestMapping("/api/v1")
 @Tag(name = "Auth Service", description = "Authentication and Authorization APIs")
 public class AuthServiceController {
 
@@ -59,8 +59,8 @@ public class AuthServiceController {
     }
 
     @Operation(summary = "Login by email", description = "Authenticate client using email and password")
-    @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
-    @PostMapping("/login/email")
+    @ApiResponse(responseCode = "201", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @PostMapping("/login")
     public ResponseEntity<LoginResponse> loginByEmail(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Login credentials", required = true, content = @Content(schema = @Schema(implementation = LoginRequest.class))) @RequestBody LoginRequest loginRequest) {
 
@@ -80,7 +80,7 @@ public class AuthServiceController {
     }
 
     @Operation(summary = "Refresh tokens", description = "Get new access and refresh tokens using refresh token")
-    @ApiResponse(responseCode = "200", description = "Tokens refreshed successfully", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @ApiResponse(responseCode = "201", description = "Tokens refreshed successfully", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
     @PostMapping("/refresh")
     public ResponseEntity<LoginResponse> refreshToken(
             @Parameter(description = "Refresh token request", required = true) @RequestBody RefreshTokenRequest refreshRequest) {
@@ -116,7 +116,7 @@ public class AuthServiceController {
 
     @Operation(summary = "Validate access token", description = "Check if access token is valid")
     @ApiResponse(responseCode = "200", description = "Token is valid", content = @Content(schema = @Schema(implementation = ValidationResponse.class)))
-    @GetMapping("/validate/token/access")
+    @PostMapping("/validate/access")
     public ResponseEntity<ValidationResponse> validateAccessToken(
             @Parameter(description = "Access token to validate", required = true) @RequestParam String accessToken) {
 
@@ -131,7 +131,7 @@ public class AuthServiceController {
 
     @Operation(summary = "Validate refresh token", description = "Check if refresh token is valid")
     @ApiResponse(responseCode = "200", description = "Token is valid", content = @Content(schema = @Schema(implementation = ValidationResponse.class)))
-    @GetMapping("/validate/token/refresh")
+    @PostMapping("/validate/refresh")
     public ResponseEntity<ValidationResponse> validateRefreshToken(
             @Parameter(description = "Refresh token to validate", required = true) @RequestParam String refreshToken) {
 
@@ -142,35 +142,5 @@ public class AuthServiceController {
         authService.validateRefreshToken(refreshTokenBLM);
 
         return ResponseEntity.ok(new ValidationResponse("OK"));
-    }
-
-    @Operation(summary = "Extract client UID from access token", description = "Get client UID from valid access token")
-    @ApiResponse(responseCode = "200", description = "Client UID extracted successfully")
-    @GetMapping("/extract/accessTokenClientUID")
-    public ResponseEntity<UUID> getAccessTokenClientUID(
-            @Parameter(description = "Access token", required = true) @RequestParam String accessToken) {
-
-        log.info("Extracting client UID from access token");
-        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
-
-        AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
-        authService.validateAccessToken(accessTokenBLM);
-
-        return ResponseEntity.ok().body(accessTokenBLM.getClientUID());
-    }
-
-    @Operation(summary = "Extract client UID from refresh token", description = "Get client UID from valid refresh token")
-    @ApiResponse(responseCode = "200", description = "Client UID extracted successfully")
-    @GetMapping("/extract/refreshTokenClientUID")
-    public ResponseEntity<UUID> getRefreshTokenClientUID(
-            @Parameter(description = "Refresh token", required = true) @RequestParam String refreshToken) {
-
-        log.info("Extracting client UID from refresh token");
-        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
-
-        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
-        authService.validateRefreshToken(refreshTokenBLM);
-
-        return ResponseEntity.ok().body(refreshTokenBLM.getClientUID());
     }
 }

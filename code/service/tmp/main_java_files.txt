@@ -1,4 +1,744 @@
-package com.service.auth.controller;
+
+// ConnectionSchemeServiceApplication.java
+package com.service.connectionscheme;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ConnectionSchemeServiceApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ConnectionSchemeServiceApplication.class, args);
+    }
+}// ConnectionSchemeController.java
+package com.service.connectionscheme.controller;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.scheme.converter.ConnectionSchemeConverter;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+import com.connection.scheme.validator.ConnectionSchemeValidator;
+import com.service.connectionscheme.ConnectionSchemeService;
+import com.service.connectionscheme.config.SecurityUtils;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/connection-scheme-service")
+public class ConnectionSchemeController {
+    
+    private final ConnectionSchemeService connectionSchemeService;
+    private final ConnectionSchemeValidator schemeValidator;
+    private final ConnectionSchemeConverter schemeConverter;
+
+    // Константы для пагинации по умолчанию
+    private static final int DEFAULT_OFFSET = 0;
+    private static final int DEFAULT_LIMIT = 50;
+    private static final int MAX_LIMIT = 1000;
+
+    @PostMapping("/schemes")
+    public ResponseEntity<ConnectionSchemeResponse> createScheme(@RequestBody ConnectionSchemeDTO schemeDTO) {
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Creating connection scheme for client {}", clientUid);
+
+        schemeValidator.validate(schemeDTO);
+        ConnectionSchemeBLM scheme = connectionSchemeService.createScheme(clientUid, schemeDTO);
+
+        return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
+    }
+
+    @GetMapping("/schemes/{schemeUid}")
+    public ResponseEntity<ConnectionSchemeResponse> getScheme(@PathVariable UUID schemeUid) {
+        log.info("Getting connection scheme: {}", schemeUid);
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        ConnectionSchemeBLM scheme = connectionSchemeService.getSchemeByUid(clientUid, schemeUid);
+
+        return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
+    }
+
+    @GetMapping("/schemes")
+    public ResponseEntity<ConnectionSchemesListResponse> getSchemesByClient(
+            @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
+            @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+        
+        log.info("Getting all connection schemes for client with offset: {}, limit: {}", offset, limit);
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        List<ConnectionSchemeBLM> allSchemes = connectionSchemeService.getSchemesByClient(clientUid);
+        
+        // Применяем пагинацию
+        List<ConnectionSchemeBLM> paginatedSchemes = applyPagination(allSchemes, offset, limit);
+        List<ConnectionSchemeDTO> schemeDTOs = paginatedSchemes.stream()
+                .map(schemeConverter::toDTO)
+                .collect(Collectors.toList());
+
+        // Создаем информацию о пагинации
+        ConnectionSchemesListResponse.PaginationInfo paginationInfo = 
+            new ConnectionSchemesListResponse.PaginationInfo(
+                offset, 
+                limit, 
+                allSchemes.size(), 
+                (offset + limit) < allSchemes.size()
+            );
+
+        return ResponseEntity.ok(new ConnectionSchemesListResponse(schemeDTOs, paginationInfo));
+    }
+
+    @PutMapping("/schemes/{schemeUid}")
+    public ResponseEntity<ConnectionSchemeResponse> updateScheme(
+            @PathVariable UUID schemeUid,
+            @RequestBody ConnectionSchemeDTO schemeDTO) {
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Updating connection scheme: {} for client: {}", schemeUid, clientUid);
+
+        schemeValidator.validate(schemeDTO);
+        ConnectionSchemeBLM scheme = connectionSchemeService.updateScheme(clientUid, schemeUid, schemeDTO);
+
+        return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
+    }
+
+    @DeleteMapping("/schemes/{schemeUid}")
+    public ResponseEntity<Void> deleteScheme(@PathVariable UUID schemeUid) {
+        log.info("Deleting connection scheme: {}", schemeUid);
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        connectionSchemeService.deleteScheme(clientUid, schemeUid);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<HealthResponse> healthCheck() {
+        log.info("Health check: status: OK, service: connection-scheme-service, timestamp: {}", 
+                System.currentTimeMillis());
+                
+        return ResponseEntity.ok().body(new HealthResponse(connectionSchemeService.getHealthStatus().toString()));
+    }
+
+    /**
+     * Применяет пагинацию к списку схем подключения
+     * 
+     * @param schemes полный список схем подключения
+     * @param offset смещение (начальная позиция)
+     * @param limit максимальное количество элементов
+     * @return пагинированный список схем подключения
+     */
+    private List<ConnectionSchemeBLM> applyPagination(List<ConnectionSchemeBLM> schemes, int offset, int limit) {
+        // Валидация параметров пагинации
+        if (offset < 0) {
+            offset = DEFAULT_OFFSET;
+        }
+        
+        if (limit <= 0 || limit > MAX_LIMIT) {
+            limit = DEFAULT_LIMIT;
+        }
+        
+        // Применяем пагинацию
+        return schemes.stream()
+                .skip(offset)
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+}package com.service.connectionscheme;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.scheme.converter.ConnectionSchemeConverter;
+import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+import com.connection.scheme.repository.ConnectionSchemeRepository;
+import com.connection.scheme.validator.ConnectionSchemeValidator;
+import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+        JpaRepositoriesAutoConfiguration.class
+})
+@Transactional("atomicosTransactionManager")
+public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
+
+    private final ConnectionSchemeRepository schemeRepository;
+    private final ConnectionSchemeConverter schemeConverter;
+    private final ConnectionSchemeValidator schemeValidator;
+    private final TypedAuthKafkaClient authKafkaClient;
+
+    @Override
+    public ConnectionSchemeBLM createScheme(UUID clientUid, ConnectionSchemeDTO schemeDTO) {
+        schemeValidator.validate(schemeDTO);
+        ConnectionSchemeBLM schemeBLM = schemeConverter.toBLM(schemeDTO);
+
+        if (!clientUid.equals(schemeBLM.getClientUid())) {
+            throw new SecurityException("Client UID from token doesn't match scheme client UID");
+        }
+
+        if (schemeRepository.exists(schemeBLM.getUid())) {
+            throw new ConnectionSchemeAlreadyExistsException(
+                    "Scheme with UID '" + schemeBLM.getUid() + "' already exists");
+        }
+
+        ConnectionSchemeDALM schemeDALM = schemeConverter.toDALM(schemeBLM);
+        schemeRepository.add(schemeDALM);
+
+        log.info("Connection scheme created: {} for client: {}", schemeBLM.getUid(), clientUid);
+        return schemeBLM;
+    }
+
+    @Override
+    public ConnectionSchemeBLM getSchemeByUid(UUID clientUid, UUID schemeUid) {
+        ConnectionSchemeDALM schemeDALM = schemeRepository.findByUid(schemeUid);
+
+        if (!clientUid.equals(schemeDALM.getClientUid())) {
+            throw new SecurityException("Scheme doesn't belong to the authenticated client");
+        }
+
+        return schemeConverter.toBLM(schemeDALM);
+    }
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUid) {
+        List<ConnectionSchemeDALM> schemesDALM = schemeRepository.findByClientUid(clientUid);
+        return schemesDALM.stream()
+                .map(schemeConverter::toBLM)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ConnectionSchemeBLM updateScheme(UUID clientUid, UUID schemeUid, ConnectionSchemeDTO schemeDTO) {
+        ConnectionSchemeDALM existingScheme = schemeRepository.findByUid(schemeUid);
+        if (!clientUid.equals(existingScheme.getClientUid())) {
+            throw new SecurityException("Scheme doesn't belong to the authenticated client");
+        }
+
+        schemeValidator.validate(schemeDTO);
+        ConnectionSchemeBLM schemeBLM = schemeConverter.toBLM(schemeDTO);
+
+        // Проверяем, что клиент из токена совпадает с клиентом схемы
+        if (!clientUid.equals(schemeBLM.getClientUid())) {
+            throw new SecurityException("Client UID from token doesn't match scheme client UID");
+        }
+
+        // Проверяем, что UID не изменяется
+        if (!schemeUid.equals(schemeBLM.getUid())) {
+            throw new IllegalArgumentException("Cannot change scheme UID");
+        }
+
+        ConnectionSchemeDALM schemeDALM = schemeConverter.toDALM(schemeBLM);
+        schemeRepository.update(schemeDALM);
+
+        log.info("Connection scheme updated: {} for client: {}", schemeUid, clientUid);
+        return schemeBLM;
+    }
+
+    @Override
+    public void deleteScheme(UUID clientUid, UUID schemeUid) {
+        ConnectionSchemeDALM existingScheme = schemeRepository.findByUid(schemeUid);
+        if (!clientUid.equals(existingScheme.getClientUid())) {
+            throw new SecurityException("Scheme doesn't belong to the authenticated client");
+        }
+
+        schemeRepository.delete(schemeUid);
+        log.info("Connection scheme deleted: {} for client: {}", schemeUid, clientUid);
+    }
+
+    @Override
+    public boolean schemeExists(UUID clientUid, UUID schemeUid) {
+        return schemeRepository.exists(schemeUid);
+    }
+
+    @Override
+    public Map<String, Object> getHealthStatus() {
+        try {
+            var authHealth = authKafkaClient.healthCheck("connection-scheme-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "connection-scheme-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+        } catch (Exception e) {
+            log.error("Kafka Client: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "connection-scheme-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "error", e.getMessage());
+        }
+    }
+}// ConnectionSchemeService.java
+package com.service.connectionscheme;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+public interface ConnectionSchemeService {
+    ConnectionSchemeBLM createScheme(UUID clientUuid, ConnectionSchemeDTO schemeDTO);
+    ConnectionSchemeBLM getSchemeByUid(UUID clientUuid, UUID schemeUid);
+    List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUuid);
+    ConnectionSchemeBLM updateScheme(UUID clientUuid, UUID schemeUid, ConnectionSchemeDTO schemeDTO);
+    void deleteScheme(UUID clientUuid, UUID schemeUid);
+    boolean schemeExists(UUID clientUuid, UUID schemeUid);
+    Map<String, Object> getHealthStatus();
+}package com.service.connectionscheme;
+
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.BUFFER_UUID_1;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.BUFFER_UUID_2;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.BUFFER_UUID_3;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.CLIENT_UUID;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.SCHEME_JSON;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.SCHEME_UUID;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createSchemeDTOWithDifferentClient;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createSchemeDTOWithDifferentUid;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createValidSchemeBLM;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createValidSchemeDALM;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createValidSchemeDTO;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.scheme.converter.ConnectionSchemeConverter;
+import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+import com.connection.scheme.repository.ConnectionSchemeRepository;
+import com.connection.scheme.validator.ConnectionSchemeValidator;
+import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("Connection Scheme Service Implementation Tests - Kafka Version")
+class ConnectionSchemeServiceImplTest {
+
+    @Mock
+    private ConnectionSchemeRepository schemeRepository;
+
+    @Mock
+    private ConnectionSchemeConverter schemeConverter;
+
+    @Mock
+    private ConnectionSchemeValidator schemeValidator;
+
+    @Mock
+    private TypedAuthKafkaClient authKafkaClient;
+
+    @Mock
+    private SecurityContext securityContext;
+
+    @InjectMocks
+    private ConnectionSchemeServiceImpl connectionSchemeService;
+
+    @BeforeEach
+    void setUp() {
+        SecurityContextHolder.setContext(securityContext);
+    }
+
+    private void setupAuthentication(UUID clientUid) {
+        UsernamePasswordAuthenticationToken authentication = 
+            new UsernamePasswordAuthenticationToken(clientUid, null, Collections.emptyList());
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+    }
+
+    @Test
+    @DisplayName("Create scheme - Positive")
+    void shouldCreateSchemeWhenValidData() {
+        // Arrange
+        ConnectionSchemeDTO schemeDTO = createValidSchemeDTO();
+        ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
+        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
+        
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+        when(schemeConverter.toDALM(schemeBLM)).thenReturn(schemeDALM);
+        when(schemeRepository.exists(SCHEME_UUID)).thenReturn(false);
+
+        // Act
+        ConnectionSchemeBLM result = connectionSchemeService.createScheme(CLIENT_UUID, schemeDTO);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(SCHEME_UUID);
+        assertThat(result.getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3));
+        assertThat(result.getBufferTransitions()).hasSize(2);
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository).add(schemeDALM);
+    }
+
+    @Test
+    @DisplayName("Create scheme - Negative: Client UID mismatch")
+    void shouldThrowExceptionWhenClientUidMismatch() {
+        // Arrange
+        UUID differentClientUuid = UUID.randomUUID();
+        ConnectionSchemeDTO schemeDTO = createSchemeDTOWithDifferentClient();
+        
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UUID_1, Arrays.asList(BUFFER_UUID_2));
+        
+        ConnectionSchemeBLM schemeBLM = ConnectionSchemeBLM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(differentClientUuid) // different client
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
+            .bufferTransitions(bufferTransitions)
+            .build();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+
+        // Act & Assert
+        assertThatThrownBy(() -> connectionSchemeService.createScheme(CLIENT_UUID, schemeDTO))
+            .isInstanceOf(SecurityException.class)
+            .hasMessageContaining("Client UID from token doesn't match");
+
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Create scheme - Negative: Scheme already exists")
+    void shouldThrowExceptionWhenSchemeAlreadyExists() {
+        // Arrange
+        ConnectionSchemeDTO schemeDTO = createValidSchemeDTO();
+        ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+        when(schemeRepository.exists(SCHEME_UUID)).thenReturn(true);
+
+        // Act & Assert
+        assertThatThrownBy(() -> connectionSchemeService.createScheme(CLIENT_UUID, schemeDTO))
+            .isInstanceOf(ConnectionSchemeAlreadyExistsException.class);
+
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Get scheme by UID - Positive")
+    void shouldGetSchemeWhenValidRequest() {
+        // Arrange
+        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
+        ConnectionSchemeBLM expectedBLM = createValidSchemeBLM();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(schemeDALM);
+        when(schemeConverter.toBLM(schemeDALM)).thenReturn(expectedBLM);
+
+        // Act
+        ConnectionSchemeBLM result = connectionSchemeService.getSchemeByUid(CLIENT_UUID, SCHEME_UUID);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(SCHEME_UUID);
+        assertThat(result.getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3));
+        assertThat(result.getBufferTransitions()).hasSize(2);
+        verify(schemeRepository).findByUid(SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Get scheme by UID - Negative: Scheme doesn't belong to client")
+    void shouldThrowExceptionWhenSchemeNotBelongsToClient() {
+        // Arrange
+        UUID differentClientUuid = UUID.randomUUID();
+        ConnectionSchemeDALM schemeDALM = ConnectionSchemeDALM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(differentClientUuid) // different client
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
+            .build();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(schemeDALM);
+
+        // Act & Assert
+        assertThatThrownBy(() -> connectionSchemeService.getSchemeByUid(CLIENT_UUID, SCHEME_UUID))
+            .isInstanceOf(SecurityException.class)
+            .hasMessageContaining("doesn't belong");
+
+        verify(schemeRepository).findByUid(SCHEME_UUID);
+        verify(schemeConverter, never()).toBLM(any(ConnectionSchemeDALM.class));
+    }
+
+    @Test
+    @DisplayName("Get schemes by client - Positive")
+    void shouldGetSchemesByClientWhenValidRequest() {
+        // Arrange
+        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
+        ConnectionSchemeBLM expectedBLM = createValidSchemeBLM();
+        List<ConnectionSchemeDALM> schemesDALM = Collections.singletonList(schemeDALM);
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByClientUid(CLIENT_UUID)).thenReturn(schemesDALM);
+        when(schemeConverter.toBLM(schemeDALM)).thenReturn(expectedBLM);
+
+        // Act
+        List<ConnectionSchemeBLM> result = connectionSchemeService.getSchemesByClient(CLIENT_UUID);
+
+        // Assert
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getUid()).isEqualTo(SCHEME_UUID);
+        assertThat(result.get(0).getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3));
+        assertThat(result.get(0).getBufferTransitions()).hasSize(2);
+        verify(schemeRepository).findByClientUid(CLIENT_UUID);
+    }
+
+    @Test
+    @DisplayName("Update scheme - Positive")
+    void shouldUpdateSchemeWhenValidData() {
+        // Arrange
+        ConnectionSchemeDTO schemeDTO = createValidSchemeDTO();
+        ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
+        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
+        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+        when(schemeConverter.toDALM(schemeBLM)).thenReturn(schemeDALM);
+
+        // Act
+        ConnectionSchemeBLM result = connectionSchemeService.updateScheme(CLIENT_UUID, SCHEME_UUID, schemeDTO);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3));
+        assertThat(result.getBufferTransitions()).hasSize(2);
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository).update(schemeDALM);
+    }
+
+    @Test
+    @DisplayName("Update scheme - Negative: UID change attempt")
+    void shouldThrowExceptionWhenTryingToChangeUid() {
+        // Arrange
+        ConnectionSchemeDTO schemeDTO = createSchemeDTOWithDifferentUid();
+        
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UUID_1, Arrays.asList(BUFFER_UUID_2));
+        
+        ConnectionSchemeBLM schemeBLM = ConnectionSchemeBLM.builder()
+            .uid(UUID.randomUUID()) // different UID
+            .clientUid(CLIENT_UUID)
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
+            .bufferTransitions(bufferTransitions)
+            .build();
+            
+        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+
+        // Act & Assert
+        assertThatThrownBy(() -> connectionSchemeService.updateScheme(CLIENT_UUID, SCHEME_UUID, schemeDTO))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot change scheme UID");
+
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository, never()).update(any());
+    }
+
+    @Test
+    @DisplayName("Update scheme - Negative: Client UID change attempt")
+    void shouldThrowExceptionWhenTryingToChangeClientUid() {
+        // Arrange
+        ConnectionSchemeDTO schemeDTO = createSchemeDTOWithDifferentClient();
+        
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UUID_1, Arrays.asList(BUFFER_UUID_2));
+        
+        ConnectionSchemeBLM schemeBLM = ConnectionSchemeBLM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(UUID.randomUUID()) // different client UID
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
+            .bufferTransitions(bufferTransitions)
+            .build();
+            
+        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+
+        // Act & Assert
+        assertThatThrownBy(() -> connectionSchemeService.updateScheme(CLIENT_UUID, SCHEME_UUID, schemeDTO))
+            .isInstanceOf(SecurityException.class)
+            .hasMessageContaining("Client UID from token doesn't match");
+
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository, never()).update(any());
+    }
+
+    @Test
+    @DisplayName("Delete scheme - Positive")
+    void shouldDeleteSchemeWhenValidRequest() {
+        // Arrange
+        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
+
+        // Act
+        connectionSchemeService.deleteScheme(CLIENT_UUID, SCHEME_UUID);
+
+        // Assert
+        verify(schemeRepository).delete(SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Scheme exists - Positive")
+    void shouldReturnTrueWhenSchemeExists() {
+        // Arrange
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.exists(SCHEME_UUID)).thenReturn(true);
+
+        // Act
+        boolean result = connectionSchemeService.schemeExists(CLIENT_UUID, SCHEME_UUID);
+
+        // Assert
+        assertThat(result).isTrue();
+        verify(schemeRepository).exists(SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Scheme exists - Negative: Scheme not found")
+    void shouldReturnFalseWhenSchemeNotExists() {
+        // Arrange
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.exists(SCHEME_UUID)).thenReturn(false);
+
+        // Act
+        boolean result = connectionSchemeService.schemeExists(CLIENT_UUID, SCHEME_UUID);
+
+        // Assert
+        assertThat(result).isFalse();
+        verify(schemeRepository).exists(SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Health check - Positive")
+    void shouldReturnHealthStatus() throws Exception {
+        // Arrange
+        Map<String, Object> authHealth = Map.of("status", "OK");
+        HealthCheckResponse healthResponse = HealthCheckResponse.success("correlation-id", authHealth);
+        
+        when(authKafkaClient.healthCheck("connection-scheme-service"))
+            .thenReturn(CompletableFuture.completedFuture(healthResponse));
+
+        // Act
+        Map<String, Object> result = connectionSchemeService.getHealthStatus();
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("OK");
+        assertThat(result.get("service")).isEqualTo("connection-scheme-service");
+        assertThat(result.get("auth-service")).isEqualTo(authHealth);
+        verify(authKafkaClient).healthCheck("connection-scheme-service");
+    }
+
+    @Test
+    @DisplayName("Health check - Negative: Auth service timeout")
+    void shouldHandleAuthServiceTimeoutInHealthCheck() throws Exception {
+        // Arrange
+        CompletableFuture<HealthCheckResponse> timeoutFuture = new CompletableFuture<>();
+        timeoutFuture.completeExceptionally(new java.util.concurrent.TimeoutException("Timeout"));
+        
+        when(authKafkaClient.healthCheck("connection-scheme-service"))
+            .thenReturn(timeoutFuture);
+
+        // Act
+        Map<String, Object> result = connectionSchemeService.getHealthStatus();
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("DEGRADED");
+        assertThat(result.get("auth-service")).isEqualTo("UNAVAILABLE");
+        verify(authKafkaClient).healthCheck("connection-scheme-service");
+    }
+
+    @Test
+    @DisplayName("Health check - Negative: Auth service error")
+    void shouldHandleAuthServiceErrorInHealthCheck() throws Exception {
+        // Arrange
+        HealthCheckResponse errorResponse = HealthCheckResponse.error("correlation-id", "Service unavailable");
+        
+        when(authKafkaClient.healthCheck("connection-scheme-service"))
+            .thenReturn(CompletableFuture.completedFuture(errorResponse));
+
+        // Act
+        Map<String, Object> result = connectionSchemeService.getHealthStatus();
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("OK");
+        assertThat(result.get("auth-service")).isEqualTo("UNAVAILABLE");
+        verify(authKafkaClient).healthCheck("connection-scheme-service");
+    }
+}package com.service.auth.controller;
 
 import java.util.UUID;
 
@@ -172,5 +912,3345 @@ public class AuthServiceController {
         authService.validateRefreshToken(refreshTokenBLM);
 
         return ResponseEntity.ok().body(refreshTokenBLM.getClientUID());
+    }
+}package com.service.auth;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class AuthServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(AuthServiceApplication.class, args);
+	}
+	
+}
+package com.service.auth;
+
+import java.util.UUID;
+
+import org.springframework.data.util.Pair;
+
+import com.connection.client.model.ClientBLM;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.RefreshTokenBLM;
+
+
+
+public interface AuthService {
+    public Pair<AccessTokenBLM, RefreshTokenBLM> authorizeByEmail(String email, String password);
+    public void register(ClientBLM clientBLM);
+    public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(RefreshTokenBLM refreshTokenBLM);
+    public void validateAccessToken(AccessTokenBLM accessTokenBLM);
+    public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM);
+    public UUID getClientUid(AccessTokenBLM accessTokenBLM);
+    public UUID getClientUid(RefreshTokenBLM accessTokenBLM);
+
+}
+package com.service.auth;
+
+import java.time.Duration;
+import java.util.Date;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.data.util.Pair;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.client.converter.ClientConverter;
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDALM;
+import com.connection.client.repository.ClientRepository;
+import com.connection.client.validator.ClientValidator;
+import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.RefreshTokenDALM;
+import com.connection.token.repository.RefreshTokenRepository;
+import com.connection.token.validator.AccessTokenValidator;
+import com.connection.token.validator.RefreshTokenValidator;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+    JpaRepositoriesAutoConfiguration.class
+})
+@EnableTransactionManagement
+public class AuthServiceImpl implements AuthService {
+    private final RefreshTokenConverter refreshTokenConverter;
+    private final ClientConverter clientConverter;
+
+    private final ClientValidator clientValidator;
+    private final RefreshTokenValidator refreshTokenValidator;
+    private final AccessTokenValidator accessTokenValidator;
+
+    private final RefreshTokenGenerator refreshTokenGenerator;
+    private final AccessTokenGenerator accessTokenGenerator;
+
+    private final ClientRepository clientRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    @Qualifier("jwtAccessTokenExpiration")
+    private final Duration jwtAccessTokenDuration;
+
+    @Qualifier("jwtRefreshTokenExpiration")
+    private final Duration jwtRefreshTokenDuration;
+
+    @Override
+    @Transactional("atomicosTransactionManager")
+    public Pair<AccessTokenBLM, RefreshTokenBLM> authorizeByEmail(String email, String password) {
+        clientValidator.validateEmail(email);
+
+        ClientDALM clientDALM = clientRepository.findByEmail(email);
+        ClientBLM clientBLM = clientConverter.toBLM(clientDALM);        
+
+        // Инициалаизация общих полей
+        UUID newClientUuid = clientBLM.getUid();
+        Date newCreatedAt = new Date();
+
+        // Инициализация нового refreshToken
+        UUID newRefreshUID = UUID.randomUUID();
+        
+        Date newRefreshExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
+        String newRefreshTokenString = refreshTokenGenerator.generateRefreshToken(newRefreshUID, newClientUuid,
+                newCreatedAt, newRefreshExpiresAt);
+
+        RefreshTokenBLM newRefreshTokenBLM = new RefreshTokenBLM(newRefreshTokenString, newRefreshUID, newClientUuid,
+                newCreatedAt, newRefreshExpiresAt);
+
+        refreshTokenValidator.validate(newRefreshTokenBLM);
+
+        // Инициалищация нового accessToken
+        Date newAccessExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
+        String newAcessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
+                newAccessExpiresAt);
+        AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAcessTokenString, newClientUuid, newCreatedAt,
+                newAccessExpiresAt);
+        accessTokenValidator.validate(newAccessTokenBLM);
+
+
+        // Добавление нового refreshToken в БД
+        RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
+        refreshTokenRepository.add(newRefreshTokenDALM);
+
+        // Возварты пары токенов
+        return Pair.of(newAccessTokenBLM, newRefreshTokenBLM);
+
+    }
+
+    @Override
+    @Transactional("atomicosTransactionManager")
+    public void register(ClientBLM clientBLM) {
+        // Создаем нового клиента
+        clientValidator.validate(clientBLM);
+        ClientDALM clientDALM = clientConverter.toDALM(clientBLM);
+        clientRepository.add(clientDALM);
+
+        // Создаем refreshToken 
+    }
+
+    @Override
+    @Transactional("atomicosTransactionManager")
+    public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(
+            RefreshTokenBLM refreshTokenBLM) {
+
+        refreshTokenValidator.validate(refreshTokenBLM);
+
+        // Инициалаизация общих полей
+        UUID newClientUuid = refreshTokenBLM.getClientUID();
+        Date newCreatedAt = new Date();
+
+        // Инициализация нового refreshToken
+        UUID newRefreshUID = refreshTokenBLM.getUid();
+        Date newRefreshExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
+        String newRefreshTokenString = refreshTokenGenerator.generateRefreshToken(newRefreshUID, newClientUuid,
+                newCreatedAt, newRefreshExpiresAt);
+
+        RefreshTokenBLM newRefreshTokenBLM = new RefreshTokenBLM(newRefreshTokenString, newRefreshUID, newClientUuid,
+                newCreatedAt, newRefreshExpiresAt);
+
+        refreshTokenValidator.validate(newRefreshTokenBLM);
+
+        // Инициалищация нового accessToken
+        Date newAccessExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
+        String newAcessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
+                newAccessExpiresAt);
+        AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAcessTokenString, newClientUuid, newCreatedAt,
+                newAccessExpiresAt);
+        accessTokenValidator.validate(newAccessTokenBLM);
+
+        // Обновление RefreshToken в репозитории
+        RefreshTokenDALM refreshTokenDALM = refreshTokenConverter.toDALM(refreshTokenBLM);
+        RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
+        refreshTokenRepository.updateToken(refreshTokenDALM, newRefreshTokenDALM);
+
+        // Возвращат новых токенов
+        return Pair.of(newAccessTokenBLM, newRefreshTokenBLM);
+    }
+
+    @Override
+    public void validateAccessToken(AccessTokenBLM accessTokenBLM) {
+        log.info("Validating tokeb: |{}|", accessTokenBLM.getToken());
+        accessTokenValidator.validate(accessTokenBLM);
+    }
+
+    @Override
+    public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM) {
+        refreshTokenValidator.validate(refreshTokenBLM);
+    }
+
+
+    @Override
+    public UUID getClientUid(AccessTokenBLM accessTokenBLM){
+        validateAccessToken(accessTokenBLM);
+        return accessTokenBLM.getClientUID();
+    }
+
+     @Override
+    public UUID getClientUid(RefreshTokenBLM accessTokenBLM){
+        validateRefreshToken(accessTokenBLM);
+        return accessTokenBLM.getClientUID();
+    }
+}
+package com.service.auth;
+
+import static com.service.auth.mother.AuthObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.Duration;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.util.Pair;
+
+import com.connection.client.converter.ClientConverter;
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDALM;
+import com.connection.client.validator.ClientValidator;
+import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.RefreshTokenDALM;
+import com.connection.token.repository.RefreshTokenRepository;
+import com.connection.token.validator.AccessTokenValidator;
+import com.connection.token.validator.RefreshTokenValidator;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("Auth Service Implementation Tests - London Style")
+class AuthServiceImplLondonTest {
+
+    @Mock
+    private RefreshTokenConverter refreshTokenConverter;
+
+    @Mock
+    private ClientConverter clientConverter;
+
+    @Mock
+    private ClientValidator clientValidator;
+
+    @Mock
+    private RefreshTokenValidator refreshTokenValidator;
+
+    @Mock
+    private AccessTokenValidator accessTokenValidator;
+
+    @Mock
+    private RefreshTokenGenerator refreshTokenGenerator;
+
+    @Mock
+    private AccessTokenGenerator accessTokenGenerator;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
+
+    @Mock
+    private com.connection.client.repository.ClientRepository clientRepository;
+
+    // Используем реальные Duration вместо моков
+    private Duration jwtAccessTokenDuration = Duration.ofSeconds(600); // 10 minutes
+    private Duration jwtRefreshTokenDuration = Duration.ofSeconds(86400); // 24 hours
+
+    @InjectMocks
+    private AuthServiceImpl authService;
+
+    @BeforeEach
+    void setUp() {
+        // Устанавливаем реальные Duration через рефлексию, так как они final в
+        // AuthServiceImpl
+        try {
+            var accessTokenField = AuthServiceImpl.class.getDeclaredField("jwtAccessTokenDuration");
+            var refreshTokenField = AuthServiceImpl.class.getDeclaredField("jwtRefreshTokenDuration");
+
+            accessTokenField.setAccessible(true);
+            refreshTokenField.setAccessible(true);
+
+            accessTokenField.set(authService, jwtAccessTokenDuration);
+            refreshTokenField.set(authService, jwtRefreshTokenDuration);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set Duration fields", e);
+        }
+    }
+
+    @Test
+    @DisplayName("Authorize by email - Positive")
+    void shouldAuthorizeByEmailWhenValidCredentials() {
+        // Arrange
+        ClientDALM clientDALM = createValidClientDALM();
+        ClientBLM clientBLM = createValidClientBLM();
+        AccessTokenBLM accessTokenBLM = createValidAccessTokenBLM();
+        RefreshTokenBLM refreshTokenBLM = createValidRefreshTokenBLM();
+        RefreshTokenDALM refreshTokenDALM = new RefreshTokenDALM();
+
+        when(clientRepository.findByEmail(VALID_EMAIL)).thenReturn(clientDALM);
+        when(clientConverter.toBLM(clientDALM)).thenReturn(clientBLM);
+        when(refreshTokenGenerator.generateRefreshToken(any(), any(), any(), any()))
+                .thenReturn(refreshTokenBLM.getToken());
+        when(accessTokenGenerator.generateAccessToken(any(), any(), any()))
+                .thenReturn(accessTokenBLM.getToken());
+        when(refreshTokenConverter.toDALM(any(RefreshTokenBLM.class))).thenReturn(refreshTokenDALM);
+
+        // Act
+        Pair<AccessTokenBLM, RefreshTokenBLM> result = authService.authorizeByEmail(VALID_EMAIL, VALID_PASSWORD);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getFirst()).isNotNull();
+        assertThat(result.getSecond()).isNotNull();
+        verify(clientValidator).validateEmail(VALID_EMAIL);
+        verify(refreshTokenValidator).validate(any(RefreshTokenBLM.class));
+        verify(accessTokenValidator).validate(any(AccessTokenBLM.class));
+        verify(refreshTokenRepository).add(refreshTokenDALM);
+    }
+
+    @Test
+    @DisplayName("Authorize by email - Negative: Email validation fails")
+    void shouldThrowExceptionWhenEmailValidationFails() {
+        // Arrange
+        doThrow(new IllegalArgumentException("Invalid email"))
+                .when(clientValidator).validateEmail("invalid-email");
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.authorizeByEmail("invalid-email", VALID_PASSWORD))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid email");
+
+        verify(clientRepository, never()).findByEmail(any());
+        verify(refreshTokenRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Register client - Positive")
+    void shouldRegisterClientWhenValidData() {
+        // Arrange
+        ClientBLM clientBLM = createValidClientBLM();
+        ClientDALM clientDALM = createValidClientDALM();
+
+        when(clientConverter.toDALM(clientBLM)).thenReturn(clientDALM);
+
+        // Act
+        authService.register(clientBLM);
+
+        // Assert
+        verify(clientValidator).validate(clientBLM);
+        verify(clientRepository).add(clientDALM);
+    }
+
+    @Test
+    @DisplayName("Register client - Negative: Client validation fails")
+    void shouldThrowExceptionWhenClientValidationFails() {
+        // Arrange
+        ClientBLM invalidClient = createValidClientBLM();
+
+        doThrow(new IllegalArgumentException("Invalid client data"))
+                .when(clientValidator).validate(invalidClient);
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.register(invalidClient))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid client data");
+
+        verify(clientRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Refresh tokens - Positive")
+    void shouldRefreshTokensWhenValidRefreshToken() {
+        // Arrange
+        RefreshTokenBLM oldRefreshToken = createValidRefreshTokenBLM();
+        RefreshTokenBLM newRefreshToken = createValidRefreshTokenBLM();
+        AccessTokenBLM newAccessToken = createValidAccessTokenBLM();
+        RefreshTokenDALM oldRefreshTokenDALM = new RefreshTokenDALM();
+        RefreshTokenDALM newRefreshTokenDALM = new RefreshTokenDALM();
+
+        when(refreshTokenGenerator.generateRefreshToken(any(), any(), any(), any()))
+                .thenReturn(newRefreshToken.getToken());
+        when(accessTokenGenerator.generateAccessToken(any(), any(), any()))
+                .thenReturn(newAccessToken.getToken());
+        when(refreshTokenConverter.toDALM(any(RefreshTokenBLM.class)))
+                .thenReturn(oldRefreshTokenDALM) // для первого вызова
+                .thenReturn(newRefreshTokenDALM); // для второго вызова
+        // Act
+        Pair<AccessTokenBLM, RefreshTokenBLM> result = authService.refresh(oldRefreshToken);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getFirst()).isNotNull();
+        assertThat(result.getSecond()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Refresh tokens - Negative: Invalid refresh token")
+    void shouldThrowExceptionWhenRefreshTokenInvalid() {
+        // Arrange
+        RefreshTokenBLM invalidRefreshToken = createExpiredRefreshTokenBLM();
+
+        doThrow(new IllegalArgumentException("Expired refresh token"))
+                .when(refreshTokenValidator).validate(invalidRefreshToken);
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.refresh(invalidRefreshToken))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Expired refresh token");
+
+        verify(refreshTokenRepository, never()).updateToken(any(), any());
+    }
+
+    @Test
+    @DisplayName("Validate access token - Positive")
+    void shouldValidateAccessTokenWhenValid() {
+        // Arrange
+        AccessTokenBLM accessToken = createValidAccessTokenBLM();
+
+        // Act
+        authService.validateAccessToken(accessToken);
+
+        // Assert
+        verify(accessTokenValidator).validate(accessToken);
+    }
+
+    @Test
+    @DisplayName("Validate access token - Negative: Invalid token")
+    void shouldThrowExceptionWhenAccessTokenInvalid() {
+        // Arrange
+        AccessTokenBLM invalidAccessToken = createValidAccessTokenBLM();
+
+        doThrow(new IllegalArgumentException("Expired access token"))
+                .when(accessTokenValidator).validate(invalidAccessToken);
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.validateAccessToken(invalidAccessToken))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Expired access token");
+    }
+
+    @Test
+    @DisplayName("Validate refresh token - Positive")
+    void shouldValidateRefreshTokenWhenValid() {
+        // Arrange
+        RefreshTokenBLM refreshToken = createValidRefreshTokenBLM();
+
+        // Act
+        authService.validateRefreshToken(refreshToken);
+
+        // Assert
+        verify(refreshTokenValidator).validate(refreshToken);
+    }
+
+    @Test
+    @DisplayName("Get client UID from access token - Positive")
+    void shouldReturnClientUidFromAccessToken() {
+        // Arrange
+        AccessTokenBLM accessToken = createValidAccessTokenBLM();
+
+        // Мокаем только валидацию, сам объект accessToken уже содержит нужные данные
+        // Act
+        UUID result = authService.getClientUid(accessToken);
+
+        // Assert
+        assertThat(result).isEqualTo(CLIENT_UUID);
+        verify(accessTokenValidator).validate(accessToken);
+    }
+
+    @Test
+    @DisplayName("Get client UID from refresh token - Positive")
+    void shouldReturnClientUidFromRefreshToken() {
+        // Arrange
+        RefreshTokenBLM refreshToken = createValidRefreshTokenBLM();
+
+        // Act
+        UUID result = authService.getClientUid(refreshToken);
+
+        // Assert
+        assertThat(result).isEqualTo(CLIENT_UUID);
+        verify(refreshTokenValidator).validate(refreshToken);
+    }
+
+    @Test
+    @DisplayName("Get client UID - Negative: Invalid token")
+    void shouldThrowExceptionWhenGettingClientUidFromInvalidToken() {
+        // Arrange
+        AccessTokenBLM invalidAccessToken = createValidAccessTokenBLM();
+
+        doThrow(new IllegalArgumentException("Invalid token"))
+                .when(accessTokenValidator).validate(invalidAccessToken);
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.getClientUid(invalidAccessToken))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid token");
+    }
+}package com.service.swagger;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/gateway")
+@RequiredArgsConstructor
+public class HealthController {
+
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        log.info("API Gateway health check");
+        
+        Map<String, Object> healthStatus = new HashMap<>();
+        healthStatus.put("status", "UP");
+        healthStatus.put("service", "api-gateway");
+        healthStatus.put("timestamp", System.currentTimeMillis());
+        
+        return ResponseEntity.ok(healthStatus);
+    }
+
+    @GetMapping("/info")
+    public ResponseEntity<Map<String, Object>> info() {
+        Map<String, Object> info = new HashMap<>();
+        info.put("name", "API Gateway");
+        info.put("description", "Aggregates all microservice APIs");
+        info.put("version", "1.0.0");
+        
+        return ResponseEntity.ok(info);
+    }
+}// BufferService.java
+package com.service.buffer;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDTO;
+
+public interface BufferService {
+    BufferBLM createBuffer(UUID clientUid, BufferDTO bufferDTO);
+    BufferBLM getBufferByUid(UUID clientUid, UUID bufferUid);
+    List<BufferBLM> getBuffersByClient(UUID clientUid) ;
+    List<BufferBLM> getBuffersByDevice(UUID clientUid, UUID deviceUid);
+    List<BufferBLM> getBuffersByConnectionScheme(UUID clientUid, UUID connectionSchemeUid);
+    BufferBLM updateBuffer(UUID clientUid, UUID bufferUid, BufferDTO bufferDTO);
+    void deleteBuffer(UUID clientUid, UUID bufferUid);
+    void deleteBufferFromConnectionScheme(UUID clientUid, UUID connectionSchemeUid, UUID bufferUid);
+    void deleteAllBuffersFromConnectionScheme(UUID clientUid, UUID connectionSchemeUid);
+    boolean bufferExists(UUID clientUid, UUID bufferUid);
+    Map<String, Object> getHealthStatus();
+}// BufferController.java
+package com.service.buffer.controller;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.processing.buffer.converter.BufferConverter;
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDTO;
+import com.connection.processing.buffer.validator.BufferValidator;
+import com.service.buffer.BufferService;
+import com.service.buffer.config.SecurityUtils;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/buffer-service")
+public class BufferController {
+
+    private final BufferService bufferService;
+    private final BufferValidator bufferValidator;
+    private final BufferConverter bufferConverter;
+
+    // Константы для пагинации по умолчанию
+    private static final int DEFAULT_OFFSET = 0;
+    private static final int DEFAULT_LIMIT = 50;
+    private static final int MAX_LIMIT = 1000;
+
+    @PostMapping("/buffers")
+    public ResponseEntity<BufferResponse> createBuffer(@RequestBody BufferDTO bufferDTO) {
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Creating buffer for client {}", clientUid);
+
+        bufferValidator.validate(bufferDTO);
+        BufferBLM buffer = bufferService.createBuffer(clientUid, bufferDTO);
+
+        return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
+    }
+
+    @GetMapping("/buffers/{bufferUid}")
+    public ResponseEntity<BufferResponse> getBuffer(@PathVariable UUID bufferUid) {
+        log.info("Getting buffer: {}", bufferUid);
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        BufferBLM buffer = bufferService.getBufferByUid(clientUid, bufferUid);
+
+        return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
+    }
+
+    @GetMapping("/buffers")
+    public ResponseEntity<BuffersListResponse> getBuffersByClient(
+            @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
+            @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+        log.info("Getting all buffers for client with offset: {}, limit: {}", offset, limit);
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        List<BufferBLM> buffers = bufferService.getBuffersByClient(clientUid);
+        
+        // Применяем пагинацию
+        List<BufferDTO> bufferDTOs = applyPagination(buffers, offset, limit)
+                .stream()
+                .map(bufferConverter::toDTO)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(new BuffersListResponse(bufferDTOs));
+    }
+
+    @GetMapping("/buffers/device/{deviceUid}")
+    public ResponseEntity<BuffersListResponse> getBuffersByDevice(
+            @PathVariable UUID deviceUid,
+            @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
+            @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+        log.info("Getting buffers for device: {} with offset: {}, limit: {}", deviceUid, offset, limit);
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        List<BufferBLM> buffers = bufferService.getBuffersByDevice(clientUid, deviceUid);
+        
+        // Применяем пагинацию
+        List<BufferDTO> bufferDTOs = applyPagination(buffers, offset, limit)
+                .stream()
+                .map(bufferConverter::toDTO)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(new BuffersListResponse(bufferDTOs));
+    }
+
+    @GetMapping("/buffers/scheme/{connectionSchemeUid}")
+    public ResponseEntity<BuffersListResponse> getBuffersByConnectionScheme(
+            @PathVariable UUID connectionSchemeUid,
+            @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
+            @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+        log.info("Getting buffers for connection scheme: {} with offset: {}, limit: {}", 
+                connectionSchemeUid, offset, limit);
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        List<BufferBLM> buffers = bufferService.getBuffersByConnectionScheme(clientUid, connectionSchemeUid);
+        
+        // Применяем пагинацию
+        List<BufferDTO> bufferDTOs = applyPagination(buffers, offset, limit)
+                .stream()
+                .map(bufferConverter::toDTO)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(new BuffersListResponse(bufferDTOs));
+    }
+
+    @PutMapping("/buffers/{bufferUid}")
+    public ResponseEntity<BufferResponse> updateBuffer(
+            @PathVariable UUID bufferUid,
+            @RequestBody BufferDTO bufferDTO) {
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Updating buffer: {} for client: {}", bufferUid, clientUid);
+
+        bufferValidator.validate(bufferDTO);
+        BufferBLM buffer = bufferService.updateBuffer(clientUid, bufferUid, bufferDTO);
+
+        return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
+    }
+
+    @DeleteMapping("/buffers/{bufferUid}")
+    public ResponseEntity<Void> deleteBuffer(@PathVariable UUID bufferUid) {
+        log.info("Deleting buffer: {}", bufferUid);
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        bufferService.deleteBuffer(clientUid, bufferUid);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/buffers/{bufferUid}/scheme/{connectionSchemeUid}")
+    public ResponseEntity<Void> deleteBufferFromConnectionScheme(
+            @PathVariable UUID bufferUid,
+            @PathVariable UUID connectionSchemeUid) {
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Removing buffer {} from connection scheme {} for client: {}", 
+                bufferUid, connectionSchemeUid, clientUid);
+        
+        bufferService.deleteBufferFromConnectionScheme(clientUid, bufferUid, connectionSchemeUid);
+        
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/buffers/scheme/{connectionSchemeUid}")
+    public ResponseEntity<Void> deleteBuffersByConnectionScheme(@PathVariable UUID connectionSchemeUid) {
+        log.info("Deleting buffers for connection scheme: {}", connectionSchemeUid);
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        bufferService.deleteAllBuffersFromConnectionScheme(clientUid, connectionSchemeUid);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<HealthResponse> healthCheck() {
+        log.info("Health check: status: OK, service: buffer-service, timestamp: {}",
+                System.currentTimeMillis());
+
+        return ResponseEntity.ok().body(new HealthResponse(bufferService.getHealthStatus().toString()));
+    }
+
+    /**
+     * Применяет пагинацию к списку буферов
+     * 
+     * @param buffers полный список буферов
+     * @param offset смещение (начальная позиция)
+     * @param limit максимальное количество элементов
+     * @return пагинированный список буферов
+     */
+    private List<BufferBLM> applyPagination(List<BufferBLM> buffers, int offset, int limit) {
+        // Валидация параметров пагинации
+        if (offset < 0) {
+            offset = DEFAULT_OFFSET;
+        }
+        
+        if (limit <= 0 || limit > MAX_LIMIT) {
+            limit = DEFAULT_LIMIT;
+        }
+        
+        // Применяем пагинацию
+        return buffers.stream()
+                .skip(offset)
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+}// BufferServiceApplication.java
+package com.service.buffer;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class BufferServiceApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(BufferServiceApplication.class, args);
+    }
+}// BufferServiceImpl.java
+package com.service.buffer;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.device.converter.DeviceConverter;
+import com.connection.device.events.responses.GetDevicesByClientResponse;
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDTO;
+import com.connection.processing.buffer.converter.BufferConverter;
+import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferDTO;
+import com.connection.processing.buffer.repository.BufferRepository;
+import com.connection.processing.buffer.validator.BufferValidator;
+import com.service.buffer.kafka.TypedAuthKafkaClient;
+import com.service.buffer.kafka.TypedConnectionSchemeKafkaClient;
+import com.service.buffer.kafka.TypedDeviceKafkaClient;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+        JpaRepositoriesAutoConfiguration.class
+})
+@Transactional("atomicosTransactionManager")
+public class BufferServiceImpl implements BufferService {
+
+    private final BufferRepository bufferRepository;
+    private final BufferConverter bufferConverter;
+    private final BufferValidator bufferValidator;
+
+    private final DeviceConverter deviceConverter;
+
+    private final TypedAuthKafkaClient authKafkaClient;
+    private final TypedDeviceKafkaClient deviceKafkaClient;
+    private final TypedConnectionSchemeKafkaClient connectionSchemeKafkaClient;
+
+    @Override
+    public BufferBLM createBuffer(UUID clientUid, BufferDTO bufferDTO) {
+        bufferValidator.validate(bufferDTO);
+
+        BufferBLM bufferBLM = bufferConverter.toBLM(bufferDTO);
+
+        if (!deviceKafkaClient.deviceExistsAndBelongsToClient(
+                bufferBLM.getDeviceUid(), clientUid)) {
+            throw new SecurityException("Device doesn't exist or doesn't belong to the authenticated client");
+        }
+
+        // Проверяем, что буфер с таким UID не существует
+        if (bufferRepository.exists(bufferBLM.getUid())) {
+            throw new BufferAlreadyExistsException(
+                    "Buffer with UID '" + bufferBLM.getUid() + "' already exists");
+        }
+
+        BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
+        bufferRepository.add(bufferDALM);
+
+        log.info("Buffer created: {} for device: {}", bufferBLM.getUid(), bufferBLM.getDeviceUid());
+        return bufferBLM;
+    }
+
+    @Override
+    public BufferBLM getBufferByUid(UUID clientUid, UUID bufferUid) {
+        BufferDALM bufferDALM = bufferRepository.findByUid(bufferUid);
+
+        if (!deviceKafkaClient.deviceExistsAndBelongsToClient(
+                bufferDALM.getDeviceUid(), clientUid)) {
+            throw new SecurityException("Buffer doesn't exist or doesn't belong to the authenticated client");
+        }
+
+        return bufferConverter.toBLM(bufferDALM);
+    }
+
+    @Override
+    public List<BufferBLM> getBuffersByClient(UUID clientUid) {
+        try {
+            GetDevicesByClientResponse devicesResponse = deviceKafkaClient
+                    .getDevicesByClient(clientUid, "buffer-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            if (!devicesResponse.isSuccess() || devicesResponse.getDeviceDTOs() == null) {
+                log.warn("Failed to get devices for client: {}", clientUid);
+                return List.of();
+            }
+
+            List<DeviceDTO> deviceDTOs = devicesResponse.getDeviceDTOs();
+            List<DeviceBLM> deviceBLMs = deviceDTOs.stream()
+                    .map(deviceConverter::toBLM)
+                    .collect(Collectors.toList());
+
+            List<BufferBLM> bufferBlms = new ArrayList<>();
+            for (DeviceBLM device : deviceBLMs) {
+                try {
+                    List<BufferBLM> deviceBuffers = getBuffersByDevice(clientUid, device.getUid());
+                    bufferBlms.addAll(deviceBuffers);
+                } catch (Exception e) {
+                    log.error("Error getting buffers for device: {}", device.getUid(), e);
+                    // Продолжаем обработку других устройств
+                }
+            }
+            return bufferBlms;
+
+        } catch (java.util.concurrent.TimeoutException e) {
+            log.error("Timeout getting devices for client: {}", clientUid, e);
+            throw new RuntimeException("Device service timeout", e);
+        } catch (java.util.concurrent.ExecutionException e) {
+            log.error("Error getting devices for client: {}", clientUid, e);
+            throw new RuntimeException("Device service error", e);
+        } catch (Exception e) {
+            log.error("Unexpected error getting buffers for client: {}", clientUid, e);
+            throw new RuntimeException("Unexpected error", e);
+        }
+    }
+
+    @Override
+    public List<BufferBLM> getBuffersByDevice(UUID clientUid, UUID deviceUid) {
+        if (!deviceKafkaClient.deviceExistsAndBelongsToClient(deviceUid, clientUid)) {
+            throw new SecurityException("Device doesn't belong to the authenticated client");
+        }
+
+        List<BufferDALM> bufferDALMs = bufferRepository.findByDeviceUid(deviceUid);
+        return bufferDALMs.stream().map(bufferConverter::toBLM).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<BufferBLM> getBuffersByConnectionScheme(UUID clientUid, UUID connectionSchemeUid) {
+        if (!connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(
+                connectionSchemeUid, clientUid)) {
+            throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
+        }
+
+        List<BufferDALM> buffersDALM = bufferRepository.findByConnectionSchemeUid(connectionSchemeUid);
+
+        return buffersDALM.stream()
+                .map(bufferConverter::toBLM)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public BufferBLM updateBuffer(UUID clientUid, UUID bufferUid, BufferDTO bufferDTO) {
+        bufferValidator.validate(bufferDTO);
+
+        BufferDALM existingBuffer = bufferRepository.findByUid(bufferUid);
+
+        if (!deviceKafkaClient.deviceExistsAndBelongsToClient(
+                existingBuffer.getDeviceUid(), clientUid)) {
+            throw new SecurityException("Buffer doesn't exist or doesn't belong to the authenticated client");
+        }
+
+        BufferBLM bufferBLM = bufferConverter.toBLM(bufferDTO);
+
+        // Проверяем принадлежность новой схемы подключения (если изменилось)
+        if (!deviceKafkaClient.deviceExistsAndBelongsToClient(
+                bufferBLM.getDeviceUid(), clientUid)) {
+            throw new SecurityException("Buffer doesn't exist or doesn't belong to the authenticated client");
+        }
+
+        // Проверяем, что UID не изменяется
+        if (!bufferUid.equals(bufferBLM.getUid())) {
+            throw new IllegalArgumentException("Cannot change buffer UID");
+        }
+
+        BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
+        bufferRepository.update(bufferDALM);
+
+        log.info("Buffer updated: {} for device: {}", bufferUid, bufferBLM.getDeviceUid());
+        return bufferBLM;
+    }
+
+    @Override
+    public void deleteBuffer(UUID clientUid, UUID bufferUid) {
+        BufferDALM existingBuffer = bufferRepository.findByUid(bufferUid);
+
+        if (!deviceKafkaClient.deviceExistsAndBelongsToClient(
+                existingBuffer.getDeviceUid(), clientUid)) {
+            throw new SecurityException("Buffer doesn't exist or doesn't belong to the authenticated client");
+        }
+
+        bufferRepository.delete(bufferUid);
+        log.info("Buffer deleted: {} for client: {}, device: {}", bufferUid, clientUid, existingBuffer.getDeviceUid());
+    }
+
+    @Override
+    public boolean bufferExists(UUID clientUid, UUID bufferUid) {
+        if (!bufferRepository.exists(bufferUid)) {
+            return false;
+        }
+
+        try {
+            BufferDALM buffer = bufferRepository.findByUid(bufferUid);
+            return deviceKafkaClient.deviceExistsAndBelongsToClient(
+                    buffer.getDeviceUid(), clientUid);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public Map<String, Object> getHealthStatus() {
+        try {
+            HealthCheckResponse authHealth = authKafkaClient.healthCheck("buffer-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            com.connection.device.events.responses.HealthCheckResponse deviceHealth = deviceKafkaClient
+                    .healthCheck("buffer-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            com.connection.scheme.events.responses.HealthCheckResponse connectionSchemeHealth = connectionSchemeKafkaClient
+                    .healthCheck("buffer-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "buffer-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
+                    "device-service", deviceHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
+                    "connection-scheme-service", connectionSchemeHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
+                    "database", "CONNECTED");
+
+        } catch (Exception e) {
+            log.error("Health check error: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "buffer-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "device-service", "UNAVAILABLE",
+                    "connection-scheme-service", "UNAVAILABLE",
+                    "database", "CONNECTED",
+                    "error", e.getMessage());
+        }
+    }
+
+    @Override
+    public void deleteBufferFromConnectionScheme(UUID clientUid, UUID connectionSchemeUid, UUID bufferUid) {
+        // Проверяем принадлежность схемы подключения клиенту
+        if (!connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(
+                connectionSchemeUid, clientUid)) {
+            throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
+        }
+
+        List<BufferBLM> buffers = getBuffersByConnectionScheme(clientUid, connectionSchemeUid);
+
+        for (BufferBLM b : buffers) {
+            bufferRepository.removeBufferFromConnectionScheme(b.getUid(), connectionSchemeUid);
+        }
+
+        log.info("Deleted buffers for connection scheme: {}", connectionSchemeUid);
+    }
+
+    @Override
+    public void deleteAllBuffersFromConnectionScheme(UUID clientUid, UUID connectionSchemeUid) {
+        // Проверяем принадлежность схемы подключения клиенту
+        if (!connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(
+                connectionSchemeUid, clientUid)) {
+            throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
+        }
+
+        List<BufferBLM> buffers = getBuffersByConnectionScheme(clientUid, connectionSchemeUid);
+
+        for (BufferBLM b : buffers) {
+            bufferRepository.removeBufferFromConnectionScheme(b.getUid(), connectionSchemeUid);
+        }
+
+        log.info("Deleted buffers for connection scheme: {}", connectionSchemeUid);
+    }
+}package com.service.buffer;
+
+import static com.service.buffer.mother.BufferObjectMother.BUFFER_UUID;
+import static com.service.buffer.mother.BufferObjectMother.CLIENT_UUID;
+import static com.service.buffer.mother.BufferObjectMother.SCHEME_UUID;
+import static com.service.buffer.mother.BufferObjectMother.createValidBufferBLM;
+import static com.service.buffer.mother.BufferObjectMother.createValidBufferDALM;
+import static com.service.buffer.mother.BufferObjectMother.createValidBufferDTO;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.connection.device.converter.DeviceConverter;
+import com.connection.device.events.responses.GetDevicesByClientResponse;
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDTO;
+import com.connection.processing.buffer.converter.BufferConverter;
+import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferDTO;
+import com.connection.processing.buffer.repository.BufferRepository;
+import com.connection.processing.buffer.validator.BufferValidator;
+import com.service.buffer.kafka.TypedAuthKafkaClient;
+import com.service.buffer.kafka.TypedConnectionSchemeKafkaClient;
+import com.service.buffer.kafka.TypedDeviceKafkaClient;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("Buffer Service Implementation Tests")
+class BufferServiceImplLondonTest {
+
+    @Mock
+    private BufferRepository bufferRepository;
+
+    @Mock
+    private BufferConverter bufferConverter;
+
+    @Mock
+    private BufferValidator bufferValidator;
+
+    @Mock
+    private DeviceConverter deviceConverter;
+
+    @Mock
+    private TypedAuthKafkaClient authKafkaClient;
+
+    @Mock
+    private TypedDeviceKafkaClient deviceKafkaClient;
+
+    @Mock
+    private TypedConnectionSchemeKafkaClient connectionSchemeKafkaClient;
+
+    @InjectMocks
+    private BufferServiceImpl bufferService;
+
+    private static final UUID DEVICE_UUID = UUID.fromString("523e4567-e89b-12d3-a456-426614174001");
+
+    @BeforeEach
+    void setUp() {
+        // Инициализация может быть добавлена при необходимости
+    }
+
+    @Test
+    @DisplayName("Create buffer - Positive")
+    void shouldCreateBufferWhenValidData() {
+        // Arrange
+        BufferDTO bufferDTO = createValidBufferDTO();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        BufferDALM bufferDALM = createValidBufferDALM();
+
+        when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
+        when(bufferConverter.toDALM(bufferBLM)).thenReturn(bufferDALM);
+        when(deviceKafkaClient.deviceExistsAndBelongsToClient(
+                eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
+        when(bufferRepository.exists(BUFFER_UUID)).thenReturn(false);
+
+        // Act
+        BufferBLM result = bufferService.createBuffer(CLIENT_UUID, bufferDTO);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(BUFFER_UUID);
+        verify(bufferValidator).validate(bufferDTO);
+        verify(deviceKafkaClient).deviceExistsAndBelongsToClient(bufferBLM.getDeviceUid(), CLIENT_UUID);
+        verify(bufferRepository).add(bufferDALM);
+    }
+
+    @Test
+    @DisplayName("Create buffer - Negative: Device doesn't belong to client")
+    void shouldThrowExceptionWhenDeviceNotBelongsToClient() {
+        // Arrange
+        BufferDTO bufferDTO = createValidBufferDTO();
+        BufferBLM bufferBLM = createValidBufferBLM();
+
+        when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
+        when(deviceKafkaClient.deviceExistsAndBelongsToClient(
+                eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(false);
+
+        // Act & Assert
+        assertThatThrownBy(() -> bufferService.createBuffer(CLIENT_UUID, bufferDTO))
+            .isInstanceOf(SecurityException.class)
+            .hasMessageContaining("Device doesn't exist or doesn't belong to the authenticated client");
+
+        verify(bufferValidator).validate(bufferDTO);
+        verify(bufferRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Create buffer - Negative: Buffer already exists")
+    void shouldThrowExceptionWhenBufferAlreadyExists() {
+        // Arrange
+        BufferDTO bufferDTO = createValidBufferDTO();
+        BufferBLM bufferBLM = createValidBufferBLM();
+
+        when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
+        when(deviceKafkaClient.deviceExistsAndBelongsToClient(
+                eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
+        when(bufferRepository.exists(BUFFER_UUID)).thenReturn(true);
+
+        // Act & Assert
+        assertThatThrownBy(() -> bufferService.createBuffer(CLIENT_UUID, bufferDTO))
+            .isInstanceOf(BufferAlreadyExistsException.class);
+        
+        verify(bufferValidator).validate(bufferDTO);
+        verify(bufferRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Get buffer - Positive")
+    void shouldGetBufferWhenValidRequest() {
+        // Arrange
+        BufferDALM bufferDALM = createValidBufferDALM();
+        BufferBLM bufferBLM = createValidBufferBLM();
+
+        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(bufferDALM);
+        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        when(deviceKafkaClient.deviceExistsAndBelongsToClient(
+                eq(bufferDALM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
+
+        // Act
+        BufferBLM result = bufferService.getBufferByUid(CLIENT_UUID, BUFFER_UUID);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(BUFFER_UUID);
+        verify(bufferRepository).findByUid(BUFFER_UUID);
+        verify(deviceKafkaClient).deviceExistsAndBelongsToClient(bufferDALM.getDeviceUid(), CLIENT_UUID);
+    }
+
+    @Test
+    @DisplayName("Get buffers by connection scheme - Positive")
+    void shouldGetBuffersByConnectionSchemeWhenValidRequest() {
+        // Arrange
+        BufferDALM bufferDALM = createValidBufferDALM();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        List<BufferDALM> buffersDALM = Collections.singletonList(bufferDALM);
+
+        when(connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(
+                eq(SCHEME_UUID), eq(CLIENT_UUID))).thenReturn(true);
+        when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersDALM);
+        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+
+        // Act
+        List<BufferBLM> result = bufferService.getBuffersByConnectionScheme(CLIENT_UUID, SCHEME_UUID);
+
+        // Assert
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getUid()).isEqualTo(BUFFER_UUID);
+        verify(connectionSchemeKafkaClient).connectionSchemeExistsAndBelongsToClient(SCHEME_UUID, CLIENT_UUID);
+        verify(bufferRepository).findByConnectionSchemeUid(SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Get buffers by client - Positive")
+    void shouldGetBuffersByClientWhenValidRequest() {
+        // Arrange
+        // Создаем DeviceDTO с правильной структурой на основе декомпилированного кода
+        DeviceDTO deviceDTO = new DeviceDTO();
+        deviceDTO.setUid(DEVICE_UUID.toString());
+        deviceDTO.setClientUuid(CLIENT_UUID.toString());
+        deviceDTO.setDeviceName("Test Device");
+        deviceDTO.setDeviceDescription("Test Device Description");
+        
+        // Создаем DeviceBLM с правильным конструктором
+        DeviceBLM deviceBLM = new DeviceBLM(DEVICE_UUID, CLIENT_UUID, "Test Device", "Test Device Description");
+        List<DeviceDTO> deviceDTOs = Collections.singletonList(deviceDTO);
+        
+        BufferDALM bufferDALM = createValidBufferDALM();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        List<BufferDALM> buffersDALM = Collections.singletonList(bufferDALM);
+
+        GetDevicesByClientResponse devicesResponse = GetDevicesByClientResponse.valid(
+            "correlation-id", deviceDTOs
+        );
+
+        when(deviceKafkaClient.getDevicesByClient(eq(CLIENT_UUID), eq("buffer-service")))
+            .thenReturn(CompletableFuture.completedFuture(devicesResponse));
+        when(deviceConverter.toBLM(deviceDTO)).thenReturn(deviceBLM);
+        when(deviceKafkaClient.deviceExistsAndBelongsToClient(eq(DEVICE_UUID), eq(CLIENT_UUID))).thenReturn(true);
+        when(bufferRepository.findByDeviceUid(DEVICE_UUID)).thenReturn(buffersDALM);
+        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+
+        // Act
+        List<BufferBLM> result = bufferService.getBuffersByClient(CLIENT_UUID);
+
+        // Assert
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getUid()).isEqualTo(BUFFER_UUID);
+        verify(deviceKafkaClient).getDevicesByClient(CLIENT_UUID, "buffer-service");
+        verify(bufferRepository).findByDeviceUid(DEVICE_UUID);
+    }
+
+    @Test
+    @DisplayName("Get buffers by device - Positive")
+    void shouldGetBuffersByDeviceWhenValidRequest() {
+        // Arrange
+        BufferDALM bufferDALM = createValidBufferDALM();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        List<BufferDALM> buffersDALM = Collections.singletonList(bufferDALM);
+
+        when(deviceKafkaClient.deviceExistsAndBelongsToClient(eq(DEVICE_UUID), eq(CLIENT_UUID))).thenReturn(true);
+        when(bufferRepository.findByDeviceUid(DEVICE_UUID)).thenReturn(buffersDALM);
+        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+
+        // Act
+        List<BufferBLM> result = bufferService.getBuffersByDevice(CLIENT_UUID, DEVICE_UUID);
+
+        // Assert
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getUid()).isEqualTo(BUFFER_UUID);
+        verify(deviceKafkaClient).deviceExistsAndBelongsToClient(DEVICE_UUID, CLIENT_UUID);
+        verify(bufferRepository).findByDeviceUid(DEVICE_UUID);
+    }
+
+    @Test
+    @DisplayName("Update buffer - Positive")
+    void shouldUpdateBufferWhenValidData() {
+        // Arrange
+        BufferDTO bufferDTO = createValidBufferDTO();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        BufferDALM bufferDALM = createValidBufferDALM();
+        BufferDALM existingBuffer = createValidBufferDALM();
+
+        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(existingBuffer);
+        when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
+        when(deviceKafkaClient.deviceExistsAndBelongsToClient(
+                eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
+        when(bufferConverter.toDALM(bufferBLM)).thenReturn(bufferDALM);
+
+        // Act
+        BufferBLM result = bufferService.updateBuffer(CLIENT_UUID, BUFFER_UUID, bufferDTO);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(bufferValidator).validate(bufferDTO);
+        verify(bufferRepository).update(bufferDALM);
+    }
+
+    @Test
+    @DisplayName("Delete buffer - Positive")
+    void shouldDeleteBufferWhenValidRequest() {
+        // Arrange
+        BufferDALM existingBuffer = createValidBufferDALM();
+
+        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(existingBuffer);
+        when(deviceKafkaClient.deviceExistsAndBelongsToClient(
+                eq(existingBuffer.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
+
+        // Act
+        bufferService.deleteBuffer(CLIENT_UUID, BUFFER_UUID);
+
+        // Assert
+        verify(bufferRepository).delete(BUFFER_UUID);
+    }
+
+    @Test
+    @DisplayName("Delete all buffers from connection scheme - Positive")
+    void shouldDeleteAllBuffersFromConnectionSchemeWhenValidRequest() {
+        // Arrange
+        BufferDALM bufferDALM = createValidBufferDALM();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        List<BufferDALM> buffersDALM = Collections.singletonList(bufferDALM);
+
+        when(connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(
+                eq(SCHEME_UUID), eq(CLIENT_UUID))).thenReturn(true);
+        when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersDALM);
+        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+
+        // Act
+        bufferService.deleteAllBuffersFromConnectionScheme(CLIENT_UUID, SCHEME_UUID);
+
+        // Assert
+        verify(bufferRepository).findByConnectionSchemeUid(SCHEME_UUID);
+        verify(bufferRepository).removeBufferFromConnectionScheme(BUFFER_UUID, SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Delete buffer from connection scheme - Positive")
+    void shouldDeleteBufferFromConnectionSchemeWhenValidRequest() {
+        // Arrange
+        BufferDALM bufferDALM = createValidBufferDALM();
+        BufferBLM bufferBLM = createValidBufferBLM();
+        List<BufferDALM> buffersDALM = Collections.singletonList(bufferDALM);
+
+        when(connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(
+                eq(SCHEME_UUID), eq(CLIENT_UUID))).thenReturn(true);
+        when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersDALM);
+        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+
+        // Act
+        bufferService.deleteBufferFromConnectionScheme(CLIENT_UUID, SCHEME_UUID, BUFFER_UUID);
+
+        // Assert
+        verify(bufferRepository).findByConnectionSchemeUid(SCHEME_UUID);
+        verify(bufferRepository).removeBufferFromConnectionScheme(BUFFER_UUID, SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Buffer exists - Positive")
+    void shouldReturnTrueWhenBufferExists() {
+        // Arrange
+        BufferDALM bufferDALM = createValidBufferDALM();
+
+        when(bufferRepository.exists(BUFFER_UUID)).thenReturn(true);
+        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(bufferDALM);
+        when(deviceKafkaClient.deviceExistsAndBelongsToClient(
+                eq(bufferDALM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
+
+        // Act
+        boolean result = bufferService.bufferExists(CLIENT_UUID, BUFFER_UUID);
+
+        // Assert
+        assertThat(result).isTrue();
+        verify(bufferRepository).exists(BUFFER_UUID);
+        verify(deviceKafkaClient).deviceExistsAndBelongsToClient(bufferDALM.getDeviceUid(), CLIENT_UUID);
+    }
+
+    @Test
+    @DisplayName("Buffer exists - Negative: Buffer not found")
+    void shouldReturnFalseWhenBufferNotExists() {
+        // Arrange
+        when(bufferRepository.exists(BUFFER_UUID)).thenReturn(false);
+
+        // Act
+        boolean result = bufferService.bufferExists(CLIENT_UUID, BUFFER_UUID);
+
+        // Assert
+        assertThat(result).isFalse();
+        verify(bufferRepository).exists(BUFFER_UUID);
+    }
+
+    @Test
+    @DisplayName("Buffer exists - Negative: Device doesn't belong to client")
+    void shouldReturnFalseWhenDeviceNotBelongsToClient() {
+        // Arrange
+        BufferDALM bufferDALM = createValidBufferDALM();
+
+        when(bufferRepository.exists(BUFFER_UUID)).thenReturn(true);
+        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(bufferDALM);
+        when(deviceKafkaClient.deviceExistsAndBelongsToClient(
+                eq(bufferDALM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(false);
+
+        // Act
+        boolean result = bufferService.bufferExists(CLIENT_UUID, BUFFER_UUID);
+
+        // Assert
+        assertThat(result).isFalse();
+        verify(bufferRepository).exists(BUFFER_UUID);
+        verify(deviceKafkaClient).deviceExistsAndBelongsToClient(bufferDALM.getDeviceUid(), CLIENT_UUID);
+    }
+
+    @Test
+    @DisplayName("Update buffer - Negative: Cannot change buffer UID")
+    void shouldThrowExceptionWhenTryingToChangeBufferUid() {
+        // Arrange
+        BufferDTO bufferDTO = createValidBufferDTO();
+        BufferDALM existingBuffer = createValidBufferDALM();
+        // Создаем BLM с другим UID
+        BufferBLM bufferBLM = new BufferBLM(
+            UUID.randomUUID(), // другой UID
+            SCHEME_UUID,
+            1000,
+            1024,
+            "message prototype"
+        );
+
+        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(existingBuffer);
+        when(deviceKafkaClient.deviceExistsAndBelongsToClient(
+                eq(existingBuffer.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
+        when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
+
+        // Act & Assert
+        assertThatThrownBy(() -> bufferService.updateBuffer(CLIENT_UUID, BUFFER_UUID, bufferDTO))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot change buffer UID");
+
+        verify(bufferValidator).validate(bufferDTO);
+        verify(bufferRepository, never()).update(any());
+    }
+
+    @Test
+    @DisplayName("Get buffers by client - Negative: Device service returns error")
+    void shouldReturnEmptyListWhenDeviceServiceFails() throws Exception {
+        // Arrange
+        GetDevicesByClientResponse devicesResponse = GetDevicesByClientResponse.error(
+            "correlation-id", "Service unavailable"
+        );
+
+        when(deviceKafkaClient.getDevicesByClient(eq(CLIENT_UUID), eq("buffer-service")))
+            .thenReturn(CompletableFuture.completedFuture(devicesResponse));
+
+        // Act
+        List<BufferBLM> result = bufferService.getBuffersByClient(CLIENT_UUID);
+
+        // Assert
+        assertThat(result).isEmpty();
+        verify(deviceKafkaClient).getDevicesByClient(CLIENT_UUID, "buffer-service");
+    }
+
+    @Test
+    @DisplayName("Get buffers by client - Negative: Device service timeout")
+    void shouldThrowExceptionWhenDeviceServiceTimeout() throws Exception {
+        // Arrange
+        CompletableFuture<GetDevicesByClientResponse> timeoutFuture = new CompletableFuture<>();
+        timeoutFuture.completeExceptionally(new java.util.concurrent.TimeoutException("Timeout"));
+
+        when(deviceKafkaClient.getDevicesByClient(eq(CLIENT_UUID), eq("buffer-service")))
+            .thenReturn(timeoutFuture);
+
+        // Act & Assert
+        assertThatThrownBy(() -> bufferService.getBuffersByClient(CLIENT_UUID))
+            .isInstanceOf(RuntimeException.class)
+            .hasMessageContaining("Device service error");
+
+        verify(deviceKafkaClient).getDevicesByClient(CLIENT_UUID, "buffer-service");
+    }
+}// MessageController.java
+package com.connection.message.controller;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.message.converter.MessageConverter;
+import com.connection.message.model.MessageBLM;
+import com.connection.message.model.MessageDTO;
+import com.connection.message.model.MessageDirection;
+import com.connection.message.validator.MessageValidator;
+import com.connection.message.MessageService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/message-service")
+public class MessageController {
+    
+    private final MessageService messageService;
+    private final MessageValidator messageValidator;
+    private final MessageConverter messageConverter;
+
+    // Константы для пагинации по умолчанию
+    private static final int DEFAULT_OFFSET = 0;
+    private static final int DEFAULT_LIMIT = 50;
+    private static final int MAX_LIMIT = 1000;
+
+    private static final String DEVICE_ACCESS_TOKEN_HEADER = "Device-Access-Token";
+
+    @PostMapping("/messages")
+    public ResponseEntity<MessageResponse> addMessage(
+            @RequestHeader(DEVICE_ACCESS_TOKEN_HEADER) String deviceAccessToken,
+            @RequestBody MessageDTO messageDTO) {
+        
+        log.info("Adding message to buffer: {} with direction: {}", 
+                messageDTO.getBufferUid(), messageDTO.getDirection());
+
+        messageValidator.validate(messageDTO);
+        MessageBLM message = messageService.addMessage(deviceAccessToken, messageDTO);
+
+        return ResponseEntity.ok(new MessageResponse(message.getUid()));
+    }
+
+    @GetMapping("/messages/{messageUid}")
+    public ResponseEntity<MessageResponse> getMessage(
+            @RequestHeader(DEVICE_ACCESS_TOKEN_HEADER) String deviceAccessToken,
+            @PathVariable UUID messageUid) {
+        
+        log.info("Getting message: {}", messageUid);
+        
+        MessageBLM message = messageService.getMessage(deviceAccessToken, messageUid);
+
+        return ResponseEntity.ok(new MessageResponse(message.getUid()));
+    }
+
+    @GetMapping("/messages/buffer/{bufferUid}")
+    public ResponseEntity<MessagesListResponse> getMessagesByBuffer(
+            @RequestHeader(DEVICE_ACCESS_TOKEN_HEADER) String deviceAccessToken,
+            @PathVariable UUID bufferUid,
+            @RequestParam(required = false) MessageDirection direction,
+            @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
+            @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+        
+        log.info("Getting messages for buffer: {} with direction: {}, offset: {}, limit: {}", 
+                bufferUid, direction, offset, limit);
+        
+        List<MessageBLM> allMessages = messageService.getMessagesByBuffer(deviceAccessToken, bufferUid, direction);
+        
+        // Применяем пагинацию
+        List<MessageBLM> paginatedMessages = applyPagination(allMessages, offset, limit);
+        List<MessageDTO> messageDTOs = paginatedMessages.stream()
+                .map(messageConverter::toDTO)
+                .collect(Collectors.toList());
+
+        // Создаем информацию о пагинации
+        MessagesListResponse.PaginationInfo paginationInfo = 
+            new MessagesListResponse.PaginationInfo(
+                offset, 
+                limit, 
+                allMessages.size(), 
+                (offset + limit) < allMessages.size()
+            );
+
+        return ResponseEntity.ok(new MessagesListResponse(messageDTOs, paginationInfo));
+    }
+
+    @PostMapping("/messages/{messageUid}/route")
+    public ResponseEntity<Void> routeMessage(
+            @RequestHeader(DEVICE_ACCESS_TOKEN_HEADER) String deviceAccessToken,
+            @PathVariable UUID messageUid) {
+        
+        log.info("Routing message: {}", messageUid);
+        
+        messageService.routeOutgoingMessage(deviceAccessToken, messageUid);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/messages/{messageUid}")
+    public ResponseEntity<Void> deleteMessage(
+            @RequestHeader(DEVICE_ACCESS_TOKEN_HEADER) String deviceAccessToken,
+            @PathVariable UUID messageUid) {
+        
+        log.info("Deleting message: {}", messageUid);
+
+        messageService.deleteMessage(deviceAccessToken, messageUid);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<HealthResponse> healthCheck() {
+        log.info("Health check: status: OK, service: message-service, timestamp: {}", 
+                System.currentTimeMillis());
+                
+        return ResponseEntity.ok().body(new HealthResponse(messageService.getHealthStatus().toString()));
+    }
+
+    /**
+     * Применяет пагинацию к списку сообщений
+     */
+    private List<MessageBLM> applyPagination(List<MessageBLM> messages, int offset, int limit) {
+        // Валидация параметров пагинации
+        if (offset < 0) {
+            offset = DEFAULT_OFFSET;
+        }
+        
+        if (limit <= 0 || limit > MAX_LIMIT) {
+            limit = DEFAULT_LIMIT;
+        }
+        
+        // Применяем пагинацию
+        return messages.stream()
+                .skip(offset)
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+}// MessageServiceImpl.java
+package com.connection.message;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.message.converter.MessageConverter;
+import com.connection.message.exception.MessageAddException;
+import com.connection.message.exception.MessageRoutingException;
+import com.connection.message.model.MessageBLM;
+import com.connection.message.model.MessageDALM;
+import com.connection.message.model.MessageDTO;
+import com.connection.message.model.MessageDirection;
+import com.connection.message.model.MessageStatus;
+import com.connection.message.repository.MessageRepository;
+import com.connection.message.validator.MessageValidator;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.message.kafka.TypedConnectionSchemeKafkaClient;
+import com.connection.message.kafka.TypedDeviceAuthKafkaClient;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+        JpaRepositoriesAutoConfiguration.class
+})
+@Transactional("atomicosTransactionManager")
+public class MessageServiceImpl implements MessageService {
+
+    private final MessageRepository messageRepository;
+    private final MessageConverter messageConverter;
+    private final MessageValidator messageValidator;
+    private final TypedConnectionSchemeKafkaClient connectionSchemeClient;
+    private final TypedDeviceAuthKafkaClient deviceAuthClient;
+
+    @Override
+    public MessageBLM addMessage(String deviceAccessToken, MessageDTO messageDTO) {
+        // Валидируем сообщение
+        messageValidator.validate(messageDTO);
+        
+        // Извлекаем deviceUid из токена
+        UUID deviceUid = deviceAuthClient.extractDeviceUidFromAccessToken(deviceAccessToken);
+        
+        // Проверяем, что буфер принадлежит устройству
+        if (!connectionSchemeClient.isBufferOwnedByDevice(messageDTO.getBufferUid(), deviceUid)) {
+            throw new SecurityException("Buffer doesn't belong to the authenticated device");
+        }
+
+        // Конвертируем и сохраняем сообщение
+        MessageBLM messageBLM = messageConverter.toBLM(messageDTO);
+        MessageDALM messageDALM = messageConverter.toDALM(messageBLM);
+        
+        try {
+            messageRepository.add(messageDALM);
+        } catch (MessageAddException e) {
+            throw new MessageAddException("Failed to add message: " + e.getMessage());
+        }
+
+        log.info("Message created: {} in buffer: {} with direction: {} for device: {}", 
+                messageBLM.getUid(), messageBLM.getBufferUid(), messageBLM.getDirection(), deviceUid);
+
+        // Если сообщение исходящее - запускаем маршрутизацию
+        if (messageBLM.getDirection() == MessageDirection.OUTGOING) {
+            try {
+                routeOutgoingMessage(deviceAccessToken, messageBLM.getUid());
+            } catch (Exception e) {
+                log.error("Failed to route outgoing message: {}", messageBLM.getUid(), e);
+                // Не прерываем создание сообщения при ошибке маршрутизации
+            }
+        }
+
+        return messageBLM;
+    }
+
+    @Override
+    public MessageBLM getMessage(String deviceAccessToken, UUID messageUid) {
+        // Извлекаем deviceUid из токена
+        UUID deviceUid = deviceAuthClient.extractDeviceUidFromAccessToken(deviceAccessToken);
+        
+        // Получаем сообщение
+        MessageDALM messageDALM;
+        try {
+            messageDALM = messageRepository.findByUid(messageUid);
+        } catch (Exception e) {
+            throw new RuntimeException("Message not found: " + messageUid);
+        }
+        
+        MessageBLM messageBLM = messageConverter.toBLM(messageDALM);
+
+        // Проверяем, что буфер сообщения принадлежит устройству
+        if (!connectionSchemeClient.isBufferOwnedByDevice(messageBLM.getBufferUid(), deviceUid)) {
+            throw new SecurityException("Message doesn't belong to the authenticated device");
+        }
+
+        return messageBLM;
+    }
+
+    @Override
+    public List<MessageBLM> getMessagesByBuffer(String deviceAccessToken, UUID bufferUid, MessageDirection direction) {
+        // Извлекаем deviceUid из токена
+        UUID deviceUid = deviceAuthClient.extractDeviceUidFromAccessToken(deviceAccessToken);
+        
+        // Проверяем, что буфер принадлежит устройству
+        if (!connectionSchemeClient.isBufferOwnedByDevice(bufferUid, deviceUid)) {
+            throw new SecurityException("Buffer doesn't belong to the authenticated device");
+        }
+
+        // Получаем сообщения из буфера
+        List<MessageDALM> messagesDALM;
+        try {
+            messagesDALM = messageRepository.findByBufferUid(bufferUid);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get messages for buffer: " + bufferUid);
+        }
+
+        // Фильтруем по направлению если указано
+        return messagesDALM.stream()
+                .map(messageConverter::toBLM)
+                .filter(message -> direction == null || message.getDirection() == direction)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void routeOutgoingMessage(String deviceAccessToken, UUID messageUid) {
+        // Извлекаем deviceUid из токена
+        UUID deviceUid = deviceAuthClient.extractDeviceUidFromAccessToken(deviceAccessToken);
+        
+        // Получаем сообщение
+        MessageBLM outgoingMessage = getMessage(deviceAccessToken, messageUid);
+        
+        if (outgoingMessage.getDirection() != MessageDirection.OUTGOING) {
+            throw new MessageRoutingException("Cannot route non-outgoing message");
+        }
+
+        // Получаем схему подключения для буфера устройства
+        ConnectionSchemeBLM scheme = connectionSchemeClient.getSchemeByDeviceBuffer(outgoingMessage.getBufferUid(), deviceUid);
+        
+        if (scheme == null || scheme.getBufferTransitions() == null) {
+            log.warn("No connection scheme found for buffer: {} of device: {}", outgoingMessage.getBufferUid(), deviceUid);
+            return;
+        }
+
+        // Получаем целевые буферы из схемы
+        List<UUID> targetBuffers = scheme.getBufferTransitions().get(outgoingMessage.getBufferUid());
+        
+        if (targetBuffers == null || targetBuffers.isEmpty()) {
+            log.warn("No target buffers found in scheme for buffer: {}", outgoingMessage.getBufferUid());
+            return;
+        }
+
+        // Создаем входящие сообщения в целевых буферах
+        for (UUID targetBufferUid : targetBuffers) {
+            try {
+                MessageBLM incomingMessage = MessageBLM.builder()
+                        .uid(UUID.randomUUID())
+                        .bufferUid(targetBufferUid)
+                        .content(outgoingMessage.getContent())
+                        .contentType(outgoingMessage.getContentType())
+                        .createdAt(new java.util.Date())
+                        .direction(MessageDirection.INCOMING)
+                        .status(MessageStatus.PENDING)
+                        .sourceBufferUid(outgoingMessage.getBufferUid())
+                        .retryCount(0)
+                        .build();
+
+                MessageDALM incomingMessageDALM = messageConverter.toDALM(incomingMessage);
+                messageRepository.add(incomingMessageDALM);
+
+                log.info("Routed message from buffer: {} to buffer: {} for device: {}", 
+                        outgoingMessage.getBufferUid(), targetBufferUid, deviceUid);
+                        
+            } catch (Exception e) {
+                log.error("Failed to route message to buffer: {} for device: {}", targetBufferUid, deviceUid, e);
+                // Продолжаем маршрутизацию для остальных буферов
+            }
+        }
+
+        log.info("Successfully routed outgoing message: {} for device: {}", messageUid, deviceUid);
+    }
+
+    @Override
+    public void deleteMessage(String deviceAccessToken, UUID messageUid) {
+        // Извлекаем deviceUid из токена и проверяем права
+        MessageBLM message = getMessage(deviceAccessToken, messageUid);
+        
+        try {
+            messageRepository.deleteByUid(messageUid);
+            log.info("Message deleted: {} for device", messageUid);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete message: " + messageUid);
+        }
+    }
+
+    @Override
+    public Map<String, Object> getHealthStatus() {
+        try {
+            // Проверяем доступность зависимых сервисов
+            var schemeHealth = connectionSchemeClient.healthCheck("message-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+            var deviceAuthHealth = deviceAuthClient.healthCheck("message-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "message-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "connection-scheme-service", schemeHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
+                    "device-auth-service", deviceAuthHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE");
+        } catch (Exception e) {
+            log.error("Health check failed: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "message-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "error", e.getMessage());
+        }
+    }
+}// MessageService.java
+package com.connection.message;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.message.model.MessageBLM;
+import com.connection.message.model.MessageDTO;
+import com.connection.message.model.MessageDirection;
+
+public interface MessageService {
+    MessageBLM addMessage(String deviceAccessToken, MessageDTO messageDTO);
+    MessageBLM getMessage(String deviceAccessToken, UUID messageUid);
+    List<MessageBLM> getMessagesByBuffer(String deviceAccessToken, UUID bufferUid, MessageDirection direction);
+    void routeOutgoingMessage(String deviceAccessToken, UUID messageUid);
+    void deleteMessage(String deviceAccessToken, UUID messageUid);
+    Map<String, Object> getHealthStatus();
+}// MessageServiceApplication.java
+package com.connection.message;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class MessageServiceApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(MessageServiceApplication.class, args);
+    }
+}package com.connection.device;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.device.converter.DeviceConverter;
+import com.connection.device.exception.DeviceAlreadyExistsException;
+import com.connection.device.kafka.TypedAuthKafkaClient;
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.repository.DeviceRepository;
+import com.connection.device.validator.DeviceValidator;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+        JpaRepositoriesAutoConfiguration.class
+})
+@Transactional("atomicosTransactionManager")
+public class DeviceServiceImpl implements DeviceService {
+
+    private final DeviceRepository deviceRepository;
+    private final DeviceConverter deviceConverter;
+    private final DeviceValidator deviceValidator;
+    private final TypedAuthKafkaClient authKafkaClient;
+
+    @Override
+    public DeviceBLM createDevice(UUID clientUid, DeviceBLM deviceBLM) {
+        deviceValidator.validate(deviceBLM);
+
+        if (!clientUid.equals(deviceBLM.getClientUuid())) {
+            throw new SecurityException("Client UID from token doesn't match device client UID");
+        }
+
+        if (deviceRepository.existsByClientAndName(clientUid, deviceBLM.getDeviceName())) {
+            throw new DeviceAlreadyExistsException(
+                    "Device with name '" + deviceBLM.getDeviceName() + "' already exists for this client");
+        }
+
+        DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
+        deviceRepository.add(deviceDALM);
+
+        log.info("Device created: {} for client: {}", deviceBLM.getUid(), clientUid);
+        return deviceBLM;
+    }
+
+    @Override
+    public DeviceBLM getDevice(UUID clientUid, UUID deviceUid) {
+        DeviceDALM deviceDALM = deviceRepository.findByUid(deviceUid);
+
+        if (!clientUid.equals(deviceDALM.getClientUuid())) {
+            throw new SecurityException("Device doesn't belong to the authenticated client");
+        }
+
+        return deviceConverter.toBLM(deviceDALM);
+    }
+
+    @Override
+    public List<DeviceBLM> getDevicesByClient(UUID clientUid) {
+
+        List<DeviceDALM> devicesDALM = deviceRepository.findByClientUuid(clientUid);
+        return devicesDALM.stream()
+                .map(deviceConverter::toBLM)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public DeviceBLM updateDevice(UUID clientUid, DeviceBLM deviceBLM) {
+        deviceValidator.validate(deviceBLM);
+
+        DeviceDALM existingDevice = deviceRepository.findByUid(deviceBLM.getUid());
+        if (!clientUid.equals(existingDevice.getClientUuid())) {
+            throw new SecurityException("Device doesn't belong to the authenticated client");
+        }
+
+        if (!clientUid.equals(deviceBLM.getClientUuid())) {
+            throw new SecurityException("Client UID from token doesn't match device client UID");
+        }
+
+        DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
+        deviceRepository.update(deviceDALM);
+
+        log.info("Device updated: {} for client: {}", deviceBLM.getUid(), clientUid);
+        return deviceBLM;
+    }
+
+    @Override
+    public void deleteDevice(UUID clientUid, UUID deviceUid) {
+
+        DeviceDALM existingDevice = deviceRepository.findByUid(deviceUid);
+        if (!clientUid.equals(existingDevice.getClientUuid())) {
+            throw new SecurityException("Device doesn't belong to the authenticated client");
+        }
+
+        deviceRepository.delete(deviceUid);
+        log.info("Device deleted: {} for client: {}", deviceUid, clientUid);
+    }
+
+    @Override
+    public boolean deviceExists(UUID deviceUid) {
+        // Просто проверяем существование устройства без проверки принадлежности
+        return deviceRepository.exists(deviceUid);
+    }
+
+    @Override
+    public Map<String, Object> getHealthStatus() {
+        try {
+            HealthCheckResponse authHealth = authKafkaClient.healthCheck("device-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "device-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+        } catch (Exception e) {
+            log.error("Kafka Client: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "device-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "error", e.getMessage());
+        }
+    }
+}package com.connection.device;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.device.model.DeviceBLM;
+
+public interface DeviceService {
+    DeviceBLM createDevice(UUID clientUid, DeviceBLM deviceBLM);
+    DeviceBLM getDevice(UUID clientUid, UUID deviceUid);
+    List<DeviceBLM> getDevicesByClient(UUID clientUid);
+    DeviceBLM updateDevice(UUID clientUid, DeviceBLM deviceBLM);
+    void deleteDevice(UUID clientUid, UUID deviceUid);
+    boolean deviceExists(UUID deviceUid);
+    Map<String, Object> getHealthStatus();
+}// DeviceController.java
+package com.connection.device.controller;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.device.DeviceService;
+import com.connection.device.config.SecurityUtils;
+import com.connection.device.converter.DeviceConverter;
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDTO;
+import com.connection.device.validator.DeviceValidator;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/device-service")
+public class DeviceController {
+    
+    private final DeviceService deviceService;
+    private final DeviceValidator deviceValidator;
+    private final DeviceConverter deviceConverter;
+
+    // Константы для пагинации по умолчанию
+    private static final int DEFAULT_OFFSET = 0;
+    private static final int DEFAULT_LIMIT = 50;
+    private static final int MAX_LIMIT = 1000;
+
+    @PostMapping("/devices")
+    public ResponseEntity<DeviceResponse> createDevice(@RequestBody DeviceDTO deviceDTO) {
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Creating device for client {}", clientUid);
+
+        deviceValidator.validate(deviceDTO);
+        DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
+        DeviceBLM device = deviceService.createDevice(clientUid, deviceBLM);
+
+        return ResponseEntity.ok(new DeviceResponse(device.getUid()));
+    }
+
+    @GetMapping("/devices/{deviceUid}")
+    public ResponseEntity<DeviceResponse> getDevice(@PathVariable UUID deviceUid) {
+        log.info("Getting device: {}", deviceUid);
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        DeviceBLM device = deviceService.getDevice(clientUid, deviceUid);
+
+        return ResponseEntity.ok(new DeviceResponse(device.getUid()));
+    }
+
+    @GetMapping("/devices")
+    public ResponseEntity<DevicesListResponse> getDevicesByClient(
+            @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
+            @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
+        
+        log.info("Getting all devices for client with offset: {}, limit: {}", offset, limit);
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        List<DeviceBLM> allDevices = deviceService.getDevicesByClient(clientUid);
+        
+        // Применяем пагинацию
+        List<DeviceBLM> paginatedDevices = applyPagination(allDevices, offset, limit);
+        List<DeviceDTO> deviceDTOs = paginatedDevices.stream()
+                .map(deviceConverter::toDTO)
+                .collect(Collectors.toList());
+
+        // Создаем информацию о пагинации
+        DevicesListResponse.PaginationInfo paginationInfo = 
+            new DevicesListResponse.PaginationInfo(
+                offset, 
+                limit, 
+                allDevices.size(), 
+                (offset + limit) < allDevices.size()
+            );
+
+        return ResponseEntity.ok(new DevicesListResponse(deviceDTOs, paginationInfo));
+    }
+
+    @PutMapping("/devices/{deviceUid}")
+    public ResponseEntity<DeviceResponse> updateDevice(
+            @PathVariable UUID deviceUid,
+            @RequestBody DeviceDTO deviceDTO) {
+        
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        log.info("Updating device: {} for client: {}", deviceUid, clientUid);
+
+        deviceValidator.validate(deviceDTO);
+        DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
+        DeviceBLM device = deviceService.updateDevice(clientUid, deviceBLM);
+
+        return ResponseEntity.ok(new DeviceResponse(device.getUid()));
+    }
+
+    @DeleteMapping("/devices/{deviceUid}")
+    public ResponseEntity<Void> deleteDevice(@PathVariable UUID deviceUid) {
+        log.info("Deleting device: {}", deviceUid);
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        deviceService.deleteDevice(clientUid, deviceUid);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<HealthResponse> healthCheck() {
+        log.info("Health check: status: OK, service: device-service, timestamp: {}", 
+                System.currentTimeMillis());
+
+        return ResponseEntity.ok().body(new HealthResponse(deviceService.getHealthStatus().toString()));
+    }
+
+    /**
+     * Применяет пагинацию к списку устройств
+     * 
+     * @param devices полный список устройств
+     * @param offset смещение (начальная позиция)
+     * @param limit максимальное количество элементов
+     * @return пагинированный список устройств
+     */
+    private List<DeviceBLM> applyPagination(List<DeviceBLM> devices, int offset, int limit) {
+        // Валидация параметров пагинации
+        if (offset < 0) {
+            offset = DEFAULT_OFFSET;
+        }
+        
+        if (limit <= 0 || limit > MAX_LIMIT) {
+            limit = DEFAULT_LIMIT;
+        }
+        
+        // Применяем пагинацию
+        return devices.stream()
+                .skip(offset)
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+}package com.connection.device;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class DeviceServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(DeviceServiceApplication.class, args);
+	}
+
+}
+package com.connection.device;
+
+import static com.connection.device.mother.DeviceObjectMother.CLIENT_UUID;
+import static com.connection.device.mother.DeviceObjectMother.DEVICE_UUID;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBLM;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDALM;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.device.converter.DeviceConverter;
+import com.connection.device.exception.DeviceAlreadyExistsException;
+import com.connection.device.kafka.TypedAuthKafkaClient;
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.repository.DeviceRepository;
+import com.connection.device.validator.DeviceValidator;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("Device Service Implementation Tests - Kafka Version")
+class DeviceServiceImplTest {
+
+    @Mock
+    private DeviceRepository deviceRepository;
+
+    @Mock
+    private DeviceConverter deviceConverter;
+
+    @Mock
+    private DeviceValidator deviceValidator;
+
+    @Mock
+    private TypedAuthKafkaClient authKafkaClient;
+
+    @Mock
+    private SecurityContext securityContext;
+
+    @InjectMocks
+    private DeviceServiceImpl deviceService;
+
+    @BeforeEach
+    void setUp() {
+        SecurityContextHolder.setContext(securityContext);
+    }
+
+    private void setupAuthentication(UUID clientUid) {
+        UsernamePasswordAuthenticationToken authentication = 
+            new UsernamePasswordAuthenticationToken(clientUid, null, Collections.emptyList());
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+    }
+
+    @Test
+    @DisplayName("Create device - Positive")
+    void shouldCreateDeviceWhenValidData() {
+        // Arrange
+        DeviceBLM deviceBLM = createValidDeviceBLM();
+        DeviceDALM deviceDALM = createValidDeviceDALM();
+        
+        // setupAuthentication(CLIENT_UUID);
+        when(deviceConverter.toDALM(deviceBLM)).thenReturn(deviceDALM);
+        when(deviceRepository.existsByClientAndName(CLIENT_UUID, "Test Device")).thenReturn(false);
+
+        // Act
+        DeviceBLM result = deviceService.createDevice(CLIENT_UUID, deviceBLM);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(DEVICE_UUID);
+        verify(deviceValidator).validate(deviceBLM);
+        verify(deviceRepository).add(deviceDALM);
+    }
+
+    @Test
+    @DisplayName("Create device - Negative: Client UID mismatch")
+    void shouldThrowExceptionWhenClientUidMismatch() {
+        // Arrange
+        UUID differentClientUuid = UUID.randomUUID();
+        DeviceBLM deviceBLM = new DeviceBLM(
+                DEVICE_UUID,
+                differentClientUuid,
+                "Test Device",
+                "Test Description");
+
+        // setupAuthentication(CLIENT_UUID);
+
+        // Act & Assert
+        assertThatThrownBy(() -> deviceService.createDevice(CLIENT_UUID, deviceBLM))
+                .isInstanceOf(SecurityException.class)
+                .hasMessageContaining("Client UID from token doesn't match device client UID");
+
+        verify(deviceValidator).validate(deviceBLM);
+        verify(deviceRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Create device - Negative: Device already exists")
+    void shouldThrowExceptionWhenDeviceAlreadyExists() {
+        // Arrange
+        DeviceBLM deviceBLM = createValidDeviceBLM();
+        
+        // setupAuthentication(CLIENT_UUID);
+        when(deviceRepository.existsByClientAndName(CLIENT_UUID, "Test Device")).thenReturn(true);
+
+        // Act & Assert
+        assertThatThrownBy(() -> deviceService.createDevice(CLIENT_UUID, deviceBLM))
+                .isInstanceOf(DeviceAlreadyExistsException.class);
+
+        verify(deviceValidator).validate(deviceBLM);
+        verify(deviceRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Get device - Positive")
+    void shouldGetDeviceWhenValidRequest() {
+        // Arrange
+        DeviceDALM deviceDALM = createValidDeviceDALM();
+        DeviceBLM expectedBLM = createValidDeviceBLM();
+
+        //setupAuthentication(CLIENT_UUID);
+        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceDALM);
+        when(deviceConverter.toBLM(deviceDALM)).thenReturn(expectedBLM);
+
+        // Act
+        DeviceBLM result = deviceService.getDevice(CLIENT_UUID, DEVICE_UUID);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(DEVICE_UUID);
+        verify(deviceRepository).findByUid(DEVICE_UUID);
+    }
+
+    @Test
+    @DisplayName("Get device - Negative: Device doesn't belong to client")
+    void shouldThrowExceptionWhenDeviceNotBelongsToClient() {
+        // Arrange
+        UUID differentClientUuid = UUID.randomUUID();
+        DeviceDALM deviceDALM = new DeviceDALM(
+                DEVICE_UUID,
+                differentClientUuid,
+                "Test Device",
+                "Test Description");
+
+        //setupAuthentication(CLIENT_UUID);
+        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceDALM);
+
+        // Act & Assert
+        assertThatThrownBy(() -> deviceService.getDevice(CLIENT_UUID, DEVICE_UUID))
+                .isInstanceOf(SecurityException.class)
+                .hasMessageContaining("doesn't belong");
+
+        verify(deviceRepository).findByUid(DEVICE_UUID);
+        verify(deviceConverter, never()).toBLM(any(DeviceDALM.class));
+    }
+
+    @Test
+    @DisplayName("Get devices by client - Positive")
+    void shouldGetDevicesByClientWhenValidRequest() {
+        // Arrange
+        DeviceDALM deviceDALM = createValidDeviceDALM();
+        DeviceBLM expectedBLM = createValidDeviceBLM();
+        List<DeviceDALM> devicesDALM = Collections.singletonList(deviceDALM);
+
+        //setupAuthentication(CLIENT_UUID);
+        when(deviceRepository.findByClientUuid(CLIENT_UUID)).thenReturn(devicesDALM);
+        when(deviceConverter.toBLM(deviceDALM)).thenReturn(expectedBLM);
+
+        // Act
+        List<DeviceBLM> result = deviceService.getDevicesByClient(CLIENT_UUID);
+
+        // Assert
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getUid()).isEqualTo(DEVICE_UUID);
+        verify(deviceRepository).findByClientUuid(CLIENT_UUID);
+    }
+
+    @Test
+    @DisplayName("Update device - Positive")
+    void shouldUpdateDeviceWhenValidData() {
+        // Arrange
+        DeviceBLM deviceBLM = createValidDeviceBLM();
+        DeviceDALM deviceDALM = createValidDeviceDALM();
+        DeviceDALM existingDevice = createValidDeviceDALM();
+
+        //setupAuthentication(CLIENT_UUID);
+        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(existingDevice);
+        when(deviceConverter.toDALM(deviceBLM)).thenReturn(deviceDALM);
+
+        // Act
+        DeviceBLM result = deviceService.updateDevice(CLIENT_UUID, deviceBLM);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(deviceValidator).validate(deviceBLM);
+        verify(deviceRepository).update(deviceDALM);
+    }
+
+    @Test
+    @DisplayName("Delete device - Positive")
+    void shouldDeleteDeviceWhenValidRequest() {
+        // Arrange
+        DeviceDALM existingDevice = createValidDeviceDALM();
+
+        //setupAuthentication(CLIENT_UUID);
+        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(existingDevice);
+
+        // Act
+        deviceService.deleteDevice(CLIENT_UUID, DEVICE_UUID);
+
+        // Assert
+        verify(deviceRepository).delete(DEVICE_UUID);
+    }
+
+    @Test
+    @DisplayName("Device exists - Positive")
+    void shouldReturnTrueWhenDeviceExists() {
+        // Arrange
+        when(deviceRepository.exists(DEVICE_UUID)).thenReturn(true);
+
+        // Act
+        boolean result = deviceService.deviceExists(DEVICE_UUID);
+
+        // Assert
+        assertThat(result).isTrue();
+        verify(deviceRepository).exists(DEVICE_UUID);
+    }
+
+    @Test
+    @DisplayName("Device exists - Negative: Device not found")
+    void shouldReturnFalseWhenDeviceNotExists() {
+        // Arrange
+        when(deviceRepository.exists(DEVICE_UUID)).thenReturn(false);
+
+        // Act
+        boolean result = deviceService.deviceExists(DEVICE_UUID);
+
+        // Assert
+        assertThat(result).isFalse();
+        verify(deviceRepository).exists(DEVICE_UUID);
+    }
+
+    @Test
+    @DisplayName("Health check - Positive")
+    void shouldReturnHealthStatus() throws Exception {
+        // Arrange
+        Map<String, Object> authHealth = Map.of("status", "OK");
+        HealthCheckResponse healthResponse = HealthCheckResponse.success("correlation-id", authHealth);
+        
+        when(authKafkaClient.healthCheck("device-service"))
+            .thenReturn(CompletableFuture.completedFuture(healthResponse));
+
+        // Act
+        Map<String, Object> result = deviceService.getHealthStatus();
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("OK");
+        assertThat(result.get("service")).isEqualTo("device-service");
+        assertThat(result.get("auth-service")).isEqualTo(authHealth);
+        verify(authKafkaClient).healthCheck("device-service");
+    }
+
+    @Test
+    @DisplayName("Health check - Negative: Auth service timeout")
+    void shouldHandleAuthServiceTimeoutInHealthCheck() throws Exception {
+        // Arrange
+        CompletableFuture<HealthCheckResponse> timeoutFuture = new CompletableFuture<>();
+        timeoutFuture.completeExceptionally(new java.util.concurrent.TimeoutException("Timeout"));
+        
+        when(authKafkaClient.healthCheck("device-service"))
+            .thenReturn(timeoutFuture);
+
+        // Act
+        Map<String, Object> result = deviceService.getHealthStatus();
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("DEGRADED");
+        assertThat(result.get("auth-service")).isEqualTo("UNAVAILABLE");
+        verify(authKafkaClient).healthCheck("device-service");
+    }
+
+    @Test
+    @DisplayName("Health check - Negative: Auth service error")
+    void shouldHandleAuthServiceErrorInHealthCheck() throws Exception {
+        // Arrange
+        HealthCheckResponse errorResponse = HealthCheckResponse.error("correlation-id", "Service unavailable");
+        
+        when(authKafkaClient.healthCheck("device-service"))
+            .thenReturn(CompletableFuture.completedFuture(errorResponse));
+
+        // Act
+        Map<String, Object> result = deviceService.getHealthStatus();
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("OK");
+        assertThat(result.get("auth-service")).isEqualTo("UNAVAILABLE");
+        verify(authKafkaClient).healthCheck("device-service");
+    }
+}// DeviceAuthService.java
+package com.service.device.auth;
+
+import java.util.UUID;
+
+import org.springframework.data.util.Pair;
+
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+
+public interface DeviceAuthService {
+    // Device Token operations
+    DeviceTokenBLM createDeviceToken(UUID deviceUid);
+    DeviceTokenBLM getDeviceToken(UUID deviceUid);
+    void revokeDeviceToken(UUID deviceUid);
+    void validateDeviceToken(DeviceTokenBLM deviceToken);
+    
+    // Device Access Token operations
+    Pair<DeviceAccessTokenBLM, DeviceTokenBLM> createDeviceAccessToken(DeviceTokenBLM deviceToken);
+    DeviceAccessTokenBLM refreshDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken);
+    void validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken);
+    
+    // Utility methods
+    UUID extractDeviceUidFromToken(DeviceTokenBLM deviceToken);
+    UUID extractDeviceUidFromAccessToken(DeviceAccessTokenBLM deviceAccessToken);
+}// DeviceAuthController.java
+package com.service.device.auth.controller;
+
+import java.util.UUID;
+
+import org.springframework.data.util.Pair;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.device.token.converter.DeviceAccessTokenConverter;
+import com.connection.device.token.converter.DeviceTokenConverter;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenDTO;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceTokenDTO;
+import com.service.device.auth.DeviceAuthService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/device-auth")
+public class DeviceAuthController {
+    
+    private final DeviceAuthService deviceAuthService;
+    private final DeviceTokenConverter deviceTokenConverter;
+    private final DeviceAccessTokenConverter deviceAccessTokenConverter;
+
+    @PostMapping("/device-token")
+    public ResponseEntity<DeviceTokenResponse> createDeviceToken(@RequestBody CreateDeviceTokenRequest request) {
+        log.info("Creating device token for device: {}", request.deviceUid());
+        
+        DeviceTokenBLM deviceToken = deviceAuthService.createDeviceToken(request.deviceUid());
+        
+        return ResponseEntity.ok(new DeviceTokenResponse(
+            deviceToken.getToken(),
+            deviceToken.getExpiresAt(),
+            deviceToken.getDeviceUid()
+        ));
+    }
+
+    @GetMapping("/device-token")
+    public ResponseEntity<DeviceTokenResponse> getDeviceToken(@RequestParam UUID deviceUid) {
+        log.info("Getting device token for device: {}", deviceUid);
+        
+        DeviceTokenBLM deviceToken = deviceAuthService.getDeviceToken(deviceUid);
+        
+        return ResponseEntity.ok(new DeviceTokenResponse(
+            deviceToken.getToken(),
+            deviceToken.getExpiresAt(),
+            deviceToken.getDeviceUid()
+        ));
+    }
+
+    @DeleteMapping("/device-token")
+    public ResponseEntity<Void> revokeDeviceToken(@RequestParam UUID deviceUid) {
+        log.info("Revoking device token for device: {}", deviceUid);
+        
+        deviceAuthService.revokeDeviceToken(deviceUid);
+        
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/access-token")
+    public ResponseEntity<DeviceAccessTokenResponse> createDeviceAccessToken(@RequestBody DeviceTokenDTO deviceTokenDTO) {
+        log.info("Creating device access token");
+        
+        DeviceTokenBLM deviceToken = deviceTokenConverter.toBLM(deviceTokenDTO);
+        Pair<DeviceAccessTokenBLM, DeviceTokenBLM> result = deviceAuthService.createDeviceAccessToken(deviceToken);
+        
+        return ResponseEntity.ok(new DeviceAccessTokenResponse(
+            result.getFirst().getToken(),
+            result.getFirst().getExpiresAt(),
+            result.getSecond().getDeviceUid()
+        ));
+    }
+
+    @PostMapping("/access-token/refresh")
+    public ResponseEntity<DeviceAccessTokenResponse> refreshDeviceAccessToken(@RequestBody DeviceAccessTokenDTO deviceAccessTokenDTO) {
+        log.info("Refreshing device access token");
+        
+        DeviceAccessTokenBLM deviceAccessToken = deviceAccessTokenConverter.toBLM(deviceAccessTokenDTO);
+        DeviceAccessTokenBLM newAccessToken = deviceAuthService.refreshDeviceAccessToken(deviceAccessToken);
+        
+        return ResponseEntity.ok(new DeviceAccessTokenResponse(
+            newAccessToken.getToken(),
+            newAccessToken.getExpiresAt(),
+            deviceAuthService.extractDeviceUidFromAccessToken(newAccessToken)
+        ));
+    }
+
+    @GetMapping("/validate/device-token")
+    public ResponseEntity<ValidationResponse> validateDeviceToken(@RequestParam String deviceToken) {
+        log.info("Validating device token");
+        
+        DeviceTokenDTO deviceTokenDTO = new DeviceTokenDTO(deviceToken);
+        DeviceTokenBLM deviceTokenBLM = deviceTokenConverter.toBLM(deviceTokenDTO);
+        deviceAuthService.validateDeviceToken(deviceTokenBLM);
+        
+        return ResponseEntity.ok(new ValidationResponse("VALID"));
+    }
+
+    @GetMapping("/validate/access-token")
+    public ResponseEntity<ValidationResponse> validateAccessToken(@RequestParam String accessToken) {
+        log.info("Validating device access token");
+        
+        DeviceAccessTokenDTO accessTokenDTO = new DeviceAccessTokenDTO(accessToken);
+        DeviceAccessTokenBLM accessTokenBLM = deviceAccessTokenConverter.toBLM(accessTokenDTO);
+        deviceAuthService.validateDeviceAccessToken(accessTokenBLM);
+        
+        return ResponseEntity.ok(new ValidationResponse("VALID"));
+    }
+
+    @GetMapping("/extract/device-uid/device-token")
+    public ResponseEntity<UUID> extractDeviceUidFromDeviceToken(@RequestParam String deviceToken) {
+        log.info("Extracting device UID from device token");
+        
+        DeviceTokenDTO deviceTokenDTO = new DeviceTokenDTO(deviceToken);
+        DeviceTokenBLM deviceTokenBLM = deviceTokenConverter.toBLM(deviceTokenDTO);
+        UUID deviceUid = deviceAuthService.extractDeviceUidFromToken(deviceTokenBLM);
+        
+        return ResponseEntity.ok(deviceUid);
+    }
+
+    @GetMapping("/extract/device-uid/access-token")
+    public ResponseEntity<UUID> extractDeviceUidFromAccessToken(@RequestParam String accessToken) {
+        log.info("Extracting device UID from access token");
+        
+        DeviceAccessTokenDTO accessTokenDTO = new DeviceAccessTokenDTO(accessToken);
+        DeviceAccessTokenBLM accessTokenBLM = deviceAccessTokenConverter.toBLM(accessTokenDTO);
+        UUID deviceUid = deviceAuthService.extractDeviceUidFromAccessToken(accessTokenBLM);
+        
+        return ResponseEntity.ok(deviceUid);
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<HealthResponse> healthCheck() {
+        log.info("Health check");
+        
+        return ResponseEntity.ok(new HealthResponse(
+            "OK",
+            "device-auth-service",
+            System.currentTimeMillis()
+        ));
+    }
+
+    // DTO классы
+    public record CreateDeviceTokenRequest(UUID deviceUid) {}
+    
+    public record DeviceTokenResponse(String token, Object expiresAt, UUID deviceUid) {}
+    
+    public record DeviceAccessTokenResponse(String token, Object expiresAt, UUID deviceUid) {}
+    
+    public record ValidationResponse(String status) {}
+    
+    public record HealthResponse(String status, String service, long timestamp) {}
+}// DeviceAuthServiceImpl.java
+package com.service.device.auth;
+
+import java.time.Duration;
+import java.util.Date;
+import java.util.UUID;
+
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.data.util.Pair;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.device.token.converter.DeviceAccessTokenConverter;
+import com.connection.device.token.converter.DeviceTokenConverter;
+import com.connection.device.token.generator.DeviceAccessTokenGenerator;
+import com.connection.device.token.generator.DeviceTokenGenerator;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenDALM;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceTokenDALM;
+import com.connection.device.token.repository.DeviceAccessTokenRepository;
+import com.connection.device.token.repository.DeviceTokenRepository;
+import com.connection.device.token.validator.DeviceAccessTokenValidator;
+import com.connection.device.token.validator.DeviceTokenValidator;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+    JpaRepositoriesAutoConfiguration.class
+})
+@EnableTransactionManagement
+public class DeviceAuthServiceImpl implements DeviceAuthService {
+    
+    private final DeviceTokenConverter deviceTokenConverter;
+    private final DeviceAccessTokenConverter deviceAccessTokenConverter;
+    
+    private final DeviceTokenValidator deviceTokenValidator;
+    private final DeviceAccessTokenValidator deviceAccessTokenValidator;
+    
+    private final DeviceTokenGenerator deviceTokenGenerator;
+    private final DeviceAccessTokenGenerator deviceAccessTokenGenerator;
+    
+    private final DeviceTokenRepository deviceTokenRepository;
+    private final DeviceAccessTokenRepository deviceAccessTokenRepository;
+    
+    private final Duration deviceTokenDuration;
+    private final Duration deviceAccessTokenDuration;
+
+    @Override
+    @Transactional
+    public DeviceTokenBLM createDeviceToken(UUID deviceUid) {
+        log.info("Creating device token for device: {}", deviceUid);
+        
+        // Проверяем, нет ли уже активного токена
+        if (deviceTokenRepository.existsByDeviceUid(deviceUid)) {
+            throw new com.connection.device.token.exception.DeviceTokenAlreadyExistsException(
+                "Device token already exists for device: " + deviceUid);
+        }
+        
+        Date createdAt = new Date();
+        Date expiresAt = Date.from(createdAt.toInstant().plus(deviceTokenDuration));
+        UUID tokenUid = UUID.randomUUID();
+        
+        // Генерируем токен
+        String tokenString = deviceTokenGenerator.generateDeviceToken(deviceUid, createdAt, expiresAt);
+        DeviceTokenBLM deviceTokenBLM = DeviceTokenBLM.builder()
+                .token(tokenString)
+                .uid(tokenUid)
+                .deviceUid(deviceUid)
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .build();
+        
+        deviceTokenValidator.validate(deviceTokenBLM);
+        
+        // Сохраняем в БД
+        DeviceTokenDALM deviceTokenDALM = deviceTokenConverter.toDALM(deviceTokenBLM);
+        deviceTokenRepository.add(deviceTokenDALM);
+        
+        log.info("Device token created successfully for device: {}", deviceUid);
+        return deviceTokenBLM;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceTokenBLM getDeviceToken(UUID deviceUid) {
+        log.info("Getting device token for device: {}", deviceUid);
+        
+        DeviceTokenDALM deviceTokenDALM = deviceTokenRepository.findByDeviceUid(deviceUid);
+        DeviceTokenBLM deviceTokenBLM = deviceTokenConverter.toBLM(deviceTokenDALM);
+        
+        deviceTokenValidator.validate(deviceTokenBLM);
+        return deviceTokenBLM;
+    }
+
+    @Override
+    @Transactional
+    public void revokeDeviceToken(UUID deviceUid) {
+        log.info("Revoking device token for device: {}", deviceUid);
+        
+        DeviceTokenDALM deviceTokenDALM = deviceTokenRepository.findByDeviceUid(deviceUid);
+        deviceTokenRepository.revokeByDeviceUid(deviceUid);
+        
+        // Каскадно отзываем все access tokens
+        deviceAccessTokenRepository.revokeByDeviceTokenUid(deviceTokenDALM.getUid());
+        
+        log.info("Device token revoked successfully for device: {}", deviceUid);
+    }
+
+    @Override
+    public void validateDeviceToken(DeviceTokenBLM deviceToken) {
+        log.info("Validating device token for device: {}", deviceToken.getDeviceUid());
+        deviceTokenValidator.validate(deviceToken);
+    }
+
+    @Override
+    @Transactional
+    public Pair<DeviceAccessTokenBLM, DeviceTokenBLM> createDeviceAccessToken(DeviceTokenBLM deviceToken) {
+        log.info("Creating device access token for device token: {}", deviceToken.getUid());
+        
+        deviceTokenValidator.validate(deviceToken);
+        
+        // Проверяем, нет ли активного access token
+        if (deviceAccessTokenRepository.hasDeviceAccessToken(deviceToken.getUid())) {
+            throw new com.connection.device.token.exception.DeviceAccessTokenExistsException(
+                "Active device access token already exists for device token: " + deviceToken.getUid());
+        }
+        
+        Date createdAt = new Date();
+        Date expiresAt = Date.from(createdAt.toInstant().plus(deviceAccessTokenDuration));
+        UUID accessTokenUid = UUID.randomUUID();
+        
+        // Генерируем access token
+        String accessTokenString = deviceAccessTokenGenerator.generateDeviceAccessToken(
+            deviceToken.getUid(), createdAt, expiresAt);
+        
+        DeviceAccessTokenBLM deviceAccessTokenBLM = DeviceAccessTokenBLM.builder()
+                .token(accessTokenString)
+                .uid(accessTokenUid)
+                .deviceTokenUid(deviceToken.getUid())
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .build();
+        
+        deviceAccessTokenValidator.validate(deviceAccessTokenBLM);
+        
+        // Сохраняем в БД
+        DeviceAccessTokenDALM deviceAccessTokenDALM = deviceAccessTokenConverter.toDALM(deviceAccessTokenBLM);
+        deviceAccessTokenRepository.add(deviceAccessTokenDALM);
+        
+        log.info("Device access token created successfully for device token: {}", deviceToken.getUid());
+        return Pair.of(deviceAccessTokenBLM, deviceToken);
+    }
+
+    @Override
+    @Transactional
+    public DeviceAccessTokenBLM refreshDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+        log.info("Refreshing device access token: {}", deviceAccessToken.getUid());
+        
+        deviceAccessTokenValidator.validate(deviceAccessToken);
+        
+        // Отзываем старый токен
+        // DeviceAccessTokenDALM oldAccessTokenDALM = deviceAccessTokenConverter.toDALM(deviceAccessToken);
+        deviceAccessTokenRepository.revoke(deviceAccessToken.getUid());
+        
+        Date createdAt = new Date();
+        Date expiresAt = Date.from(createdAt.toInstant().plus(deviceAccessTokenDuration));
+        UUID newAccessTokenUid = UUID.randomUUID();
+        
+        // Генерируем новый access token
+        String newAccessTokenString = deviceAccessTokenGenerator.generateDeviceAccessToken(
+            deviceAccessToken.getDeviceTokenUid(), createdAt, expiresAt);
+        
+        DeviceAccessTokenBLM newDeviceAccessTokenBLM = DeviceAccessTokenBLM.builder()
+                .token(newAccessTokenString)
+                .uid(newAccessTokenUid)
+                .deviceTokenUid(deviceAccessToken.getDeviceTokenUid())
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .build();
+        
+        deviceAccessTokenValidator.validate(newDeviceAccessTokenBLM);
+        
+        // Сохраняем новый токен
+        DeviceAccessTokenDALM newAccessTokenDALM = deviceAccessTokenConverter.toDALM(newDeviceAccessTokenBLM);
+        deviceAccessTokenRepository.add(newAccessTokenDALM);
+        
+        log.info("Device access token refreshed successfully");
+        return newDeviceAccessTokenBLM;
+    }
+
+    @Override
+    public void validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+        log.info("Validating device access token: {}", deviceAccessToken.getUid());
+        // Только JWT валидация, без проверки в БД
+        deviceAccessTokenValidator.validate(deviceAccessToken);
+    }
+
+    @Override
+    public UUID extractDeviceUidFromToken(DeviceTokenBLM deviceToken) {
+        validateDeviceToken(deviceToken);
+        return deviceToken.getDeviceUid();
+    }
+
+    @Override
+    public UUID extractDeviceUidFromAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+        validateDeviceAccessToken(deviceAccessToken);
+        
+        // Получаем device token по deviceTokenUid и извлекаем deviceUid
+        DeviceTokenDALM deviceTokenDALM = deviceTokenRepository.findByUid(deviceAccessToken.getDeviceTokenUid());
+        return deviceTokenDALM.getDeviceUid();
+    }
+}// DeviceAuthServiceApplication.java
+package com.service.device.auth;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+
+@SpringBootApplication(exclude = {
+    DataSourceAutoConfiguration.class,
+    DataSourceTransactionManagerAutoConfiguration.class, 
+    HibernateJpaAutoConfiguration.class,
+    JdbcTemplateAutoConfiguration.class
+})
+public class DeviceAuthServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(DeviceAuthServiceApplication.class, args);
+    }
+}package com.service.device.auth;
+
+import static com.service.device.auth.mother.DeviceTokenObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.Duration;
+import java.util.Date;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.util.Pair;
+
+import com.connection.device.token.converter.DeviceAccessTokenConverter;
+import com.connection.device.token.converter.DeviceTokenConverter;
+import com.connection.device.token.exception.DeviceAccessTokenExistsException;
+import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
+import com.connection.device.token.exception.DeviceTokenAlreadyExistsException;
+import com.connection.device.token.exception.DeviceTokenNotFoundException;
+import com.connection.device.token.generator.DeviceAccessTokenGenerator;
+import com.connection.device.token.generator.DeviceTokenGenerator;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenDALM;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceTokenDALM;
+import com.connection.device.token.repository.DeviceAccessTokenRepository;
+import com.connection.device.token.repository.DeviceTokenRepository;
+import com.connection.device.token.validator.DeviceAccessTokenValidator;
+import com.connection.device.token.validator.DeviceTokenValidator;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("Device Auth Service Implementation Tests - London Style")
+class DeviceAuthServiceImplLondonTest {
+
+    @Mock
+    private DeviceTokenRepository deviceTokenRepository;
+
+    @Mock
+    private DeviceAccessTokenRepository deviceAccessTokenRepository;
+
+    @Mock
+    private DeviceTokenConverter deviceTokenConverter;
+
+    @Mock
+    private DeviceAccessTokenConverter deviceAccessTokenConverter;
+
+    @Mock
+    private DeviceTokenValidator deviceTokenValidator;
+
+    @Mock
+    private DeviceAccessTokenValidator deviceAccessTokenValidator;
+
+    @Mock
+    private DeviceTokenGenerator deviceTokenGenerator;
+
+    @Mock
+    private DeviceAccessTokenGenerator deviceAccessTokenGenerator;
+
+    private Duration deviceTokenDuration = Duration.ofSeconds(2592000); // 30 days
+    private Duration deviceAccessTokenDuration = Duration.ofSeconds(3600); // 1 hour
+
+    @InjectMocks
+    private DeviceAuthServiceImpl deviceAuthService;
+
+    @BeforeEach
+    void setUp() {
+        // Устанавливаем реальные Duration через рефлексию
+        try {
+            var deviceTokenDurationField = DeviceAuthServiceImpl.class.getDeclaredField("deviceTokenDuration");
+            var deviceAccessTokenDurationField = DeviceAuthServiceImpl.class.getDeclaredField("deviceAccessTokenDuration");
+            
+            deviceTokenDurationField.setAccessible(true);
+            deviceAccessTokenDurationField.setAccessible(true);
+            
+            deviceTokenDurationField.set(deviceAuthService, deviceTokenDuration);
+            deviceAccessTokenDurationField.set(deviceAuthService, deviceAccessTokenDuration);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set Duration fields", e);
+        }
+    }
+
+    @Test
+    @DisplayName("Create device token - Positive")
+    void shouldCreateDeviceTokenWhenValidDeviceUid() {
+        // Arrange
+        UUID deviceUid = UUID.randomUUID();
+        String generatedToken = "generated.jwt.token";
+        DeviceTokenDALM deviceTokenDALM = createValidDeviceTokenDALM();
+
+        when(deviceTokenRepository.existsByDeviceUid(deviceUid)).thenReturn(false);
+        when(deviceTokenGenerator.generateDeviceToken(any(UUID.class), any(Date.class), any(Date.class)))
+            .thenReturn(generatedToken);
+        when(deviceTokenConverter.toDALM(any(DeviceTokenBLM.class))).thenReturn(deviceTokenDALM);
+
+        // Act
+        DeviceTokenBLM result = deviceAuthService.createDeviceToken(deviceUid);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(generatedToken);
+        verify(deviceTokenValidator).validate(any(DeviceTokenBLM.class));
+        verify(deviceTokenRepository).add(deviceTokenDALM);
+    }
+
+    @Test
+    @DisplayName("Create device token - Negative: Token already exists")
+    void shouldThrowExceptionWhenDeviceTokenAlreadyExists() {
+        // Arrange
+        UUID deviceUid = UUID.randomUUID();
+
+        when(deviceTokenRepository.existsByDeviceUid(deviceUid)).thenReturn(true);
+
+        // Act & Assert
+        assertThatThrownBy(() -> deviceAuthService.createDeviceToken(deviceUid))
+            .isInstanceOf(DeviceTokenAlreadyExistsException.class);
+        verify(deviceTokenRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Get device token - Positive")
+    void shouldGetDeviceTokenWhenValidDeviceUid() {
+        // Arrange
+        UUID deviceUid = UUID.randomUUID();
+        DeviceTokenDALM deviceTokenDALM = createValidDeviceTokenDALM();
+        DeviceTokenBLM deviceTokenBLM = createValidDeviceTokenBLM();
+
+        when(deviceTokenRepository.findByDeviceUid(deviceUid)).thenReturn(deviceTokenDALM);
+        when(deviceTokenConverter.toBLM(deviceTokenDALM)).thenReturn(deviceTokenBLM);
+
+        // Act
+        DeviceTokenBLM result = deviceAuthService.getDeviceToken(deviceUid);
+
+        // Assert
+        assertThat(result).isNotNull().isEqualTo(deviceTokenBLM);
+        verify(deviceTokenValidator).validate(deviceTokenBLM);
+    }
+
+    @Test
+    @DisplayName("Get device token - Negative: Token not found")
+    void shouldThrowExceptionWhenDeviceTokenNotFound() {
+        // Arrange
+        UUID deviceUid = UUID.randomUUID();
+
+        when(deviceTokenRepository.findByDeviceUid(deviceUid))
+            .thenThrow(new DeviceTokenNotFoundException("Token not found"));
+
+        // Act & Assert
+        assertThatThrownBy(() -> deviceAuthService.getDeviceToken(deviceUid))
+            .isInstanceOf(DeviceTokenNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("Revoke device token - Positive")
+    void shouldRevokeDeviceTokenWhenValidDeviceUid() {
+        // Arrange
+        UUID deviceUid = UUID.randomUUID();
+        DeviceTokenDALM deviceTokenDALM = createValidDeviceTokenDALM();
+
+        when(deviceTokenRepository.findByDeviceUid(deviceUid)).thenReturn(deviceTokenDALM);
+
+        // Act
+        deviceAuthService.revokeDeviceToken(deviceUid);
+
+        // Assert
+        verify(deviceTokenRepository).revokeByDeviceUid(deviceUid);
+        verify(deviceAccessTokenRepository).revokeByDeviceTokenUid(deviceTokenDALM.getUid());
+    }
+
+    @Test
+    @DisplayName("Create device access token - Positive")
+    void shouldCreateDeviceAccessTokenWhenValidDeviceToken() {
+        // Arrange
+        DeviceTokenBLM deviceToken = createValidDeviceTokenBLM();
+        String generatedAccessToken = "generated.access.jwt.token";
+        DeviceAccessTokenDALM deviceAccessTokenDALM = createValidDeviceAccessTokenDALM();
+
+        when(deviceAccessTokenRepository.hasDeviceAccessToken(deviceToken.getUid())).thenReturn(false);
+        when(deviceAccessTokenGenerator.generateDeviceAccessToken(any(UUID.class), any(Date.class), any(Date.class)))
+            .thenReturn(generatedAccessToken);
+        when(deviceAccessTokenConverter.toDALM(any(DeviceAccessTokenBLM.class))).thenReturn(deviceAccessTokenDALM);
+
+        // Act
+        Pair<DeviceAccessTokenBLM, DeviceTokenBLM> result = deviceAuthService.createDeviceAccessToken(deviceToken);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getFirst().getToken()).isEqualTo(generatedAccessToken);
+        assertThat(result.getSecond()).isEqualTo(deviceToken);
+        verify(deviceTokenValidator).validate(deviceToken);
+        verify(deviceAccessTokenValidator).validate(any(DeviceAccessTokenBLM.class));
+        verify(deviceAccessTokenRepository).add(deviceAccessTokenDALM);
+    }
+
+    @Test
+    @DisplayName("Create device access token - Negative: Active access token exists")
+    void shouldThrowExceptionWhenActiveAccessTokenExists() {
+        // Arrange
+        DeviceTokenBLM deviceToken = createValidDeviceTokenBLM();
+
+        when(deviceAccessTokenRepository.hasDeviceAccessToken(deviceToken.getUid())).thenReturn(true);
+
+        // Act & Assert
+        assertThatThrownBy(() -> deviceAuthService.createDeviceAccessToken(deviceToken))
+            .isInstanceOf(DeviceAccessTokenExistsException.class);
+        verify(deviceTokenValidator).validate(deviceToken);
+        verify(deviceAccessTokenRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Refresh device access token - Positive")
+    void shouldRefreshDeviceAccessTokenWhenValid() {
+        // Arrange
+        DeviceAccessTokenBLM oldAccessToken = createValidDeviceAccessTokenBLM();
+        String newGeneratedToken = "new.generated.access.token";
+        DeviceAccessTokenDALM newAccessTokenDALM = createValidDeviceAccessTokenDALM();
+
+        when(deviceAccessTokenGenerator.generateDeviceAccessToken(any(UUID.class), any(Date.class), any(Date.class)))
+            .thenReturn(newGeneratedToken);
+        when(deviceAccessTokenConverter.toDALM(any(DeviceAccessTokenBLM.class))).thenReturn(newAccessTokenDALM);
+
+        // Act
+        DeviceAccessTokenBLM result = deviceAuthService.refreshDeviceAccessToken(oldAccessToken);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(newGeneratedToken);
+        verify(deviceAccessTokenValidator).validate(oldAccessToken);
+        verify(deviceAccessTokenValidator, times(2)).validate(any(DeviceAccessTokenBLM.class));
+        verify(deviceAccessTokenRepository).revoke(oldAccessToken.getUid());
+        verify(deviceAccessTokenRepository).add(newAccessTokenDALM);
+    }
+
+    @Test
+    @DisplayName("Validate device access token - Positive")
+    void shouldValidateDeviceAccessTokenWhenValid() {
+        // Arrange
+        DeviceAccessTokenBLM deviceAccessToken = createValidDeviceAccessTokenBLM();
+
+        // Act
+        deviceAuthService.validateDeviceAccessToken(deviceAccessToken);
+
+        // Assert
+        verify(deviceAccessTokenValidator).validate(deviceAccessToken);
+    }
+
+    @Test
+    @DisplayName("Validate device access token - Negative: Invalid token")
+    void shouldThrowExceptionWhenDeviceAccessTokenInvalid() {
+        // Arrange
+        DeviceAccessTokenBLM invalidToken = createExpiredDeviceAccessTokenBLM();
+
+        doThrow(new IllegalArgumentException("Expired token"))
+            .when(deviceAccessTokenValidator).validate(invalidToken);
+
+        // Act & Assert
+        assertThatThrownBy(() -> deviceAuthService.validateDeviceAccessToken(invalidToken))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Expired token");
+    }
+
+    @Test
+    @DisplayName("Validate device token - Positive")
+    void shouldValidateDeviceTokenWhenValid() {
+        // Arrange
+        DeviceTokenBLM deviceToken = createValidDeviceTokenBLM();
+
+        // Act
+        deviceAuthService.validateDeviceToken(deviceToken);
+
+        // Assert
+        verify(deviceTokenValidator).validate(deviceToken);
+    }
+
+    @Test
+    @DisplayName("Validate device token - Negative: Invalid token")
+    void shouldThrowExceptionWhenDeviceTokenInvalid() {
+        // Arrange
+        DeviceTokenBLM invalidToken = createValidDeviceTokenBLM();
+        invalidToken.setToken("");
+
+        doThrow(new IllegalArgumentException("Invalid token"))
+            .when(deviceTokenValidator).validate(invalidToken);
+
+        // Act & Assert
+        assertThatThrownBy(() -> deviceAuthService.validateDeviceToken(invalidToken))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid token");
+    }
+
+    @Test
+    @DisplayName("Extract device UID from device token - Positive")
+    void shouldReturnDeviceUidFromDeviceToken() {
+        // Arrange
+        DeviceTokenBLM deviceToken = createValidDeviceTokenBLM();
+
+        // Act
+        UUID result = deviceAuthService.extractDeviceUidFromToken(deviceToken);
+
+        // Assert
+        assertThat(result).isEqualTo(deviceToken.getDeviceUid());
+        verify(deviceTokenValidator).validate(deviceToken);
+    }
+
+    @Test
+    @DisplayName("Extract device UID from access token - Positive")
+    void shouldReturnDeviceUidFromAccessToken() {
+        // Arrange
+        DeviceAccessTokenBLM accessToken = createValidDeviceAccessTokenBLM();
+        DeviceTokenDALM deviceTokenDALM = createValidDeviceTokenDALM();
+
+        when(deviceTokenRepository.findByUid(accessToken.getDeviceTokenUid())).thenReturn(deviceTokenDALM);
+
+        // Act
+        UUID result = deviceAuthService.extractDeviceUidFromAccessToken(accessToken);
+
+        // Assert
+        assertThat(result).isEqualTo(deviceTokenDALM.getDeviceUid());
+        verify(deviceAccessTokenValidator).validate(accessToken);
+    }
+
+    @Test
+    @DisplayName("Extract device UID from access token - Negative: Device token not found")
+    void shouldThrowExceptionWhenDeviceTokenNotFoundForAccessToken() {
+        // Arrange
+        DeviceAccessTokenBLM accessToken = createValidDeviceAccessTokenBLM();
+
+        when(deviceTokenRepository.findByUid(accessToken.getDeviceTokenUid()))
+            .thenThrow(new DeviceTokenNotFoundException("Device token not found"));
+
+        // Act & Assert
+        assertThatThrownBy(() -> deviceAuthService.extractDeviceUidFromAccessToken(accessToken))
+            .isInstanceOf(DeviceTokenNotFoundException.class);
+        verify(deviceAccessTokenValidator).validate(accessToken);
     }
 }

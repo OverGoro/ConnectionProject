@@ -1,1 +1,0 @@
-{"uuid":"ca84a92b-f732-4383-a4e0-7df0c49ee246","name":"Get newest JSON data by buffer - Positive","children":["3262d7e5-0aed-45fd-bc08-a20bd90dfe76"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758337144143,"stop":1758337144143}],"afters":[],"start":1758337144141,"stop":1758337144145}

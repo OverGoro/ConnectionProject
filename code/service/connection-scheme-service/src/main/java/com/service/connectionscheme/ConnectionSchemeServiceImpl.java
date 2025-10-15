@@ -140,4 +140,12 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
                     "error", e.getMessage());
         }
     }
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemesByBuffer(UUID bufferUuid) {
+        List<ConnectionSchemeDALM> schemesDALM = schemeRepository.findByBufferUid(bufferUuid);
+        return schemesDALM.stream()
+                .map(schemeConverter::toBLM)
+                .collect(Collectors.toList());
+    }
 }

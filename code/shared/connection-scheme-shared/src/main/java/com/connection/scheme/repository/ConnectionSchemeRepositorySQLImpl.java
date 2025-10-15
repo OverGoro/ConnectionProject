@@ -22,31 +22,33 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
     private static final String FROM_SCHEME = " FROM processing.connection_scheme cs";
 
     private static final String SELECT_SCHEME_BY_UID = SELECT_SCHEME + FROM_SCHEME + " WHERE cs.uid = :uid";
-    private static final String SELECT_SCHEMES_BY_CLIENT = SELECT_SCHEME + FROM_SCHEME + " WHERE cs.client_uid = :client_uid";
+    private static final String SELECT_SCHEMES_BY_CLIENT = SELECT_SCHEME + FROM_SCHEME
+            + " WHERE cs.client_uid = :client_uid";
+    private static final String SELECT_SCHEMES_BY_BUFFER = 
+            SELECT_SCHEME + 
+            FROM_SCHEME + 
+            " INNER JOIN processing.connection_scheme_buffer csb ON cs.uid = csb.scheme_uid" +
+            " WHERE csb.buffer_uid = :buffer_uid";
 
     // Запросы для получения usedBuffers из таблицы buffer
-    private static final String SELECT_USED_BUFFERS = 
-        "SELECT b.uid FROM processing.buffer b WHERE b.connection_scheme_uid = :scheme_uid";
+    private static final String SELECT_USED_BUFFERS = "SELECT b.uid FROM processing.buffer b WHERE b.connection_scheme_uid = :scheme_uid";
 
     // Операции со схемами
-    private static final String INSERT_SCHEME = 
-        "INSERT INTO processing.connection_scheme (uid, client_uid, scheme_json) " +
-        "VALUES (:uid, :client_uid, :scheme_json)";
+    private static final String INSERT_SCHEME = "INSERT INTO processing.connection_scheme (uid, client_uid, scheme_json) "
+            +
+            "VALUES (:uid, :client_uid, :scheme_json)";
 
-    private static final String UPDATE_SCHEME = 
-        "UPDATE processing.connection_scheme SET scheme_json = :scheme_json " +
-        "WHERE uid = :uid";
+    private static final String UPDATE_SCHEME = "UPDATE processing.connection_scheme SET scheme_json = :scheme_json " +
+            "WHERE uid = :uid";
 
-    private static final String DELETE_SCHEME = 
-        "DELETE FROM processing.connection_scheme WHERE uid = :uid";
+    private static final String DELETE_SCHEME = "DELETE FROM processing.connection_scheme WHERE uid = :uid";
 
     // Операции с буферами
-    private static final String INSERT_BUFFER = 
-        "INSERT INTO processing.buffer (uid, connection_scheme_uid, max_messages_number, max_message_size, message_prototype) " +
-        "VALUES (:buffer_uid, :scheme_uid, :max_messages_number, :max_message_size, :message_prototype)";
+    private static final String INSERT_BUFFER = "INSERT INTO processing.buffer (uid, connection_scheme_uid, max_messages_number, max_message_size, message_prototype) "
+            +
+            "VALUES (:buffer_uid, :scheme_uid, :max_messages_number, :max_message_size, :message_prototype)";
 
-    private static final String DELETE_SCHEME_BUFFERS = 
-        "DELETE FROM processing.buffer WHERE connection_scheme_uid = :scheme_uid";
+    private static final String DELETE_SCHEME_BUFFERS = "DELETE FROM processing.buffer WHERE connection_scheme_uid = :scheme_uid";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -139,6 +141,15 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
 
     @Override
     @Transactional(readOnly = true)
+    public List<ConnectionSchemeDALM> findByBufferUid(UUID bufferUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+
+        return jdbcTemplate.query(SELECT_SCHEMES_BY_BUFFER, params, schemeRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public boolean exists(UUID uid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -174,7 +185,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
             params.addValue("buffer_uid", bufferUid);
             params.addValue("scheme_uid", schemeUid);
             params.addValue("max_messages_number", 1000); // Значения по умолчанию
-            params.addValue("max_message_size", 1024);    
+            params.addValue("max_message_size", 1024);
             params.addValue("message_prototype", "default");
 
             jdbcTemplate.update(INSERT_BUFFER, params);
@@ -193,4 +204,5 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
         // Сохраняем новые буферы
         saveBuffers(schemeUid, usedBuffers);
     }
+
 }

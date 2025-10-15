@@ -27,11 +27,11 @@
         {
           "name": "common-buffer-events-1.0.0.jar",
           "url": "common-buffer-events-1.0.0.jar",
-          "size": 46700,
-          "sha512": "579380b1a6b36434207499d2aa835d3f298d107cbde05d7919b4f0e7946a1e7a5adca0055fb9131563ad92a5a591ba88c6b6a376efa15831df2ca6a8ebc6989e",
-          "sha256": "113cd624a5e00b40418b5848daa9a3337af0d4cd1fcb461c968c6799b883bc0d",
-          "sha1": "981670da67e15d28ac9472590a090d2046147fbb",
-          "md5": "a79b8cf08683e4c26c21bec2d2559e36"
+          "size": 46106,
+          "sha512": "b9b7f64a479d87a3570608103b420591fbcc8d15c56298905c412bb5dbc1a083865abd694bcaa4c07a0d97c1c8e306728deba204a8a1cd86b78cfbe7a99706d1",
+          "sha256": "c7abaf76f4d779b75b03f56b4fc819bc91cd15ed6b1437d6d819b8e21a3d532c",
+          "sha1": "f842b1ab38581b352e2c5bcde140d0caf4c00602",
+          "md5": "4c950ad231e82a1b92105a2562fab297"
         }
       ]
     },
@@ -71,11 +71,11 @@
         {
           "name": "common-buffer-events-1.0.0.jar",
           "url": "common-buffer-events-1.0.0.jar",
-          "size": 46700,
-          "sha512": "579380b1a6b36434207499d2aa835d3f298d107cbde05d7919b4f0e7946a1e7a5adca0055fb9131563ad92a5a591ba88c6b6a376efa15831df2ca6a8ebc6989e",
-          "sha256": "113cd624a5e00b40418b5848daa9a3337af0d4cd1fcb461c968c6799b883bc0d",
-          "sha1": "981670da67e15d28ac9472590a090d2046147fbb",
-          "md5": "a79b8cf08683e4c26c21bec2d2559e36"
+          "size": 46106,
+          "sha512": "b9b7f64a479d87a3570608103b420591fbcc8d15c56298905c412bb5dbc1a083865abd694bcaa4c07a0d97c1c8e306728deba204a8a1cd86b78cfbe7a99706d1",
+          "sha256": "c7abaf76f4d779b75b03f56b4fc819bc91cd15ed6b1437d6d819b8e21a3d532c",
+          "sha1": "f842b1ab38581b352e2c5bcde140d0caf4c00602",
+          "md5": "4c950ad231e82a1b92105a2562fab297"
         }
       ]
     }

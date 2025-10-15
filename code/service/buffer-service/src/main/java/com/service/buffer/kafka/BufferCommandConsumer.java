@@ -73,7 +73,7 @@ public class BufferCommandConsumer {
         try {
             log.info("Processing GetBufferByUidCommand for buffer UID: {}", command.getBufferUid());
 
-            BufferBLM bufferBLM = bufferService.getBufferByUid(command.getClientUid(), command.getBufferUid());
+            BufferBLM bufferBLM = bufferService.getBufferByUid(command.getBufferUid());
             BufferDTO bufferDTO = bufferConverter.toDTO(bufferBLM);
 
             GetBufferByUidResponse response = GetBufferByUidResponse.success(
@@ -127,7 +127,7 @@ public class BufferCommandConsumer {
         try {
             log.info("Processing GetBuffersByDeviceCommand for device UID: {}", command.getDeviceUid());
 
-            List<BufferBLM> buffersBLM = bufferService.getBuffersByDevice(command.getClientUid(), command.getDeviceUid());
+            List<BufferBLM> buffersBLM = bufferService.getBuffersByDevice(command.getDeviceUid());
             List<BufferDTO> bufferDTOs = buffersBLM.stream()
                     .map(bufferConverter::toDTO)
                     .collect(Collectors.toList());
@@ -156,7 +156,7 @@ public class BufferCommandConsumer {
         try {
             log.info("Processing GetBuffersByConnectionSchemeCommand for connection scheme UID: {}", command.getConnectionSchemeUid());
 
-            List<BufferBLM> buffersBLM = bufferService.getBuffersByConnectionScheme(command.getClientUid(), command.getConnectionSchemeUid());
+            List<BufferBLM> buffersBLM = bufferService.getBuffersByConnectionScheme(command.getConnectionSchemeUid());
             List<BufferDTO> bufferDTOs = buffersBLM.stream()
                     .map(bufferConverter::toDTO)
                     .collect(Collectors.toList());

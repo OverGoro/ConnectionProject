@@ -6,9 +6,11 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import com.connection.scheme.events.commands.GetConnectionSchemeByUidCommand;
+import com.connection.scheme.events.commands.GetConnectionSchemesByBufferUid;
 import com.connection.scheme.events.commands.GetConnectionSchemesByClientUid;
 import com.connection.scheme.events.commands.HealthCheckCommand;
 import com.connection.scheme.events.responses.GetConnectionSchemeByUidResponse;
+import com.connection.scheme.events.responses.GetConnectionSchemesByBufferResponse;
 import com.connection.scheme.events.responses.GetConnectionSchemesByClientResponse;
 import com.connection.scheme.events.responses.HealthCheckResponse;
 import com.connection.common.events.Command;
@@ -46,6 +48,9 @@ public class ConnectionSchemeCommandConsumer {
             } else if (command instanceof GetConnectionSchemesByClientUid) {
                 GetConnectionSchemesByClientUid getSchemesCommand = (GetConnectionSchemesByClientUid) command;
                 handleGetConnectionSchemesByClientCommand(getSchemesCommand, key);
+            } else if (command instanceof GetConnectionSchemesByBufferUid) {
+                GetConnectionSchemesByBufferUid getSchemesCommand = (GetConnectionSchemesByBufferUid) command;
+                handleGetConnectionSchemesByBufferUidCommand(getSchemesCommand, key);
             } else if (command instanceof HealthCheckCommand) {
                 HealthCheckCommand healthCommand = (HealthCheckCommand) command;
                 handleHealthCheckCommand(healthCommand, key);
@@ -105,6 +110,35 @@ public class ConnectionSchemeCommandConsumer {
             log.error("Error processing GetConnectionSchemesByClientCommand for client UID: {}", command.getClientUid(), e);
 
             GetConnectionSchemesByClientResponse response = GetConnectionSchemesByClientResponse.error(
+                    command.getCorrelationId(),
+                    e.getMessage());
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+        }
+    }
+
+    private void handleGetConnectionSchemesByBufferUidCommand(GetConnectionSchemesByBufferUid command, String key) {
+        try {
+            log.info("Processing GetConnectionSchemesByBufferCommand for Buffer UID: {}", command.getBufferUid());
+
+            List<ConnectionSchemeBLM> schemesBLM = connectionSchemeService.getSchemesByBuffer(command.getBufferUid());
+            List<ConnectionSchemeDTO> schemeDTOs = schemesBLM.stream()
+                    .map(connectionSchemeConverter::toDTO)
+                    .collect(Collectors.toList());
+
+            GetConnectionSchemesByBufferResponse response = GetConnectionSchemesByBufferResponse.valid(
+                    command.getCorrelationId(),
+                    schemeDTOs);
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+
+            log.info("Successfully processed GetConnectionSchemesByBufferCommand for Buffer: {}, found {} schemes",
+                    command.getBufferUid(), schemeDTOs.size());
+
+        } catch (Exception e) {
+            log.error("Error processing GetConnectionSchemesByBufferCommand for Buffer UID: {}", command.getBufferUid(), e);
+
+            GetConnectionSchemesByBufferResponse response = GetConnectionSchemesByBufferResponse.error(
                     command.getCorrelationId(),
                     e.getMessage());
 

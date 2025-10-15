@@ -1,0 +1,2481 @@
+
+package com.connection.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Builder
+@EqualsAndHashCode
+public class RefreshTokenBLM {
+    protected String token;
+    protected UUID uid;
+    protected UUID clientUID;
+    
+    protected Date createdAt;
+    protected Date expiresAt;
+}
+package com.connection.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Builder
+@EqualsAndHashCode
+public class RefreshTokenDALM {
+    protected String token;
+
+    
+    protected UUID uid;
+    
+    protected UUID clientUID;
+    
+    protected Date createdAt;
+    
+    protected Date expiresAt;
+}
+package com.connection.token.model;
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Builder
+@EqualsAndHashCode
+public class AccessTokenDTO {
+    protected String token;
+}
+package com.connection.token.model;
+
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Builder
+@EqualsAndHashCode
+public class RefreshTokenDTO {
+    protected String token;
+}
+package com.connection.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Builder
+@EqualsAndHashCode
+public class AccessTokenBLM {
+    protected String token;
+    protected UUID clientUID;
+    protected Date createdAt;
+    protected Date expiresAt;
+}
+package com.connection.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Builder
+@EqualsAndHashCode
+public class AccessTokenDALM {
+    protected UUID clientUID;
+    protected Date createdAt;
+    protected Date expiresAt;
+}
+package com.connection.token.converter;
+
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.RefreshTokenDALM;
+import com.connection.token.model.RefreshTokenDTO;
+
+import io.jsonwebtoken.JwtException;
+import jakarta.annotation.Nonnull;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+public class RefreshTokenConverter {
+    @Nonnull
+    private final RefreshTokenGenerator tokenGenerator;
+    public RefreshTokenBLM toBLM(RefreshTokenDALM dalm) {
+        String token  = tokenGenerator.generateRefreshToken(dalm);
+        return new RefreshTokenBLM(token,
+                dalm.getUid(),
+                dalm.getClientUID(),
+                dalm.getCreatedAt(),
+                dalm.getExpiresAt());
+    }
+
+    public RefreshTokenBLM toBLM(RefreshTokenDTO dto) {
+        try {
+            RefreshTokenBLM tokenBLM = tokenGenerator.getRefreshToken(dto.getToken());
+            return tokenBLM;
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Malformed JWT token", e);
+        }
+    }
+
+    public RefreshTokenDTO toDTO(RefreshTokenBLM blm){
+        return new RefreshTokenDTO(blm.getToken());
+    }
+
+    public RefreshTokenDALM toDALM(RefreshTokenBLM blm){
+        return new RefreshTokenDALM(blm.getToken(), 
+                                    blm.getUid(),
+                                    blm.getClientUID(), 
+                                    blm.getCreatedAt(), 
+                                    blm.getExpiresAt());
+    }
+}
+
+package com.connection.token.converter;
+
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.AccessTokenDALM;
+import com.connection.token.model.AccessTokenDTO;
+
+import io.jsonwebtoken.JwtException;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+public class AccessTokenConverter {
+    @NonNull
+    private final AccessTokenGenerator accessTokenGenerator;
+
+    public AccessTokenBLM toBLM(AccessTokenDALM dalm) {
+        try {
+            String token = accessTokenGenerator.generateAccessToken(dalm.getClientUID(), dalm.getCreatedAt(),
+                    dalm.getExpiresAt());
+            return new AccessTokenBLM(token,
+                    dalm.getClientUID(),
+                    dalm.getCreatedAt(),
+                    dalm.getExpiresAt());
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Malformed JWT token", e);
+        }
+    }
+
+    public AccessTokenBLM toBLM(AccessTokenDTO dto) {
+        try {
+            AccessTokenBLM blm = accessTokenGenerator.getAccessTokenBLM(dto.getToken());
+            return blm;
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Malformed JWT token", e);
+        }
+    }
+
+    public AccessTokenDTO toDTO(AccessTokenBLM blm) {
+        return new AccessTokenDTO(blm.getToken());
+    }
+
+    public AccessTokenDALM toDALM(AccessTokenBLM blm) {
+        return new AccessTokenDALM(blm.getClientUID(), blm.getCreatedAt(), blm.getExpiresAt());
+    }
+}
+package com.connection.token.converter;
+
+import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenBLM;
+import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenDALM;
+import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenDTO;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import java.util.Date;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.AccessTokenDALM;
+import com.connection.token.model.AccessTokenDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Access Token Converter Tests")
+class AccessTokenConverterTest {
+
+    @Mock
+    private AccessTokenGenerator accessTokenGenerator;
+
+    @InjectMocks
+    private AccessTokenConverter converter;
+
+    private AccessTokenDALM testDALM;
+    private AccessTokenDTO testDTO;
+    private AccessTokenBLM testBLM;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        testDALM = createValidAccessTokenDALM();
+        testDTO = createValidAccessTokenDTO();
+        testBLM = createValidAccessTokenBLM();
+
+        when(accessTokenGenerator.generateAccessToken(any(UUID.class), any(Date.class), any(Date.class)))
+                .thenReturn("generated-access-token");
+        when(accessTokenGenerator.getAccessTokenBLM(any(String.class))).thenReturn(testBLM);
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        AccessTokenBLM result = converter.toBLM(testDALM);
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo("generated-access-token");
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        AccessTokenBLM result = converter.toBLM(testDTO);
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(testBLM.getToken());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        AccessTokenDTO result = converter.toDTO(testBLM);
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(testBLM.getToken());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        AccessTokenDALM result = converter.toDALM(testBLM);
+        assertThat(result).isNotNull();
+        assertThat(result.getClientUID()).isEqualTo(testBLM.getClientUID());
+        assertThat(result.getCreatedAt()).isEqualTo(testBLM.getCreatedAt());
+        assertThat(result.getExpiresAt()).isEqualTo(testBLM.getExpiresAt());
+    }
+}package com.connection.token.converter;
+
+import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenBLM;
+import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDALM;
+import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDTO;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.RefreshTokenDALM;
+import com.connection.token.model.RefreshTokenDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Refresh Token Converter Tests")
+class RefreshTokenConverterTest {
+
+    @Mock
+    private RefreshTokenGenerator tokenGenerator;
+
+    @InjectMocks
+    private RefreshTokenConverter converter;
+
+    private RefreshTokenDALM testDALM;
+    private RefreshTokenDTO testDTO;
+    private RefreshTokenBLM testBLM;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        testDALM = createValidRefreshTokenDALM();
+        testDTO = createValidRefreshTokenDTO();
+        testBLM = createValidRefreshTokenBLM();
+
+        when(tokenGenerator.generateRefreshToken(any(RefreshTokenDALM.class))).thenReturn("generated-token");
+        when(tokenGenerator.getRefreshToken(any(String.class))).thenReturn(testBLM);
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        RefreshTokenBLM result = converter.toBLM(testDALM);
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo("generated-token");
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        RefreshTokenBLM result = converter.toBLM(testDTO);
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(testBLM.getToken());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        RefreshTokenDTO result = converter.toDTO(testBLM);
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(testBLM.getToken());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        RefreshTokenDALM result = converter.toDALM(testBLM);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(testBLM.getUid());
+        assertThat(result.getClientUID()).isEqualTo(testBLM.getClientUID());
+        assertThat(result.getCreatedAt()).isEqualTo(testBLM.getCreatedAt());
+        assertThat(result.getExpiresAt()).isEqualTo(testBLM.getExpiresAt());
+    }
+}package com.connection.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Builder
+public class RefreshTokenBLM {
+    protected String token;
+    protected UUID uid;
+    protected UUID clientUID;
+    
+    protected Date createdAt;
+    protected Date expiresAt;
+}
+package com.connection.token.converter;
+
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.RefreshTokenDALM;
+import com.connection.token.model.RefreshTokenDTO;
+
+import io.jsonwebtoken.JwtException;
+import jakarta.annotation.Nonnull;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+public class RefreshTokenConverter {
+    @Nonnull
+    private final RefreshTokenGenerator tokenGenerator;
+    public RefreshTokenBLM toBLM(RefreshTokenDALM dalm) {
+        String token  = tokenGenerator.generateRefreshToken(dalm);
+        return new RefreshTokenBLM(token,
+                dalm.getUid(),
+                dalm.getClientUID(),
+                dalm.getCreatedAt(),
+                dalm.getExpiresAt());
+    }
+
+    public RefreshTokenBLM toBLM(RefreshTokenDTO dto) {
+        try {
+            RefreshTokenBLM tokenBLM = tokenGenerator.getRefreshToken(dto.getToken());
+            return tokenBLM;
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Malformed JWT token", e);
+        }
+    }
+
+    public RefreshTokenDTO toDTO(RefreshTokenBLM blm){
+        return new RefreshTokenDTO(blm.getToken());
+    }
+
+    public RefreshTokenDALM toDALM(RefreshTokenBLM blm){
+        return new RefreshTokenDALM(blm.getToken(), 
+                                    blm.getUid(),
+                                    blm.getClientUID(), 
+                                    blm.getCreatedAt(), 
+                                    blm.getExpiresAt());
+    }
+}
+
+package com.connection.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Builder
+public class RefreshTokenDALM {
+    protected String token;
+
+    
+    protected UUID uid;
+    
+    protected UUID clientUID;
+    
+    protected Date createdAt;
+    
+    protected Date expiresAt;
+}
+package com.connection.token.model;
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Builder
+public class AccessTokenDTO {
+    protected String token;
+}
+package com.connection.token.model;
+
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Builder
+public class RefreshTokenDTO {
+    protected String token;
+}
+package com.connection.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Builder
+public class AccessTokenBLM {
+    protected String token;
+    protected UUID clientUID;
+    protected Date createdAt;
+    protected Date expiresAt;
+}
+package com.connection.token.converter;
+
+import static com.connection.token.mother.TokenObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import java.util.Date;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.AccessTokenDALM;
+import com.connection.token.model.AccessTokenDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Access Token Converter Tests")
+class AccessTokenConverterTest {
+
+    @Mock
+    private AccessTokenGenerator accessTokenGenerator;
+
+    @InjectMocks
+    private AccessTokenConverter converter;
+
+    private AccessTokenDALM testDALM;
+    private AccessTokenDTO testDTO;
+    private AccessTokenBLM testBLM;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        testDALM = createValidAccessTokenDALM();
+        testDTO = createValidAccessTokenDTO();
+        testBLM = createValidAccessTokenBLM();
+
+        when(accessTokenGenerator.generateAccessToken(any(UUID.class), any(Date.class), any(Date.class)))
+                .thenReturn("generated-access-token");
+        when(accessTokenGenerator.getAccessTokenBLM(any(String.class))).thenReturn(testBLM);
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        AccessTokenBLM result = converter.toBLM(testDALM);
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo("generated-access-token");
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        AccessTokenBLM result = converter.toBLM(testDTO);
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(testBLM.getToken());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        AccessTokenDTO result = converter.toDTO(testBLM);
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(testBLM.getToken());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        AccessTokenDALM result = converter.toDALM(testBLM);
+        assertThat(result).isNotNull();
+        assertThat(result.getClientUID()).isEqualTo(testBLM.getClientUID());
+        assertThat(result.getCreatedAt()).isEqualTo(testBLM.getCreatedAt());
+        assertThat(result.getExpiresAt()).isEqualTo(testBLM.getExpiresAt());
+    }
+}package com.connection.token.converter;
+
+import static com.connection.token.mother.TokenObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.RefreshTokenDALM;
+import com.connection.token.model.RefreshTokenDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Refresh Token Converter Tests")
+class RefreshTokenConverterTest {
+
+    @Mock
+    private RefreshTokenGenerator tokenGenerator;
+
+    @InjectMocks
+    private RefreshTokenConverter converter;
+
+    private RefreshTokenDALM testDALM;
+    private RefreshTokenDTO testDTO;
+    private RefreshTokenBLM testBLM;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        testDALM = createValidRefreshTokenDALM();
+        testDTO = createValidRefreshTokenDTO();
+        testBLM = createValidRefreshTokenBLM();
+
+        when(tokenGenerator.generateRefreshToken(any(RefreshTokenDALM.class))).thenReturn("generated-token");
+        when(tokenGenerator.getRefreshToken(any(String.class))).thenReturn(testBLM);
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        RefreshTokenBLM result = converter.toBLM(testDALM);
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo("generated-token");
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        RefreshTokenBLM result = converter.toBLM(testDTO);
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(testBLM.getToken());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        RefreshTokenDTO result = converter.toDTO(testBLM);
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(testBLM.getToken());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        RefreshTokenDALM result = converter.toDALM(testBLM);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(testBLM.getUid());
+        assertThat(result.getClientUID()).isEqualTo(testBLM.getClientUID());
+        assertThat(result.getCreatedAt()).isEqualTo(testBLM.getCreatedAt());
+        assertThat(result.getExpiresAt()).isEqualTo(testBLM.getExpiresAt());
+    }
+}package com.connection.token.converter;
+
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.AccessTokenDALM;
+import com.connection.token.model.AccessTokenDTO;
+
+import io.jsonwebtoken.JwtException;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+public class AccessTokenConverter {
+    @NonNull
+    private final AccessTokenGenerator accessTokenGenerator;
+
+    public AccessTokenBLM toBLM(AccessTokenDALM dalm) {
+        try {
+            String token = accessTokenGenerator.generateAccessToken(dalm.getClientUID(), dalm.getCreatedAt(),
+                    dalm.getExpiresAt());
+            return new AccessTokenBLM(token,
+                    dalm.getClientUID(),
+                    dalm.getCreatedAt(),
+                    dalm.getExpiresAt());
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Malformed JWT token", e);
+        }
+    }
+
+    public AccessTokenBLM toBLM(AccessTokenDTO dto) {
+        try {
+            AccessTokenBLM blm = accessTokenGenerator.getAccessTokenBLM(dto.getToken());
+            return blm;
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Malformed JWT token", e);
+        }
+    }
+
+    public AccessTokenDTO toDTO(AccessTokenBLM blm) {
+        return new AccessTokenDTO(blm.getToken());
+    }
+
+    public AccessTokenDALM toDALM(AccessTokenBLM blm) {
+        return new AccessTokenDALM(blm.getClientUID(), blm.getCreatedAt(), blm.getExpiresAt());
+    }
+}
+package com.connection.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Builder
+public class AccessTokenDALM {
+    protected UUID clientUID;
+    protected Date createdAt;
+    protected Date expiresAt;
+}
+// DeviceBLM.java
+package com.connection.device.model;
+
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class DeviceBLM {
+
+    protected UUID uid;
+
+    protected UUID clientUuid;
+
+    protected String deviceName;
+
+    protected String deviceDescription;
+}// DeviceDTO.java
+package com.connection.device.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class DeviceDTO {
+    
+    protected String uid;
+    
+    protected String clientUuid;
+    
+    protected String deviceName;
+    
+    protected String deviceDescription;
+}// DeviceDALM.java
+package com.connection.device.model;
+
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class DeviceDALM {
+    
+    protected UUID uid;
+    
+    protected UUID clientUuid;
+    
+    protected String deviceName;
+    
+    protected String deviceDescription;
+}// DeviceConverter.java
+package com.connection.device.converter;
+
+import java.util.UUID;
+
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.model.DeviceDTO;
+
+public class DeviceConverter {
+    public DeviceBLM toBLM(DeviceDALM dalm) {
+        return new DeviceBLM(
+            dalm.getUid(),
+            dalm.getClientUuid(),
+            dalm.getDeviceName(),
+            dalm.getDeviceDescription()
+        );
+    }
+
+    public DeviceBLM toBLM(DeviceDTO dto) {
+        return new DeviceBLM(
+            UUID.fromString(dto.getUid()),
+            UUID.fromString(dto.getClientUuid()),
+            dto.getDeviceName(),
+            dto.getDeviceDescription()
+        );
+    }
+
+    public DeviceDTO toDTO(DeviceBLM blm) {
+        return new DeviceDTO(
+            blm.getUid().toString(),
+            blm.getClientUuid().toString(),
+            blm.getDeviceName(),
+            blm.getDeviceDescription()
+        );
+    }
+
+    public DeviceDALM toDALM(DeviceBLM blm) {
+        return new DeviceDALM(
+            blm.getUid(),
+            blm.getClientUuid(),
+            blm.getDeviceName(),
+            blm.getDeviceDescription()
+        );
+    }
+}package com.connection.device.converter;
+
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBLM;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDALM;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDTO;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.model.DeviceDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Device Converter Tests")
+class DeviceConverterTest {
+
+    private DeviceConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        converter = new DeviceConverter();
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+
+        DeviceDALM dalM = createValidDeviceDALM();
+
+        DeviceBLM result = converter.toBLM(dalM);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dalM.getUid());
+        assertThat(result.getClientUuid()).isEqualTo(dalM.getClientUuid());
+        assertThat(result.getDeviceName()).isEqualTo(dalM.getDeviceName());
+        assertThat(result.getDeviceDescription()).isEqualTo(dalM.getDeviceDescription());
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+
+        DeviceDTO dto = createValidDeviceDTO();
+
+        DeviceBLM result = converter.toBLM(dto);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid().toString()).isEqualTo(dto.getUid());
+        assertThat(result.getClientUuid().toString()).isEqualTo(dto.getClientUuid());
+        assertThat(result.getDeviceName()).isEqualTo(dto.getDeviceName());
+        assertThat(result.getDeviceDescription()).isEqualTo(dto.getDeviceDescription());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+
+        DeviceBLM blm = createValidDeviceBLM();
+
+        DeviceDTO result = converter.toDTO(blm);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid().toString());
+        assertThat(result.getClientUuid()).isEqualTo(blm.getClientUuid().toString());
+        assertThat(result.getDeviceName()).isEqualTo(blm.getDeviceName());
+        assertThat(result.getDeviceDescription()).isEqualTo(blm.getDeviceDescription());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+
+        DeviceBLM blm = createValidDeviceBLM();
+
+        DeviceDALM result = converter.toDALM(blm);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getClientUuid()).isEqualTo(blm.getClientUuid());
+        assertThat(result.getDeviceName()).isEqualTo(blm.getDeviceName());
+        assertThat(result.getDeviceDescription()).isEqualTo(blm.getDeviceDescription());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
+    void testRoundTripDTOToBLMToDTO() {
+
+        DeviceDTO original = createValidDeviceDTO();
+
+        DeviceBLM blm = converter.toBLM(original);
+        DeviceDTO result = converter.toDTO(blm);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getClientUuid()).isEqualTo(original.getClientUuid());
+        assertThat(result.getDeviceName()).isEqualTo(original.getDeviceName());
+        assertThat(result.getDeviceDescription()).isEqualTo(original.getDeviceDescription());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
+    void testRoundTripDALMToBLMToDALM() {
+
+        DeviceDALM original = createValidDeviceDALM();
+
+        DeviceBLM blm = converter.toBLM(original);
+        DeviceDALM result = converter.toDALM(blm);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getClientUuid()).isEqualTo(original.getClientUuid());
+        assertThat(result.getDeviceName()).isEqualTo(original.getDeviceName());
+        assertThat(result.getDeviceDescription()).isEqualTo(original.getDeviceDescription());
+    }
+}package com.connection.message.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class MessageDTO {
+    protected UUID uid;
+    protected UUID bufferUid;
+    protected String content;
+    protected String contentType;
+    protected Date createdAt;
+}// Модели данных
+package com.connection.message.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class MessageDALM {
+    protected UUID uid;
+    protected UUID bufferUid;
+    protected String content;
+    protected String contentType;
+    protected Date createdAt;
+}package com.connection.message.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class MessageBLM {
+    protected UUID uid;
+    protected UUID bufferUid;
+    protected String content;
+    protected String contentType;
+    protected Date createdAt;
+}// Конвертер
+package com.connection.message.converter;
+
+import org.springframework.stereotype.Component;
+
+import com.connection.message.model.MessageBLM;
+import com.connection.message.model.MessageDALM;
+import com.connection.message.model.MessageDTO;
+
+import lombok.RequiredArgsConstructor;
+
+@Component
+@RequiredArgsConstructor
+public class MessageConverter {
+    public MessageBLM toBLM(MessageDTO dto) {
+        return new MessageBLM(dto.getUid(), dto.getBufferUid(), dto.getContent(), dto.getContentType(), dto.getCreatedAt());
+    }
+    
+    public MessageBLM toBLM(MessageDALM dalm) {
+        return new MessageBLM(dalm.getUid(), dalm.getBufferUid(), dalm.getContent(), dalm.getContentType(), dalm.getCreatedAt());
+    }
+    
+    public MessageDTO toDTO(MessageBLM blm) {
+        return new MessageDTO(blm.getUid(), blm.getBufferUid(), blm.getContent(), blm.getContentType(), blm.getCreatedAt());
+    }
+    
+    public MessageDALM toDALM(MessageBLM blm) {
+        return new MessageDALM(blm.getUid(), blm.getBufferUid(), blm.getContent(), blm.getContentType(), blm.getCreatedAt());
+    }
+}package com.connection.message.converter;
+
+import static com.connection.message.mother.MessageObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.message.model.MessageBLM;
+import com.connection.message.model.MessageDALM;
+import com.connection.message.model.MessageDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Message Converter Tests")
+class  MessageConverterTest{
+
+    private MessageConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        converter = new MessageConverter();
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        MessageDTO dto = createValidMessageDTO();
+        MessageBLM result = converter.toBLM(dto);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dto.getUid());
+        assertThat(result.getBufferUid()).isEqualTo(dto.getBufferUid());
+        assertThat(result.getContent()).isEqualTo(dto.getContent());
+        assertThat(result.getContentType()).isEqualTo(dto.getContentType());
+        assertThat(result.getCreatedAt()).isEqualTo(dto.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        MessageDALM dalM = createValidMessageDALM();
+        MessageBLM result = converter.toBLM(dalM);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dalM.getUid());
+        assertThat(result.getBufferUid()).isEqualTo(dalM.getBufferUid());
+        assertThat(result.getContent()).isEqualTo(dalM.getContent());
+        assertThat(result.getContentType()).isEqualTo(dalM.getContentType());
+        assertThat(result.getCreatedAt()).isEqualTo(dalM.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        MessageBLM blm = createValidMessageBLM();
+        MessageDTO result = converter.toDTO(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getBufferUid()).isEqualTo(blm.getBufferUid());
+        assertThat(result.getContent()).isEqualTo(blm.getContent());
+        assertThat(result.getContentType()).isEqualTo(blm.getContentType());
+        assertThat(result.getCreatedAt()).isEqualTo(blm.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        MessageBLM blm = createValidMessageBLM();
+        MessageDALM result = converter.toDALM(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getBufferUid()).isEqualTo(blm.getBufferUid());
+        assertThat(result.getContent()).isEqualTo(blm.getContent());
+        assertThat(result.getContentType()).isEqualTo(blm.getContentType());
+        assertThat(result.getCreatedAt()).isEqualTo(blm.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
+    void testRoundTripDTOToBLMToDTO() {
+        MessageDTO original = createValidMessageDTO();
+        MessageBLM blm = converter.toBLM(original);
+        MessageDTO result = converter.toDTO(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getBufferUid()).isEqualTo(original.getBufferUid());
+        assertThat(result.getContent()).isEqualTo(original.getContent());
+        assertThat(result.getContentType()).isEqualTo(original.getContentType());
+        assertThat(result.getCreatedAt()).isEqualTo(original.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
+    void testRoundTripDALMToBLMToDALM() {
+        MessageDALM original = createValidMessageDALM();
+        MessageBLM blm = converter.toBLM(original);
+        MessageDALM result = converter.toDALM(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getBufferUid()).isEqualTo(original.getBufferUid());
+        assertThat(result.getContent()).isEqualTo(original.getContent());
+        assertThat(result.getContentType()).isEqualTo(original.getContentType());
+        assertThat(result.getCreatedAt()).isEqualTo(original.getCreatedAt());
+    }
+}package com.connection.client.model;
+
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class ClientDALM {
+    protected UUID uid;
+    protected Date birthDate;
+    protected String email;
+    protected String password;
+    protected String username;
+}
+
+package com.connection.client.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class ClientDTO {
+    protected UUID uid;
+    protected Date birthDate;
+    protected String email;
+    protected String password;
+    protected String username;
+}
+package com.connection.client.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class ClientBLM {
+    protected UUID uid;
+    protected Date birthDate;
+    protected String email;
+    protected String password;
+    protected String username;
+}
+package com.connection.client.converter;
+
+import org.springframework.stereotype.Component;
+
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDALM;
+import com.connection.client.model.ClientDTO;
+
+import lombok.RequiredArgsConstructor;
+
+@Component
+@RequiredArgsConstructor
+public class ClientConverter {
+    public ClientBLM toBLM(ClientDTO dto){
+        return new ClientBLM(dto.getUid(), dto.getBirthDate(), dto.getEmail(), dto.getPassword(), dto.getUsername());
+    }
+    public ClientBLM toBLM(ClientDALM dalm){
+        return new ClientBLM(dalm.getUid(), dalm.getBirthDate(), dalm.getEmail(), dalm.getPassword(), dalm.getUsername());
+    }
+    public ClientDTO toDTO(ClientBLM blm){
+        return new ClientDTO(blm.getUid(), blm.getBirthDate(), blm.getEmail(), blm.getPassword(), blm.getUsername());
+    }
+    public ClientDALM toDALM(ClientBLM blm){
+        return new ClientDALM(blm.getUid(), blm.getBirthDate(), blm.getEmail(), blm.getPassword(), blm.getUsername());
+    }
+    
+}
+package com.connection.client.converter;
+
+import static com.connection.client.mother.ClientObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDALM;
+import com.connection.client.model.ClientDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Client Converter Tests")
+class ClientConverterTest {
+
+    private ClientConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        converter = new ClientConverter();
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        ClientDTO dto = createValidClientDTO();
+        ClientBLM result = converter.toBLM(dto);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dto.getUid());
+        assertThat(result.getBirthDate()).isEqualTo(dto.getBirthDate());
+        assertThat(result.getEmail()).isEqualTo(dto.getEmail());
+        assertThat(result.getPassword()).isEqualTo(dto.getPassword());
+        assertThat(result.getUsername()).isEqualTo(dto.getUsername());
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        ClientDALM dalM = createValidClientDALM();
+        ClientBLM result = converter.toBLM(dalM);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dalM.getUid());
+        assertThat(result.getBirthDate()).isEqualTo(dalM.getBirthDate());
+        assertThat(result.getEmail()).isEqualTo(dalM.getEmail());
+        assertThat(result.getPassword()).isEqualTo(dalM.getPassword());
+        assertThat(result.getUsername()).isEqualTo(dalM.getUsername());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        ClientBLM blm = createValidClientBLM();
+        ClientDTO result = converter.toDTO(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getBirthDate()).isEqualTo(blm.getBirthDate());
+        assertThat(result.getEmail()).isEqualTo(blm.getEmail());
+        assertThat(result.getPassword()).isEqualTo(blm.getPassword());
+        assertThat(result.getUsername()).isEqualTo(blm.getUsername());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        ClientBLM blm = createValidClientBLM();
+        ClientDALM result = converter.toDALM(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getBirthDate()).isEqualTo(blm.getBirthDate());
+        assertThat(result.getEmail()).isEqualTo(blm.getEmail());
+        assertThat(result.getPassword()).isEqualTo(blm.getPassword());
+        assertThat(result.getUsername()).isEqualTo(blm.getUsername());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
+    void testRoundTripDTOToBLMToDTO() {
+        ClientDTO original = createValidClientDTO();
+        ClientBLM blm = converter.toBLM(original);
+        ClientDTO result = converter.toDTO(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getBirthDate()).isEqualTo(original.getBirthDate());
+        assertThat(result.getEmail()).isEqualTo(original.getEmail());
+        assertThat(result.getPassword()).isEqualTo(original.getPassword());
+        assertThat(result.getUsername()).isEqualTo(original.getUsername());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
+    void testRoundTripDALMToBLMToDALM() {
+        ClientDALM original = createValidClientDALM();
+        ClientBLM blm = converter.toBLM(original);
+        ClientDALM result = converter.toDALM(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getBirthDate()).isEqualTo(original.getBirthDate());
+        assertThat(result.getEmail()).isEqualTo(original.getEmail());
+        assertThat(result.getPassword()).isEqualTo(original.getPassword());
+        assertThat(result.getUsername()).isEqualTo(original.getUsername());
+    }
+}// BufferBLM.java
+package com.connection.processing.buffer.model;
+
+import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class BufferBLM {
+    protected UUID uid;
+    protected UUID deviceUid;
+    protected Integer maxMessagesNumber;
+    protected Integer maxMessageSize;
+    protected String messagePrototype;
+}// BufferDTO.java
+package com.connection.processing.buffer.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class BufferDTO {
+    protected String uid;
+    protected String deviceUid;
+    protected Integer maxMessagesNumber;
+    protected Integer maxMessageSize;
+    protected String messagePrototype;
+}// BufferDALM.java
+package com.connection.processing.buffer.model;
+
+import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class BufferDALM {
+    protected UUID uid;
+    protected UUID deviceUid;
+    protected Integer maxMessagesNumber;
+    protected Integer maxMessageSize;
+    protected String messagePrototype;
+}// BufferConverter.java
+package com.connection.processing.buffer.converter;
+
+import java.util.UUID;
+
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferDTO;
+
+public class BufferConverter {
+    public BufferBLM toBLM(BufferDALM dalm) {
+        return new BufferBLM(
+            dalm.getUid(),
+            dalm.getDeviceUid(),
+            dalm.getMaxMessagesNumber(),
+            dalm.getMaxMessageSize(),
+            dalm.getMessagePrototype()
+        );
+    }
+
+    public BufferBLM toBLM(BufferDTO dto) {
+        return new BufferBLM(
+            UUID.fromString(dto.getUid()),
+            UUID.fromString(dto.getDeviceUid()),
+            dto.getMaxMessagesNumber(),
+            dto.getMaxMessageSize(),
+            dto.getMessagePrototype()
+        );
+    }
+
+    public BufferDTO toDTO(BufferBLM blm) {
+        return new BufferDTO(
+            blm.getUid().toString(),
+            blm.getDeviceUid().toString(),
+            blm.getMaxMessagesNumber(),
+            blm.getMaxMessageSize(),
+            blm.getMessagePrototype()
+        );
+    }
+
+    public BufferDALM toDALM(BufferBLM blm) {
+        return new BufferDALM(
+            blm.getUid(),
+            blm.getDeviceUid(),
+            blm.getMaxMessagesNumber(),
+            blm.getMaxMessageSize(),
+            blm.getMessagePrototype()
+        );
+    }
+}package com.connection.processing.buffer.converter;
+
+import static com.connection.processing.buffer.mother.BufferObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Buffer Converter Tests")
+class BufferConverterTest {
+
+    private BufferConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        converter = new BufferConverter();
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        BufferDALM dalM = createValidBufferDALM();
+        BufferBLM result = converter.toBLM(dalM);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dalM.getUid());
+        assertThat(result.getDeviceUid()).isEqualTo(dalM.getDeviceUid()); // Изменено
+        assertThat(result.getMaxMessagesNumber()).isEqualTo(dalM.getMaxMessagesNumber());
+        assertThat(result.getMaxMessageSize()).isEqualTo(dalM.getMaxMessageSize());
+        assertThat(result.getMessagePrototype()).isEqualTo(dalM.getMessagePrototype());
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        BufferDTO dto = createValidBufferDTO();
+        BufferBLM result = converter.toBLM(dto);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid().toString()).isEqualTo(dto.getUid());
+        assertThat(result.getDeviceUid().toString()).isEqualTo(dto.getDeviceUid()); // Изменено
+        assertThat(result.getMaxMessagesNumber()).isEqualTo(dto.getMaxMessagesNumber());
+        assertThat(result.getMaxMessageSize()).isEqualTo(dto.getMaxMessageSize());
+        assertThat(result.getMessagePrototype()).isEqualTo(dto.getMessagePrototype());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        BufferBLM blm = createValidBufferBLM();
+        BufferDTO result = converter.toDTO(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid().toString());
+        assertThat(result.getDeviceUid()).isEqualTo(blm.getDeviceUid().toString()); // Изменено
+        assertThat(result.getMaxMessagesNumber()).isEqualTo(blm.getMaxMessagesNumber());
+        assertThat(result.getMaxMessageSize()).isEqualTo(blm.getMaxMessageSize());
+        assertThat(result.getMessagePrototype()).isEqualTo(blm.getMessagePrototype());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        BufferBLM blm = createValidBufferBLM();
+        BufferDALM result = converter.toDALM(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getDeviceUid()).isEqualTo(blm.getDeviceUid()); // Изменено
+        assertThat(result.getMaxMessagesNumber()).isEqualTo(blm.getMaxMessagesNumber());
+        assertThat(result.getMaxMessageSize()).isEqualTo(blm.getMaxMessageSize());
+        assertThat(result.getMessagePrototype()).isEqualTo(blm.getMessagePrototype());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
+    void testRoundTripDTOToBLMToDTO() {
+        BufferDTO original = createValidBufferDTO();
+        BufferBLM blm = converter.toBLM(original);
+        BufferDTO result = converter.toDTO(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getDeviceUid()).isEqualTo(original.getDeviceUid()); // Изменено
+        assertThat(result.getMaxMessagesNumber()).isEqualTo(original.getMaxMessagesNumber());
+        assertThat(result.getMaxMessageSize()).isEqualTo(original.getMaxMessageSize());
+        assertThat(result.getMessagePrototype()).isEqualTo(original.getMessagePrototype());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
+    void testRoundTripDALMToBLMToDALM() {
+        BufferDALM original = createValidBufferDALM();
+        BufferBLM blm = converter.toBLM(original);
+        BufferDALM result = converter.toDALM(blm);
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getDeviceUid()).isEqualTo(original.getDeviceUid()); // Изменено
+        assertThat(result.getMaxMessagesNumber()).isEqualTo(original.getMaxMessagesNumber());
+        assertThat(result.getMaxMessageSize()).isEqualTo(original.getMaxMessageSize());
+        assertThat(result.getMessagePrototype()).isEqualTo(original.getMessagePrototype());
+    }
+}// DeviceAccessTokenDALM.java
+package com.connection.device.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class DeviceAccessTokenDALM {
+    protected UUID uid;
+    protected UUID deviceTokenUid;
+    protected String token;
+    protected Date createdAt;
+    protected Date expiresAt;
+}// DeviceAccessTokenBLM.java
+package com.connection.device.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class DeviceAccessTokenBLM {
+    protected String token;
+    protected UUID uid;
+    protected UUID deviceTokenUid;
+    protected Date createdAt;
+    protected Date expiresAt;
+}// DeviceTokenBLM.java
+package com.connection.device.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class DeviceTokenBLM {
+    protected String token;
+    protected UUID uid;
+    protected UUID deviceUid;
+    protected Date createdAt;
+    protected Date expiresAt;
+}// DeviceAccessTokenDTO.java
+package com.connection.device.token.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class DeviceAccessTokenDTO {
+    protected String token;
+}// DeviceTokenDALM.java
+package com.connection.device.token.model;
+
+import java.util.Date;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class DeviceTokenDALM {
+    protected UUID uid;
+    protected UUID deviceUid;
+    protected String token;
+    protected Date createdAt;
+    protected Date expiresAt;
+}// DeviceTokenDTO.java
+package com.connection.device.token.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class DeviceTokenDTO {
+    protected String token;
+}// DeviceAccessTokenConverter.java
+package com.connection.device.token.converter;
+
+import com.connection.device.token.generator.DeviceAccessTokenGenerator;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenDALM;
+import com.connection.device.token.model.DeviceAccessTokenDTO;
+
+import io.jsonwebtoken.JwtException;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+public class DeviceAccessTokenConverter {
+    @NonNull
+    private final DeviceAccessTokenGenerator deviceTokenGenerator;
+
+    public DeviceAccessTokenBLM toBLM(DeviceAccessTokenDALM dalm) {
+        try {
+            String token = deviceTokenGenerator.generateDeviceAccessToken(
+                dalm.getDeviceTokenUid(), dalm.getCreatedAt(), dalm.getExpiresAt());
+            
+            return DeviceAccessTokenBLM.builder()
+                    .token(token)
+                    .uid(dalm.getUid())
+                    .deviceTokenUid(dalm.getDeviceTokenUid())
+                    .createdAt(dalm.getCreatedAt())
+                    .expiresAt(dalm.getExpiresAt())
+                    .build();
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid token parameters: " + e.getMessage(), e);
+        }
+    }
+
+    public DeviceAccessTokenBLM toBLM(DeviceAccessTokenDTO dto) {
+        try {
+            return deviceTokenGenerator.getDeviceAccessTokenBLM(dto.getToken());
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Malformed JWT token", e);
+        }
+    }
+
+    public DeviceAccessTokenDTO toDTO(DeviceAccessTokenBLM blm) {
+        return DeviceAccessTokenDTO.builder()
+                .token(blm.getToken())
+                .build();
+    }
+
+    public DeviceAccessTokenDALM toDALM(DeviceAccessTokenBLM blm) {
+        return DeviceAccessTokenDALM.builder()
+                .uid(blm.getUid())
+                .deviceTokenUid(blm.getDeviceTokenUid())
+                .token(blm.getToken())
+                .createdAt(blm.getCreatedAt())
+                .expiresAt(blm.getExpiresAt())
+                .build();
+    }
+}// DeviceTokenConverter.java
+package com.connection.device.token.converter;
+
+import com.connection.device.token.generator.DeviceTokenGenerator;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceTokenDALM;
+import com.connection.device.token.model.DeviceTokenDTO;
+
+import io.jsonwebtoken.JwtException;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+public class DeviceTokenConverter {
+    @NonNull
+    private final DeviceTokenGenerator deviceTokenGenerator;
+
+    public DeviceTokenBLM toBLM(DeviceTokenDALM dalm) {
+        try {
+            String token = deviceTokenGenerator.generateDeviceToken(
+                dalm.getDeviceUid(), dalm.getCreatedAt(), dalm.getExpiresAt());
+            
+            return DeviceTokenBLM.builder()
+                    .token(token)
+                    .uid(dalm.getUid())
+                    .deviceUid(dalm.getDeviceUid())
+                    .createdAt(dalm.getCreatedAt())
+                    .expiresAt(dalm.getExpiresAt())
+                    .build();
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid token parameters: " + e.getMessage(), e);
+        }
+    }
+
+    public DeviceTokenBLM toBLM(DeviceTokenDTO dto) {
+        try {
+            return deviceTokenGenerator.getDeviceTokenBLM(dto.getToken());
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Malformed JWT token", e);
+        }
+    }
+
+    public DeviceTokenDTO toDTO(DeviceTokenBLM blm) {
+        return DeviceTokenDTO.builder()
+                .token(blm.getToken())
+                .build();
+    }
+
+    public DeviceTokenDALM toDALM(DeviceTokenBLM blm) {
+        return DeviceTokenDALM.builder()
+                .uid(blm.getUid())
+                .deviceUid(blm.getDeviceUid())
+                .token(blm.getToken())
+                .createdAt(blm.getCreatedAt())
+                .expiresAt(blm.getExpiresAt())
+                .build();
+    }
+}package com.connection.device.token.converter;
+
+import static com.connection.device.token.mother.DeviceTokenObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import com.connection.device.token.generator.DeviceTokenGenerator;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceTokenDALM;
+import com.connection.device.token.model.DeviceTokenDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Device Token Converter Tests")
+class DeviceTokenConverterTest {
+
+    @Mock
+    private DeviceTokenGenerator deviceTokenGenerator;
+
+    private DeviceTokenConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        converter = new DeviceTokenConverter(deviceTokenGenerator);
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        DeviceTokenDALM dalM = createValidDeviceTokenDALM();
+        DeviceTokenBLM expectedBLM = createValidDeviceTokenBLM();
+        
+        when(deviceTokenGenerator.generateDeviceToken(any(), any(), any()))
+                .thenReturn(expectedBLM.getToken());
+
+        DeviceTokenBLM result = converter.toBLM(dalM);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dalM.getUid());
+        assertThat(result.getDeviceUid()).isEqualTo(dalM.getDeviceUid());
+        assertThat(result.getCreatedAt()).isEqualTo(dalM.getCreatedAt());
+        assertThat(result.getExpiresAt()).isEqualTo(dalM.getExpiresAt());
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        DeviceTokenDTO dto = createValidDeviceTokenDTO();
+        DeviceTokenBLM expectedBLM = createValidDeviceTokenBLM();
+        
+        when(deviceTokenGenerator.getDeviceTokenBLM(dto.getToken()))
+                .thenReturn(expectedBLM);
+
+        DeviceTokenBLM result = converter.toBLM(dto);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(dto.getToken());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        DeviceTokenBLM blm = createValidDeviceTokenBLM();
+
+        DeviceTokenDTO result = converter.toDTO(blm);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(blm.getToken());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        DeviceTokenBLM blm = createValidDeviceTokenBLM();
+
+        DeviceTokenDALM result = converter.toDALM(blm);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getDeviceUid()).isEqualTo(blm.getDeviceUid());
+        assertThat(result.getToken()).isEqualTo(blm.getToken());
+        assertThat(result.getCreatedAt()).isEqualTo(blm.getCreatedAt());
+        assertThat(result.getExpiresAt()).isEqualTo(blm.getExpiresAt());
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM with invalid token - Negative")
+    void testToBLMFromDTOWithInvalidToken_Negative() {
+        DeviceTokenDTO dto = createValidDeviceTokenDTO();
+        
+        when(deviceTokenGenerator.getDeviceTokenBLM(dto.getToken()))
+                .thenThrow(new RuntimeException("Invalid JWT token"));
+
+        assertThatThrownBy(() -> converter.toBLM(dto))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Invalid JWT token");
+    }
+}package com.connection.device.token.converter;
+
+import static com.connection.device.token.mother.DeviceTokenObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import com.connection.device.token.generator.DeviceAccessTokenGenerator;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenDALM;
+import com.connection.device.token.model.DeviceAccessTokenDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Device Access Token Converter Tests")
+class DeviceAccessTokenConverterTest {
+
+    @Mock
+    private DeviceAccessTokenGenerator deviceAccessTokenGenerator;
+
+    private DeviceAccessTokenConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        converter = new DeviceAccessTokenConverter(deviceAccessTokenGenerator);
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        DeviceAccessTokenDALM dalM = createValidDeviceAccessTokenDALM();
+        DeviceAccessTokenBLM expectedBLM = createValidDeviceAccessTokenBLM();
+        
+        when(deviceAccessTokenGenerator.generateDeviceAccessToken(any(), any(), any()))
+                .thenReturn(expectedBLM.getToken());
+
+        DeviceAccessTokenBLM result = converter.toBLM(dalM);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dalM.getUid());
+        assertThat(result.getDeviceTokenUid()).isEqualTo(dalM.getDeviceTokenUid());
+        assertThat(result.getCreatedAt()).isEqualTo(dalM.getCreatedAt());
+        assertThat(result.getExpiresAt()).isEqualTo(dalM.getExpiresAt());
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        DeviceAccessTokenDTO dto = createValidDeviceAccessTokenDTO();
+        DeviceAccessTokenBLM expectedBLM = createValidDeviceAccessTokenBLM();
+        
+        when(deviceAccessTokenGenerator.getDeviceAccessTokenBLM(dto.getToken()))
+                .thenReturn(expectedBLM);
+
+        DeviceAccessTokenBLM result = converter.toBLM(dto);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(dto.getToken());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        DeviceAccessTokenBLM blm = createValidDeviceAccessTokenBLM();
+
+        DeviceAccessTokenDTO result = converter.toDTO(blm);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo(blm.getToken());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        DeviceAccessTokenBLM blm = createValidDeviceAccessTokenBLM();
+
+        DeviceAccessTokenDALM result = converter.toDALM(blm);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getDeviceTokenUid()).isEqualTo(blm.getDeviceTokenUid());
+        assertThat(result.getToken()).isEqualTo(blm.getToken());
+        assertThat(result.getCreatedAt()).isEqualTo(blm.getCreatedAt());
+        assertThat(result.getExpiresAt()).isEqualTo(blm.getExpiresAt());
+    }
+}// ConnectionSchemeDTO.java
+package com.connection.scheme.model;
+
+import java.util.List;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class ConnectionSchemeDTO {
+    
+    protected String uid;
+    
+    protected String clientUid;
+
+    protected List<UUID> usedBuffers;
+
+    protected String schemeJson;
+}// ConnectionSchemeBLM.java
+package com.connection.scheme.model;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class ConnectionSchemeBLM {
+    
+    protected UUID uid;
+    
+    protected UUID clientUid;
+
+    protected String schemeJson;
+    
+    protected List<UUID> usedBuffers;
+    
+    protected Map<UUID, List<UUID>> bufferTransitions;
+}package com.connection.scheme.model;
+
+import java.util.List;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/**
+ * DALM для схемы подключения
+ */
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class ConnectionSchemeDALM {
+    
+    protected UUID uid;
+    
+    protected UUID clientUid;
+
+    protected String schemeJson;
+
+    protected List<UUID> usedBuffers;
+}package com.connection.scheme.converter;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+public class ConnectionSchemeConverter {
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+        public ConnectionSchemeBLM toBLM(ConnectionSchemeDALM dalm) {
+        try {
+            // Извлекаем transitions из JSON
+            Map<UUID, List<UUID>> bufferTransitions = extractTransitionsFromJson(dalm.getSchemeJson());
+            
+            return ConnectionSchemeBLM.builder()
+                .uid(dalm.getUid())
+                .clientUid(dalm.getClientUid())
+                .schemeJson(dalm.getSchemeJson())
+                .usedBuffers(dalm.getUsedBuffers()) // Теперь получаем из DALM
+                .bufferTransitions(bufferTransitions)
+                .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert DALM to BLM", e);
+        }
+    }
+
+    public ConnectionSchemeBLM toBLM(ConnectionSchemeDTO dto) {
+        try {
+            // Извлекаем transitions из JSON
+            Map<UUID, List<UUID>> bufferTransitions = extractTransitionsFromJson(dto.getSchemeJson());
+            
+            return ConnectionSchemeBLM.builder()
+                .uid(UUID.fromString(dto.getUid()))
+                .clientUid(UUID.fromString(dto.getClientUid()))
+                .schemeJson(dto.getSchemeJson())
+                .usedBuffers(dto.getUsedBuffers()) // Используем переданные usedBuffers
+                .bufferTransitions(bufferTransitions)
+                .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert DTO to BLM", e);
+        }
+    }
+
+    public ConnectionSchemeDTO toDTO(ConnectionSchemeBLM blm) {
+
+        String transitionsJson = convertTransitionsToJson(blm.getBufferTransitions());
+
+        return ConnectionSchemeDTO.builder()
+                .uid(blm.getUid().toString())
+                .clientUid(blm.getClientUid().toString())
+                .schemeJson(transitionsJson)
+                .usedBuffers(blm.getUsedBuffers())
+                .build();
+    }
+
+    public ConnectionSchemeDALM toDALM(ConnectionSchemeBLM blm) {
+
+        String transitionsJson = convertTransitionsToJson(blm.getBufferTransitions());
+
+        return ConnectionSchemeDALM.builder()
+                .uid(blm.getUid())
+                .clientUid(blm.getClientUid())
+                .schemeJson(transitionsJson)
+                .usedBuffers(blm.getUsedBuffers())
+                .build();
+    }
+
+    private Map<UUID, List<UUID>> extractTransitionsFromJson(String schemeJson) {
+        try {
+
+            return objectMapper.readValue(schemeJson, new TypeReference<Map<UUID, List<UUID>>>() {
+            });
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extract transitions from JSON", e);
+        }
+    }
+
+    private List<UUID> extractUsedBuffersFromJson(String schemeJson) {
+        try {
+
+            Map<UUID, List<UUID>> transitions = extractTransitionsFromJson(schemeJson);
+
+            return transitions.entrySet().stream()
+                    .flatMap(entry -> {
+                        java.util.stream.Stream<UUID> keyStream = java.util.stream.Stream.of(entry.getKey());
+                        java.util.stream.Stream<UUID> valueStream = entry.getValue().stream();
+                        return java.util.stream.Stream.concat(keyStream, valueStream);
+                    })
+                    .distinct()
+                    .collect(java.util.stream.Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extract used buffers from JSON", e);
+        }
+    }
+
+    private String convertTransitionsToJson(Map<UUID, List<UUID>> bufferTransitions) {
+        try {
+            return objectMapper.writeValueAsString(bufferTransitions);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert transitions to JSON", e);
+        }
+    }
+}// ConnectionSchemeConverterTest.java
+package com.connection.scheme.converter;
+
+import static com.connection.scheme.mother.ConnectionSchemeObjectMother.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Arrays;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Connection Scheme Converter Tests")
+class ConnectionSchemeConverterTest {
+
+    private ConnectionSchemeConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        converter = new ConnectionSchemeConverter();
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+        ConnectionSchemeDALM dalM = createValidConnectionSchemeDALM();
+        ConnectionSchemeBLM result = converter.toBLM(dalM);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dalM.getUid());
+        assertThat(result.getClientUid()).isEqualTo(dalM.getClientUid());
+        assertThat(result.getSchemeJson()).isEqualTo(dalM.getSchemeJson());
+        assertThat(result.getUsedBuffers()).isEqualTo(dalM.getUsedBuffers());
+        assertThat(result.getBufferTransitions()).isNotEmpty();
+        assertThat(result.getBufferTransitions()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+        ConnectionSchemeDTO dto = createValidConnectionSchemeDTO();
+        ConnectionSchemeBLM result = converter.toBLM(dto);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUid().toString()).isEqualTo(dto.getUid());
+        assertThat(result.getClientUid().toString()).isEqualTo(dto.getClientUid());
+        assertThat(result.getSchemeJson()).isEqualTo(dto.getSchemeJson());
+        assertThat(result.getUsedBuffers()).isNotEmpty();
+        assertThat(result.getUsedBuffers()).hasSize(3);
+        assertThat(result.getBufferTransitions()).isNotEmpty();
+        assertThat(result.getBufferTransitions()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+        ConnectionSchemeBLM blm = createValidConnectionSchemeBLM();
+        ConnectionSchemeDTO result = converter.toDTO(blm);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid().toString());
+        assertThat(result.getClientUid()).isEqualTo(blm.getClientUid().toString());
+        assertThat(result.getSchemeJson()).isEqualTo(blm.getSchemeJson());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+        ConnectionSchemeBLM blm = createValidConnectionSchemeBLM();
+        ConnectionSchemeDALM result = converter.toDALM(blm);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getClientUid()).isEqualTo(blm.getClientUid());
+        assertThat(result.getSchemeJson()).isEqualTo(blm.getSchemeJson());
+        assertThat(result.getUsedBuffers()).isEqualTo(blm.getUsedBuffers());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
+    void testRoundTripDTOToBLMToDTO() {
+        ConnectionSchemeDTO original = createValidConnectionSchemeDTO();
+        ConnectionSchemeBLM blm = converter.toBLM(original);
+        ConnectionSchemeDTO result = converter.toDTO(blm);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getClientUid()).isEqualTo(original.getClientUid());
+        assertThat(result.getSchemeJson()).isEqualTo(original.getSchemeJson());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
+    void testRoundTripDALMToBLMToDALM() {
+        ConnectionSchemeDALM original = createValidConnectionSchemeDALM();
+        ConnectionSchemeBLM blm = converter.toBLM(original);
+        ConnectionSchemeDALM result = converter.toDALM(blm);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getClientUid()).isEqualTo(original.getClientUid());
+        assertThat(result.getSchemeJson()).isEqualTo(original.getSchemeJson());
+        assertThat(result.getUsedBuffers()).isEqualTo(original.getUsedBuffers());
+    }
+
+    @Test
+    @DisplayName("Convert with empty used buffers")
+    void testConvertWithEmptyUsedBuffers() {
+        ConnectionSchemeDALM dalM = createConnectionSchemeDALMWithUsedBuffers(Arrays.asList());
+        ConnectionSchemeBLM result = converter.toBLM(dalM);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUsedBuffers()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Convert with null used buffers")
+    void testConvertWithNullUsedBuffers() {
+        ConnectionSchemeDALM dalM = createConnectionSchemeDALMWithUsedBuffers(null);
+        ConnectionSchemeBLM result = converter.toBLM(dalM);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getUsedBuffers()).isNull();
+    }
+}

@@ -1,4 +1,3 @@
-// ConnectionSchemeController.java
 package com.service.connectionscheme.controller;
 
 import java.util.List;
@@ -23,13 +22,14 @@ import com.connection.scheme.validator.ConnectionSchemeValidator;
 import com.service.connectionscheme.ConnectionSchemeService;
 import com.service.connectionscheme.config.SecurityUtils;
 
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/connection-scheme-service")
+@RequestMapping("/api/v1")
 public class ConnectionSchemeController {
     
     private final ConnectionSchemeService connectionSchemeService;
@@ -52,28 +52,28 @@ public class ConnectionSchemeController {
         return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
     }
 
-    @GetMapping("/schemes/{schemeUid}")
-    public ResponseEntity<ConnectionSchemeResponse> getScheme(@PathVariable UUID schemeUid) {
-        log.info("Getting connection scheme: {}", schemeUid);
-        
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        ConnectionSchemeBLM scheme = connectionSchemeService.getSchemeByUid(clientUid, schemeUid);
-
-        return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
-    }
 
     @GetMapping("/schemes")
-    public ResponseEntity<ConnectionSchemesListResponse> getSchemesByClient(
+    public ResponseEntity<ConnectionSchemesListResponse> getSchemes(
+            @RequestParam(required = false) List<UUID> schemeUids,
             @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
             @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
         
-        log.info("Getting all connection schemes for client with offset: {}, limit: {}", offset, limit);
-        
         UUID clientUid = SecurityUtils.getCurrentClientUid();
-        List<ConnectionSchemeBLM> allSchemes = connectionSchemeService.getSchemesByClient(clientUid);
+        List<ConnectionSchemeBLM> schemes = null;
+
+        if (schemeUids != null && !schemeUids.isEmpty()) {
+            // Получение конкретных схем по списку UID
+            log.info("Getting specific connection schemes: {} with offset: {}, limit: {}", schemeUids, offset, limit);
+            // schemes = connectionSchemeService.getSchemeByUid(clientUid, schemeUids);
+        } else {
+            // Получение всех схем клиента
+            log.info("Getting all connection schemes for client with offset: {}, limit: {}", offset, limit);
+            schemes = connectionSchemeService.getSchemesByClient(clientUid);
+        }
         
         // Применяем пагинацию
-        List<ConnectionSchemeBLM> paginatedSchemes = applyPagination(allSchemes, offset, limit);
+        List<ConnectionSchemeBLM> paginatedSchemes = applyPagination(schemes, offset, limit);
         List<ConnectionSchemeDTO> schemeDTOs = paginatedSchemes.stream()
                 .map(schemeConverter::toDTO)
                 .collect(Collectors.toList());
@@ -83,8 +83,8 @@ public class ConnectionSchemeController {
             new ConnectionSchemesListResponse.PaginationInfo(
                 offset, 
                 limit, 
-                allSchemes.size(), 
-                (offset + limit) < allSchemes.size()
+                schemes.size(), 
+                (offset + limit) < schemes.size()
             );
 
         return ResponseEntity.ok(new ConnectionSchemesListResponse(schemeDTOs, paginationInfo));
@@ -104,12 +104,27 @@ public class ConnectionSchemeController {
         return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
     }
 
-    @DeleteMapping("/schemes/{schemeUid}")
-    public ResponseEntity<Void> deleteScheme(@PathVariable UUID schemeUid) {
-        log.info("Deleting connection scheme: {}", schemeUid);
-
+    @DeleteMapping("/schemes")
+    public ResponseEntity<Void> deleteSchemes(
+            @RequestParam(required = false) List<UUID> schemeUids,
+            @RequestParam(required = false) UUID schemeUid) {
+        
         UUID clientUid = SecurityUtils.getCurrentClientUid();
-        connectionSchemeService.deleteScheme(clientUid, schemeUid);
+
+        if (schemeUids != null && !schemeUids.isEmpty()) {
+            // Массовое удаление схем
+            log.info("Deleting multiple connection schemes: {} for client: {}", schemeUids, clientUid);
+            for (UUID uid : schemeUids) {
+                connectionSchemeService.deleteScheme(clientUid, uid);
+            }
+        } else if (schemeUid != null) {
+            // Удаление одной схемы
+            log.info("Deleting connection scheme: {} for client: {}", schemeUid, clientUid);
+            connectionSchemeService.deleteScheme(clientUid, schemeUid);
+        } else {
+            log.warn("No valid delete parameters provided");
+            return ResponseEntity.badRequest().build();
+        }
 
         return ResponseEntity.noContent().build();
     }
