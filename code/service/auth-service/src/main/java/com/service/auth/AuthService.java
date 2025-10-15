@@ -1,7 +1,5 @@
 package com.service.auth;
 
-import java.util.UUID;
-
 import org.springframework.data.util.Pair;
 
 import com.connection.client.model.ClientBLM;
@@ -16,7 +14,5 @@ public interface AuthService {
     public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(RefreshTokenBLM refreshTokenBLM);
     public void validateAccessToken(AccessTokenBLM accessTokenBLM);
     public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM);
-    public UUID getClientUid(AccessTokenBLM accessTokenBLM);
-    public UUID getClientUid(RefreshTokenBLM accessTokenBLM);
 
 }

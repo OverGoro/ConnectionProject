@@ -5,10 +5,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import com.connection.auth.events.commands.ExtractClientUidCommand;
 import com.connection.auth.events.commands.HealthCheckCommand;
 import com.connection.auth.events.commands.ValidateTokenCommand;
-import com.connection.auth.events.responses.ClientUidResponse;
 import com.connection.auth.events.responses.HealthCheckResponse;
 import com.connection.auth.events.responses.TokenValidationResponse;
 import com.connection.common.events.Command;
@@ -37,12 +35,7 @@ public class AuthCommandConsumer {
             if (command instanceof ValidateTokenCommand) {
                 ValidateTokenCommand validateCommand = (ValidateTokenCommand) command;
                 handleValidateTokenCommand(validateCommand, key);
-            } else if (command instanceof ExtractClientUidCommand) {
-
-                ExtractClientUidCommand extractCommand = (ExtractClientUidCommand) command;
-                handleExtractClientUidCommand(extractCommand, key);
             } else if (command instanceof HealthCheckCommand) {
-
                 HealthCheckCommand healthCommand = (HealthCheckCommand) command;
                 handleHealthCheckCommand(healthCommand, key);
             }
@@ -86,28 +79,28 @@ public class AuthCommandConsumer {
         }
     }
 
-    private void handleExtractClientUidCommand(ExtractClientUidCommand command, String key) {
-        try {
-            AccessTokenBLM tokenBLM = accessTokenConverter.toBLM(
-                    new com.connection.token.model.AccessTokenDTO(command.getToken()));
-            authService.validateAccessToken(tokenBLM);
+    // private void handleExtractClientUidCommand(ExtractClientUidCommand command, String key) {
+    //     try {
+    //         AccessTokenBLM tokenBLM = accessTokenConverter.toBLM(
+    //                 new com.connection.token.model.AccessTokenDTO(command.getToken()));
+    //         authService.validateAccessToken(tokenBLM);
 
-            ClientUidResponse response = ClientUidResponse.success(
-                    command.getCorrelationId(),
-                    tokenBLM.getClientUID(),
-                    command.getTokenType().name());
+    //         ClientUidResponse response = ClientUidResponse.success(
+    //                 command.getCorrelationId(),
+    //                 tokenBLM.getClientUID(),
+    //                 command.getTokenType().name());
 
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Client UID extracted: {}", tokenBLM.getClientUID());
+    //         kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+    //         log.info("Client UID extracted: {}", tokenBLM.getClientUID());
 
-        } catch (Exception e) {
-            ClientUidResponse response = ClientUidResponse.error(
-                    command.getCorrelationId(),
-                    e.getMessage());
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.error("Client UID extraction failed: {}", e.getMessage());
-        }
-    }
+    //     } catch (Exception e) {
+    //         ClientUidResponse response = ClientUidResponse.error(
+    //                 command.getCorrelationId(),
+    //                 e.getMessage());
+    //         kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+    //         log.error("Client UID extraction failed: {}", e.getMessage());
+    //     }
+    // }
 
     private void handleHealthCheckCommand(HealthCheckCommand command, String key) {
         try {

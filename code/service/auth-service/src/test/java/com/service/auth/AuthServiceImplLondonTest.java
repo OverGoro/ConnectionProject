@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
-import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -254,49 +253,5 @@ class AuthServiceImplLondonTest {
 
         // Assert
         verify(refreshTokenValidator).validate(refreshToken);
-    }
-
-    @Test
-    @DisplayName("Get client UID from access token - Positive")
-    void shouldReturnClientUidFromAccessToken() {
-        // Arrange
-        AccessTokenBLM accessToken = createValidAccessTokenBLM();
-
-        // Мокаем только валидацию, сам объект accessToken уже содержит нужные данные
-        // Act
-        UUID result = authService.getClientUid(accessToken);
-
-        // Assert
-        assertThat(result).isEqualTo(CLIENT_UUID);
-        verify(accessTokenValidator).validate(accessToken);
-    }
-
-    @Test
-    @DisplayName("Get client UID from refresh token - Positive")
-    void shouldReturnClientUidFromRefreshToken() {
-        // Arrange
-        RefreshTokenBLM refreshToken = createValidRefreshTokenBLM();
-
-        // Act
-        UUID result = authService.getClientUid(refreshToken);
-
-        // Assert
-        assertThat(result).isEqualTo(CLIENT_UUID);
-        verify(refreshTokenValidator).validate(refreshToken);
-    }
-
-    @Test
-    @DisplayName("Get client UID - Negative: Invalid token")
-    void shouldThrowExceptionWhenGettingClientUidFromInvalidToken() {
-        // Arrange
-        AccessTokenBLM invalidAccessToken = createValidAccessTokenBLM();
-
-        doThrow(new IllegalArgumentException("Invalid token"))
-                .when(accessTokenValidator).validate(invalidAccessToken);
-
-        // Act & Assert
-        assertThatThrownBy(() -> authService.getClientUid(invalidAccessToken))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Invalid token");
     }
 }
