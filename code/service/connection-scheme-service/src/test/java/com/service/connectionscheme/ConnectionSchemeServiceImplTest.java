@@ -33,6 +33,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -49,7 +50,7 @@ import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Connection Scheme Service Implementation Tests - Kafka Version")
-class ConnectionSchemeServiceImplTest {
+class ApiConnectionSchemeServiceImplTest {
 
     @Mock
     private ConnectionSchemeRepository schemeRepository;
@@ -88,13 +89,13 @@ class ConnectionSchemeServiceImplTest {
         ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
         ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
         
-        // setupAuthentication(CLIENT_UUID);
+        setupAuthentication(CLIENT_UUID);
         when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
         when(schemeConverter.toDALM(schemeBLM)).thenReturn(schemeDALM);
         when(schemeRepository.exists(SCHEME_UUID)).thenReturn(false);
 
         // Act
-        ConnectionSchemeBLM result = connectionSchemeService.createScheme(CLIENT_UUID, schemeDTO);
+        ConnectionSchemeBLM result = connectionSchemeService.createScheme(schemeDTO);
 
         // Assert
         assertThat(result).isNotNull();
@@ -123,11 +124,12 @@ class ConnectionSchemeServiceImplTest {
             .bufferTransitions(bufferTransitions)
             .build();
 
-        // setupAuthentication(CLIENT_UUID);
+        setupAuthentication(CLIENT_UUID);
+        
         when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
 
         // Act & Assert
-        assertThatThrownBy(() -> connectionSchemeService.createScheme(CLIENT_UUID, schemeDTO))
+        assertThatThrownBy(() -> connectionSchemeService.createScheme(schemeDTO))
             .isInstanceOf(SecurityException.class)
             .hasMessageContaining("Client UID from token doesn't match");
 
@@ -142,12 +144,13 @@ class ConnectionSchemeServiceImplTest {
         ConnectionSchemeDTO schemeDTO = createValidSchemeDTO();
         ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
 
-        // setupAuthentication(CLIENT_UUID);
+        setupAuthentication(CLIENT_UUID);
         when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+        
         when(schemeRepository.exists(SCHEME_UUID)).thenReturn(true);
 
         // Act & Assert
-        assertThatThrownBy(() -> connectionSchemeService.createScheme(CLIENT_UUID, schemeDTO))
+        assertThatThrownBy(() -> connectionSchemeService.createScheme(schemeDTO))
             .isInstanceOf(ConnectionSchemeAlreadyExistsException.class);
 
         verify(schemeValidator).validate(schemeDTO);
@@ -161,12 +164,13 @@ class ConnectionSchemeServiceImplTest {
         ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
         ConnectionSchemeBLM expectedBLM = createValidSchemeBLM();
 
-        // setupAuthentication(CLIENT_UUID);
+        setupAuthentication(CLIENT_UUID);
         when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(schemeDALM);
         when(schemeConverter.toBLM(schemeDALM)).thenReturn(expectedBLM);
+        
 
         // Act
-        ConnectionSchemeBLM result = connectionSchemeService.getSchemeByUid(CLIENT_UUID, SCHEME_UUID);
+        ConnectionSchemeBLM result = connectionSchemeService.getSchemeByUid(SCHEME_UUID);
 
         // Assert
         assertThat(result).isNotNull();
@@ -188,11 +192,12 @@ class ConnectionSchemeServiceImplTest {
             .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
             .build();
 
-        // setupAuthentication(CLIENT_UUID);
+        setupAuthentication(CLIENT_UUID);
         when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(schemeDALM);
+        
 
         // Act & Assert
-        assertThatThrownBy(() -> connectionSchemeService.getSchemeByUid(CLIENT_UUID, SCHEME_UUID))
+        assertThatThrownBy(() -> connectionSchemeService.getSchemeByUid(SCHEME_UUID))
             .isInstanceOf(SecurityException.class)
             .hasMessageContaining("doesn't belong");
 
@@ -208,7 +213,6 @@ class ConnectionSchemeServiceImplTest {
         ConnectionSchemeBLM expectedBLM = createValidSchemeBLM();
         List<ConnectionSchemeDALM> schemesDALM = Collections.singletonList(schemeDALM);
 
-        // setupAuthentication(CLIENT_UUID);
         when(schemeRepository.findByClientUid(CLIENT_UUID)).thenReturn(schemesDALM);
         when(schemeConverter.toBLM(schemeDALM)).thenReturn(expectedBLM);
 
@@ -232,13 +236,14 @@ class ConnectionSchemeServiceImplTest {
         ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
         ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
 
-        // setupAuthentication(CLIENT_UUID);
+        setupAuthentication(CLIENT_UUID);
         when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
         when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
         when(schemeConverter.toDALM(schemeBLM)).thenReturn(schemeDALM);
+        
 
         // Act
-        ConnectionSchemeBLM result = connectionSchemeService.updateScheme(CLIENT_UUID, SCHEME_UUID, schemeDTO);
+        ConnectionSchemeBLM result = connectionSchemeService.updateScheme(SCHEME_UUID, schemeDTO);
 
         // Assert
         assertThat(result).isNotNull();
@@ -267,12 +272,13 @@ class ConnectionSchemeServiceImplTest {
             
         ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
 
-        // setupAuthentication(CLIENT_UUID);
+        setupAuthentication(CLIENT_UUID);
         when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
         when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+        
 
         // Act & Assert
-        assertThatThrownBy(() -> connectionSchemeService.updateScheme(CLIENT_UUID, SCHEME_UUID, schemeDTO))
+        assertThatThrownBy(() -> connectionSchemeService.updateScheme(SCHEME_UUID, schemeDTO))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Cannot change scheme UID");
 
@@ -299,12 +305,13 @@ class ConnectionSchemeServiceImplTest {
             
         ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
 
-        // setupAuthentication(CLIENT_UUID);
+        setupAuthentication(CLIENT_UUID);
         when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
         when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+        
 
         // Act & Assert
-        assertThatThrownBy(() -> connectionSchemeService.updateScheme(CLIENT_UUID, SCHEME_UUID, schemeDTO))
+        assertThatThrownBy(() -> connectionSchemeService.updateScheme(SCHEME_UUID, schemeDTO))
             .isInstanceOf(SecurityException.class)
             .hasMessageContaining("Client UID from token doesn't match");
 
@@ -318,11 +325,12 @@ class ConnectionSchemeServiceImplTest {
         // Arrange
         ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
 
-        // setupAuthentication(CLIENT_UUID);
+        setupAuthentication(CLIENT_UUID);
         when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
+        
 
         // Act
-        connectionSchemeService.deleteScheme(CLIENT_UUID, SCHEME_UUID);
+        connectionSchemeService.deleteScheme(SCHEME_UUID);
 
         // Assert
         verify(schemeRepository).delete(SCHEME_UUID);
@@ -332,11 +340,11 @@ class ConnectionSchemeServiceImplTest {
     @DisplayName("Scheme exists - Positive")
     void shouldReturnTrueWhenSchemeExists() {
         // Arrange
-        // setupAuthentication(CLIENT_UUID);
         when(schemeRepository.exists(SCHEME_UUID)).thenReturn(true);
+        
 
         // Act
-        boolean result = connectionSchemeService.schemeExists(CLIENT_UUID, SCHEME_UUID);
+        boolean result = connectionSchemeService.schemeExists(SCHEME_UUID);
 
         // Assert
         assertThat(result).isTrue();
@@ -347,11 +355,11 @@ class ConnectionSchemeServiceImplTest {
     @DisplayName("Scheme exists - Negative: Scheme not found")
     void shouldReturnFalseWhenSchemeNotExists() {
         // Arrange
-        // setupAuthentication(CLIENT_UUID);
         when(schemeRepository.exists(SCHEME_UUID)).thenReturn(false);
+        
 
         // Act
-        boolean result = connectionSchemeService.schemeExists(CLIENT_UUID, SCHEME_UUID);
+        boolean result = connectionSchemeService.schemeExists(SCHEME_UUID);
 
         // Assert
         assertThat(result).isFalse();

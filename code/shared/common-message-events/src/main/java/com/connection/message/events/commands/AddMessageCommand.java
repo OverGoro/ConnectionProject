@@ -20,19 +20,17 @@ public class AddMessageCommand extends Command {
     private String content;
     private String contentType;
     private Date createdAt;
-    private UUID clientUid;
     
     public AddMessageCommand() {
         super(MessageEventConstants.COMMAND_ADD_MESSAGE, "unknown", MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
     }
     
-    public AddMessageCommand(UUID deviceUid, String content, String contentType, UUID clientUid, String sourceService) {
+    public AddMessageCommand(UUID deviceUid, String content, String contentType, String sourceService) {
         super(MessageEventConstants.COMMAND_ADD_MESSAGE, sourceService, MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
         this.messageUid = UUID.randomUUID();
         this.deviceUid = deviceUid;
         this.content = content;
         this.contentType = contentType;
         this.createdAt = new Date();
-        this.clientUid = clientUid;
     }
 }

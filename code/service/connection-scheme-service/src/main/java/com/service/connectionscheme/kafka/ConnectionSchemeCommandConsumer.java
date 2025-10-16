@@ -1,6 +1,7 @@
 package com.service.connectionscheme.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ConnectionSchemeCommandConsumer {
 
+    @Qualifier("ApiConnectionSchemeService")
     private final ConnectionSchemeService connectionSchemeService;
     private final ConnectionSchemeConverter connectionSchemeConverter;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -67,7 +69,7 @@ public class ConnectionSchemeCommandConsumer {
         try {
             log.info("Processing GetConnectionSchemeByUidCommand for scheme UID: {}", command.getConnectionSchemeUid());
 
-            ConnectionSchemeBLM schemeBLM = connectionSchemeService.getSchemeByUid(command.getClientUid(), command.getConnectionSchemeUid());
+            ConnectionSchemeBLM schemeBLM = connectionSchemeService.getSchemeByUid(command.getConnectionSchemeUid());
             ConnectionSchemeDTO schemeDTO = connectionSchemeConverter.toDTO(schemeBLM);
 
             GetConnectionSchemeByUidResponse response = GetConnectionSchemeByUidResponse.success(

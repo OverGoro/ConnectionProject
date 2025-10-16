@@ -15,7 +15,6 @@ import com.connection.auth.events.AuthEventUtils;
 import com.connection.auth.events.commands.ExtractClientUidCommand;
 import com.connection.auth.events.commands.HealthCheckCommand;
 import com.connection.auth.events.commands.ValidateTokenCommand;
-import com.connection.auth.events.responses.ClientUidResponse;
 import com.connection.auth.events.responses.HealthCheckResponse;
 import com.connection.auth.events.responses.TokenValidationResponse;
 
@@ -51,19 +50,6 @@ public class TypedAuthKafkaClient {
                 .correlationId(AuthEventUtils.generateCorrelationId())
                 .build(),
             TokenValidationResponse.class
-        );
-    }
-
-    public CompletableFuture<ClientUidResponse> getClientUid(String token, String sourceService) {
-        return sendRequest(
-            ExtractClientUidCommand.builder()
-                .token(token)
-                .tokenType(ExtractClientUidCommand.TokenType.ACCESS)
-                .sourceService(sourceService)
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
-                .correlationId(AuthEventUtils.generateCorrelationId())
-                .build(),
-            ClientUidResponse.class
         );
     }
 

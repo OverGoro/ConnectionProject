@@ -52,6 +52,7 @@ public class MessageController {
             @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
         Set<MessageBLM> messageBLMs = new HashSet<>();
         log.info("Getting messages");
+
         if (schemeUids != null){
             for (UUID schemeUid : schemeUids){
                 log.info("Getting messages for schemeUid: {}", schemeUid);
@@ -73,7 +74,6 @@ public class MessageController {
             }
         }
         log.info("Got messages: {}", messageBLMs.size());
-
 
         List<MessageBLM> resultBLM = new ArrayList<>(messageBLMs);
         List<MessageDTO> resultDTO = resultBLM.stream().map(messageConverter::toDTO).toList();

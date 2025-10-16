@@ -27,11 +27,11 @@
         {
           "name": "common-device-events-1.0.0.jar",
           "url": "common-device-events-1.0.0.jar",
-          "size": 29771,
-          "sha512": "e1315c2fd60c030fe04379e09d6a4ec6f59047656cccf7a1fb5c4dfe4460d2e345e6eef7d4251dc04c1ca7a8e0a6cd7dce96c65c65e00de8c0448de638e3a54f",
-          "sha256": "54f6e80ba8da0097c516ba25b7d86712a1105e420558da5a6dbcb1eebd1c3339",
-          "sha1": "3f4a4af6c72e54f734e5d343b442bb296d411d4d",
-          "md5": "0ed2f852f4dc12afb2009c8bd2f11891"
+          "size": 29590,
+          "sha512": "47fee027fd64a8a67077899ea27918dbbcfd8432e6a2cacfd01bcd7b4cb9b5d0752ee43b20af53bb7eaa699478ef03621f6b0280653f6915ba7cc025eb48375e",
+          "sha256": "b1975c24893404758f60e43d45621393f9663c43ea673250373a91986e9754e9",
+          "sha1": "3ddc2deb379ef2cd97c21b004554b9a0ed3d842f",
+          "md5": "de9a8986d011769d72090e7c57e78eb2"
         }
       ]
     },
@@ -71,11 +71,11 @@
         {
           "name": "common-device-events-1.0.0.jar",
           "url": "common-device-events-1.0.0.jar",
-          "size": 29771,
-          "sha512": "e1315c2fd60c030fe04379e09d6a4ec6f59047656cccf7a1fb5c4dfe4460d2e345e6eef7d4251dc04c1ca7a8e0a6cd7dce96c65c65e00de8c0448de638e3a54f",
-          "sha256": "54f6e80ba8da0097c516ba25b7d86712a1105e420558da5a6dbcb1eebd1c3339",
-          "sha1": "3f4a4af6c72e54f734e5d343b442bb296d411d4d",
-          "md5": "0ed2f852f4dc12afb2009c8bd2f11891"
+          "size": 29590,
+          "sha512": "47fee027fd64a8a67077899ea27918dbbcfd8432e6a2cacfd01bcd7b4cb9b5d0752ee43b20af53bb7eaa699478ef03621f6b0280653f6915ba7cc025eb48375e",
+          "sha256": "b1975c24893404758f60e43d45621393f9663c43ea673250373a91986e9754e9",
+          "sha1": "3ddc2deb379ef2cd97c21b004554b9a0ed3d842f",
+          "md5": "de9a8986d011769d72090e7c57e78eb2"
         }
       ]
     }

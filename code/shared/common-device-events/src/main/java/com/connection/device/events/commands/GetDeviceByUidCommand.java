@@ -13,17 +13,14 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 public class GetDeviceByUidCommand extends Command {
     private final UUID deviceUid;
-    private final UUID clientUid;
     
     public GetDeviceByUidCommand() {
         super(DeviceEventConstants.COMMAND_GET_DEVICE_BY_UID, "unknown", DeviceEventConstants.DEVICE_COMMANDS_TOPIC);
         this.deviceUid = null;
-        this.clientUid = null;
     }
     
     public GetDeviceByUidCommand(UUID clientUid, UUID deviceUid, String sourceService) {
         super(DeviceEventConstants.COMMAND_GET_DEVICE_BY_UID, sourceService, DeviceEventConstants.COMMAND_GET_DEVICE_BY_UID);
         this.deviceUid = deviceUid;
-        this.clientUid = clientUid;
     }
 }

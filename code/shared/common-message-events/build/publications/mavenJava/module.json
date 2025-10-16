@@ -27,11 +27,11 @@
         {
           "name": "common-message-events-1.0.0.jar",
           "url": "common-message-events-1.0.0.jar",
-          "size": 54128,
-          "sha512": "74dd83b290577c551258402ecada637965f92a22f3fb6b26f7ccc2ba8436d0ac9c3c0c949f79e28ccafb268da854bd42d19a59112c343b873fb16d6c5db78296",
-          "sha256": "130ad2f9d99c165c5f29a6bcc161e9d2a43d264ec85dc3c4d5d17a151ffa94e7",
-          "sha1": "626dd0a64256a407afd0666a575ad608b3cbd99d",
-          "md5": "a975baa1689c801cec52faa62ab373be"
+          "size": 53937,
+          "sha512": "a81471cd5d24a7a25496d321542701f45b6d1933c2df56304df9d5c5545d619a8de42ffdc0bc747fd591cbb0ef00f3811421532730cfbe3a708d4c2a8b8a1e9c",
+          "sha256": "d830f44459b3326f5a8de99b3d10da737fb6c9090e1e6d6f9bc9bae8e72d4083",
+          "sha1": "0f7d84f8cdff585ae1cdffa46038ab5e9000db23",
+          "md5": "f08649852318f9715648a956b1a0f42d"
         }
       ]
     },
@@ -71,11 +71,11 @@
         {
           "name": "common-message-events-1.0.0.jar",
           "url": "common-message-events-1.0.0.jar",
-          "size": 54128,
-          "sha512": "74dd83b290577c551258402ecada637965f92a22f3fb6b26f7ccc2ba8436d0ac9c3c0c949f79e28ccafb268da854bd42d19a59112c343b873fb16d6c5db78296",
-          "sha256": "130ad2f9d99c165c5f29a6bcc161e9d2a43d264ec85dc3c4d5d17a151ffa94e7",
-          "sha1": "626dd0a64256a407afd0666a575ad608b3cbd99d",
-          "md5": "a975baa1689c801cec52faa62ab373be"
+          "size": 53937,
+          "sha512": "a81471cd5d24a7a25496d321542701f45b6d1933c2df56304df9d5c5545d619a8de42ffdc0bc747fd591cbb0ef00f3811421532730cfbe3a708d4c2a8b8a1e9c",
+          "sha256": "d830f44459b3326f5a8de99b3d10da737fb6c9090e1e6d6f9bc9bae8e72d4083",
+          "sha1": "0f7d84f8cdff585ae1cdffa46038ab5e9000db23",
+          "md5": "f08649852318f9715648a956b1a0f42d"
         }
       ]
     }

@@ -52,16 +52,6 @@ public class BufferController {
         return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
     }
 
-    // @GetMapping("/buffers/{bufferUid}")
-    // public ResponseEntity<BufferResponse> getBuffer(@PathVariable UUID bufferUid) {
-    //     log.info("Getting buffer: {}", bufferUid);
-
-    //     UUID clientUid = SecurityUtils.getCurrentClientUid();
-    //     BufferBLM buffer = bufferService.getBufferByUid(clientUid, bufferUid);
-
-    //     return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
-    // }
-
     @GetMapping("/buffers")
     public ResponseEntity<BuffersListResponse> getBuffers(
             @RequestParam(required = false) List<UUID> bufferUids,
@@ -100,15 +90,14 @@ public class BufferController {
         
         UUID clientUid = SecurityUtils.getCurrentClientUid();
         log.info("Partial update buffer: {} for client: {}", bufferUid, clientUid);
-
-        // Заглушка для частичного обновления
-        log.warn("Partial update is not implemented yet. Buffer UID: {}, Client UID: {}", bufferUid, clientUid);
         
         // Временная реализация - получаем текущий буфер и возвращаем его
         BufferBLM buffer = bufferService.getBufferByUid(clientUid, bufferUid);
         
         return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
     }
+
+
     @PutMapping("/buffers/{bufferUid}")
     public ResponseEntity<BufferResponse> updateBuffer(
             @PathVariable UUID bufferUid,
@@ -125,10 +114,13 @@ public class BufferController {
 
     @DeleteMapping("/buffers")
     public ResponseEntity<Void> deleteBuffers(
-            @RequestParam(required = false) List<UUID> bufferUids,
-            @RequestParam(required = false) UUID connectionSchemeUid) {
+            @RequestParam List<UUID> bufferUids) {
         
         UUID clientUid = SecurityUtils.getCurrentClientUid();
+
+        for (UUID b : bufferUids){
+            bufferService.deleteBuffer(clientUid, b);
+        }
 
         // if (bufferUids != null && !bufferUids.isEmpty()) {
         //     // Удаление массива буферов

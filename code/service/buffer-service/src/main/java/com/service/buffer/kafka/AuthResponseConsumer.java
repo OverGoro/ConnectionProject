@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 import com.connection.auth.events.responses.TokenValidationResponse;
 import com.connection.common.events.CommandResponse;
-import com.connection.auth.events.responses.ClientUidResponse;
 import com.connection.auth.events.responses.HealthCheckResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -30,9 +29,6 @@ public class AuthResponseConsumer {
                 
             if (message instanceof TokenValidationResponse) {
                 TokenValidationResponse typedResponse = (TokenValidationResponse) message;
-                authKafkaClient.handleResponse(correlationId, typedResponse);
-            } else if (message instanceof ClientUidResponse) {
-                ClientUidResponse typedResponse = (ClientUidResponse) message;
                 authKafkaClient.handleResponse(correlationId, typedResponse);
             } else if (message instanceof HealthCheckResponse) {
                 HealthCheckResponse typedResponse = (HealthCheckResponse) message;

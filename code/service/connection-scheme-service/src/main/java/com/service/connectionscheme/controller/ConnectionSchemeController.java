@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
 public class ConnectionSchemeController {
-    
+    @Qualifier("ApiConnectionSchemeService")
     private final ConnectionSchemeService connectionSchemeService;
     private final ConnectionSchemeValidator schemeValidator;
     private final ConnectionSchemeConverter schemeConverter;
@@ -43,11 +44,8 @@ public class ConnectionSchemeController {
 
     @PostMapping("/schemes")
     public ResponseEntity<ConnectionSchemeResponse> createScheme(@RequestBody ConnectionSchemeDTO schemeDTO) {
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        log.info("Creating connection scheme for client {}", clientUid);
-
         schemeValidator.validate(schemeDTO);
-        ConnectionSchemeBLM scheme = connectionSchemeService.createScheme(clientUid, schemeDTO);
+        ConnectionSchemeBLM scheme = connectionSchemeService.createScheme(schemeDTO);
 
         return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
     }
@@ -63,9 +61,8 @@ public class ConnectionSchemeController {
         List<ConnectionSchemeBLM> schemes = null;
 
         if (schemeUids != null && !schemeUids.isEmpty()) {
-            // Получение конкретных схем по списку UID
             log.info("Getting specific connection schemes: {} with offset: {}, limit: {}", schemeUids, offset, limit);
-            // schemes = connectionSchemeService.getSchemeByUid(clientUid, schemeUids);
+            schemes = connectionSchemeService.getSchemeByUid(schemeUids);
         } else {
             // Получение всех схем клиента
             log.info("Getting all connection schemes for client with offset: {}, limit: {}", offset, limit);
@@ -95,32 +92,21 @@ public class ConnectionSchemeController {
             @PathVariable UUID schemeUid,
             @RequestBody ConnectionSchemeDTO schemeDTO) {
         
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        log.info("Updating connection scheme: {} for client: {}", schemeUid, clientUid);
-
         schemeValidator.validate(schemeDTO);
-        ConnectionSchemeBLM scheme = connectionSchemeService.updateScheme(clientUid, schemeUid, schemeDTO);
+        ConnectionSchemeBLM scheme = connectionSchemeService.updateScheme(schemeUid, schemeDTO);
 
         return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
     }
 
     @DeleteMapping("/schemes")
     public ResponseEntity<Void> deleteSchemes(
-            @RequestParam(required = false) List<UUID> schemeUids,
-            @RequestParam(required = false) UUID schemeUid) {
+            @RequestParam(required = false) List<UUID> schemeUids) {
         
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-
         if (schemeUids != null && !schemeUids.isEmpty()) {
-            // Массовое удаление схем
-            log.info("Deleting multiple connection schemes: {} for client: {}", schemeUids, clientUid);
+            log.info("Deleting multiple connection schemes: {}", schemeUids);
             for (UUID uid : schemeUids) {
-                connectionSchemeService.deleteScheme(clientUid, uid);
+                connectionSchemeService.deleteScheme(uid);
             }
-        } else if (schemeUid != null) {
-            // Удаление одной схемы
-            log.info("Deleting connection scheme: {} for client: {}", schemeUid, clientUid);
-            connectionSchemeService.deleteScheme(clientUid, schemeUid);
         } else {
             log.warn("No valid delete parameters provided");
             return ResponseEntity.badRequest().build();
