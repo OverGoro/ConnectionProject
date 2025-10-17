@@ -30,6 +30,8 @@ public class TypedDeviceAuthKafkaClient {
     
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
 
+    private final String instanceReplyTopic = "device.auth.responses." + UUID.randomUUID().toString();
+
     private static class PendingRequest<T> {
         final CompletableFuture<T> future;
         final Class<T> responseType;
@@ -46,7 +48,7 @@ public class TypedDeviceAuthKafkaClient {
                 .token(token)
                 .tokenType(ValidateTokenCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(DeviceAuthEventConstants.DEVICE_AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic)
                 .correlationId(DeviceAuthEventUtils.generateCorrelationId())
                 .build(),
             TokenValidationResponse.class
@@ -59,7 +61,7 @@ public class TypedDeviceAuthKafkaClient {
                 .token(token)
                 .tokenType(ValidateTokenCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(DeviceAuthEventConstants.DEVICE_AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic)
                 .correlationId(DeviceAuthEventUtils.generateCorrelationId())
                 .build(),
             TokenValidationResponse.class
@@ -72,7 +74,7 @@ public class TypedDeviceAuthKafkaClient {
                 .token(token)
                 .tokenType(ExtractDeviceUidCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(DeviceAuthEventConstants.DEVICE_AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic)
                 .correlationId(DeviceAuthEventUtils.generateCorrelationId())
                 .build(),
             DeviceUidResponse.class
@@ -85,7 +87,7 @@ public class TypedDeviceAuthKafkaClient {
                 .token(token)
                 .tokenType(ExtractDeviceUidCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(DeviceAuthEventConstants.DEVICE_AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic)
                 .correlationId(DeviceAuthEventUtils.generateCorrelationId())
                 .build(),
             DeviceUidResponse.class
@@ -98,7 +100,7 @@ public class TypedDeviceAuthKafkaClient {
                 .eventId(UUID.randomUUID().toString())
                 .sourceService(sourceService)
                 .timestamp(new Date().toInstant())
-                .replyTopic(DeviceAuthEventConstants.DEVICE_AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic)
                 .correlationId(DeviceAuthEventUtils.generateCorrelationId())
                 .commandType(DeviceAuthEventConstants.COMMAND_HEALTH_CHECK)
                 .build(),
@@ -155,5 +157,9 @@ public class TypedDeviceAuthKafkaClient {
         } else {
             log.warn("Received device auth response for unknown correlationId: {}", correlationId);
         }
+    }
+    // 👇 Геттер для получения уникального топика инстанса
+    public String getInstanceReplyTopic() {
+        return instanceReplyTopic;
     }
 }

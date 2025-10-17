@@ -3,6 +3,7 @@ package com.service.device.auth;
 
 import java.time.Duration;
 import java.util.Date;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.connection.auth.events.responses.HealthCheckResponse;
 import com.connection.device.token.converter.DeviceAccessTokenConverter;
 import com.connection.device.token.converter.DeviceTokenConverter;
 import com.connection.device.token.generator.DeviceAccessTokenGenerator;
@@ -24,6 +26,7 @@ import com.connection.device.token.repository.DeviceAccessTokenRepository;
 import com.connection.device.token.repository.DeviceTokenRepository;
 import com.connection.device.token.validator.DeviceAccessTokenValidator;
 import com.connection.device.token.validator.DeviceTokenValidator;
+import com.service.device.auth.kafka.TypedAuthKafkaClient;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +39,8 @@ import lombok.extern.slf4j.Slf4j;
 })
 @EnableTransactionManagement
 public class DeviceAuthServiceImpl implements DeviceAuthService {
-    
+
+    private final TypedAuthKafkaClient authKafkaClient;
     private final DeviceTokenConverter deviceTokenConverter;
     private final DeviceAccessTokenConverter deviceAccessTokenConverter;
     
@@ -202,18 +206,26 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
         deviceAccessTokenValidator.validate(deviceAccessToken);
     }
 
-    @Override
-    public UUID extractDeviceUidFromToken(DeviceTokenBLM deviceToken) {
-        validateDeviceToken(deviceToken);
-        return deviceToken.getDeviceUid();
-    }
 
-    @Override
-    public UUID extractDeviceUidFromAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
-        validateDeviceAccessToken(deviceAccessToken);
-        
-        // Получаем device token по deviceTokenUid и извлекаем deviceUid
-        DeviceTokenDALM deviceTokenDALM = deviceTokenRepository.findByUid(deviceAccessToken.getDeviceTokenUid());
-        return deviceTokenDALM.getDeviceUid();
+     @Override
+    public Map<String, Object> getHealthStatus() {
+        try {
+            HealthCheckResponse authHealth = authKafkaClient.healthCheck("device-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "device-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+        } catch (Exception e) {
+            log.error("Kafka Client: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "device-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "error", e.getMessage());
+        }
     }
 }

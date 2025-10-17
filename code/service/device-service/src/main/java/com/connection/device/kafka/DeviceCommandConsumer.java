@@ -1,6 +1,7 @@
 package com.connection.device.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -27,12 +28,13 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 public class DeviceCommandConsumer {
-
+    
+    @Qualifier("DeviceServiceKafkaImpl")
     private final DeviceService deviceService;
-    private final DeviceConverter deviceConverter;
-    private final KafkaTemplate<String, Object> kafkaTemplate; // Используем ЕДИНЫЙ kafkaTemplate
 
-    // Используем ЕДИНУЮ фабрику
+    private final DeviceConverter deviceConverter;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    
     @KafkaListener(topics = "${app.kafka.topics.device-commands:device.commands}")
     public void handleDeviceCommand(ConsumerRecord<String, Command> record) {
         try {
@@ -63,7 +65,7 @@ public class DeviceCommandConsumer {
         try {
             log.info("Processing GetDeviceByUidCommand for device UID: {}", command.getDeviceUid());
 
-            DeviceBLM deviceBLM = deviceService.getDevice(command.getClientUid(), command.getDeviceUid());
+            DeviceBLM deviceBLM = deviceService.getDevice(command.getDeviceUid());
             DeviceDTO deviceDTO = deviceConverter.toDTO(deviceBLM);
 
             GetDeviceByUidResponse response = GetDeviceByUidResponse.success(

@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Connection Scheme Service Implementation Tests - Kafka Version" tests="15" skipped="0" failures="0" errors="0" timestamp="2025-10-16T14:23:38.150Z" hostname="Yurik" time="2.479">
+<testsuite name="Connection Scheme Service Implementation Tests - Kafka Version" tests="15" skipped="0" failures="0" errors="0" timestamp="2025-10-17T01:16:46.187Z" hostname="Yurik" time="2.686">
   <properties/>
-  <testcase name="Create scheme - Positive" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="2.301"/>
+  <testcase name="Create scheme - Positive" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="2.482"/>
   <testcase name="Update scheme - Negative: Client UID change attempt" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.008"/>
-  <testcase name="Update scheme - Positive" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.003"/>
-  <testcase name="Delete scheme - Positive" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.003"/>
+  <testcase name="Update scheme - Positive" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.004"/>
+  <testcase name="Delete scheme - Positive" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.004"/>
   <testcase name="Create scheme - Negative: Scheme already exists" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.003"/>
   <testcase name="Health check - Positive" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.009"/>
-  <testcase name="Update scheme - Negative: UID change attempt" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.002"/>
-  <testcase name="Health check - Negative: Auth service error" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.002"/>
-  <testcase name="Create scheme - Negative: Client UID mismatch" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.002"/>
+  <testcase name="Update scheme - Negative: UID change attempt" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.003"/>
+  <testcase name="Health check - Negative: Auth service error" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.003"/>
+  <testcase name="Create scheme - Negative: Client UID mismatch" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.004"/>
   <testcase name="Scheme exists - Negative: Scheme not found" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.003"/>
-  <testcase name="Health check - Negative: Auth service timeout" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.006"/>
+  <testcase name="Health check - Negative: Auth service timeout" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.008"/>
   <testcase name="Get scheme by UID - Positive" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.003"/>
-  <testcase name="Scheme exists - Positive" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.002"/>
+  <testcase name="Scheme exists - Positive" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.003"/>
   <testcase name="Get schemes by client - Positive" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.004"/>
-  <testcase name="Get scheme by UID - Negative: Scheme doesn't belong to client" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.004"/>
-  <system-out><![CDATA[17:23:39.958 [ForkJoinPool-1-worker-1] INFO com.service.connectionscheme.ConnectionSchemeServiceImpl -- Connection scheme created: 323e4567-e89b-12d3-a456-426614174003 for client: 123e4567-e89b-12d3-a456-426614174000
-17:23:40.562 [ForkJoinPool-1-worker-1] INFO com.service.connectionscheme.ConnectionSchemeServiceImpl -- Connection scheme updated: 323e4567-e89b-12d3-a456-426614174003 for client: 123e4567-e89b-12d3-a456-426614174000
-17:23:40.568 [ForkJoinPool-1-worker-1] INFO com.service.connectionscheme.ConnectionSchemeServiceImpl -- Connection scheme deleted: 323e4567-e89b-12d3-a456-426614174003 for client: 123e4567-e89b-12d3-a456-426614174000
-17:23:40.605 [ForkJoinPool-1-worker-1] ERROR com.service.connectionscheme.ConnectionSchemeServiceImpl -- Kafka Client: 
+  <testcase name="Get scheme by UID - Negative: Scheme doesn't belong to client" classname="com.service.connectionscheme.ApiConnectionSchemeServiceImplTest" time="0.005"/>
+  <system-out><![CDATA[04:16:48.112 [ForkJoinPool-1-worker-1] INFO com.service.connectionscheme.ConnectionSchemeServiceImpl -- Connection scheme created: 323e4567-e89b-12d3-a456-426614174003 for client: 123e4567-e89b-12d3-a456-426614174000
+04:16:48.797 [ForkJoinPool-1-worker-1] INFO com.service.connectionscheme.ConnectionSchemeServiceImpl -- Connection scheme updated: 323e4567-e89b-12d3-a456-426614174003 for client: 123e4567-e89b-12d3-a456-426614174000
+04:16:48.803 [ForkJoinPool-1-worker-1] INFO com.service.connectionscheme.ConnectionSchemeServiceImpl -- Connection scheme deleted: 323e4567-e89b-12d3-a456-426614174003 for client: 123e4567-e89b-12d3-a456-426614174000
+04:16:48.845 [ForkJoinPool-1-worker-1] ERROR com.service.connectionscheme.ConnectionSchemeServiceImpl -- Kafka Client: 
 java.util.concurrent.ExecutionException: java.util.concurrent.TimeoutException: Timeout
 	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
 	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)

@@ -1,10 +1,13 @@
 package com.service.device.auth;
 
-import static com.service.device.auth.mother.DeviceTokenObjectMother.*;
+import static com.service.device.auth.mother.DeviceTokenObjectMother.createExpiredDeviceAccessTokenBLM;
+import static com.service.device.auth.mother.DeviceTokenObjectMother.createValidDeviceAccessTokenBLM;
+import static com.service.device.auth.mother.DeviceTokenObjectMother.createValidDeviceAccessTokenDALM;
+import static com.service.device.auth.mother.DeviceTokenObjectMother.createValidDeviceTokenBLM;
+import static com.service.device.auth.mother.DeviceTokenObjectMother.createValidDeviceTokenDALM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -27,7 +30,6 @@ import org.springframework.data.util.Pair;
 import com.connection.device.token.converter.DeviceAccessTokenConverter;
 import com.connection.device.token.converter.DeviceTokenConverter;
 import com.connection.device.token.exception.DeviceAccessTokenExistsException;
-import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
 import com.connection.device.token.exception.DeviceTokenAlreadyExistsException;
 import com.connection.device.token.exception.DeviceTokenNotFoundException;
 import com.connection.device.token.generator.DeviceAccessTokenGenerator;
@@ -298,51 +300,5 @@ class DeviceAuthServiceImplLondonTest {
         assertThatThrownBy(() -> deviceAuthService.validateDeviceToken(invalidToken))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid token");
-    }
-
-    @Test
-    @DisplayName("Extract device UID from device token - Positive")
-    void shouldReturnDeviceUidFromDeviceToken() {
-        // Arrange
-        DeviceTokenBLM deviceToken = createValidDeviceTokenBLM();
-
-        // Act
-        UUID result = deviceAuthService.extractDeviceUidFromToken(deviceToken);
-
-        // Assert
-        assertThat(result).isEqualTo(deviceToken.getDeviceUid());
-        verify(deviceTokenValidator).validate(deviceToken);
-    }
-
-    @Test
-    @DisplayName("Extract device UID from access token - Positive")
-    void shouldReturnDeviceUidFromAccessToken() {
-        // Arrange
-        DeviceAccessTokenBLM accessToken = createValidDeviceAccessTokenBLM();
-        DeviceTokenDALM deviceTokenDALM = createValidDeviceTokenDALM();
-
-        when(deviceTokenRepository.findByUid(accessToken.getDeviceTokenUid())).thenReturn(deviceTokenDALM);
-
-        // Act
-        UUID result = deviceAuthService.extractDeviceUidFromAccessToken(accessToken);
-
-        // Assert
-        assertThat(result).isEqualTo(deviceTokenDALM.getDeviceUid());
-        verify(deviceAccessTokenValidator).validate(accessToken);
-    }
-
-    @Test
-    @DisplayName("Extract device UID from access token - Negative: Device token not found")
-    void shouldThrowExceptionWhenDeviceTokenNotFoundForAccessToken() {
-        // Arrange
-        DeviceAccessTokenBLM accessToken = createValidDeviceAccessTokenBLM();
-
-        when(deviceTokenRepository.findByUid(accessToken.getDeviceTokenUid()))
-            .thenThrow(new DeviceTokenNotFoundException("Device token not found"));
-
-        // Act & Assert
-        assertThatThrownBy(() -> deviceAuthService.extractDeviceUidFromAccessToken(accessToken))
-            .isInstanceOf(DeviceTokenNotFoundException.class);
-        verify(deviceAccessTokenValidator).validate(accessToken);
     }
 }

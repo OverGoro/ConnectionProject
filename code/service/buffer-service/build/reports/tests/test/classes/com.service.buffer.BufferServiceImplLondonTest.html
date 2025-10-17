@@ -41,7 +41,7 @@
 </td>
 <td>
 <div class="infoBox" id="duration">
-<div class="counter">2.124s</div>
+<div class="counter">2.007s</div>
 <p>duration</p>
 </div>
 </td>
@@ -84,7 +84,7 @@
 <tr>
 <td class="success">Create buffer - Positive</td>
 <td class="success">shouldCreateBufferWhenValidData()</td>
-<td class="success">0.007s</td>
+<td class="success">0.008s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -96,13 +96,13 @@
 <tr>
 <td class="success">Delete buffer from connection scheme - Positive</td>
 <td class="success">shouldDeleteBufferFromConnectionSchemeWhenValidRequest()</td>
-<td class="success">0.004s</td>
+<td class="success">0.003s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Delete buffer - Positive</td>
 <td class="success">shouldDeleteBufferWhenValidRequest()</td>
-<td class="success">0.012s</td>
+<td class="success">0.011s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -132,19 +132,19 @@
 <tr>
 <td class="success">Get buffers by client - Negative: Device service returns error</td>
 <td class="success">shouldReturnEmptyListWhenDeviceServiceFails()</td>
-<td class="success">0.027s</td>
+<td class="success">0.083s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Buffer exists - Negative: Buffer not found</td>
 <td class="success">shouldReturnFalseWhenBufferNotExists()</td>
-<td class="success">0.002s</td>
+<td class="success">0.003s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Buffer exists - Negative: Device doesn't belong to client</td>
 <td class="success">shouldReturnFalseWhenDeviceNotBelongsToClient()</td>
-<td class="success">2.024s</td>
+<td class="success">1.855s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -162,19 +162,19 @@
 <tr>
 <td class="success">Create buffer - Negative: Device doesn't belong to client</td>
 <td class="success">shouldThrowExceptionWhenDeviceNotBelongsToClient()</td>
-<td class="success">0.007s</td>
+<td class="success">0.006s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get buffers by client - Negative: Device service timeout</td>
 <td class="success">shouldThrowExceptionWhenDeviceServiceTimeout()</td>
-<td class="success">0.009s</td>
+<td class="success">0.007s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Update buffer - Negative: Cannot change buffer UID</td>
 <td class="success">shouldThrowExceptionWhenTryingToChangeBufferUid()</td>
-<td class="success">0.004s</td>
+<td class="success">0.003s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -188,27 +188,27 @@
 <div class="tab">
 <h2>Standard output</h2>
 <span class="code">
-<pre>23:29:29.655 [ForkJoinPool-1-worker-1] INFO com.service.buffer.BufferServiceImpl -- Buffer deleted: 323e4567-e89b-12d3-a456-426614174002 for client: 123e4567-e89b-12d3-a456-426614174000, device: 423e4567-e89b-12d3-a456-426614174003
-23:29:29.668 [ForkJoinPool-1-worker-1] WARN com.service.buffer.BufferServiceImpl -- Failed to get devices for client: 123e4567-e89b-12d3-a456-426614174000
-23:29:29.695 [ForkJoinPool-1-worker-1] INFO com.service.buffer.BufferServiceImpl -- Buffer created: 323e4567-e89b-12d3-a456-426614174002 for device: 423e4567-e89b-12d3-a456-426614174003
-23:29:29.703 [ForkJoinPool-1-worker-1] INFO com.service.buffer.BufferServiceImpl -- Buffer updated: 323e4567-e89b-12d3-a456-426614174002 for device: 423e4567-e89b-12d3-a456-426614174003
-23:29:29.727 [ForkJoinPool-1-worker-1] ERROR com.service.buffer.BufferServiceImpl -- Error getting devices for client: 123e4567-e89b-12d3-a456-426614174000
+<pre>04:16:43.068 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Buffer deleted: 323e4567-e89b-12d3-a456-426614174002 for client: 123e4567-e89b-12d3-a456-426614174000, device: 423e4567-e89b-12d3-a456-426614174003
+04:16:43.083 [ForkJoinPool-1-worker-1] WARN com.service.buffer.ApiBufferServiceImpl -- Failed to get devices for client: 123e4567-e89b-12d3-a456-426614174000
+04:16:43.166 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Buffer created: 323e4567-e89b-12d3-a456-426614174002 for device: 423e4567-e89b-12d3-a456-426614174003
+04:16:43.174 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Buffer updated: 323e4567-e89b-12d3-a456-426614174002 for device: 423e4567-e89b-12d3-a456-426614174003
+04:16:43.198 [ForkJoinPool-1-worker-1] ERROR com.service.buffer.ApiBufferServiceImpl -- Error getting devices for client: 123e4567-e89b-12d3-a456-426614174000
 java.util.concurrent.ExecutionException: java.util.concurrent.TimeoutException: Timeout
 	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
 	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
-	at com.service.buffer.BufferServiceImpl.getBuffersByClient_aroundBody6(BufferServiceImpl.java:101)
-	at com.service.buffer.BufferServiceImpl$AjcClosure7.run(BufferServiceImpl.java:1)
+	at com.service.buffer.ApiBufferServiceImpl.getBuffersByClient_aroundBody4(ApiBufferServiceImpl.java:98)
+	at com.service.buffer.ApiBufferServiceImpl$AjcClosure5.run(ApiBufferServiceImpl.java:1)
 	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96cproceed(AbstractTransactionAspect.aj:67)
 	at org.springframework.transaction.aspectj.AbstractTransactionAspect$AbstractTransactionAspect$1.proceedWithInvocation(AbstractTransactionAspect.aj:73)
 	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
 	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96c(AbstractTransactionAspect.aj:71)
-	at com.service.buffer.BufferServiceImpl.getBuffersByClient(BufferServiceImpl.java:99)
-	at com.service.buffer.BufferServiceImplLondonTest.lambda$shouldThrowExceptionWhenDeviceServiceTimeout$3(BufferServiceImplLondonTest.java:448)
+	at com.service.buffer.ApiBufferServiceImpl.getBuffersByClient(ApiBufferServiceImpl.java:90)
+	at com.service.buffer.BufferServiceImplLondonTest.lambda$shouldThrowExceptionWhenDeviceServiceTimeout$3(BufferServiceImplLondonTest.java:480)
 	at org.assertj.core.api.ThrowableAssert.catchThrowable(ThrowableAssert.java:63)
 	at org.assertj.core.api.AssertionsForClassTypes.catchThrowable(AssertionsForClassTypes.java:904)
 	at org.assertj.core.api.Assertions.catchThrowable(Assertions.java:1472)
 	at org.assertj.core.api.Assertions.assertThatThrownBy(Assertions.java:1315)
-	at com.service.buffer.BufferServiceImplLondonTest.shouldThrowExceptionWhenDeviceServiceTimeout(BufferServiceImplLondonTest.java:448)
+	at com.service.buffer.BufferServiceImplLondonTest.shouldThrowExceptionWhenDeviceServiceTimeout(BufferServiceImplLondonTest.java:480)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:775)
@@ -273,10 +273,10 @@ java.util.concurrent.ExecutionException: java.util.concurrent.TimeoutException: 
 	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
 	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
 Caused by: java.util.concurrent.TimeoutException: Timeout
-	at com.service.buffer.BufferServiceImplLondonTest.shouldThrowExceptionWhenDeviceServiceTimeout(BufferServiceImplLondonTest.java:442)
+	at com.service.buffer.BufferServiceImplLondonTest.shouldThrowExceptionWhenDeviceServiceTimeout(BufferServiceImplLondonTest.java:473)
 	... 63 common frames omitted
-23:29:29.768 [ForkJoinPool-1-worker-1] INFO com.service.buffer.BufferServiceImpl -- Deleted buffers for connection scheme: 423e4567-e89b-12d3-a456-426614174003
-23:29:29.774 [ForkJoinPool-1-worker-1] INFO com.service.buffer.BufferServiceImpl -- Deleted buffers for connection scheme: 423e4567-e89b-12d3-a456-426614174003
+04:16:43.231 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Deleted buffers for connection scheme: 423e4567-e89b-12d3-a456-426614174003
+04:16:43.236 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Deleted buffers for connection scheme: 423e4567-e89b-12d3-a456-426614174003
 </pre>
 </span>
 </div>
@@ -299,7 +299,7 @@ WARNING: Dynamic loading of agents will be disallowed by default in a future rel
 <input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
 </label>
 </div>Generated by 
-<a href="https://www.gradle.org">Gradle 8.14.3</a> at 15 окт. 2025 г., 23:29:29</p>
+<a href="https://www.gradle.org">Gradle 8.13</a> at 17 окт. 2025 г., 04:16:43</p>
 </div>
 </div>
 </body>

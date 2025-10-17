@@ -26,6 +26,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.connection.device.converter.DeviceConverter;
 import com.connection.device.events.responses.GetDevicesByClientResponse;
@@ -67,15 +70,26 @@ class BufferServiceImplLondonTest {
     @Mock
     private TypedConnectionSchemeKafkaClient connectionSchemeKafkaClient;
 
+    @Mock
+    private SecurityContext securityContext;
+
     @InjectMocks
-    private BufferServiceImpl bufferService;
+    private ApiBufferServiceImpl bufferService;
 
     private static final UUID DEVICE_UUID = UUID.fromString("523e4567-e89b-12d3-a456-426614174001");
 
     @BeforeEach
     void setUp() {
-        // Инициализация может быть добавлена при необходимости
+        SecurityContextHolder.setContext(securityContext);
     }
+
+
+    private void setupAuthentication(UUID clientUid) {
+        UsernamePasswordAuthenticationToken authentication = 
+            new UsernamePasswordAuthenticationToken(clientUid, null, Collections.emptyList());
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+    }
+
 
     @Test
     @DisplayName("Create buffer - Positive")
@@ -91,8 +105,10 @@ class BufferServiceImplLondonTest {
                 eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
         when(bufferRepository.exists(BUFFER_UUID)).thenReturn(false);
 
+        setupAuthentication(CLIENT_UUID);
+
         // Act
-        BufferBLM result = bufferService.createBuffer(CLIENT_UUID, bufferDTO);
+        BufferBLM result = bufferService.createBuffer(bufferDTO);
 
         // Assert
         assertThat(result).isNotNull();
@@ -112,9 +128,10 @@ class BufferServiceImplLondonTest {
         when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
                 eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(false);
+        setupAuthentication(CLIENT_UUID);
 
         // Act & Assert
-        assertThatThrownBy(() -> bufferService.createBuffer(CLIENT_UUID, bufferDTO))
+        assertThatThrownBy(() -> bufferService.createBuffer(bufferDTO))
             .isInstanceOf(SecurityException.class)
             .hasMessageContaining("Device doesn't exist or doesn't belong to the authenticated client");
 
@@ -133,9 +150,10 @@ class BufferServiceImplLondonTest {
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
                 eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
         when(bufferRepository.exists(BUFFER_UUID)).thenReturn(true);
+        setupAuthentication(CLIENT_UUID);
 
         // Act & Assert
-        assertThatThrownBy(() -> bufferService.createBuffer(CLIENT_UUID, bufferDTO))
+        assertThatThrownBy(() -> bufferService.createBuffer(bufferDTO))
             .isInstanceOf(BufferAlreadyExistsException.class);
         
         verify(bufferValidator).validate(bufferDTO);
@@ -153,9 +171,10 @@ class BufferServiceImplLondonTest {
         when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
                 eq(bufferDALM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
+        setupAuthentication(CLIENT_UUID);
 
         // Act
-        BufferBLM result = bufferService.getBufferByUid(CLIENT_UUID, BUFFER_UUID);
+        BufferBLM result = bufferService.getBufferByUid(BUFFER_UUID);
 
         // Assert
         assertThat(result).isNotNull();
@@ -176,9 +195,10 @@ class BufferServiceImplLondonTest {
                 eq(SCHEME_UUID), eq(CLIENT_UUID))).thenReturn(true);
         when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersDALM);
         when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        setupAuthentication(CLIENT_UUID);
 
         // Act
-        List<BufferBLM> result = bufferService.getBuffersByConnectionScheme(CLIENT_UUID, SCHEME_UUID);
+        List<BufferBLM> result = bufferService.getBuffersByConnectionScheme(SCHEME_UUID);
 
         // Assert
         assertThat(result).isNotEmpty();
@@ -216,6 +236,7 @@ class BufferServiceImplLondonTest {
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(eq(DEVICE_UUID), eq(CLIENT_UUID))).thenReturn(true);
         when(bufferRepository.findByDeviceUid(DEVICE_UUID)).thenReturn(buffersDALM);
         when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        setupAuthentication(CLIENT_UUID);
 
         // Act
         List<BufferBLM> result = bufferService.getBuffersByClient(CLIENT_UUID);
@@ -238,9 +259,10 @@ class BufferServiceImplLondonTest {
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(eq(DEVICE_UUID), eq(CLIENT_UUID))).thenReturn(true);
         when(bufferRepository.findByDeviceUid(DEVICE_UUID)).thenReturn(buffersDALM);
         when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        setupAuthentication(CLIENT_UUID);
 
         // Act
-        List<BufferBLM> result = bufferService.getBuffersByDevice(CLIENT_UUID, DEVICE_UUID);
+        List<BufferBLM> result = bufferService.getBuffersByDevice(DEVICE_UUID);
 
         // Assert
         assertThat(result).isNotEmpty();
@@ -263,9 +285,10 @@ class BufferServiceImplLondonTest {
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
                 eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
         when(bufferConverter.toDALM(bufferBLM)).thenReturn(bufferDALM);
+        setupAuthentication(CLIENT_UUID);
 
         // Act
-        BufferBLM result = bufferService.updateBuffer(CLIENT_UUID, BUFFER_UUID, bufferDTO);
+        BufferBLM result = bufferService.updateBuffer(BUFFER_UUID, bufferDTO);
 
         // Assert
         assertThat(result).isNotNull();
@@ -282,9 +305,10 @@ class BufferServiceImplLondonTest {
         when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(existingBuffer);
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
                 eq(existingBuffer.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
+        setupAuthentication(CLIENT_UUID);
 
         // Act
-        bufferService.deleteBuffer(CLIENT_UUID, BUFFER_UUID);
+        bufferService.deleteBuffer(BUFFER_UUID);
 
         // Assert
         verify(bufferRepository).delete(BUFFER_UUID);
@@ -302,9 +326,10 @@ class BufferServiceImplLondonTest {
                 eq(SCHEME_UUID), eq(CLIENT_UUID))).thenReturn(true);
         when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersDALM);
         when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        setupAuthentication(CLIENT_UUID);
 
         // Act
-        bufferService.deleteAllBuffersFromConnectionScheme(CLIENT_UUID, SCHEME_UUID);
+        bufferService.deleteAllBuffersFromConnectionScheme(SCHEME_UUID);
 
         // Assert
         verify(bufferRepository).findByConnectionSchemeUid(SCHEME_UUID);
@@ -323,9 +348,10 @@ class BufferServiceImplLondonTest {
                 eq(SCHEME_UUID), eq(CLIENT_UUID))).thenReturn(true);
         when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersDALM);
         when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        setupAuthentication(CLIENT_UUID);
 
         // Act
-        bufferService.deleteBufferFromConnectionScheme(CLIENT_UUID, SCHEME_UUID, BUFFER_UUID);
+        bufferService.deleteBufferFromConnectionScheme(SCHEME_UUID, BUFFER_UUID);
 
         // Assert
         verify(bufferRepository).findByConnectionSchemeUid(SCHEME_UUID);
@@ -342,9 +368,10 @@ class BufferServiceImplLondonTest {
         when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(bufferDALM);
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
                 eq(bufferDALM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
+        setupAuthentication(CLIENT_UUID);
 
         // Act
-        boolean result = bufferService.bufferExists(CLIENT_UUID, BUFFER_UUID);
+        boolean result = bufferService.bufferExists(BUFFER_UUID);
 
         // Assert
         assertThat(result).isTrue();
@@ -357,9 +384,10 @@ class BufferServiceImplLondonTest {
     void shouldReturnFalseWhenBufferNotExists() {
         // Arrange
         when(bufferRepository.exists(BUFFER_UUID)).thenReturn(false);
+        setupAuthentication(CLIENT_UUID);
 
         // Act
-        boolean result = bufferService.bufferExists(CLIENT_UUID, BUFFER_UUID);
+        boolean result = bufferService.bufferExists(BUFFER_UUID);
 
         // Assert
         assertThat(result).isFalse();
@@ -376,9 +404,10 @@ class BufferServiceImplLondonTest {
         when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(bufferDALM);
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
                 eq(bufferDALM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(false);
+        setupAuthentication(CLIENT_UUID);
 
         // Act
-        boolean result = bufferService.bufferExists(CLIENT_UUID, BUFFER_UUID);
+        boolean result = bufferService.bufferExists(BUFFER_UUID);
 
         // Assert
         assertThat(result).isFalse();
@@ -405,9 +434,10 @@ class BufferServiceImplLondonTest {
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
                 eq(existingBuffer.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
         when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
+        setupAuthentication(CLIENT_UUID);
 
         // Act & Assert
-        assertThatThrownBy(() -> bufferService.updateBuffer(CLIENT_UUID, BUFFER_UUID, bufferDTO))
+        assertThatThrownBy(() -> bufferService.updateBuffer(BUFFER_UUID, bufferDTO))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Cannot change buffer UID");
 
@@ -425,6 +455,7 @@ class BufferServiceImplLondonTest {
 
         when(deviceKafkaClient.getDevicesByClient(eq(CLIENT_UUID), eq("buffer-service")))
             .thenReturn(CompletableFuture.completedFuture(devicesResponse));
+        setupAuthentication(CLIENT_UUID);
 
         // Act
         List<BufferBLM> result = bufferService.getBuffersByClient(CLIENT_UUID);
@@ -443,6 +474,7 @@ class BufferServiceImplLondonTest {
 
         when(deviceKafkaClient.getDevicesByClient(eq(CLIENT_UUID), eq("buffer-service")))
             .thenReturn(timeoutFuture);
+        setupAuthentication(CLIENT_UUID);
 
         // Act & Assert
         assertThatThrownBy(() -> bufferService.getBuffersByClient(CLIENT_UUID))

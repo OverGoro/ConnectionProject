@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import com.connection.buffer.events.responses.GetBuffersByConnectionSchemeResponse;
 import com.connection.buffer.events.responses.GetBuffersByDeviceResponse;
 import com.connection.device.converter.DeviceConverter;
+import com.connection.message.config.SecurityUtils;
 import com.connection.message.converter.MessageConverter;
 import com.connection.message.kafka.TypedAuthKafkaClient;
 import com.connection.message.kafka.TypedBufferKafkaClient;
@@ -46,22 +47,32 @@ import lombok.extern.slf4j.Slf4j;
 })
 public class MessageServiceImpl implements MessageService {
 
-    protected MessageRepository messageRepository;
-    protected MessageValidator messageValidator;
-
-    protected TypedAuthKafkaClient authKafkaClient;
-    protected TypedBufferKafkaClient bufferKafkaClient;
-    protected TypedConnectionSchemeKafkaClient connectionSchemeKafkaClient;
-    protected TypedDeviceAuthKafkaClient deviceAuthKafkaClient;
-    protected TypedDeviceKafkaClient deviceKafkaClient;
-
-    protected BufferConverter bufferConverter;
-    protected ConnectionSchemeConverter connectionSchemeConverter;
-    protected DeviceConverter deviceConverter;
-    protected MessageConverter messageConverter;
+    protected final MessageRepository messageRepository;
+    protected final MessageValidator messageValidator;
+    protected final TypedAuthKafkaClient authKafkaClient;
+    protected final TypedBufferKafkaClient bufferKafkaClient;
+    protected final TypedConnectionSchemeKafkaClient connectionSchemeKafkaClient;
+    protected final TypedDeviceAuthKafkaClient deviceAuthKafkaClient;
+    protected final TypedDeviceKafkaClient deviceKafkaClient;
+    protected final BufferConverter bufferConverter;
+    protected final ConnectionSchemeConverter connectionSchemeConverter;
+    protected final DeviceConverter deviceConverter;
+    protected final MessageConverter messageConverter;
 
     @Override
     public void addMessage(MessageBLM messageBLM) {
+        // Для добавления сообщений требуется аутентификация устройства
+        if (!SecurityUtils.isDeviceAuthenticated()) {
+            throw new SecurityException("Only devices can add messages");
+        }
+
+        UUID currentDeviceUid = SecurityUtils.getCurrentDeviceUid();
+
+        // Проверяем, что устройство имеет доступ к буферу
+        if (!hasDeviceAccessToBuffer(currentDeviceUid, messageBLM.getBufferUid())) {
+            throw new SecurityException("Device doesn't have access to this buffer");
+        }
+
         messageValidator.validate(messageBLM);
         MessageDALM messageDALM = messageConverter.toDALM(messageBLM);
         messageRepository.add(messageDALM);
@@ -70,16 +81,16 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public List<MessageBLM> getMessagesByBuffer(UUID bufferUuid, boolean deleteOnGet, int offset, int limit) {
-        List<MessageDALM> messageDALMs = messageRepository.findByBufferUid(bufferUuid)
-                .stream()
-                .sorted((x, y) -> {
-                    return x.getCreatedAt().compareTo(y.getCreatedAt());
-                })
+        checkBufferAccess(bufferUuid);
+
+        List<MessageDALM> messageDALMs = messageRepository.findByBufferUid(bufferUuid);
+        messageDALMs = messageDALMs.stream()
+                .sorted((x, y) -> x.getCreatedAt().compareTo(y.getCreatedAt()))
                 .toList()
-                .subList(offset, offset + limit);
+                .subList(offset, Math.min(offset + limit, messageDALMs.size()));
 
         List<MessageBLM> messageBLMs = messageDALMs.stream()
-                .<MessageBLM>map(messageConverter::toBLM)
+                .map(messageConverter::toBLM)
                 .toList();
 
         if (deleteOnGet)
@@ -90,39 +101,70 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public List<MessageBLM> getMessagesByScheme(UUID schemeUuid, boolean deleteOnGet, int offset, int limit) {
+        // Для схем требуется аутентификация клиента
+        if (!SecurityUtils.isClientAuthenticated()) {
+            throw new SecurityException("Only clients can access messages by scheme");
+        }
+
+        UUID currentClientUid = SecurityUtils.getCurrentClientUid();
+
+        // Проверяем, что схема принадлежит клиенту
+        if (!connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(schemeUuid, currentClientUid)) {
+            throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
+        }
+
         List<BufferBLM> bufferBLMs = getSchemeBuffers(schemeUuid);
         Set<MessageBLM> set = new HashSet<>();
         for (BufferBLM b : bufferBLMs) {
             set.addAll(getMessagesByBuffer(b.getUid(), deleteOnGet, offset, limit));
         }
-        List<MessageBLM> rMessageBLMs = new ArrayList<>(set)
-                .stream()
-                .sorted((x, y) -> {
-                    return x.getCreatedAt().compareTo(y.getCreatedAt());
-                })
+
+        List<MessageBLM> rMessageBLMs = new ArrayList<>(set);
+
+        rMessageBLMs = rMessageBLMs.stream()
+                .sorted((x, y) -> x.getCreatedAt().compareTo(y.getCreatedAt()))
                 .toList()
-                .subList(offset, offset + limit);
+                .subList(offset, Math.min(offset + limit, rMessageBLMs.size()));
+
         if (deleteOnGet)
             rMessageBLMs.forEach(this::deleteMessage);
+
         return rMessageBLMs;
     }
 
     @Override
-    public List<MessageBLM> getMessagesByDevice(UUID devicUuid, boolean deleteOnGet, int offset, int limit) {
-        List<BufferBLM> bufferBLMs = getDeviceBuffers(devicUuid);
+    public List<MessageBLM> getMessagesByDevice(UUID deviceUuid, boolean deleteOnGet, int offset, int limit) {
+        if (SecurityUtils.isClientAuthenticated()) {
+            // Клиент может получать сообщения своих устройств
+            UUID currentClientUid = SecurityUtils.getCurrentClientUid();
+            if (!deviceKafkaClient.deviceExistsAndBelongsToClient(deviceUuid, currentClientUid)) {
+                throw new SecurityException("Device doesn't belong to the authenticated client");
+            }
+        } else if (SecurityUtils.isDeviceAuthenticated()) {
+            // Устройство может получать только свои сообщения
+            UUID currentDeviceUid = SecurityUtils.getCurrentDeviceUid();
+            if (!currentDeviceUid.equals(deviceUuid)) {
+                throw new SecurityException("Device can only access its own messages");
+            }
+        } else {
+            throw new SecurityException("Authentication required");
+        }
+
+        List<BufferBLM> bufferBLMs = getDeviceBuffers(deviceUuid);
         Set<MessageBLM> set = new HashSet<>();
         for (BufferBLM b : bufferBLMs) {
             set.addAll(getMessagesByBuffer(b.getUid(), deleteOnGet, offset, limit));
         }
-        List<MessageBLM> rMessageBLMs = new ArrayList<>(set)
-                .stream()
-                .sorted((x, y) -> {
-                    return x.getCreatedAt().compareTo(y.getCreatedAt());
-                })
+        List<MessageBLM> rMessageBLMs = new ArrayList<>(set);
+
+        rMessageBLMs = rMessageBLMs.stream()
+                .sorted((x, y) -> x.getCreatedAt().compareTo(y.getCreatedAt()))
                 .toList()
-                .subList(offset, offset + limit);
+                .subList(offset, Math.min(offset + limit, rMessageBLMs.size()));
+
         if (deleteOnGet)
             rMessageBLMs.forEach(this::deleteMessage);
+
         return rMessageBLMs;
     }
 
@@ -133,21 +175,31 @@ public class MessageServiceImpl implements MessageService {
                     .healthCheck("message-service")
                     .get(5, java.util.concurrent.TimeUnit.SECONDS);
 
+                    log.warn(authHealth.toString());
+
             com.connection.buffer.events.responses.HealthCheckResponse buufferHealth = bufferKafkaClient
                     .healthCheck("message-service")
                     .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+                    log.warn(buufferHealth.toString());
 
             com.connection.scheme.events.responses.HealthCheckResponse connectionSchemeHealth = connectionSchemeKafkaClient
                     .healthCheck("message-service")
                     .get(5, java.util.concurrent.TimeUnit.SECONDS);
 
+                    log.warn(connectionSchemeHealth.toString());
+
             com.connection.device.events.responses.HealthCheckResponse deviceHealth = deviceKafkaClient
                     .healthCheck("message-service")
                     .get(5, java.util.concurrent.TimeUnit.SECONDS);
 
+                    log.warn(deviceHealth.toString());
+
             com.connection.device.auth.events.responses.HealthCheckResponse deviceAuthHealth = deviceAuthKafkaClient
                     .healthCheck("message-service")
                     .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+                    log.warn(deviceAuthHealth.toString());
 
             return Map.of(
                     "status", "OK",
@@ -167,6 +219,58 @@ public class MessageServiceImpl implements MessageService {
                     "service", "buffer-service",
                     "timestamp", String.valueOf(System.currentTimeMillis()),
                     "error", e.getMessage());
+        }
+    }
+
+    private void checkBufferAccess(UUID bufferUuid) {
+        if (SecurityUtils.isClientAuthenticated()) {
+            // Клиент должен иметь доступ к буферу через свои устройства
+            UUID currentClientUid = SecurityUtils.getCurrentClientUid();
+            if (!hasClientAccessToBuffer(currentClientUid, bufferUuid)) {
+                throw new SecurityException("Client doesn't have access to this buffer");
+            }
+        } else if (SecurityUtils.isDeviceAuthenticated()) {
+            // Устройство должно иметь доступ к буферу
+            UUID currentDeviceUid = SecurityUtils.getCurrentDeviceUid();
+            if (!hasDeviceAccessToBuffer(currentDeviceUid, bufferUuid)) {
+                throw new SecurityException("Device doesn't have access to this buffer");
+            }
+        } else {
+            throw new SecurityException("Authentication required");
+        }
+    }
+
+    private boolean hasClientAccessToBuffer(UUID clientUid, UUID bufferUuid) {
+        try {
+            // Получаем информацию о буфере и проверяем принадлежность устройства клиенту
+            var bufferResponse = bufferKafkaClient.getBufferByUid(bufferUuid, "message-service")
+                    .get(10, java.util.concurrent.TimeUnit.SECONDS);
+
+            if (bufferResponse.isSuccess() && bufferResponse.getBufferDTO() != null) {
+                UUID deviceUid = UUID.fromString(bufferResponse.getBufferDTO().getDeviceUid());
+                return deviceKafkaClient.deviceExistsAndBelongsToClient(deviceUid, clientUid);
+            }
+            return false;
+        } catch (Exception e) {
+            log.error("Error checking client buffer access: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean hasDeviceAccessToBuffer(UUID deviceUid, UUID bufferUuid) {
+        try {
+            // Получаем информацию о буфере и проверяем принадлежность устройству
+            var bufferResponse = bufferKafkaClient.getBufferByUid(bufferUuid, "message-service")
+                    .get(10, java.util.concurrent.TimeUnit.SECONDS);
+
+            if (bufferResponse.isSuccess() && bufferResponse.getBufferDTO() != null) {
+                UUID bufferDeviceUid = UUID.fromString(bufferResponse.getBufferDTO().getDeviceUid());
+                return deviceUid.equals(bufferDeviceUid);
+            }
+            return false;
+        } catch (Exception e) {
+            log.error("Error checking device buffer access: {}", e.getMessage());
+            return false;
         }
     }
 

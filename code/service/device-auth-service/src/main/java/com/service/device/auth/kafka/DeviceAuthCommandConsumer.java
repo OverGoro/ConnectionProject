@@ -20,6 +20,7 @@ import com.connection.device.token.converter.DeviceAccessTokenConverter;
 import com.connection.device.token.converter.DeviceTokenConverter;
 import com.connection.device.token.model.DeviceAccessTokenBLM;
 import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.util.TokenUtils;
 import com.service.device.auth.DeviceAuthService;
 
 import lombok.RequiredArgsConstructor;
@@ -70,7 +71,7 @@ public class DeviceAuthCommandConsumer {
                 DeviceAccessTokenBLM tokenBLM = deviceAccessTokenConverter.toBLM(
                     new com.connection.device.token.model.DeviceAccessTokenDTO(command.getToken()));
                 deviceAuthService.validateDeviceAccessToken(tokenBLM);
-                deviceUid = deviceAuthService.extractDeviceUidFromAccessToken(tokenBLM);
+                deviceUid = TokenUtils.extractDeviceUidFromDeviceToken(tokenBLM.getToken());
                 isValid = true;
             } else {
                 // Валидация device token (полная валидация)
@@ -109,7 +110,7 @@ public class DeviceAuthCommandConsumer {
                 DeviceAccessTokenBLM tokenBLM = deviceAccessTokenConverter.toBLM(
                     new com.connection.device.token.model.DeviceAccessTokenDTO(command.getToken()));
                 deviceAuthService.validateDeviceAccessToken(tokenBLM);
-                deviceUid = deviceAuthService.extractDeviceUidFromAccessToken(tokenBLM);
+                deviceUid = TokenUtils.extractDeviceUidFromDeviceToken(tokenBLM.getToken());
             } else {
                 DeviceTokenBLM tokenBLM = deviceTokenConverter.toBLM(
                     new com.connection.device.token.model.DeviceTokenDTO(command.getToken()));

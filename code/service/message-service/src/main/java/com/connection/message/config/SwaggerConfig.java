@@ -1,7 +1,9 @@
+// SwaggerConfig.java
 package com.connection.message.config;
 
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.annotations.security.SecuritySchemes;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.Components;
@@ -10,12 +12,22 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@SecurityScheme(
-    name = "bearerAuth",
-    type = SecuritySchemeType.HTTP,
-    bearerFormat = "JWT",
-    scheme = "bearer"
-)
+@SecuritySchemes({
+    @SecurityScheme(
+        name = "clientAuth",
+        type = SecuritySchemeType.HTTP,
+        bearerFormat = "JWT",
+        scheme = "bearer",
+        description = "Client JWT token for client operations"
+    ),
+    @SecurityScheme(
+        name = "deviceAuth", 
+        type = SecuritySchemeType.HTTP,
+        bearerFormat = "JWT",
+        scheme = "bearer",
+        description = "Device JWT token for device-specific operations"
+    )
+})
 public class SwaggerConfig {
 
     @Bean
@@ -24,13 +36,42 @@ public class SwaggerConfig {
                 .info(new Info()
                         .title("Message Service API")
                         .version("1.0")
-                        .description("API для управления сообщениями устрйоств"))
-                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
+                        .description("""
+                            API для управления сообщениями устройств.
+                            
+                            ## Аутентификация
+                            
+                            Сервис поддерживает два типа аутентификации:
+                            
+                            ### Client Authentication
+                            - Используется для операций, связанных с клиентом
+                            - Заголовок: `Authorization: Bearer <client_token>`
+                            - Доступ: чтение сообщений по схемам соединения, устройствам клиента
+                            
+                            ### Device Authentication  
+                            - Используется для операций, связанных с конкретным устройством
+                            - Заголовок: `Device-Authorization: Bearer <device_token>`
+                            - Доступ: добавление сообщений, чтение сообщений конкретного устройства
+                            
+                            ## Роли доступа
+                            
+                            - **ROLE_CLIENT**: доступ к ресурсам клиента (схемы, устройства, буферы)
+                            - **ROLE_DEVICE**: доступ только к ресурсам конкретного устройства
+                            """))
+                .addSecurityItem(new SecurityRequirement().addList("clientAuth"))
+                .addSecurityItem(new SecurityRequirement().addList("deviceAuth"))
                 .components(new Components()
-                        .addSecuritySchemes("bearerAuth", 
+                        .addSecuritySchemes("clientAuth", 
                             new io.swagger.v3.oas.models.security.SecurityScheme()
                                 .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
-                                .bearerFormat("JWT")));
+                                .bearerFormat("JWT")
+                                .description("Client JWT Token"))
+                        .addSecuritySchemes("deviceAuth",
+                            new io.swagger.v3.oas.models.security.SecurityScheme()
+                                .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")
+                                .description("Device JWT Token")));
     }
 }

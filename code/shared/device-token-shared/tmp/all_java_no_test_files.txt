@@ -179,6 +179,7 @@ import com.connection.device.token.model.DeviceAccessTokenBLM;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -220,11 +221,11 @@ public class DeviceAccessTokenGenerator {
         Date expiration = claims.getExpiration();
 
         if (!jwtSubjectString.equals(claims.getSubject())) {
-            throw new RuntimeException("Invalid token subject");
+            throw new JwtException("Invalid token subject");
         }
 
         if (!"device_access_token".equals(claims.get("type", String.class))) {
-            throw new RuntimeException("Invalid token type");
+            throw new JwtException("Invalid token type");
         }
 
         return DeviceAccessTokenBLM.builder()
@@ -242,6 +243,7 @@ import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -251,6 +253,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@EqualsAndHashCode
 public class DeviceAccessTokenDALM {
     protected UUID uid;
     protected UUID deviceTokenUid;
@@ -265,6 +268,7 @@ import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -274,6 +278,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@EqualsAndHashCode
 public class DeviceAccessTokenBLM {
     protected String token;
     protected UUID uid;
@@ -288,6 +293,7 @@ import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -297,6 +303,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@EqualsAndHashCode
 public class DeviceTokenBLM {
     protected String token;
     protected UUID uid;
@@ -308,6 +315,7 @@ package com.connection.device.token.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -317,6 +325,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@EqualsAndHashCode
 public class DeviceAccessTokenDTO {
     protected String token;
 }// DeviceTokenDALM.java
@@ -327,6 +336,7 @@ import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -336,6 +346,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@EqualsAndHashCode
 public class DeviceTokenDALM {
     protected UUID uid;
     protected UUID deviceUid;
@@ -347,6 +358,7 @@ package com.connection.device.token.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -356,6 +368,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@EqualsAndHashCode
 public class DeviceTokenDTO {
     protected String token;
 }// DeviceAccessTokenConverter.java

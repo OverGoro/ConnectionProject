@@ -52,55 +52,33 @@ public class AuthCommandConsumer {
     }
 
     private void handleValidateTokenCommand(ValidateTokenCommand command, String key) {
-        log.warn("Command {}, key {}", command, key);
         try {
-            log.warn("Command {}, key {}", command, key);
+            log.info("Processing token validation: correlationId={}", command.getCorrelationId());
+
             AccessTokenBLM tokenBLM = accessTokenConverter.toBLM(
                     new com.connection.token.model.AccessTokenDTO(command.getToken()));
             authService.validateAccessToken(tokenBLM);
-            log.info("kafka validated token: {}", tokenBLM.getToken());
+
             TokenValidationResponse response = TokenValidationResponse.valid(
                     command.getCorrelationId(),
                     tokenBLM.getClientUID(),
                     command.getTokenType().name());
-            log.info("Kafka formed response {}", response.toString());
 
+            // ✅ ОТПРАВЛЯЕМ В replyTopic ИЗ КОМАНДЫ (динамический топик)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Kafka send token validation successful: clientUid={}", response.toString());
+            log.info("Token validation response sent to {}: correlationId={}",
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             TokenValidationResponse response = TokenValidationResponse.error(
                     command.getCorrelationId(),
                     e.getMessage());
-            log.warn("Command {}, key {}", command, key);
+
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.error("Token validation failed: {}", e.getMessage());
-            throw e;
+            log.error("Token validation failed: correlationId={}, error={}",
+                    command.getCorrelationId(), e.getMessage());
         }
     }
-
-    // private void handleExtractClientUidCommand(ExtractClientUidCommand command, String key) {
-    //     try {
-    //         AccessTokenBLM tokenBLM = accessTokenConverter.toBLM(
-    //                 new com.connection.token.model.AccessTokenDTO(command.getToken()));
-    //         authService.validateAccessToken(tokenBLM);
-
-    //         ClientUidResponse response = ClientUidResponse.success(
-    //                 command.getCorrelationId(),
-    //                 tokenBLM.getClientUID(),
-    //                 command.getTokenType().name());
-
-    //         kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-    //         log.info("Client UID extracted: {}", tokenBLM.getClientUID());
-
-    //     } catch (Exception e) {
-    //         ClientUidResponse response = ClientUidResponse.error(
-    //                 command.getCorrelationId(),
-    //                 e.getMessage());
-    //         kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-    //         log.error("Client UID extraction failed: {}", e.getMessage());
-    //     }
-    // }
 
     private void handleHealthCheckCommand(HealthCheckCommand command, String key) {
         try {
@@ -113,15 +91,19 @@ public class AuthCommandConsumer {
                     command.getCorrelationId(),
                     healthStatus);
 
+            // ✅ ОТПРАВЛЯЕМ В replyTopic ИЗ КОМАНДЫ (динамический топик)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Health check completed successfully");
+            log.info("Health check response sent to {}: correlationId={}",
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             HealthCheckResponse response = HealthCheckResponse.error(
                     command.getCorrelationId(),
                     e.getMessage());
+
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.error("Health check failed: {}", e.getMessage());
+            log.error("Health check failed: correlationId={}, error={}",
+                    command.getCorrelationId(), e.getMessage());
         }
     }
 }

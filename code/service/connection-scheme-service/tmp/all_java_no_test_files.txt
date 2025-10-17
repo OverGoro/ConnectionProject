@@ -478,13 +478,13 @@ public class ConnectionSchemesListResponse {
         private final int totalCount;
         private final boolean hasMore;
     }
-}// ConnectionSchemeController.java
-package com.service.connectionscheme.controller;
+}package com.service.connectionscheme.controller;
 
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -503,15 +503,16 @@ import com.connection.scheme.validator.ConnectionSchemeValidator;
 import com.service.connectionscheme.ConnectionSchemeService;
 import com.service.connectionscheme.config.SecurityUtils;
 
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/connection-scheme-service")
+@RequestMapping("/api/v1")
 public class ConnectionSchemeController {
-    
+    @Qualifier("ApiConnectionSchemeService")
     private final ConnectionSchemeService connectionSchemeService;
     private final ConnectionSchemeValidator schemeValidator;
     private final ConnectionSchemeConverter schemeConverter;
@@ -523,37 +524,33 @@ public class ConnectionSchemeController {
 
     @PostMapping("/schemes")
     public ResponseEntity<ConnectionSchemeResponse> createScheme(@RequestBody ConnectionSchemeDTO schemeDTO) {
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        log.info("Creating connection scheme for client {}", clientUid);
-
         schemeValidator.validate(schemeDTO);
-        ConnectionSchemeBLM scheme = connectionSchemeService.createScheme(clientUid, schemeDTO);
+        ConnectionSchemeBLM scheme = connectionSchemeService.createScheme(schemeDTO);
 
         return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
     }
 
-    @GetMapping("/schemes/{schemeUid}")
-    public ResponseEntity<ConnectionSchemeResponse> getScheme(@PathVariable UUID schemeUid) {
-        log.info("Getting connection scheme: {}", schemeUid);
-        
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        ConnectionSchemeBLM scheme = connectionSchemeService.getSchemeByUid(clientUid, schemeUid);
-
-        return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
-    }
 
     @GetMapping("/schemes")
-    public ResponseEntity<ConnectionSchemesListResponse> getSchemesByClient(
+    public ResponseEntity<ConnectionSchemesListResponse> getSchemes(
+            @RequestParam(required = false) List<UUID> schemeUids,
             @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
             @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
         
-        log.info("Getting all connection schemes for client with offset: {}, limit: {}", offset, limit);
-        
         UUID clientUid = SecurityUtils.getCurrentClientUid();
-        List<ConnectionSchemeBLM> allSchemes = connectionSchemeService.getSchemesByClient(clientUid);
+        List<ConnectionSchemeBLM> schemes = null;
+
+        if (schemeUids != null && !schemeUids.isEmpty()) {
+            log.info("Getting specific connection schemes: {} with offset: {}, limit: {}", schemeUids, offset, limit);
+            schemes = connectionSchemeService.getSchemeByUid(schemeUids);
+        } else {
+            // Получение всех схем клиента
+            log.info("Getting all connection schemes for client with offset: {}, limit: {}", offset, limit);
+            schemes = connectionSchemeService.getSchemesByClient(clientUid);
+        }
         
         // Применяем пагинацию
-        List<ConnectionSchemeBLM> paginatedSchemes = applyPagination(allSchemes, offset, limit);
+        List<ConnectionSchemeBLM> paginatedSchemes = applyPagination(schemes, offset, limit);
         List<ConnectionSchemeDTO> schemeDTOs = paginatedSchemes.stream()
                 .map(schemeConverter::toDTO)
                 .collect(Collectors.toList());
@@ -563,8 +560,8 @@ public class ConnectionSchemeController {
             new ConnectionSchemesListResponse.PaginationInfo(
                 offset, 
                 limit, 
-                allSchemes.size(), 
-                (offset + limit) < allSchemes.size()
+                schemes.size(), 
+                (offset + limit) < schemes.size()
             );
 
         return ResponseEntity.ok(new ConnectionSchemesListResponse(schemeDTOs, paginationInfo));
@@ -575,21 +572,25 @@ public class ConnectionSchemeController {
             @PathVariable UUID schemeUid,
             @RequestBody ConnectionSchemeDTO schemeDTO) {
         
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        log.info("Updating connection scheme: {} for client: {}", schemeUid, clientUid);
-
         schemeValidator.validate(schemeDTO);
-        ConnectionSchemeBLM scheme = connectionSchemeService.updateScheme(clientUid, schemeUid, schemeDTO);
+        ConnectionSchemeBLM scheme = connectionSchemeService.updateScheme(schemeUid, schemeDTO);
 
         return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
     }
 
-    @DeleteMapping("/schemes/{schemeUid}")
-    public ResponseEntity<Void> deleteScheme(@PathVariable UUID schemeUid) {
-        log.info("Deleting connection scheme: {}", schemeUid);
-
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        connectionSchemeService.deleteScheme(clientUid, schemeUid);
+    @DeleteMapping("/schemes")
+    public ResponseEntity<Void> deleteSchemes(
+            @RequestParam(required = false) List<UUID> schemeUids) {
+        
+        if (schemeUids != null && !schemeUids.isEmpty()) {
+            log.info("Deleting multiple connection schemes: {}", schemeUids);
+            for (UUID uid : schemeUids) {
+                connectionSchemeService.deleteScheme(uid);
+            }
+        } else {
+            log.warn("No valid delete parameters provided");
+            return ResponseEntity.badRequest().build();
+        }
 
         return ResponseEntity.noContent().build();
     }
@@ -628,8 +629,11 @@ public class ConnectionSchemeController {
     }
 }package com.service.connectionscheme;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -645,6 +649,7 @@ import com.connection.scheme.model.ConnectionSchemeDALM;
 import com.connection.scheme.model.ConnectionSchemeDTO;
 import com.connection.scheme.repository.ConnectionSchemeRepository;
 import com.connection.scheme.validator.ConnectionSchemeValidator;
+import com.service.connectionscheme.config.SecurityUtils;
 import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
 
 import lombok.RequiredArgsConstructor;
@@ -652,7 +657,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
-@Service
+@Service("ApiConnectionSchemeService")
 @EnableAutoConfiguration(exclude = {
         JpaRepositoriesAutoConfiguration.class
 })
@@ -665,10 +670,10 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     private final TypedAuthKafkaClient authKafkaClient;
 
     @Override
-    public ConnectionSchemeBLM createScheme(UUID clientUid, ConnectionSchemeDTO schemeDTO) {
+    public ConnectionSchemeBLM createScheme(ConnectionSchemeDTO schemeDTO) {
         schemeValidator.validate(schemeDTO);
         ConnectionSchemeBLM schemeBLM = schemeConverter.toBLM(schemeDTO);
-
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
         if (!clientUid.equals(schemeBLM.getClientUid())) {
             throw new SecurityException("Client UID from token doesn't match scheme client UID");
         }
@@ -686,14 +691,24 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     }
 
     @Override
-    public ConnectionSchemeBLM getSchemeByUid(UUID clientUid, UUID schemeUid) {
+    public ConnectionSchemeBLM getSchemeByUid(UUID schemeUid) {
         ConnectionSchemeDALM schemeDALM = schemeRepository.findByUid(schemeUid);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
 
         if (!clientUid.equals(schemeDALM.getClientUid())) {
             throw new SecurityException("Scheme doesn't belong to the authenticated client");
         }
 
         return schemeConverter.toBLM(schemeDALM);
+    }
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemeByUid(List<UUID> schemeUids) {
+        Set<ConnectionSchemeBLM> connectionSchemeBLMs = new HashSet<>();
+        for (UUID uuid : schemeUids) {
+            connectionSchemeBLMs.add(getSchemeByUid(uuid));
+        }
+        return new ArrayList<ConnectionSchemeBLM>(connectionSchemeBLMs);
     }
 
     @Override
@@ -705,8 +720,10 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     }
 
     @Override
-    public ConnectionSchemeBLM updateScheme(UUID clientUid, UUID schemeUid, ConnectionSchemeDTO schemeDTO) {
+    public ConnectionSchemeBLM updateScheme(UUID schemeUid, ConnectionSchemeDTO schemeDTO) {
         ConnectionSchemeDALM existingScheme = schemeRepository.findByUid(schemeUid);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+
         if (!clientUid.equals(existingScheme.getClientUid())) {
             throw new SecurityException("Scheme doesn't belong to the authenticated client");
         }
@@ -732,8 +749,10 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     }
 
     @Override
-    public void deleteScheme(UUID clientUid, UUID schemeUid) {
+    public void deleteScheme(UUID schemeUid) {
         ConnectionSchemeDALM existingScheme = schemeRepository.findByUid(schemeUid);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+
         if (!clientUid.equals(existingScheme.getClientUid())) {
             throw new SecurityException("Scheme doesn't belong to the authenticated client");
         }
@@ -743,7 +762,7 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     }
 
     @Override
-    public boolean schemeExists(UUID clientUid, UUID schemeUid) {
+    public boolean schemeExists(UUID schemeUid) {
         return schemeRepository.exists(schemeUid);
     }
 
@@ -767,6 +786,24 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
                     "auth-service", "UNAVAILABLE",
                     "error", e.getMessage());
         }
+    }
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemesByBuffer(UUID bufferUuid) {
+        List<ConnectionSchemeDALM> schemesDALM = schemeRepository.findByBufferUid(bufferUuid);
+        return schemesDALM.stream()
+                .map(schemeConverter::toBLM)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemesByBuffer(List<UUID> bufferUuids) {
+        Set<ConnectionSchemeBLM> connectionSchemeBLMs = new HashSet<>();
+        for (UUID uuid : bufferUuids) {
+            connectionSchemeBLMs.addAll(getSchemesByBuffer(uuid));
+        }
+        return new ArrayList<ConnectionSchemeBLM>(connectionSchemeBLMs);
+
     }
 }package com.service.connectionscheme.kafka;
 
@@ -949,14 +986,17 @@ public class TypedAuthKafkaClient {
 }package com.service.connectionscheme.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import com.connection.scheme.events.commands.GetConnectionSchemeByUidCommand;
+import com.connection.scheme.events.commands.GetConnectionSchemesByBufferUid;
 import com.connection.scheme.events.commands.GetConnectionSchemesByClientUid;
 import com.connection.scheme.events.commands.HealthCheckCommand;
 import com.connection.scheme.events.responses.GetConnectionSchemeByUidResponse;
+import com.connection.scheme.events.responses.GetConnectionSchemesByBufferResponse;
 import com.connection.scheme.events.responses.GetConnectionSchemesByClientResponse;
 import com.connection.scheme.events.responses.HealthCheckResponse;
 import com.connection.common.events.Command;
@@ -976,6 +1016,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ConnectionSchemeCommandConsumer {
 
+    @Qualifier("KafkaConnectionSchemeService")
     private final ConnectionSchemeService connectionSchemeService;
     private final ConnectionSchemeConverter connectionSchemeConverter;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -994,6 +1035,9 @@ public class ConnectionSchemeCommandConsumer {
             } else if (command instanceof GetConnectionSchemesByClientUid) {
                 GetConnectionSchemesByClientUid getSchemesCommand = (GetConnectionSchemesByClientUid) command;
                 handleGetConnectionSchemesByClientCommand(getSchemesCommand, key);
+            } else if (command instanceof GetConnectionSchemesByBufferUid) {
+                GetConnectionSchemesByBufferUid getSchemesCommand = (GetConnectionSchemesByBufferUid) command;
+                handleGetConnectionSchemesByBufferUidCommand(getSchemesCommand, key);
             } else if (command instanceof HealthCheckCommand) {
                 HealthCheckCommand healthCommand = (HealthCheckCommand) command;
                 handleHealthCheckCommand(healthCommand, key);
@@ -1010,7 +1054,7 @@ public class ConnectionSchemeCommandConsumer {
         try {
             log.info("Processing GetConnectionSchemeByUidCommand for scheme UID: {}", command.getConnectionSchemeUid());
 
-            ConnectionSchemeBLM schemeBLM = connectionSchemeService.getSchemeByUid(command.getClientUid(), command.getConnectionSchemeUid());
+            ConnectionSchemeBLM schemeBLM = connectionSchemeService.getSchemeByUid(command.getConnectionSchemeUid());
             ConnectionSchemeDTO schemeDTO = connectionSchemeConverter.toDTO(schemeBLM);
 
             GetConnectionSchemeByUidResponse response = GetConnectionSchemeByUidResponse.success(
@@ -1053,6 +1097,35 @@ public class ConnectionSchemeCommandConsumer {
             log.error("Error processing GetConnectionSchemesByClientCommand for client UID: {}", command.getClientUid(), e);
 
             GetConnectionSchemesByClientResponse response = GetConnectionSchemesByClientResponse.error(
+                    command.getCorrelationId(),
+                    e.getMessage());
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+        }
+    }
+
+    private void handleGetConnectionSchemesByBufferUidCommand(GetConnectionSchemesByBufferUid command, String key) {
+        try {
+            log.info("Processing GetConnectionSchemesByBufferCommand for Buffer UID: {}", command.getBufferUid());
+
+            List<ConnectionSchemeBLM> schemesBLM = connectionSchemeService.getSchemesByBuffer(command.getBufferUid());
+            List<ConnectionSchemeDTO> schemeDTOs = schemesBLM.stream()
+                    .map(connectionSchemeConverter::toDTO)
+                    .collect(Collectors.toList());
+
+            GetConnectionSchemesByBufferResponse response = GetConnectionSchemesByBufferResponse.valid(
+                    command.getCorrelationId(),
+                    schemeDTOs);
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+
+            log.info("Successfully processed GetConnectionSchemesByBufferCommand for Buffer: {}, found {} schemes",
+                    command.getBufferUid(), schemeDTOs.size());
+
+        } catch (Exception e) {
+            log.error("Error processing GetConnectionSchemesByBufferCommand for Buffer UID: {}", command.getBufferUid(), e);
+
+            GetConnectionSchemesByBufferResponse response = GetConnectionSchemesByBufferResponse.error(
                     command.getCorrelationId(),
                     e.getMessage());
 
@@ -1188,13 +1261,163 @@ import com.connection.scheme.model.ConnectionSchemeBLM;
 import com.connection.scheme.model.ConnectionSchemeDTO;
 
 public interface ConnectionSchemeService {
-    ConnectionSchemeBLM createScheme(UUID clientUuid, ConnectionSchemeDTO schemeDTO);
-    ConnectionSchemeBLM getSchemeByUid(UUID clientUuid, UUID schemeUid);
+    ConnectionSchemeBLM createScheme(ConnectionSchemeDTO schemeDTO);
+    
+    ConnectionSchemeBLM getSchemeByUid(UUID schemeUid);
+    List<ConnectionSchemeBLM> getSchemeByUid(List<UUID> schemeUid);
+
     List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUuid);
-    ConnectionSchemeBLM updateScheme(UUID clientUuid, UUID schemeUid, ConnectionSchemeDTO schemeDTO);
-    void deleteScheme(UUID clientUuid, UUID schemeUid);
-    boolean schemeExists(UUID clientUuid, UUID schemeUid);
+
+    List<ConnectionSchemeBLM> getSchemesByBuffer(UUID bufferUuid);
+    List<ConnectionSchemeBLM> getSchemesByBuffer(List<UUID> bufferUuid);
+
+    ConnectionSchemeBLM updateScheme(UUID schemeUid, ConnectionSchemeDTO schemeDTO);
+
+    void deleteScheme(UUID schemeUid);
+    boolean schemeExists(UUID schemeUid);
     Map<String, Object> getHealthStatus();
+}package com.service.connectionscheme;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.scheme.converter.ConnectionSchemeConverter;
+import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+import com.connection.scheme.repository.ConnectionSchemeRepository;
+import com.connection.scheme.validator.ConnectionSchemeValidator;
+import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service("KafkaConnectionSchemeService")
+@EnableAutoConfiguration(exclude = {
+        JpaRepositoriesAutoConfiguration.class
+})
+@Transactional("atomicosTransactionManager")
+public class KafkaConnectionSchemeServiceImpl implements ConnectionSchemeService {
+
+    private final ConnectionSchemeRepository schemeRepository;
+    private final ConnectionSchemeConverter schemeConverter;
+    private final ConnectionSchemeValidator schemeValidator;
+
+    private final TypedAuthKafkaClient authKafkaClient;
+
+    @Override
+    public ConnectionSchemeBLM createScheme(ConnectionSchemeDTO schemeDTO) {
+        schemeValidator.validate(schemeDTO);
+        ConnectionSchemeBLM schemeBLM = schemeConverter.toBLM(schemeDTO);
+
+        if (schemeRepository.exists(schemeBLM.getUid())) {
+            throw new ConnectionSchemeAlreadyExistsException(
+                    "Scheme with UID '" + schemeBLM.getUid() + "' already exists");
+        }
+
+        ConnectionSchemeDALM schemeDALM = schemeConverter.toDALM(schemeBLM);
+        schemeRepository.add(schemeDALM);
+
+        log.info("Connection scheme created via Kafka: {}", schemeBLM.getUid());
+        return schemeBLM;
+    }
+
+    @Override
+    public ConnectionSchemeBLM getSchemeByUid(UUID schemeUid) {
+        ConnectionSchemeDALM schemeDALM = schemeRepository.findByUid(schemeUid);
+        return schemeConverter.toBLM(schemeDALM); // Без проверки безопасности
+    }
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemeByUid(List<UUID> schemeUids) {
+        return schemeUids.stream()
+                .map(this::getSchemeByUid)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUid) {
+        List<ConnectionSchemeDALM> schemesDALM = schemeRepository.findByClientUid(clientUid);
+        return schemesDALM.stream()
+                .map(schemeConverter::toBLM)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ConnectionSchemeBLM updateScheme(UUID schemeUid, ConnectionSchemeDTO schemeDTO) {
+        schemeRepository.findByUid(schemeUid);
+        
+        schemeValidator.validate(schemeDTO);
+        ConnectionSchemeBLM schemeBLM = schemeConverter.toBLM(schemeDTO);
+
+        // Проверяем, что UID не изменяется
+        if (!schemeUid.equals(schemeBLM.getUid())) {
+            throw new IllegalArgumentException("Cannot change scheme UID");
+        }
+
+        ConnectionSchemeDALM schemeDALM = schemeConverter.toDALM(schemeBLM);
+        schemeRepository.update(schemeDALM);
+
+        log.info("Connection scheme updated via Kafka: {}", schemeUid);
+        return schemeBLM;
+    }
+
+    @Override
+    public void deleteScheme(UUID schemeUid) {
+        schemeRepository.delete(schemeUid);
+        log.info("Connection scheme deleted via Kafka: {}", schemeUid);
+    }
+
+    @Override
+    public boolean schemeExists(UUID schemeUid) {
+        return schemeRepository.exists(schemeUid);
+    }
+
+     @Override
+    public Map<String, Object> getHealthStatus() {
+        try {
+            var authHealth = authKafkaClient.healthCheck("connection-scheme-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "connection-scheme-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+        } catch (Exception e) {
+            log.error("Kafka Client: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "connection-scheme-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "error", e.getMessage());
+        }
+    }
+    @Override
+    public List<ConnectionSchemeBLM> getSchemesByBuffer(UUID bufferUuid) {
+        List<ConnectionSchemeDALM> schemesDALM = schemeRepository.findByBufferUid(bufferUuid);
+        return schemesDALM.stream()
+                .map(schemeConverter::toBLM)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemesByBuffer(List<UUID> bufferUuids) {
+        return bufferUuids.stream()
+                .flatMap(uuid -> getSchemesByBuffer(uuid).stream())
+                .collect(Collectors.toList());
+    }
 }package com.service.connectionscheme.mother;
 
 import java.util.Arrays;

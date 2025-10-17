@@ -1,6 +1,7 @@
 // DeviceAuthService.java
 package com.service.device.auth;
 
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.data.util.Pair;
@@ -19,8 +20,9 @@ public interface DeviceAuthService {
     Pair<DeviceAccessTokenBLM, DeviceTokenBLM> createDeviceAccessToken(DeviceTokenBLM deviceToken);
     DeviceAccessTokenBLM refreshDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken);
     void validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken);
+        
     
-    // Utility methods
-    UUID extractDeviceUidFromToken(DeviceTokenBLM deviceToken);
-    UUID extractDeviceUidFromAccessToken(DeviceAccessTokenBLM deviceAccessToken);
+    Map<String, Object> getHealthStatus();
+
+
 }

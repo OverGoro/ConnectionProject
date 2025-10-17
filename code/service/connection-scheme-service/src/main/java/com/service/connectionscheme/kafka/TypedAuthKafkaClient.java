@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,9 @@ public class TypedAuthKafkaClient {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+    
+    // 👇 Уникальный топик для этого инстанса
+    private final String instanceReplyTopic = "auth.responses." + UUID.randomUUID().toString();
 
     private static class PendingRequest<T> {
         final CompletableFuture<T> future;
@@ -46,7 +50,7 @@ public class TypedAuthKafkaClient {
                 .token(token)
                 .tokenType(ValidateTokenCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) // 👈 Уникальный топик инстанса
                 .correlationId(AuthEventUtils.generateCorrelationId())
                 .build(),
             TokenValidationResponse.class
@@ -59,7 +63,7 @@ public class TypedAuthKafkaClient {
                 .token(token)
                 .tokenType(ExtractClientUidCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) // 👈 Уникальный топик инстанса
                 .correlationId(AuthEventUtils.generateCorrelationId())
                 .build(),
             ClientUidResponse.class
@@ -72,7 +76,7 @@ public class TypedAuthKafkaClient {
                 .eventId(UUID.randomUUID().toString())
                 .sourceService(sourceService)
                 .timestamp(new Date().toInstant())
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) // 👈 Уникальный топик инстанса
                 .correlationId(AuthEventUtils.generateCorrelationId())
                 .commandType(AuthEventConstants.COMMAND_HEALTH_CHECK)
                 .build(),
@@ -96,12 +100,23 @@ public class TypedAuthKafkaClient {
         CompletableFuture<T> future = new CompletableFuture<>();
         pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
 
+        // 👇 Добавляем таймаут 30 секунд
+        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, ex) -> {
+            if (ex != null) {
+                pendingRequests.remove(correlationId);
+                log.warn("Auth request timeout or error for correlationId: {}", correlationId);
+            }
+        });
+
         kafkaTemplate.send(AuthEventConstants.AUTH_COMMANDS_TOPIC, correlationId, command)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
                         future.completeExceptionally(ex);
                         pendingRequests.remove(correlationId);
-                        log.error("Failed to send command: {}", ex.getMessage());
+                        log.error("Failed to send auth command: {}", ex.getMessage());
+                    } else {
+                        log.info("Auth command sent successfully: correlationId={}, topic={}", 
+                                correlationId, AuthEventConstants.AUTH_COMMANDS_TOPIC);
                     }
                 });
 
@@ -116,18 +131,24 @@ public class TypedAuthKafkaClient {
                 if (pendingRequest.responseType.isInstance(response)) {
                     CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
                     future.complete(response);
+                    log.info("Auth response handled successfully: correlationId={}", correlationId);
                 } else {
                     log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
                             correlationId, pendingRequest.responseType, response.getClass());
                     pendingRequest.future.completeExceptionally(
-                        new ClassCastException("Type mismatch in response")
+                        new ClassCastException("Type mismatch in auth response")
                     );
                 }
             } catch (Exception e) {
                 pendingRequest.future.completeExceptionally(e);
             }
         } else {
-            log.warn("Received response for unknown correlationId: {}", correlationId);
+            log.warn("Received auth response for unknown correlationId: {}", correlationId);
         }
+    }
+    
+    // 👇 Геттер для получения уникального топика инстанса
+    public String getInstanceReplyTopic() {
+        return instanceReplyTopic;
     }
 }

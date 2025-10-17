@@ -91,42 +91,52 @@ public class BufferKafkaConfig {
         configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-        
-        // Конфигурация для ErrorHandlingDeserializer
-        configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, org.apache.kafka.common.serialization.StringDeserializer.class);
-        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
-        
         // Конфигурация для JsonDeserializer
-        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "com.connection.auth.events.commands,com.connection.common.events,com.connection.buffer.events.commands,com.connection.auth.events.responses,com.connection.device.events.commands,com.connection.scheme.events.commands");
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES,
+                "com.connection.auth.events.commands," +
+                        "com.connection.auth.events.responses," +
+                        "com.connection.common.events," +
+                        "com.connection.buffer.events.commands," +
+                        "com.connection.buffer.events.responses," +
+                        "com.connection.device.events.commands," +
+                        "com.connection.device.events.responses," +
+                        "com.connection.scheme.events.commands," +
+                        "com.connection.scheme.events.responses");
+        // Конфигурация для ErrorHandlingDeserializer
+        configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS,
+                org.apache.kafka.common.serialization.StringDeserializer.class);
+        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
+
+
         configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
         configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
         configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");
-        
+
         return new DefaultKafkaConsumerFactory<>(configProps);
     }
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, Object> factory = 
-            new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
-        
+
         // Обработка ошибок десериализации - пропускаем некорректные сообщения
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(
                 (record, exception) -> {
                     org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("KafkaErrorHandler");
-                    logger.error("Skipping invalid message - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}",
+                    logger.error(
+                            "Skipping invalid message - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}, {}",
                             record.topic(),
                             record.partition(),
                             record.offset(),
                             record.key(),
-                            exception.getMessage());
+                            exception.getMessage(),
+                            exception.toString());
                 },
-                new FixedBackOff(0L, 0L)
-        );
+                new FixedBackOff(0L, 0L));
 
         factory.setCommonErrorHandler(errorHandler);
-        
+
         return factory;
     }
 
@@ -135,7 +145,8 @@ public class BufferKafkaConfig {
     public ProducerFactory<String, Object> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.StringSerializer.class);
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                org.apache.kafka.common.serialization.StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
         return new DefaultKafkaProducerFactory<>(configProps);

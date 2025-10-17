@@ -31,12 +31,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ConnectionSchemeCommandConsumer {
 
-    @Qualifier("ApiConnectionSchemeService")
+    @Qualifier("KafkaConnectionSchemeService")
     private final ConnectionSchemeService connectionSchemeService;
     private final ConnectionSchemeConverter connectionSchemeConverter;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @KafkaListener(topics = "${app.kafka.topics.connection-scheme-commands:connection-scheme.commands}")
+    @KafkaListener(topics = "${app.kafka.topics.connection-scheme-commands:scheme.commands}")
     public void handleConnectionSchemeCommand(ConsumerRecord<String, Command> record) {
         try {
             Command command = record.value();
@@ -76,8 +76,10 @@ public class ConnectionSchemeCommandConsumer {
                     command.getCorrelationId(),
                     schemeDTO);
 
+            // 👇 Отправляем в replyTopic из команды (уникальный топик инстанса)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Successfully processed GetConnectionSchemeByUidCommand for scheme: {}", command.getConnectionSchemeUid());
+            log.info("GetConnectionSchemeByUid response sent to {}: correlationId={}", 
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             log.error("Error processing GetConnectionSchemeByUidCommand for scheme UID: {}", command.getConnectionSchemeUid(), e);
@@ -103,10 +105,10 @@ public class ConnectionSchemeCommandConsumer {
                     command.getCorrelationId(),
                     schemeDTOs);
 
+            // 👇 Отправляем в replyTopic из команды (уникальный топик инстанса)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-
-            log.info("Successfully processed GetConnectionSchemesByClientCommand for client: {}, found {} schemes",
-                    command.getClientUid(), schemeDTOs.size());
+            log.info("GetConnectionSchemesByClient response sent to {}: correlationId={}", 
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             log.error("Error processing GetConnectionSchemesByClientCommand for client UID: {}", command.getClientUid(), e);
@@ -132,10 +134,10 @@ public class ConnectionSchemeCommandConsumer {
                     command.getCorrelationId(),
                     schemeDTOs);
 
+            // 👇 Отправляем в replyTopic из команды (уникальный топик инстанса)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-
-            log.info("Successfully processed GetConnectionSchemesByBufferCommand for Buffer: {}, found {} schemes",
-                    command.getBufferUid(), schemeDTOs.size());
+            log.info("GetConnectionSchemesByBuffer response sent to {}: correlationId={}", 
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             log.error("Error processing GetConnectionSchemesByBufferCommand for Buffer UID: {}", command.getBufferUid(), e);
@@ -158,9 +160,10 @@ public class ConnectionSchemeCommandConsumer {
                     command.getCorrelationId(),
                     healthStatus);
 
+            // 👇 Отправляем в replyTopic из команды (уникальный топик инстанса)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-
-            log.info("Successfully processed HealthCheckCommand");
+            log.info("HealthCheck response sent to {}: correlationId={}", 
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             log.error("Error processing HealthCheckCommand", e);

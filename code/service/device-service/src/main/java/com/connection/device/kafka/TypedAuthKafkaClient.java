@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -27,8 +28,10 @@ import lombok.extern.slf4j.Slf4j;
 public class TypedAuthKafkaClient {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    
+
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+
+    private final String instanceReplyTopic = "auth.responses." + UUID.randomUUID().toString();
 
     private static class PendingRequest<T> {
         final CompletableFuture<T> future;
@@ -42,47 +45,44 @@ public class TypedAuthKafkaClient {
 
     public CompletableFuture<TokenValidationResponse> validateToken(String token, String sourceService) {
         return sendRequest(
-            ValidateTokenCommand.builder()
-                .token(token)
-                .tokenType(ValidateTokenCommand.TokenType.ACCESS)
-                .sourceService(sourceService)
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
-                .correlationId(AuthEventUtils.generateCorrelationId())
-                .build(),
-            TokenValidationResponse.class
-        );
+                ValidateTokenCommand.builder()
+                        .token(token)
+                        .tokenType(ValidateTokenCommand.TokenType.ACCESS)
+                        .sourceService(sourceService)
+                        .replyTopic(instanceReplyTopic)
+                        .correlationId(AuthEventUtils.generateCorrelationId())
+                        .build(),
+                TokenValidationResponse.class);
     }
 
     public CompletableFuture<ClientUidResponse> getClientUid(String token, String sourceService) {
         return sendRequest(
-            ExtractClientUidCommand.builder()
-                .token(token)
-                .tokenType(ExtractClientUidCommand.TokenType.ACCESS)
-                .sourceService(sourceService)
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
-                .correlationId(AuthEventUtils.generateCorrelationId())
-                .build(),
-            ClientUidResponse.class
-        );
+                ExtractClientUidCommand.builder()
+                        .token(token)
+                        .tokenType(ExtractClientUidCommand.TokenType.ACCESS)
+                        .sourceService(sourceService)
+                        .replyTopic(instanceReplyTopic)
+                        .correlationId(AuthEventUtils.generateCorrelationId())
+                        .build(),
+                ClientUidResponse.class);
     }
 
     public CompletableFuture<HealthCheckResponse> healthCheck(String sourceService) {
         return sendRequest(
-            HealthCheckCommand.builder()
-                .eventId(UUID.randomUUID().toString())
-                .sourceService(sourceService)
-                .timestamp(new Date().toInstant())
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
-                .correlationId(AuthEventUtils.generateCorrelationId())
-                .commandType(AuthEventConstants.COMMAND_HEALTH_CHECK)
-                .build(),
-            HealthCheckResponse.class
-        );
+                HealthCheckCommand.builder()
+                        .eventId(UUID.randomUUID().toString())
+                        .sourceService(sourceService)
+                        .timestamp(new Date().toInstant())
+                        .replyTopic(instanceReplyTopic)
+                        .correlationId(AuthEventUtils.generateCorrelationId())
+                        .commandType(AuthEventConstants.COMMAND_HEALTH_CHECK)
+                        .build(),
+                HealthCheckResponse.class);
     }
 
     private <T> CompletableFuture<T> sendRequest(Object command, Class<T> responseType) {
         String correlationId;
-        
+
         if (command instanceof ValidateTokenCommand) {
             correlationId = ((ValidateTokenCommand) command).getCorrelationId();
         } else if (command instanceof ExtractClientUidCommand) {
@@ -96,12 +96,22 @@ public class TypedAuthKafkaClient {
         CompletableFuture<T> future = new CompletableFuture<>();
         pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
 
+        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, ex) -> {
+            if (ex != null) {
+                pendingRequests.remove(correlationId);
+                log.warn("Request timeout or error for correlationId: {}", correlationId);
+            }
+        });
+
         kafkaTemplate.send(AuthEventConstants.AUTH_COMMANDS_TOPIC, correlationId, command)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
                         future.completeExceptionally(ex);
                         pendingRequests.remove(correlationId);
                         log.error("Failed to send command: {}", ex.getMessage());
+                    } else {
+                        log.info("Command sent successfully: correlationId={}, topic={}",
+                                correlationId, AuthEventConstants.AUTH_COMMANDS_TOPIC);
                     }
                 });
 
@@ -116,18 +126,23 @@ public class TypedAuthKafkaClient {
                 if (pendingRequest.responseType.isInstance(response)) {
                     CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
                     future.complete(response);
+                    log.info("Response handled successfully: correlationId={}", correlationId);
                 } else {
-                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
+                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}",
                             correlationId, pendingRequest.responseType, response.getClass());
                     pendingRequest.future.completeExceptionally(
-                        new ClassCastException("Type mismatch in response")
-                    );
+                            new ClassCastException("Type mismatch in response"));
                 }
             } catch (Exception e) {
                 pendingRequest.future.completeExceptionally(e);
+                log.error("Error handling response: correlationId={}", correlationId, e);
             }
         } else {
             log.warn("Received response for unknown correlationId: {}", correlationId);
         }
+    }
+
+    public String getInstanceReplyTopic() {
+        return instanceReplyTopic;
     }
 }

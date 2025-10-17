@@ -51,7 +51,6 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
@@ -565,7 +564,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/auth-service")
+@RequestMapping("/api/v1")
 @Tag(name = "Auth Service", description = "Authentication and Authorization APIs")
 public class AuthServiceController {
 
@@ -594,8 +593,8 @@ public class AuthServiceController {
     }
 
     @Operation(summary = "Login by email", description = "Authenticate client using email and password")
-    @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
-    @PostMapping("/login/email")
+    @ApiResponse(responseCode = "201", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @PostMapping("/login")
     public ResponseEntity<LoginResponse> loginByEmail(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Login credentials", required = true, content = @Content(schema = @Schema(implementation = LoginRequest.class))) @RequestBody LoginRequest loginRequest) {
 
@@ -615,7 +614,7 @@ public class AuthServiceController {
     }
 
     @Operation(summary = "Refresh tokens", description = "Get new access and refresh tokens using refresh token")
-    @ApiResponse(responseCode = "200", description = "Tokens refreshed successfully", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @ApiResponse(responseCode = "201", description = "Tokens refreshed successfully", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
     @PostMapping("/refresh")
     public ResponseEntity<LoginResponse> refreshToken(
             @Parameter(description = "Refresh token request", required = true) @RequestBody RefreshTokenRequest refreshRequest) {
@@ -651,7 +650,7 @@ public class AuthServiceController {
 
     @Operation(summary = "Validate access token", description = "Check if access token is valid")
     @ApiResponse(responseCode = "200", description = "Token is valid", content = @Content(schema = @Schema(implementation = ValidationResponse.class)))
-    @GetMapping("/validate/token/access")
+    @PostMapping("/validate/access")
     public ResponseEntity<ValidationResponse> validateAccessToken(
             @Parameter(description = "Access token to validate", required = true) @RequestParam String accessToken) {
 
@@ -666,7 +665,7 @@ public class AuthServiceController {
 
     @Operation(summary = "Validate refresh token", description = "Check if refresh token is valid")
     @ApiResponse(responseCode = "200", description = "Token is valid", content = @Content(schema = @Schema(implementation = ValidationResponse.class)))
-    @GetMapping("/validate/token/refresh")
+    @PostMapping("/validate/refresh")
     public ResponseEntity<ValidationResponse> validateRefreshToken(
             @Parameter(description = "Refresh token to validate", required = true) @RequestParam String refreshToken) {
 
@@ -677,36 +676,6 @@ public class AuthServiceController {
         authService.validateRefreshToken(refreshTokenBLM);
 
         return ResponseEntity.ok(new ValidationResponse("OK"));
-    }
-
-    @Operation(summary = "Extract client UID from access token", description = "Get client UID from valid access token")
-    @ApiResponse(responseCode = "200", description = "Client UID extracted successfully")
-    @GetMapping("/extract/accessTokenClientUID")
-    public ResponseEntity<UUID> getAccessTokenClientUID(
-            @Parameter(description = "Access token", required = true) @RequestParam String accessToken) {
-
-        log.info("Extracting client UID from access token");
-        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
-
-        AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
-        authService.validateAccessToken(accessTokenBLM);
-
-        return ResponseEntity.ok().body(accessTokenBLM.getClientUID());
-    }
-
-    @Operation(summary = "Extract client UID from refresh token", description = "Get client UID from valid refresh token")
-    @ApiResponse(responseCode = "200", description = "Client UID extracted successfully")
-    @GetMapping("/extract/refreshTokenClientUID")
-    public ResponseEntity<UUID> getRefreshTokenClientUID(
-            @Parameter(description = "Refresh token", required = true) @RequestParam String refreshToken) {
-
-        log.info("Extracting client UID from refresh token");
-        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
-
-        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
-        authService.validateRefreshToken(refreshTokenBLM);
-
-        return ResponseEntity.ok().body(refreshTokenBLM.getClientUID());
     }
 }package com.service.auth.controller;
 
@@ -881,10 +850,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import com.connection.auth.events.commands.ExtractClientUidCommand;
 import com.connection.auth.events.commands.HealthCheckCommand;
 import com.connection.auth.events.commands.ValidateTokenCommand;
-import com.connection.auth.events.responses.ClientUidResponse;
 import com.connection.auth.events.responses.HealthCheckResponse;
 import com.connection.auth.events.responses.TokenValidationResponse;
 import com.connection.common.events.Command;
@@ -913,12 +880,7 @@ public class AuthCommandConsumer {
             if (command instanceof ValidateTokenCommand) {
                 ValidateTokenCommand validateCommand = (ValidateTokenCommand) command;
                 handleValidateTokenCommand(validateCommand, key);
-            } else if (command instanceof ExtractClientUidCommand) {
-
-                ExtractClientUidCommand extractCommand = (ExtractClientUidCommand) command;
-                handleExtractClientUidCommand(extractCommand, key);
             } else if (command instanceof HealthCheckCommand) {
-
                 HealthCheckCommand healthCommand = (HealthCheckCommand) command;
                 handleHealthCheckCommand(healthCommand, key);
             }
@@ -935,53 +897,31 @@ public class AuthCommandConsumer {
     }
 
     private void handleValidateTokenCommand(ValidateTokenCommand command, String key) {
-        log.warn("Command {}, key {}", command, key);
         try {
-            log.warn("Command {}, key {}", command, key);
+            log.info("Processing token validation: correlationId={}", command.getCorrelationId());
+
             AccessTokenBLM tokenBLM = accessTokenConverter.toBLM(
                     new com.connection.token.model.AccessTokenDTO(command.getToken()));
             authService.validateAccessToken(tokenBLM);
-            log.info("kafka validated token: {}", tokenBLM.getToken());
+
             TokenValidationResponse response = TokenValidationResponse.valid(
                     command.getCorrelationId(),
                     tokenBLM.getClientUID(),
                     command.getTokenType().name());
-            log.info("Kafka formed response {}", response.toString());
 
+            // ✅ ОТПРАВЛЯЕМ В replyTopic ИЗ КОМАНДЫ (динамический топик)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Kafka send token validation successful: clientUid={}", response.toString());
+            log.info("Token validation response sent to {}: correlationId={}",
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             TokenValidationResponse response = TokenValidationResponse.error(
                     command.getCorrelationId(),
                     e.getMessage());
-            log.warn("Command {}, key {}", command, key);
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.error("Token validation failed: {}", e.getMessage());
-            throw e;
-        }
-    }
-
-    private void handleExtractClientUidCommand(ExtractClientUidCommand command, String key) {
-        try {
-            AccessTokenBLM tokenBLM = accessTokenConverter.toBLM(
-                    new com.connection.token.model.AccessTokenDTO(command.getToken()));
-            authService.validateAccessToken(tokenBLM);
-
-            ClientUidResponse response = ClientUidResponse.success(
-                    command.getCorrelationId(),
-                    tokenBLM.getClientUID(),
-                    command.getTokenType().name());
 
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Client UID extracted: {}", tokenBLM.getClientUID());
-
-        } catch (Exception e) {
-            ClientUidResponse response = ClientUidResponse.error(
-                    command.getCorrelationId(),
-                    e.getMessage());
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.error("Client UID extraction failed: {}", e.getMessage());
+            log.error("Token validation failed: correlationId={}, error={}",
+                    command.getCorrelationId(), e.getMessage());
         }
     }
 
@@ -996,15 +936,19 @@ public class AuthCommandConsumer {
                     command.getCorrelationId(),
                     healthStatus);
 
+            // ✅ ОТПРАВЛЯЕМ В replyTopic ИЗ КОМАНДЫ (динамический топик)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Health check completed successfully");
+            log.info("Health check response sent to {}: correlationId={}",
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             HealthCheckResponse response = HealthCheckResponse.error(
                     command.getCorrelationId(),
                     e.getMessage());
+
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.error("Health check failed: {}", e.getMessage());
+            log.error("Health check failed: correlationId={}, error={}",
+                    command.getCorrelationId(), e.getMessage());
         }
     }
 }package com.service.auth;
@@ -1022,8 +966,6 @@ public class AuthServiceApplication {
 }
 package com.service.auth;
 
-import java.util.UUID;
-
 import org.springframework.data.util.Pair;
 
 import com.connection.client.model.ClientBLM;
@@ -1038,8 +980,6 @@ public interface AuthService {
     public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(RefreshTokenBLM refreshTokenBLM);
     public void validateAccessToken(AccessTokenBLM accessTokenBLM);
     public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM);
-    public UUID getClientUid(AccessTokenBLM accessTokenBLM);
-    public UUID getClientUid(RefreshTokenBLM accessTokenBLM);
 
 }
 package com.service.auth;
@@ -1202,19 +1142,6 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM) {
         refreshTokenValidator.validate(refreshTokenBLM);
-    }
-
-
-    @Override
-    public UUID getClientUid(AccessTokenBLM accessTokenBLM){
-        validateAccessToken(accessTokenBLM);
-        return accessTokenBLM.getClientUID();
-    }
-
-     @Override
-    public UUID getClientUid(RefreshTokenBLM accessTokenBLM){
-        validateRefreshToken(accessTokenBLM);
-        return accessTokenBLM.getClientUID();
     }
 }
 package com.service.auth.mother;

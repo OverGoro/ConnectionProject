@@ -19,6 +19,7 @@ import com.connection.device.token.model.DeviceAccessTokenBLM;
 import com.connection.device.token.model.DeviceAccessTokenDTO;
 import com.connection.device.token.model.DeviceTokenBLM;
 import com.connection.device.token.model.DeviceTokenDTO;
+import com.connection.device.token.util.TokenUtils;
 import com.service.device.auth.DeviceAuthService;
 
 import lombok.RequiredArgsConstructor;
@@ -70,8 +71,7 @@ public class DeviceAuthController {
 
     @DeleteMapping("/device-token")
     public ResponseEntity<Void> revokeDeviceToken(
-            @RequestParam(required = false) List<UUID> deviceUids,
-            @RequestParam(required = false) UUID deviceUid) {
+            @RequestParam(required = false) List<UUID> deviceUids) {
         
         if (deviceUids != null && !deviceUids.isEmpty()) {
             // Массовое удаление токенов по deviceUids
@@ -79,10 +79,6 @@ public class DeviceAuthController {
             for (UUID uid : deviceUids) {
                 deviceAuthService.revokeDeviceToken(uid);
             }
-        } else if (deviceUid != null) {
-            // Удаление токена по deviceUid
-            log.info("Revoking device token for device: {}", deviceUid);
-            deviceAuthService.revokeDeviceToken(deviceUid);
         } else {
             log.warn("No valid parameters provided for revoking device token");
             return ResponseEntity.badRequest().build();
@@ -115,7 +111,7 @@ public class DeviceAuthController {
         return ResponseEntity.ok(new DeviceAccessTokenResponse(
             newAccessToken.getToken(),
             newAccessToken.getExpiresAt(),
-            deviceAuthService.extractDeviceUidFromAccessToken(newAccessToken)
+            TokenUtils.extractDeviceUidFromDeviceToken(newAccessToken.getToken())
         ));
     }
 
@@ -144,15 +140,12 @@ public class DeviceAuthController {
         }
     }
 
-    @GetMapping("/health")
+   @GetMapping("/health")
     public ResponseEntity<HealthResponse> healthCheck() {
-        log.info("Health check");
-        
-        return ResponseEntity.ok(new HealthResponse(
-            "OK",
-            "device-auth-service",
-            System.currentTimeMillis()
-        ));
+        log.info("Health check: status: OK, service: device-service, timestamp: {}", 
+                System.currentTimeMillis());
+
+        return ResponseEntity.ok().body(new HealthResponse(deviceAuthService.getHealthStatus().toString()));
     }
 
     // DTO классы
@@ -164,5 +157,5 @@ public class DeviceAuthController {
     
     public record ValidationResponse(String status) {}
     
-    public record HealthResponse(String status, String service, long timestamp) {}
+    public record HealthResponse(String message) {}
 }

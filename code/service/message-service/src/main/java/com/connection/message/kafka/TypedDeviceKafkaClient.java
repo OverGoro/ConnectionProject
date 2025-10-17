@@ -29,6 +29,7 @@ public class TypedDeviceKafkaClient {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+    private final String instanceReplyTopic = "device.responses." + UUID.randomUUID().toString();
 
     private static class PendingRequest<T> {
         final CompletableFuture<T> future;
@@ -40,48 +41,57 @@ public class TypedDeviceKafkaClient {
         }
     }
 
-    public CompletableFuture<GetDeviceByUidResponse> getDeviceByUid(UUID deviceUid, UUID clientUid, String sourceService) {
+    public CompletableFuture<GetDeviceByUidResponse> getDeviceByUid(UUID deviceUid, String sourceService) {
         return sendRequest(
-            GetDeviceByUidCommand.builder()
-                .deviceUid(deviceUid)
-                .clientUid(clientUid)
-                .sourceService(sourceService)
-                .replyTopic(DeviceEventConstants.DEVICE_RESPONSES_TOPIC)
-                .correlationId(DeviceEventUtils.generateCorrelationId())
-                .build(),
-            GetDeviceByUidResponse.class
-        );
+                GetDeviceByUidCommand.builder()
+                        .deviceUid(deviceUid)
+                        .sourceService(sourceService)
+                        .replyTopic(instanceReplyTopic)
+                        .correlationId(DeviceEventUtils.generateCorrelationId())
+                        .build(),
+                GetDeviceByUidResponse.class);
     }
 
     public CompletableFuture<GetDevicesByClientResponse> getDevicesByClient(UUID clientUid, String sourceService) {
         return sendRequest(
-            GetDevicesByClientUid.builder()
-                .clientUid(clientUid)
-                .sourceService(sourceService)
-                .replyTopic(DeviceEventConstants.DEVICE_RESPONSES_TOPIC)
-                .correlationId(DeviceEventUtils.generateCorrelationId())
-                .build(),
-            GetDevicesByClientResponse.class
-        );
+                GetDevicesByClientUid.builder()
+                        .clientUid(clientUid)
+                        .sourceService(sourceService)
+                        .replyTopic(instanceReplyTopic)
+                        .correlationId(DeviceEventUtils.generateCorrelationId())
+                        .build(),
+                GetDevicesByClientResponse.class);
     }
 
     public CompletableFuture<HealthCheckResponse> healthCheck(String sourceService) {
         return sendRequest(
-            HealthCheckCommand.builder()
-                .sourceService(sourceService)
-                .replyTopic(DeviceEventConstants.DEVICE_RESPONSES_TOPIC)
-                .correlationId(DeviceEventUtils.generateCorrelationId())
-                .build(),
-            HealthCheckResponse.class
-        );
+                HealthCheckCommand.builder()
+                        .sourceService(sourceService)
+                        .replyTopic(instanceReplyTopic)
+                        .correlationId(DeviceEventUtils.generateCorrelationId())
+                        .build(),
+                HealthCheckResponse.class);
     }
 
     // Вспомогательные методы для удобства
-    public boolean deviceExistsAndBelongsToClient(UUID deviceUid, UUID clientUid) {
+    public boolean deviceExists(UUID deviceUid) {
         try {
-            GetDeviceByUidResponse response = getDeviceByUid(deviceUid, clientUid, "buffer-service")
+            GetDeviceByUidResponse response = getDeviceByUid(deviceUid, "buffer-service")
                     .get(10, java.util.concurrent.TimeUnit.SECONDS);
             return response.isSuccess() && response.getDeviceDTO() != null;
+        } catch (Exception e) {
+            log.error("Error checking device existence: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    // В TypedDeviceKafkaClient добавим метод:
+    public boolean deviceExistsAndBelongsToClient(UUID deviceUid, UUID clientUid) {
+        try {
+            GetDeviceByUidResponse response = getDeviceByUid(deviceUid, "message-service")
+                    .get(10, java.util.concurrent.TimeUnit.SECONDS);
+            return response.isSuccess() && response.getDeviceDTO() != null
+                    && response.getDeviceDTO().getClientUuid().equals(clientUid.toString());
         } catch (Exception e) {
             log.error("Error checking device existence: {}", e.getMessage());
             return false;
@@ -92,7 +102,7 @@ public class TypedDeviceKafkaClient {
         try {
             GetDevicesByClientResponse response = getDevicesByClient(clientUid, "buffer-service")
                     .get(10, java.util.concurrent.TimeUnit.SECONDS);
-            
+
             if (response.isSuccess() && response.getDeviceDTOs() != null) {
                 return response.getDeviceDTOs().stream()
                         .map(device -> UUID.fromString(device.getUid()))
@@ -107,7 +117,7 @@ public class TypedDeviceKafkaClient {
 
     private <T> CompletableFuture<T> sendRequest(Object command, Class<T> responseType) {
         String correlationId = extractCorrelationId(command);
-        
+
         CompletableFuture<T> future = new CompletableFuture<>();
         pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
 
@@ -132,11 +142,10 @@ public class TypedDeviceKafkaClient {
                     CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
                     future.complete(response);
                 } else {
-                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
+                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}",
                             correlationId, pendingRequest.responseType, response.getClass());
                     pendingRequest.future.completeExceptionally(
-                        new ClassCastException("Type mismatch in device response")
-                    );
+                            new ClassCastException("Type mismatch in device response"));
                 }
             } catch (Exception e) {
                 pendingRequest.future.completeExceptionally(e);
@@ -156,5 +165,9 @@ public class TypedDeviceKafkaClient {
         } else {
             throw new IllegalArgumentException("Unsupported device command type: " + command.getClass());
         }
+    }
+
+    public String getInstanceReplyTopic() {
+        return instanceReplyTopic;
     }
 }

@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,9 @@ public class TypedBufferKafkaClient {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+    
+    // 👇 Уникальный топик для этого инстанса
+    private final String instanceReplyTopic = "buffer.responses." + UUID.randomUUID().toString();
 
     private static class PendingRequest<T> {
         final CompletableFuture<T> future;
@@ -49,7 +53,7 @@ public class TypedBufferKafkaClient {
             GetBufferByUidCommand.builder()
                 .bufferUid(bufferUid)
                 .sourceService(sourceService)
-                .replyTopic(BufferEventConstants.BUFFER_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(BufferEventUtils.generateCorrelationId())
                 .build(),
             GetBufferByUidResponse.class
@@ -61,7 +65,7 @@ public class TypedBufferKafkaClient {
             GetBuffersByClientUidCommand.builder()
                 .clientUid(clientUid)
                 .sourceService(sourceService)
-                .replyTopic(BufferEventConstants.BUFFER_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(BufferEventUtils.generateCorrelationId())
                 .build(),
             GetBuffersByClientResponse.class
@@ -73,7 +77,7 @@ public class TypedBufferKafkaClient {
             GetBuffersByDeviceUidCommand.builder()
                 .deviceUid(deviceUid)
                 .sourceService(sourceService)
-                .replyTopic(BufferEventConstants.BUFFER_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(BufferEventUtils.generateCorrelationId())
                 .build(),
             GetBuffersByDeviceResponse.class
@@ -85,7 +89,7 @@ public class TypedBufferKafkaClient {
             GetBuffersByConnectionSchemeUidCommand.builder()
                 .connectionSchemeUid(connectionSchemeUid)
                 .sourceService(sourceService)
-                .replyTopic(BufferEventConstants.BUFFER_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(BufferEventUtils.generateCorrelationId())
                 .build(),
             GetBuffersByConnectionSchemeResponse.class
@@ -98,7 +102,7 @@ public class TypedBufferKafkaClient {
                 .eventId(UUID.randomUUID().toString())
                 .sourceService(sourceService)
                 .timestamp(new Date().toInstant())
-                .replyTopic(BufferEventConstants.BUFFER_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(BufferEventUtils.generateCorrelationId())
                 .commandType(BufferEventConstants.COMMAND_HEALTH_CHECK)
                 .build(),
@@ -126,12 +130,23 @@ public class TypedBufferKafkaClient {
         CompletableFuture<T> future = new CompletableFuture<>();
         pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
 
+        // 👇 Добавляем таймаут 30 секунд
+        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, ex) -> {
+            if (ex != null) {
+                pendingRequests.remove(correlationId);
+                log.warn("Buffer request timeout or error for correlationId: {}", correlationId);
+            }
+        });
+
         kafkaTemplate.send(BufferEventConstants.BUFFER_COMMANDS_TOPIC, correlationId, command)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
                         future.completeExceptionally(ex);
                         pendingRequests.remove(correlationId);
                         log.error("Failed to send buffer command: {}", ex.getMessage());
+                    } else {
+                        log.info("Buffer command sent successfully: correlationId={}, topic={}", 
+                                correlationId, BufferEventConstants.BUFFER_COMMANDS_TOPIC);
                     }
                 });
 
@@ -146,6 +161,7 @@ public class TypedBufferKafkaClient {
                 if (pendingRequest.responseType.isInstance(response)) {
                     CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
                     future.complete(response);
+                    log.info("Buffer response handled successfully: correlationId={}", correlationId);
                 } else {
                     log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
                             correlationId, pendingRequest.responseType, response.getClass());
@@ -159,5 +175,10 @@ public class TypedBufferKafkaClient {
         } else {
             log.warn("Received buffer response for unknown correlationId: {}", correlationId);
         }
+    }
+    
+    // 👇 Геттер для получения уникального топика инстанса
+    public String getInstanceReplyTopic() {
+        return instanceReplyTopic;
     }
 }

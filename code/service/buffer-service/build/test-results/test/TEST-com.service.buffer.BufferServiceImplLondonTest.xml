@@ -1,44 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Buffer Service Implementation Tests" tests="17" skipped="0" failures="0" errors="0" timestamp="2025-10-15T20:29:27.493Z" hostname="Yurik" time="2.285">
+<testsuite name="Buffer Service Implementation Tests" tests="17" skipped="0" failures="0" errors="0" timestamp="2025-10-17T01:16:41.111Z" hostname="Yurik" time="2.13">
   <properties/>
-  <testcase name="Buffer exists - Negative: Device doesn't belong to client" classname="com.service.buffer.BufferServiceImplLondonTest" time="2.024"/>
-  <testcase name="Delete buffer - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.012"/>
-  <testcase name="Get buffers by client - Negative: Device service returns error" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.027"/>
-  <testcase name="Create buffer - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.007"/>
+  <testcase name="Buffer exists - Negative: Device doesn't belong to client" classname="com.service.buffer.BufferServiceImplLondonTest" time="1.855"/>
+  <testcase name="Delete buffer - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.011"/>
+  <testcase name="Get buffers by client - Negative: Device service returns error" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.083"/>
+  <testcase name="Create buffer - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.008"/>
   <testcase name="Update buffer - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.004"/>
   <testcase name="Get buffers by connection scheme - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.004"/>
-  <testcase name="Create buffer - Negative: Device doesn't belong to client" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.007"/>
+  <testcase name="Create buffer - Negative: Device doesn't belong to client" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.006"/>
   <testcase name="Create buffer - Negative: Buffer already exists" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.003"/>
-  <testcase name="Get buffers by client - Negative: Device service timeout" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.009"/>
+  <testcase name="Get buffers by client - Negative: Device service timeout" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.007"/>
   <testcase name="Get buffers by device - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.003"/>
   <testcase name="Get buffers by client - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.004"/>
-  <testcase name="Buffer exists - Negative: Buffer not found" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.002"/>
-  <testcase name="Update buffer - Negative: Cannot change buffer UID" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.004"/>
+  <testcase name="Buffer exists - Negative: Buffer not found" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.003"/>
+  <testcase name="Update buffer - Negative: Cannot change buffer UID" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.003"/>
   <testcase name="Get buffer - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.003"/>
-  <testcase name="Delete buffer from connection scheme - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.004"/>
+  <testcase name="Delete buffer from connection scheme - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.003"/>
   <testcase name="Delete all buffers from connection scheme - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.004"/>
   <testcase name="Buffer exists - Positive" classname="com.service.buffer.BufferServiceImplLondonTest" time="0.003"/>
-  <system-out><![CDATA[23:29:29.655 [ForkJoinPool-1-worker-1] INFO com.service.buffer.BufferServiceImpl -- Buffer deleted: 323e4567-e89b-12d3-a456-426614174002 for client: 123e4567-e89b-12d3-a456-426614174000, device: 423e4567-e89b-12d3-a456-426614174003
-23:29:29.668 [ForkJoinPool-1-worker-1] WARN com.service.buffer.BufferServiceImpl -- Failed to get devices for client: 123e4567-e89b-12d3-a456-426614174000
-23:29:29.695 [ForkJoinPool-1-worker-1] INFO com.service.buffer.BufferServiceImpl -- Buffer created: 323e4567-e89b-12d3-a456-426614174002 for device: 423e4567-e89b-12d3-a456-426614174003
-23:29:29.703 [ForkJoinPool-1-worker-1] INFO com.service.buffer.BufferServiceImpl -- Buffer updated: 323e4567-e89b-12d3-a456-426614174002 for device: 423e4567-e89b-12d3-a456-426614174003
-23:29:29.727 [ForkJoinPool-1-worker-1] ERROR com.service.buffer.BufferServiceImpl -- Error getting devices for client: 123e4567-e89b-12d3-a456-426614174000
+  <system-out><![CDATA[04:16:43.068 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Buffer deleted: 323e4567-e89b-12d3-a456-426614174002 for client: 123e4567-e89b-12d3-a456-426614174000, device: 423e4567-e89b-12d3-a456-426614174003
+04:16:43.083 [ForkJoinPool-1-worker-1] WARN com.service.buffer.ApiBufferServiceImpl -- Failed to get devices for client: 123e4567-e89b-12d3-a456-426614174000
+04:16:43.166 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Buffer created: 323e4567-e89b-12d3-a456-426614174002 for device: 423e4567-e89b-12d3-a456-426614174003
+04:16:43.174 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Buffer updated: 323e4567-e89b-12d3-a456-426614174002 for device: 423e4567-e89b-12d3-a456-426614174003
+04:16:43.198 [ForkJoinPool-1-worker-1] ERROR com.service.buffer.ApiBufferServiceImpl -- Error getting devices for client: 123e4567-e89b-12d3-a456-426614174000
 java.util.concurrent.ExecutionException: java.util.concurrent.TimeoutException: Timeout
 	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
 	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
-	at com.service.buffer.BufferServiceImpl.getBuffersByClient_aroundBody6(BufferServiceImpl.java:101)
-	at com.service.buffer.BufferServiceImpl$AjcClosure7.run(BufferServiceImpl.java:1)
+	at com.service.buffer.ApiBufferServiceImpl.getBuffersByClient_aroundBody4(ApiBufferServiceImpl.java:98)
+	at com.service.buffer.ApiBufferServiceImpl$AjcClosure5.run(ApiBufferServiceImpl.java:1)
 	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96cproceed(AbstractTransactionAspect.aj:67)
 	at org.springframework.transaction.aspectj.AbstractTransactionAspect$AbstractTransactionAspect$1.proceedWithInvocation(AbstractTransactionAspect.aj:73)
 	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
 	at org.springframework.transaction.aspectj.AbstractTransactionAspect.ajc$around$org_springframework_transaction_aspectj_AbstractTransactionAspect$1$2a73e96c(AbstractTransactionAspect.aj:71)
-	at com.service.buffer.BufferServiceImpl.getBuffersByClient(BufferServiceImpl.java:99)
-	at com.service.buffer.BufferServiceImplLondonTest.lambda$shouldThrowExceptionWhenDeviceServiceTimeout$3(BufferServiceImplLondonTest.java:448)
+	at com.service.buffer.ApiBufferServiceImpl.getBuffersByClient(ApiBufferServiceImpl.java:90)
+	at com.service.buffer.BufferServiceImplLondonTest.lambda$shouldThrowExceptionWhenDeviceServiceTimeout$3(BufferServiceImplLondonTest.java:480)
 	at org.assertj.core.api.ThrowableAssert.catchThrowable(ThrowableAssert.java:63)
 	at org.assertj.core.api.AssertionsForClassTypes.catchThrowable(AssertionsForClassTypes.java:904)
 	at org.assertj.core.api.Assertions.catchThrowable(Assertions.java:1472)
 	at org.assertj.core.api.Assertions.assertThatThrownBy(Assertions.java:1315)
-	at com.service.buffer.BufferServiceImplLondonTest.shouldThrowExceptionWhenDeviceServiceTimeout(BufferServiceImplLondonTest.java:448)
+	at com.service.buffer.BufferServiceImplLondonTest.shouldThrowExceptionWhenDeviceServiceTimeout(BufferServiceImplLondonTest.java:480)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:775)
@@ -103,10 +103,10 @@ java.util.concurrent.ExecutionException: java.util.concurrent.TimeoutException: 
 	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
 	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
 Caused by: java.util.concurrent.TimeoutException: Timeout
-	at com.service.buffer.BufferServiceImplLondonTest.shouldThrowExceptionWhenDeviceServiceTimeout(BufferServiceImplLondonTest.java:442)
+	at com.service.buffer.BufferServiceImplLondonTest.shouldThrowExceptionWhenDeviceServiceTimeout(BufferServiceImplLondonTest.java:473)
 	... 63 common frames omitted
-23:29:29.768 [ForkJoinPool-1-worker-1] INFO com.service.buffer.BufferServiceImpl -- Deleted buffers for connection scheme: 423e4567-e89b-12d3-a456-426614174003
-23:29:29.774 [ForkJoinPool-1-worker-1] INFO com.service.buffer.BufferServiceImpl -- Deleted buffers for connection scheme: 423e4567-e89b-12d3-a456-426614174003
+04:16:43.231 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Deleted buffers for connection scheme: 423e4567-e89b-12d3-a456-426614174003
+04:16:43.236 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Deleted buffers for connection scheme: 423e4567-e89b-12d3-a456-426614174003
 ]]></system-out>
   <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
 WARNING: A Java agent has been loaded dynamically (/home/yurik/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.17.7/fbf3d6d649ed37fc9e9c59480a05be0a26e3c2da/byte-buddy-agent-1.17.7.jar)

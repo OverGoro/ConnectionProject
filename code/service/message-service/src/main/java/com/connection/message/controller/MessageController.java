@@ -1,3 +1,4 @@
+// MessageController.java (обновленная версия с аннотациями Swagger)
 package com.connection.message.controller;
 
 import java.util.ArrayList;
@@ -19,6 +20,11 @@ import com.connection.message.converter.MessageConverter;
 import com.connection.message.model.MessageBLM;
 import com.connection.message.model.MessageDTO;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
+@Tag(name = "Message Service", description = "API для управления сообщениями устройств")
 public class MessageController {
     
     // Константы для пагинации по умолчанию
@@ -33,15 +40,48 @@ public class MessageController {
     private static final int DEFAULT_LIMIT = 1;
     private static final int MAX_LIMIT = 1000;
 
-    protected MessageConverter messageConverter;
-    protected MessageService messageService;
+    protected final MessageConverter messageConverter;
+    protected final MessageService messageService;
 
+    @Operation(
+        summary = "Добавить сообщение",
+        description = "Добавление нового сообщения в буфер. Требует аутентификации устройства.",
+        security = @SecurityRequirement(name = "deviceAuth")
+    )
     @PostMapping("/messages")
     public ResponseEntity<Void> addMessage(
+            @Parameter(description = "DTO сообщения для добавления")
             @RequestBody MessageDTO messageDTO) {
         throw new UnsupportedOperationException("Unimplemented method 'addMessage'");
     }
 
+    @Operation(
+        summary = "Получить сообщения",
+        description = """
+            Получение сообщений по различным критериям. 
+            Поддерживает аутентификацию как клиента, так и устройства.
+            
+            ### Для клиентов:
+            - Доступ ко всем сообщениям своих устройств
+            - Фильтрация по схемам соединения, буферам, устройствам
+            
+            ### Для устройств:
+            - Доступ только к своим сообщениям
+            - Фильтрация только по своим буферам
+            """,
+        security = {
+            @SecurityRequirement(name = "clientAuth"),
+            @SecurityRequirement(name = "deviceAuth")
+        },
+        parameters = {
+            @Parameter(name = "schemeUids", description = "Список UID схем соединения", in = ParameterIn.QUERY),
+            @Parameter(name = "bufferUids", description = "Список UID буферов", in = ParameterIn.QUERY),
+            @Parameter(name = "deviceUids", description = "Список UID устройств", in = ParameterIn.QUERY),
+            @Parameter(name = "deleteOnGet", description = "Удалять сообщения после получения", in = ParameterIn.QUERY),
+            @Parameter(name = "offset", description = "Смещение для пагинации", in = ParameterIn.QUERY),
+            @Parameter(name = "limit", description = "Лимит для пагинации (макс. 1000)", in = ParameterIn.QUERY)
+        }
+    )
     @GetMapping("/messages/")
     public ResponseEntity<MessageResponse> getMessage(
             @RequestParam(required = false) List<UUID> schemeUids,
@@ -63,14 +103,14 @@ public class MessageController {
         if (bufferUids != null){
             for (UUID bufferUid : bufferUids){
                 log.info("Getting messages for bufferUid: {}", bufferUid);
-                messageBLMs.addAll(messageService.getMessagesByScheme(bufferUid, deleteOnGet, offset, limit));
+                messageBLMs.addAll(messageService.getMessagesByBuffer(bufferUid, deleteOnGet, offset, limit));
             }
         }
 
         if (deviceUids != null){
             for (UUID deviceUid : deviceUids){
                 log.info("Getting messages for deviceUid: {}", deviceUid);
-                messageBLMs.addAll(messageService.getMessagesByScheme(deviceUid, deleteOnGet, offset, limit));
+                messageBLMs.addAll(messageService.getMessagesByDevice(deviceUid, deleteOnGet, offset, limit));
             }
         }
         log.info("Got messages: {}", messageBLMs.size());
@@ -80,12 +120,15 @@ public class MessageController {
         return ResponseEntity.ok().body( new MessageResponse(resultDTO));
     }
 
+    @Operation(
+        summary = "Health Check",
+        description = "Проверка статуса сервиса и зависимостей. Не требует аутентификации."
+    )
     @GetMapping("/health")
     public ResponseEntity<HealthResponse> healthCheck() {
         log.info("Health check: service: message-service, timestamp: {}",
                 System.currentTimeMillis());
 
         return ResponseEntity.ok().body(new HealthResponse(messageService.health().toString()));
-
     }
 }

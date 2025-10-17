@@ -1,4 +1,3 @@
-// BufferService.java
 package com.service.buffer;
 
 import java.util.List;
@@ -9,18 +8,15 @@ import com.connection.processing.buffer.model.BufferBLM;
 import com.connection.processing.buffer.model.BufferDTO;
 
 public interface BufferService {
-    BufferBLM createBuffer(UUID clientUid, BufferDTO bufferDTO);
-    BufferBLM getBufferByUid(UUID clientUid, UUID bufferUid);
+    BufferBLM createBuffer(BufferDTO bufferDTO);
     BufferBLM getBufferByUid(UUID bufferUid);
     List<BufferBLM> getBuffersByClient(UUID clientUid);
-    List<BufferBLM> getBuffersByDevice(UUID clientUid, UUID deviceUid);
     List<BufferBLM> getBuffersByDevice(UUID deviceUid);
-    List<BufferBLM> getBuffersByConnectionScheme(UUID clientUid, UUID connectionSchemeUid);
     List<BufferBLM> getBuffersByConnectionScheme(UUID connectionSchemeUid);
-    BufferBLM updateBuffer(UUID clientUid, UUID bufferUid, BufferDTO bufferDTO);
-    void deleteBuffer(UUID clientUid, UUID bufferUid);
-    void deleteBufferFromConnectionScheme(UUID clientUid, UUID connectionSchemeUid, UUID bufferUid);
-    void deleteAllBuffersFromConnectionScheme(UUID clientUid, UUID connectionSchemeUid);
-    boolean bufferExists(UUID clientUid, UUID bufferUid);
+    BufferBLM updateBuffer(UUID bufferUid, BufferDTO bufferDTO);
+    void deleteBuffer(UUID bufferUid);
+    void deleteBufferFromConnectionScheme(UUID connectionSchemeUid, UUID bufferUid);
+    void deleteAllBuffersFromConnectionScheme(UUID connectionSchemeUid);
+    boolean bufferExists(UUID bufferUid);
     Map<String, Object> getHealthStatus();
 }

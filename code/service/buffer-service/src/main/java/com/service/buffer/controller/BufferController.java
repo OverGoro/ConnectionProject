@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/v1")
 public class BufferController {
 
+    @Qualifier("ApiBufferService")
     private final BufferService bufferService;
     private final BufferValidator bufferValidator;
     private final BufferConverter bufferConverter;
@@ -43,11 +45,8 @@ public class BufferController {
 
     @PostMapping("/buffers")
     public ResponseEntity<BufferResponse> createBuffer(@RequestBody BufferDTO bufferDTO) {
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        log.info("Creating buffer for client {}", clientUid);
-
         bufferValidator.validate(bufferDTO);
-        BufferBLM buffer = bufferService.createBuffer(clientUid, bufferDTO);
+        BufferBLM buffer = bufferService.createBuffer(bufferDTO);
 
         return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
     }
@@ -65,11 +64,11 @@ public class BufferController {
 
         if (deviceUid != null) {
             log.info("Getting buffers for device: {} with offset: {}, limit: {}", deviceUid, offset, limit);
-            buffers = bufferService.getBuffersByDevice(clientUid, deviceUid);
+            buffers = bufferService.getBuffersByDevice(deviceUid);
         } else if (connectionSchemeUid != null) {
             log.info("Getting buffers for connection scheme: {} with offset: {}, limit: {}", 
                     connectionSchemeUid, offset, limit);
-            buffers = bufferService.getBuffersByConnectionScheme(clientUid, connectionSchemeUid);
+            buffers = bufferService.getBuffersByConnectionScheme(connectionSchemeUid);
         } else {
             log.info("Getting all buffers for client with offset: {}, limit: {}", offset, limit);
             buffers = bufferService.getBuffersByClient(clientUid);
@@ -92,7 +91,7 @@ public class BufferController {
         log.info("Partial update buffer: {} for client: {}", bufferUid, clientUid);
         
         // Временная реализация - получаем текущий буфер и возвращаем его
-        BufferBLM buffer = bufferService.getBufferByUid(clientUid, bufferUid);
+        BufferBLM buffer = bufferService.getBufferByUid(bufferUid);
         
         return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
     }
@@ -107,7 +106,7 @@ public class BufferController {
         log.info("Updating buffer: {} for client: {}", bufferUid, clientUid);
 
         bufferValidator.validate(bufferDTO);
-        BufferBLM buffer = bufferService.updateBuffer(clientUid, bufferUid, bufferDTO);
+        BufferBLM buffer = bufferService.updateBuffer(bufferUid, bufferDTO);
 
         return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
     }
@@ -116,37 +115,9 @@ public class BufferController {
     public ResponseEntity<Void> deleteBuffers(
             @RequestParam List<UUID> bufferUids) {
         
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-
         for (UUID b : bufferUids){
-            bufferService.deleteBuffer(clientUid, b);
+            bufferService.deleteBuffer(b);
         }
-
-        // if (bufferUids != null && !bufferUids.isEmpty()) {
-        //     // Удаление массива буферов
-        //     log.info("Deleting multiple buffers: {} for client: {}", bufferUids, clientUid);
-        //     for (UUID uid : bufferUids) {
-        //         bufferService.deleteBuffer(clientUid, uid);
-        //     }
-        // } else if (connectionSchemeUid != null && bufferUid != null) {
-        //     // Удаление конкретного буфера из схемы подключения
-        //     log.info("Removing buffer {} from connection scheme {} for client: {}", 
-        //             bufferUid, connectionSchemeUid, clientUid);
-        //     bufferService.deleteBufferFromConnectionScheme(clientUid, bufferUid, connectionSchemeUid);
-        // } else if (connectionSchemeUid != null) {
-        //     // Удаление всех буферов из схемы подключения
-        //     log.info("Deleting all buffers for connection scheme: {} for client: {}", 
-        //             connectionSchemeUid, clientUid);
-        //     bufferService.deleteAllBuffersFromConnectionScheme(clientUid, connectionSchemeUid);
-        // } else if (bufferUid != null) {
-        //     // Удаление одного буфера (обратная совместимость)
-        //     log.info("Deleting buffer: {} for client: {}", bufferUid, clientUid);
-        //     bufferService.deleteBuffer(clientUid, bufferUid);
-        // } else {
-        //     log.warn("No valid delete parameters provided");
-        //     return ResponseEntity.badRequest().build();
-        // }
-
         return ResponseEntity.noContent().build();
     }
 

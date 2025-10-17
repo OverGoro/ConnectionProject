@@ -1,7 +1,11 @@
 package com.connection.message.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.stereotype.Component;
 
 import com.connection.buffer.events.responses.GetBufferByUidResponse;
@@ -17,17 +21,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class BufferResponseConsumer {
+public class BufferResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
 
     private final TypedBufferKafkaClient bufferKafkaClient;
+    private final KafkaListenerEndpointRegistry registry;
 
-    @KafkaListener(topics = "${app.kafka.topics.buffer-responses:buffer.responses}")
+    @KafkaListener(id = "dynamicBufferListener", topics = "#{@typedBufferKafkaClient.getInstanceReplyTopic()}")
     public void handleBufferResponse(ConsumerRecord<String, CommandResponse> record) {
         try {
             CommandResponse message = record.value();
             String correlationId = record.key();
             
-            log.info("Received buffer response: correlationId={}", correlationId);
+            log.info("Received buffer response from instance topic: correlationId={}, topic={}", 
+                    correlationId, record.topic());
                 
             if (message instanceof GetBufferByUidResponse) {
                 GetBufferByUidResponse typedResponse = (GetBufferByUidResponse) message;
@@ -50,6 +56,20 @@ public class BufferResponseConsumer {
             
         } catch (Exception e) {
             log.error("Error processing buffer response: correlationId={}", record.key(), e);
+        }
+    }
+
+    @Override
+    public void onApplicationEvent(ApplicationReadyEvent event) {
+        try {
+            MessageListenerContainer container = registry.getListenerContainer("dynamicBufferListener");
+            if (container != null && !container.isRunning()) {
+                container.start();
+                log.info("Dynamic buffer response listener started for topic: {}", 
+                        bufferKafkaClient.getInstanceReplyTopic());
+            }
+        } catch (Exception e) {
+            log.error("Failed to start dynamic buffer listener", e);
         }
     }
 }

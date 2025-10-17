@@ -2,6 +2,7 @@
 package com.service.buffer.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BufferCommandConsumer {
 
+    @Qualifier("KafkaBufferService")
     private final BufferService bufferService;
     private final BufferConverter bufferConverter;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -81,7 +83,8 @@ public class BufferCommandConsumer {
                     bufferDTO);
 
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Successfully processed GetBufferByUidCommand for buffer: {}", command.getBufferUid());
+            log.info("GetBufferByUid response sent to {}: correlationId={}",
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             log.error("Error processing GetBufferByUidCommand for buffer UID: {}", command.getBufferUid(), e);
@@ -109,8 +112,8 @@ public class BufferCommandConsumer {
 
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
 
-            log.info("Successfully processed GetBuffersByClientCommand for client: {}, found {} buffers",
-                    command.getClientUid(), bufferDTOs.size());
+            log.info("GetBufferByClient response sent to {}: correlationId={}",
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             log.error("Error processing GetBuffersByClientCommand for client UID: {}", command.getClientUid(), e);
@@ -138,8 +141,8 @@ public class BufferCommandConsumer {
 
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
 
-            log.info("Successfully processed GetBuffersByDeviceCommand for device: {}, found {} buffers",
-                    command.getDeviceUid(), bufferDTOs.size());
+            log.info("GetBufferByDevice response sent to {}: correlationId={}",
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             log.error("Error processing GetBuffersByDeviceCommand for device UID: {}", command.getDeviceUid(), e);
@@ -154,7 +157,8 @@ public class BufferCommandConsumer {
 
     private void handleGetBuffersByConnectionSchemeCommand(GetBuffersByConnectionSchemeUidCommand command, String key) {
         try {
-            log.info("Processing GetBuffersByConnectionSchemeCommand for connection scheme UID: {}", command.getConnectionSchemeUid());
+            log.info("Processing GetBuffersByConnectionSchemeCommand for connection scheme UID: {}",
+                    command.getConnectionSchemeUid());
 
             List<BufferBLM> buffersBLM = bufferService.getBuffersByConnectionScheme(command.getConnectionSchemeUid());
             List<BufferDTO> bufferDTOs = buffersBLM.stream()
@@ -167,11 +171,12 @@ public class BufferCommandConsumer {
 
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
 
-            log.info("Successfully processed GetBuffersByConnectionSchemeCommand for connection scheme: {}, found {} buffers",
-                    command.getConnectionSchemeUid(), bufferDTOs.size());
+            log.info("GetBufferByConnectionScheme response sent to {}: correlationId={}",
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
-            log.error("Error processing GetBuffersByConnectionSchemeCommand for connection scheme UID: {}", command.getConnectionSchemeUid(), e);
+            log.error("Error processing GetBuffersByConnectionSchemeCommand for connection scheme UID: {}",
+                    command.getConnectionSchemeUid(), e);
 
             GetBuffersByConnectionSchemeResponse response = GetBuffersByConnectionSchemeResponse.error(
                     command.getCorrelationId(),
@@ -193,7 +198,8 @@ public class BufferCommandConsumer {
 
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
 
-            log.info("Successfully processed HealthCheckCommand");
+            log.info("HealthCheck response sent to {}: correlationId={}",
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             log.error("Error processing HealthCheckCommand", e);

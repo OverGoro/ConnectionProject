@@ -7,11 +7,11 @@ import java.util.UUID;
 import com.connection.device.model.DeviceBLM;
 
 public interface DeviceService {
-    DeviceBLM createDevice(UUID clientUid, DeviceBLM deviceBLM);
-    DeviceBLM getDevice(UUID clientUid, UUID deviceUid);
+    DeviceBLM createDevice(DeviceBLM deviceBLM);
+    DeviceBLM getDevice(UUID deviceUid);
     List<DeviceBLM> getDevicesByClient(UUID clientUid);
-    DeviceBLM updateDevice(UUID clientUid, DeviceBLM deviceBLM);
-    void deleteDevice(UUID clientUid, UUID deviceUid);
+    DeviceBLM updateDevice(DeviceBLM deviceBLM);
+    void deleteDevice(UUID deviceUid);
     boolean deviceExists(UUID deviceUid);
     Map<String, Object> getHealthStatus();
 }

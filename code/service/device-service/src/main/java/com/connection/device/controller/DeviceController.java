@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,16 +24,16 @@ import com.connection.device.model.DeviceBLM;
 import com.connection.device.model.DeviceDTO;
 import com.connection.device.validator.DeviceValidator;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/v1")
 public class DeviceController {
     
+    @Qualifier("DeviceServiceApiImpl")
     private final DeviceService deviceService;
+    
     private final DeviceValidator deviceValidator;
     private final DeviceConverter deviceConverter;
 
@@ -41,6 +42,15 @@ public class DeviceController {
     private static final int DEFAULT_LIMIT = 50;
     private static final int MAX_LIMIT = 1000;
 
+    public DeviceController(
+            @Qualifier("DeviceServiceApiImpl") DeviceService deviceService,
+            DeviceValidator deviceValidator,
+            DeviceConverter deviceConverter) {
+        this.deviceService = deviceService;
+        this.deviceValidator = deviceValidator;
+        this.deviceConverter = deviceConverter;
+    }
+
     @PostMapping("/devices")
     public ResponseEntity<DeviceResponse> createDevice(@RequestBody DeviceDTO deviceDTO) {
         UUID clientUid = SecurityUtils.getCurrentClientUid();
@@ -48,7 +58,7 @@ public class DeviceController {
 
         deviceValidator.validate(deviceDTO);
         DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
-        DeviceBLM device = deviceService.createDevice(clientUid, deviceBLM);
+        DeviceBLM device = deviceService.createDevice(deviceBLM);
 
         return ResponseEntity.ok(new DeviceResponse(device.getUid()));
     }
@@ -57,8 +67,7 @@ public class DeviceController {
     public ResponseEntity<DeviceResponse> getDevice(@PathVariable UUID deviceUid) {
         log.info("Getting device: {}", deviceUid);
 
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        DeviceBLM device = deviceService.getDevice(clientUid, deviceUid);
+        DeviceBLM device = deviceService.getDevice(deviceUid);
 
         return ResponseEntity.ok(new DeviceResponse(device.getUid()));
     }
@@ -73,13 +82,11 @@ public class DeviceController {
         UUID clientUid = SecurityUtils.getCurrentClientUid();
         List<DeviceBLM> allDevices = deviceService.getDevicesByClient(clientUid);
         
-        // Применяем пагинацию
         List<DeviceBLM> paginatedDevices = applyPagination(allDevices, offset, limit);
         List<DeviceDTO> deviceDTOs = paginatedDevices.stream()
                 .map(deviceConverter::toDTO)
                 .collect(Collectors.toList());
 
-        // Создаем информацию о пагинации
         DevicesListResponse.PaginationInfo paginationInfo = 
             new DevicesListResponse.PaginationInfo(
                 offset, 
@@ -101,7 +108,7 @@ public class DeviceController {
 
         deviceValidator.validate(deviceDTO);
         DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
-        DeviceBLM device = deviceService.updateDevice(clientUid, deviceBLM);
+        DeviceBLM device = deviceService.updateDevice(deviceBLM);
 
         return ResponseEntity.ok(new DeviceResponse(device.getUid()));
     }
@@ -110,8 +117,7 @@ public class DeviceController {
     public ResponseEntity<Void> deleteDevice(@PathVariable UUID deviceUid) {
         log.info("Deleting device: {}", deviceUid);
 
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        deviceService.deleteDevice(clientUid, deviceUid);
+        deviceService.deleteDevice(deviceUid);
 
         return ResponseEntity.noContent().build();
     }
