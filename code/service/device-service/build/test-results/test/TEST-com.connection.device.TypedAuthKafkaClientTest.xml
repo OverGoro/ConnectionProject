@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Typed Auth Kafka Client Tests" tests="4" skipped="0" failures="0" errors="0" timestamp="2025-10-17T01:17:00.288Z" hostname="Yurik" time="0.614">
+<testsuite name="Typed Auth Kafka Client Tests" tests="4" skipped="0" failures="0" errors="0" timestamp="2025-10-18T11:45:33.694Z" hostname="Yurik" time="0.917">
   <properties/>
-  <testcase name="Handle response - ignores unknown correlation ID" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.184"/>
-  <testcase name="Send request - handles Kafka send failure" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.417"/>
-  <testcase name="Handle response - completes exceptionally for type mismatch" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.005"/>
-  <testcase name="Handle response - completes future for matching correlation ID" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.002"/>
-  <system-out><![CDATA[04:17:00.472 [ForkJoinPool-1-worker-1] WARN com.connection.device.kafka.TypedAuthKafkaClient -- Received response for unknown correlationId: unknown-correlation-id
-04:17:00.891 [ForkJoinPool-1-worker-1] WARN com.connection.device.kafka.TypedAuthKafkaClient -- Request timeout or error for correlationId: 373bc4ca-36a1-4d89-a41e-e378ffecf8df
-04:17:00.891 [ForkJoinPool-1-worker-1] ERROR com.connection.device.kafka.TypedAuthKafkaClient -- Failed to send command: Kafka error
-04:17:00.896 [ForkJoinPool-1-worker-1] INFO com.connection.device.kafka.TypedAuthKafkaClient -- Command sent successfully: correlationId=7cf80756-6aae-4ad7-bbf7-3d6bbf0cfbe6, topic=auth.commands
-04:17:00.898 [ForkJoinPool-1-worker-1] WARN com.connection.device.kafka.TypedAuthKafkaClient -- Type mismatch for correlationId: 7cf80756-6aae-4ad7-bbf7-3d6bbf0cfbe6. Expected: class com.connection.auth.events.responses.TokenValidationResponse, Got: class com.connection.auth.events.responses.ClientUidResponse
-04:17:00.899 [ForkJoinPool-1-worker-1] WARN com.connection.device.kafka.TypedAuthKafkaClient -- Request timeout or error for correlationId: 7cf80756-6aae-4ad7-bbf7-3d6bbf0cfbe6
-04:17:00.902 [ForkJoinPool-1-worker-1] INFO com.connection.device.kafka.TypedAuthKafkaClient -- Command sent successfully: correlationId=e39a9716-66b7-4f7e-8923-44f3dd85b710, topic=auth.commands
-04:17:00.903 [ForkJoinPool-1-worker-1] INFO com.connection.device.kafka.TypedAuthKafkaClient -- Response handled successfully: correlationId=e39a9716-66b7-4f7e-8923-44f3dd85b710
+  <testcase name="Handle response - ignores unknown correlation ID" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.211"/>
+  <testcase name="Send request - handles Kafka send failure" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.673"/>
+  <testcase name="Handle response - completes exceptionally for type mismatch" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.012"/>
+  <testcase name="Handle response - completes future for matching correlation ID" classname="com.connection.device.TypedAuthKafkaClientTest" time="0.004"/>
+  <system-out><![CDATA[14:45:33.904 [ForkJoinPool-1-worker-1] WARN com.connection.device.kafka.TypedAuthKafkaClient -- Received response for unknown correlationId: unknown-correlation-id
+14:45:34.579 [ForkJoinPool-1-worker-1] WARN com.connection.device.kafka.TypedAuthKafkaClient -- Request timeout or error for correlationId: fb74a7b2-1361-4039-a42d-d5cab532df29
+14:45:34.580 [ForkJoinPool-1-worker-1] ERROR com.connection.device.kafka.TypedAuthKafkaClient -- Failed to send command: Kafka error
+14:45:34.597 [ForkJoinPool-1-worker-1] INFO com.connection.device.kafka.TypedAuthKafkaClient -- Command sent successfully: correlationId=854adcb8-e649-42bc-b3fe-9168b5d5906c, topic=auth.commands
+14:45:34.603 [ForkJoinPool-1-worker-1] WARN com.connection.device.kafka.TypedAuthKafkaClient -- Type mismatch for correlationId: 854adcb8-e649-42bc-b3fe-9168b5d5906c. Expected: class com.connection.auth.events.responses.TokenValidationResponse, Got: class com.connection.auth.events.responses.ClientUidResponse
+14:45:34.603 [ForkJoinPool-1-worker-1] WARN com.connection.device.kafka.TypedAuthKafkaClient -- Request timeout or error for correlationId: 854adcb8-e649-42bc-b3fe-9168b5d5906c
+14:45:34.610 [ForkJoinPool-1-worker-1] INFO com.connection.device.kafka.TypedAuthKafkaClient -- Command sent successfully: correlationId=7c3af9b9-d584-466e-a506-5b570ce3e119, topic=auth.commands
+14:45:34.610 [ForkJoinPool-1-worker-1] INFO com.connection.device.kafka.TypedAuthKafkaClient -- Response handled successfully: correlationId=7c3af9b9-d584-466e-a506-5b570ce3e119
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -122,6 +122,26 @@ services:
       - auth-service
     networks:
       - app-network
+      
+  message-service:
+    build:
+      context: ./message-service
+      dockerfile: Dockerfile
+    container_name: message-service
+    ports:
+      - "8086:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
+    depends_on:
+      - kafka
+      - auth-service
+      - buffer-service
+      - connectionscheme-service
+      - device-auth-service
+      - device-service
+    networks:
+      - app-network
   
 
   # Kafka UI (опционально - для мониторинга)

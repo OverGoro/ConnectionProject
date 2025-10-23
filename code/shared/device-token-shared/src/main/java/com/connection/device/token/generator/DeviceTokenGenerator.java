@@ -25,10 +25,11 @@ public class DeviceTokenGenerator {
     @NonNull
     private final String jwtSubjectString;
 
-    public String generateDeviceToken(UUID deviceUid, Date createdAt, Date expiresAt) {
+    public String generateDeviceToken(UUID deviceUid, UUID deviceTokenUid, Date createdAt, Date expiresAt) {
         String token = Jwts.builder()
                 .issuer(appNameString)
                 .subject(jwtSubjectString)
+                .claim("deviceTokenUid", deviceTokenUid)
                 .claim("deviceUid", deviceUid.toString())
                 .claim("type", "device_token")
                 .issuedAt(createdAt)
@@ -47,6 +48,7 @@ public class DeviceTokenGenerator {
         Claims claims = jws.getPayload();
 
         UUID deviceUid = UUID.fromString(claims.get("deviceUid", String.class));
+        UUID deviceTokenUid = UUID.fromString(claims.get("deviceTokenUid", String.class));
         Date issuedAt = claims.getIssuedAt();
         Date expiration = claims.getExpiration();
 
@@ -60,6 +62,7 @@ public class DeviceTokenGenerator {
 
         return DeviceTokenBLM.builder()
                 .token(token)
+                .uid(deviceTokenUid)
                 .deviceUid(deviceUid)
                 .createdAt(issuedAt)
                 .expiresAt(expiration)

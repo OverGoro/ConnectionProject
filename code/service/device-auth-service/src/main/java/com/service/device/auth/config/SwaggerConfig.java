@@ -22,9 +22,9 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Buffer Service API")
+                        .title("Device Auth Service API")
                         .version("1.0")
-                        .description("API для управления буферами"))
+                        .description("API для авторизации устройств"))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components()
                         .addSecuritySchemes("bearerAuth", 

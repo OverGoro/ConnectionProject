@@ -52,9 +52,9 @@ public class BufferNotFoundException extends BaseBufferException {
 package com.connection.processing.buffer.model;
 
 import java.util.UUID;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -64,22 +64,19 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@EqualsAndHashCode
 public class BufferBLM {
-    
     protected UUID uid;
-    
-    protected UUID connectionSchemeUid;
-    
+    protected UUID deviceUid;
     protected Integer maxMessagesNumber;
-    
     protected Integer maxMessageSize;
-    
     protected String messagePrototype;
 }// BufferDTO.java
 package com.connection.processing.buffer.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -89,24 +86,20 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@EqualsAndHashCode
 public class BufferDTO {
-    
     protected String uid;
-    
-    protected String connectionSchemeUid;
-    
+    protected String deviceUid;
     protected Integer maxMessagesNumber;
-    
     protected Integer maxMessageSize;
-    
     protected String messagePrototype;
 }// BufferDALM.java
 package com.connection.processing.buffer.model;
 
 import java.util.UUID;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -116,17 +109,12 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-
+@EqualsAndHashCode
 public class BufferDALM {
-    
     protected UUID uid;
-    
-    protected UUID connectionSchemeUid;
-    
+    protected UUID deviceUid;
     protected Integer maxMessagesNumber;
-    
     protected Integer maxMessageSize;
-    
     protected String messagePrototype;
 }// BufferConverter.java
 package com.connection.processing.buffer.converter;
@@ -141,7 +129,7 @@ public class BufferConverter {
     public BufferBLM toBLM(BufferDALM dalm) {
         return new BufferBLM(
             dalm.getUid(),
-            dalm.getConnectionSchemeUid(),
+            dalm.getDeviceUid(),
             dalm.getMaxMessagesNumber(),
             dalm.getMaxMessageSize(),
             dalm.getMessagePrototype()
@@ -151,7 +139,7 @@ public class BufferConverter {
     public BufferBLM toBLM(BufferDTO dto) {
         return new BufferBLM(
             UUID.fromString(dto.getUid()),
-            UUID.fromString(dto.getConnectionSchemeUid()),
+            UUID.fromString(dto.getDeviceUid()),
             dto.getMaxMessagesNumber(),
             dto.getMaxMessageSize(),
             dto.getMessagePrototype()
@@ -161,7 +149,7 @@ public class BufferConverter {
     public BufferDTO toDTO(BufferBLM blm) {
         return new BufferDTO(
             blm.getUid().toString(),
-            blm.getConnectionSchemeUid().toString(),
+            blm.getDeviceUid().toString(),
             blm.getMaxMessagesNumber(),
             blm.getMaxMessageSize(),
             blm.getMessagePrototype()
@@ -171,613 +159,16 @@ public class BufferConverter {
     public BufferDALM toDALM(BufferBLM blm) {
         return new BufferDALM(
             blm.getUid(),
-            blm.getConnectionSchemeUid(),
+            blm.getDeviceUid(),
             blm.getMaxMessagesNumber(),
             blm.getMaxMessageSize(),
             blm.getMessagePrototype()
         );
     }
-}// BufferJsonDataNotFoundException.java
-package com.connection.processing.buffer.objects.json.exception;
-
-public class BufferJsonDataNotFoundException extends BaseBufferJsonDataException {
-    public BufferJsonDataNotFoundException(String dataUid) {
-        super(dataUid);
-    }
-
-    public String toString() {
-        String res = super.toString();
-        res += "\n" + "description: buffer JSON data not found";
-        return res;
-    }
-}// BufferJsonDataValidateException.java
-package com.connection.processing.buffer.objects.json.exception;
-
-public class BufferJsonDataValidateException extends BaseBufferJsonDataException {
-    String descriptionString;
-
-    public BufferJsonDataValidateException(String dataUid, String description) {
-        super(dataUid);
-        this.descriptionString = description;
-    }
-
-    public String toString() {
-        String res = super.toString();
-        res += "\n" + "description: buffer JSON data is invalid";
-        res += "\n" + descriptionString;
-        return res;
-    }
-}// BufferJsonDataAlreadyExistsException.java
-package com.connection.processing.buffer.objects.json.exception;
-
-public class BufferJsonDataAlreadyExistsException extends BaseBufferJsonDataException {
-    public BufferJsonDataAlreadyExistsException(String dataUid) {
-        super(dataUid);
-    }
-
-    public String toString() {
-        String res = super.toString();
-        res += "\n" + "description: buffer JSON data already exists";
-        return res;
-    }
-}// BaseBufferJsonDataException.java
-package com.connection.processing.buffer.objects.json.exception;
-
-public class BaseBufferJsonDataException extends RuntimeException {
-    private final String dataUid;
-
-    public BaseBufferJsonDataException(String dataUid) {
-        super("buffer_json_data");
-        this.dataUid = dataUid;
-    }
-
-    public String toString() {
-        String res = super.toString();
-        res += "\n" + "data: " + dataUid;
-        return res;
-    }
-}// BufferJsonDataDALM.java
-package com.connection.processing.buffer.objects.json.model;
-
-import java.time.Instant;
-import java.util.UUID;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-@Builder
-public class BufferJsonDataDALM {
-    
-    protected UUID uid;
-    
-    protected UUID bufferUid;
-    
-    protected String data;
-    
-    protected Instant createdAt;
-}// BufferJsonDataBLM.java
-package com.connection.processing.buffer.objects.json.model;
-
-import java.time.Instant;
-import java.util.UUID;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-@Builder
-public class BufferJsonDataBLM {
-    
-    protected UUID uid;
-    
-    protected UUID bufferUid;
-    
-    protected String data;
-    
-    protected Instant createdAt;
-}// BufferJsonDataDTO.java
-package com.connection.processing.buffer.objects.json.model;
-
-import java.time.Instant;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-@Builder
-public class BufferJsonDataDTO {
-    
-    protected String uid;
-    
-    protected String bufferUid;
-    
-    protected String data;
-    
-    protected Instant createdAt;
-}// BufferJsonDataConverter.java
-package com.connection.processing.buffer.objects.json.converter;
-
-import java.util.UUID;
-
-import com.connection.processing.buffer.objects.json.model.BufferJsonDataBLM;
-import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
-import com.connection.processing.buffer.objects.json.model.BufferJsonDataDTO;
-
-public class BufferJsonDataConverter {
-    public BufferJsonDataBLM toBLM(BufferJsonDataDALM dalm) {
-        return new BufferJsonDataBLM(
-            dalm.getUid(),
-            dalm.getBufferUid(),
-            dalm.getData(),
-            dalm.getCreatedAt()
-        );
-    }
-
-    public BufferJsonDataBLM toBLM(BufferJsonDataDTO dto) {
-        return new BufferJsonDataBLM(
-            UUID.fromString(dto.getUid()),
-            UUID.fromString(dto.getBufferUid()),
-            dto.getData(),
-            dto.getCreatedAt()
-        );
-    }
-
-    public BufferJsonDataDTO toDTO(BufferJsonDataBLM blm) {
-        return new BufferJsonDataDTO(
-            blm.getUid().toString(),
-            blm.getBufferUid().toString(),
-            blm.getData(),
-            blm.getCreatedAt()
-        );
-    }
-
-    public BufferJsonDataDALM toDALM(BufferJsonDataBLM blm) {
-        return new BufferJsonDataDALM(
-            blm.getUid(),
-            blm.getBufferUid(),
-            blm.getData(),
-            blm.getCreatedAt()
-        );
-    }
-}// BufferJsonDataValidator.java
-package com.connection.processing.buffer.objects.json.validator;
-
-import java.time.Instant;
-import java.util.UUID;
-
-import com.connection.processing.buffer.objects.json.exception.BufferJsonDataValidateException;
-import com.connection.processing.buffer.objects.json.model.BufferJsonDataBLM;
-import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
-import com.connection.processing.buffer.objects.json.model.BufferJsonDataDTO;
-
-public class BufferJsonDataValidator {
-    public void validate(BufferJsonDataDTO data) {
-        if (data == null) {
-            throw new BufferJsonDataValidateException("null", "Buffer JSON data is null");
-        }
-        try {
-            validateUid(data.getUid());
-            validateBufferUid(data.getBufferUid());
-            validateData(data.getData());
-            validateCreatedAt(data.getCreatedAt());
-        } catch (IllegalArgumentException e) {
-            throw new BufferJsonDataValidateException(data.getUid(), e.getMessage());
-        }
-    }
-
-    public void validate(BufferJsonDataBLM data) {
-        if (data == null) {
-            throw new BufferJsonDataValidateException("null", "Buffer JSON data is null");
-        }
-        try {
-            validateUid(data.getUid());
-            validateBufferUid(data.getBufferUid());
-            validateData(data.getData());
-            validateCreatedAt(data.getCreatedAt());
-        } catch (IllegalArgumentException e) {
-            throw new BufferJsonDataValidateException(data.getUid() != null ? data.getUid().toString() : "null", e.getMessage());
-        }
-    }
-
-    public void validate(BufferJsonDataDALM data) {
-        if (data == null) {
-            throw new BufferJsonDataValidateException("null", "Buffer JSON data is null");
-        }
-        try {
-            validateUid(data.getUid());
-            validateBufferUid(data.getBufferUid());
-            validateData(data.getData());
-            validateCreatedAt(data.getCreatedAt());
-        } catch (IllegalArgumentException e) {
-            throw new BufferJsonDataValidateException(data.getUid() != null ? data.getUid().toString() : "null", e.getMessage());
-        }
-    }
-
-    private void validateUid(UUID uid) {
-        if (uid == null) {
-            throw new IllegalArgumentException("UID cannot be null");
-        }
-    }
-
-    private void validateUid(String uid) {
-        if (uid == null || uid.trim().isEmpty()) {
-            throw new IllegalArgumentException("UID cannot be empty");
-        }
-        try {
-            UUID.fromString(uid);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid UID format");
-        }
-    }
-
-    private void validateBufferUid(UUID bufferUid) {
-        if (bufferUid == null) {
-            throw new IllegalArgumentException("Buffer UID cannot be null");
-        }
-    }
-
-    private void validateBufferUid(String bufferUid) {
-        if (bufferUid == null || bufferUid.trim().isEmpty()) {
-            throw new IllegalArgumentException("Buffer UID cannot be empty");
-        }
-        try {
-            UUID.fromString(bufferUid);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid Buffer UID format");
-        }
-    }
-
-    private void validateData(String data) {
-        if (data == null || data.trim().isEmpty()) {
-            throw new IllegalArgumentException("JSON data cannot be empty");
-        }
-        // Можно добавить дополнительную валидацию JSON формата
-        try {
-            // Простая проверка что это похоже на JSON
-            if (!data.trim().startsWith("{") || !data.trim().endsWith("}")) {
-                throw new IllegalArgumentException("Data must be a valid JSON object");
-            }
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid JSON format");
-        }
-    }
-
-    private void validateCreatedAt(Instant createdAt) {
-        if (createdAt == null) {
-            throw new IllegalArgumentException("Creation timestamp cannot be null");
-        }
-        
-        Instant now = Instant.now();
-        if (createdAt.isAfter(now)) {
-            throw new IllegalArgumentException("Creation timestamp cannot be in the future");
-        }
-    }
-}// BufferJsonDataRepository.java
-package com.connection.processing.buffer.objects.json.repository;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
-
-import com.connection.processing.buffer.objects.json.exception.BufferJsonDataAlreadyExistsException;
-import com.connection.processing.buffer.objects.json.exception.BufferJsonDataNotFoundException;
-import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
-
-public interface BufferJsonDataRepository {
-    /**
-     * Добавить новое JSON сообщение в буфер
-     */
-    void add(BufferJsonDataDALM data) throws BufferJsonDataAlreadyExistsException;
-
-    /**
-     * Удалить JSON сообщение
-     */
-    void delete(UUID uid) throws BufferJsonDataNotFoundException;
-
-    /**
-     * Найти JSON сообщение по UID
-     */
-    BufferJsonDataDALM findByUid(UUID uid) throws BufferJsonDataNotFoundException;
-
-    /**
-     * Найти все JSON сообщения буфера
-     */
-    List<BufferJsonDataDALM> findByBufferUid(UUID bufferUid);
-
-    /**
-     * Найти JSON сообщения буфера созданные после указанной даты
-     */
-    List<BufferJsonDataDALM> findByBufferUidAndCreatedAfter(UUID bufferUid, Instant createdAfter);
-
-    /**
-     * Найти JSON сообщения буфера созданные до указанной даты
-     */
-    List<BufferJsonDataDALM> findByBufferUidAndCreatedBefore(UUID bufferUid, Instant createdBefore);
-
-    /**
-     * Найти JSON сообщения буфера в указанном временном диапазоне
-     */
-    List<BufferJsonDataDALM> findByBufferUidAndCreatedBetween(UUID bufferUid, Instant startDate, Instant endDate);
-
-    /**
-     * Найти самое новое JSON сообщение буфера
-     */
-    BufferJsonDataDALM findNewestByBufferUid(UUID bufferUid) throws BufferJsonDataNotFoundException;
-
-    /**
-     * Найти самое старое JSON сообщение буфера
-     */
-    BufferJsonDataDALM findOldestByBufferUid(UUID bufferUid) throws BufferJsonDataNotFoundException;
-
-    /**
-     * Найти N самых новых JSON сообщений буфера
-     */
-    List<BufferJsonDataDALM> findNewestByBufferUid(UUID bufferUid, int limit);
-
-    /**
-     * Найти N самых старых JSON сообщений буфера
-     */
-    List<BufferJsonDataDALM> findOldestByBufferUid(UUID bufferUid, int limit);
-
-    /**
-     * Проверить существование JSON сообщения
-     */
-    boolean exists(UUID uid);
-
-    /**
-     * Удалить все JSON сообщения буфера
-     */
-    void deleteByBufferUid(UUID bufferUid);
-
-    /**
-     * Удалить старые JSON сообщения (до указанной даты)
-     */
-    void deleteOldData(Instant olderThan);
-
-    /**
-     * Получить количество сообщений в буфере
-     */
-    int countByBufferUid(UUID bufferUid);
-}// BufferJsonDataRepositorySQLImpl.java
-package com.connection.processing.buffer.objects.json.repository;
-
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.connection.processing.buffer.objects.json.exception.BufferJsonDataAlreadyExistsException;
-import com.connection.processing.buffer.objects.json.exception.BufferJsonDataNotFoundException;
-import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
-
-@Repository
-public class BufferJsonDataRepositorySQLImpl implements BufferJsonDataRepository {
-
-    private static final String SELECT_DATA = "SELECT uid, buffer_uid, data, created_at";
-    private static final String FROM_DATA = " FROM processing.buffer_json_datas";
-
-    private static final String SELECT_DATA_BY_UID = SELECT_DATA + FROM_DATA + " WHERE uid = :uid";
-    private static final String SELECT_DATA_BY_BUFFER = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid";
-    private static final String SELECT_DATA_BY_BUFFER_AFTER = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid AND created_at > :created_after";
-    private static final String SELECT_DATA_BY_BUFFER_BEFORE = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid AND created_at < :created_before";
-    private static final String SELECT_DATA_BY_BUFFER_BETWEEN = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid AND created_at BETWEEN :start_date AND :end_date";
-
-    private static final String SELECT_NEWEST_BY_BUFFER = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid ORDER BY created_at DESC LIMIT 1";
-    private static final String SELECT_OLDEST_BY_BUFFER = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid ORDER BY created_at ASC LIMIT 1";
-    private static final String SELECT_NEWEST_N_BY_BUFFER = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid ORDER BY created_at DESC LIMIT :limit";
-    private static final String SELECT_OLDEST_N_BY_BUFFER = SELECT_DATA + FROM_DATA + " WHERE buffer_uid = :buffer_uid ORDER BY created_at ASC LIMIT :limit";
-
-    private static final String INSERT_DATA = "INSERT INTO processing.buffer_json_datas (uid, buffer_uid, data, created_at) " +
-            "VALUES (:uid, :buffer_uid, :data, :created_at)";
-
-    private static final String DELETE_DATA = "DELETE FROM processing.buffer_json_datas WHERE uid = :uid";
-    private static final String DELETE_DATA_BY_BUFFER = "DELETE FROM processing.buffer_json_datas WHERE buffer_uid = :buffer_uid";
-    private static final String DELETE_OLD_DATA = "DELETE FROM processing.buffer_json_datas WHERE created_at < :older_than";
-
-    private static final String COUNT_DATA_BY_BUFFER = "SELECT COUNT(*) FROM processing.buffer_json_datas WHERE buffer_uid = :buffer_uid";
-
-    private final NamedParameterJdbcTemplate jdbcTemplate;
-
-    private final RowMapper<BufferJsonDataDALM> dataRowMapper = (rs, rowNum) -> {
-        BufferJsonDataDALM data = new BufferJsonDataDALM();
-        data.setUid(UUID.fromString(rs.getString("uid")));
-        data.setBufferUid(UUID.fromString(rs.getString("buffer_uid")));
-        data.setData(rs.getString("data"));
-        data.setCreatedAt(rs.getTimestamp("created_at").toInstant());
-        return data;
-    };
-
-    public BufferJsonDataRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
-
-    @Override
-    @Transactional
-    public void add(BufferJsonDataDALM data) throws BufferJsonDataAlreadyExistsException {
-        if (exists(data.getUid())) {
-            throw new BufferJsonDataAlreadyExistsException("Buffer JSON data with UID " + data.getUid() + " already exists");
-        }
-
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", data.getUid());
-        params.addValue("buffer_uid", data.getBufferUid());
-        params.addValue("data", data.getData());
-        params.addValue("created_at", data.getCreatedAt());
-
-        jdbcTemplate.update(INSERT_DATA, params);
-    }
-
-    @Override
-    @Transactional
-    public void delete(UUID uid) throws BufferJsonDataNotFoundException {
-        if (!exists(uid)) {
-            throw new BufferJsonDataNotFoundException("Buffer JSON data with UID " + uid + " not found");
-        }
-
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", uid);
-
-        jdbcTemplate.update(DELETE_DATA, params);
-    }
-
-    @Override
-    @Transactional
-    public void deleteByBufferUid(UUID bufferUid) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("buffer_uid", bufferUid);
-
-        jdbcTemplate.update(DELETE_DATA_BY_BUFFER, params);
-    }
-
-    @Override
-    @Transactional
-    public void deleteOldData(Instant olderThan) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("older_than", olderThan);
-
-        jdbcTemplate.update(DELETE_OLD_DATA, params);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public BufferJsonDataDALM findByUid(UUID uid) throws BufferJsonDataNotFoundException {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", uid);
-        try {
-            return jdbcTemplate.queryForObject(SELECT_DATA_BY_UID, params, dataRowMapper);
-        } catch (EmptyResultDataAccessException e) {
-            throw new BufferJsonDataNotFoundException("Buffer JSON data with UID " + uid + " not found");
-        }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<BufferJsonDataDALM> findByBufferUid(UUID bufferUid) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("buffer_uid", bufferUid);
-        return jdbcTemplate.query(SELECT_DATA_BY_BUFFER, params, dataRowMapper);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<BufferJsonDataDALM> findByBufferUidAndCreatedAfter(UUID bufferUid, Instant createdAfter) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("buffer_uid", bufferUid);
-        params.addValue("created_after", createdAfter);
-        return jdbcTemplate.query(SELECT_DATA_BY_BUFFER_AFTER, params, dataRowMapper);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<BufferJsonDataDALM> findByBufferUidAndCreatedBefore(UUID bufferUid, Instant createdBefore) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("buffer_uid", bufferUid);
-        params.addValue("created_before", createdBefore);
-        return jdbcTemplate.query(SELECT_DATA_BY_BUFFER_BEFORE, params, dataRowMapper);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<BufferJsonDataDALM> findByBufferUidAndCreatedBetween(UUID bufferUid, Instant startDate, Instant endDate) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("buffer_uid", bufferUid);
-        params.addValue("start_date", startDate);
-        params.addValue("end_date", endDate);
-        return jdbcTemplate.query(SELECT_DATA_BY_BUFFER_BETWEEN, params, dataRowMapper);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public BufferJsonDataDALM findNewestByBufferUid(UUID bufferUid) throws BufferJsonDataNotFoundException {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("buffer_uid", bufferUid);
-        try {
-            return jdbcTemplate.queryForObject(SELECT_NEWEST_BY_BUFFER, params, dataRowMapper);
-        } catch (EmptyResultDataAccessException e) {
-            throw new BufferJsonDataNotFoundException("No JSON data found for buffer UID " + bufferUid);
-        }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public BufferJsonDataDALM findOldestByBufferUid(UUID bufferUid) throws BufferJsonDataNotFoundException {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("buffer_uid", bufferUid);
-        try {
-            return jdbcTemplate.queryForObject(SELECT_OLDEST_BY_BUFFER, params, dataRowMapper);
-        } catch (EmptyResultDataAccessException e) {
-            throw new BufferJsonDataNotFoundException("No JSON data found for buffer UID " + bufferUid);
-        }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<BufferJsonDataDALM> findNewestByBufferUid(UUID bufferUid, int limit) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("buffer_uid", bufferUid);
-        params.addValue("limit", limit);
-        return jdbcTemplate.query(SELECT_NEWEST_N_BY_BUFFER, params, dataRowMapper);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<BufferJsonDataDALM> findOldestByBufferUid(UUID bufferUid, int limit) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("buffer_uid", bufferUid);
-        params.addValue("limit", limit);
-        return jdbcTemplate.query(SELECT_OLDEST_N_BY_BUFFER, params, dataRowMapper);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public boolean exists(UUID uid) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", uid);
-        try {
-            jdbcTemplate.queryForObject(SELECT_DATA_BY_UID, params, dataRowMapper);
-            return true;
-        } catch (EmptyResultDataAccessException e) {
-            return false;
-        }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public int countByBufferUid(UUID bufferUid) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("buffer_uid", bufferUid);
-        return jdbcTemplate.queryForObject(COUNT_DATA_BY_BUFFER, params, Integer.class);
-    }
 }// BufferValidator.java
 package com.connection.processing.buffer.validator;
 
 import java.util.UUID;
-
 import com.connection.processing.buffer.exception.BufferValidateException;
 import com.connection.processing.buffer.model.BufferBLM;
 import com.connection.processing.buffer.model.BufferDALM;
@@ -790,7 +181,7 @@ public class BufferValidator {
         }
         try {
             validateUid(buffer.getUid());
-            validateConnectionSchemeUid(buffer.getConnectionSchemeUid());
+            validateDeviceUid(buffer.getDeviceUid()); // Изменено
             validateMaxMessagesNumber(buffer.getMaxMessagesNumber());
             validateMaxMessageSize(buffer.getMaxMessageSize());
             validateMessagePrototype(buffer.getMessagePrototype());
@@ -805,7 +196,7 @@ public class BufferValidator {
         }
         try {
             validateUid(buffer.getUid());
-            validateConnectionSchemeUid(buffer.getConnectionSchemeUid());
+            validateDeviceUid(buffer.getDeviceUid()); // Изменено
             validateMaxMessagesNumber(buffer.getMaxMessagesNumber());
             validateMaxMessageSize(buffer.getMaxMessageSize());
             validateMessagePrototype(buffer.getMessagePrototype());
@@ -820,7 +211,7 @@ public class BufferValidator {
         }
         try {
             validateUid(buffer.getUid());
-            validateConnectionSchemeUid(buffer.getConnectionSchemeUid());
+            validateDeviceUid(buffer.getDeviceUid()); // Изменено
             validateMaxMessagesNumber(buffer.getMaxMessagesNumber());
             validateMaxMessageSize(buffer.getMaxMessageSize());
             validateMessagePrototype(buffer.getMessagePrototype());
@@ -846,20 +237,20 @@ public class BufferValidator {
         }
     }
 
-    private void validateConnectionSchemeUid(UUID connectionSchemeUid) {
-        if (connectionSchemeUid == null) {
-            throw new IllegalArgumentException("Connection Scheme UID cannot be null");
+    private void validateDeviceUid(UUID deviceUid) { // Новый метод
+        if (deviceUid == null) {
+            throw new IllegalArgumentException("Device UID cannot be null");
         }
     }
 
-    private void validateConnectionSchemeUid(String connectionSchemeUid) {
-        if (connectionSchemeUid == null || connectionSchemeUid.trim().isEmpty()) {
-            throw new IllegalArgumentException("Connection Scheme UID cannot be empty");
+    private void validateDeviceUid(String deviceUid) { // Новый метод
+        if (deviceUid == null || deviceUid.trim().isEmpty()) {
+            throw new IllegalArgumentException("Device UID cannot be empty");
         }
         try {
-            UUID.fromString(connectionSchemeUid);
+            UUID.fromString(deviceUid);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid Connection Scheme UID format");
+            throw new IllegalArgumentException("Invalid Device UID format");
         }
     }
 
@@ -886,48 +277,68 @@ public class BufferValidator {
             throw new IllegalArgumentException("Message prototype cannot be empty");
         }
     }
-}// BufferRepositorySQLImpl.java
-package com.connection.processing.buffer.repository;
+}package com.connection.processing.buffer.repository;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
 import com.connection.processing.buffer.exception.BufferNotFoundException;
-import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferBLM;
 
 import java.util.List;
 import java.util.UUID;
 
-@Repository
 public class BufferRepositorySQLImpl implements BufferRepository {
 
-    private static final String SELECT_BUFFER = "SELECT uid, connection_scheme_uid, max_messages_number, max_message_size, message_prototype";
-    private static final String FROM_BUFFER = " FROM processing.buffer";
+    private static final String SELECT_BUFFER = "SELECT b.uid, b.device_uid, b.max_messages_number, b.max_message_size, b.message_prototype";
+    private static final String FROM_BUFFER = " FROM processing.buffer b";
 
-    private static final String SELECT_BUFFER_BY_UID = SELECT_BUFFER + FROM_BUFFER + " WHERE uid = :uid";
-    private static final String SELECT_BUFFERS_BY_SCHEME = SELECT_BUFFER + FROM_BUFFER + " WHERE connection_scheme_uid = :connection_scheme_uid";
+    private static final String SELECT_BUFFER_BY_UID = SELECT_BUFFER + FROM_BUFFER + " WHERE b.uid = :uid";
+    private static final String SELECT_BUFFERS_BY_DEVICE = SELECT_BUFFER + FROM_BUFFER
+            + " WHERE b.device_uid = :device_uid";
+    private static final String SELECT_BUFFERS_BY_SCHEME = SELECT_BUFFER +
+            FROM_BUFFER +
+            " INNER JOIN processing.connection_scheme_buffer csb ON b.uid = csb.buffer_uid" +
+            " WHERE csb.scheme_uid = :scheme_uid";
 
-    private static final String INSERT_BUFFER = "INSERT INTO processing.buffer (uid, connection_scheme_uid, max_messages_number, max_message_size, message_prototype) " +
-            "VALUES (:uid, :connection_scheme_uid, :max_messages_number, :max_message_size, :message_prototype)";
+    private static final String INSERT_BUFFER = "INSERT INTO processing.buffer (uid, device_uid, max_messages_number, max_message_size, message_prototype) "
+            +
+            "VALUES (:uid, :device_uid, :max_messages_number, :max_message_size, :message_prototype)";
 
-    private static final String UPDATE_BUFFER = "UPDATE processing.buffer SET max_messages_number = :max_messages_number, " +
-            "max_message_size = :max_message_size, message_prototype = :message_prototype " +
-            "WHERE uid = :uid";
+    private static final String UPDATE_BUFFER = "UPDATE processing.buffer SET device_uid = :device_uid, " +
+            "max_messages_number = :max_messages_number, max_message_size = :max_message_size, " +
+            "message_prototype = :message_prototype WHERE uid = :uid";
 
     private static final String DELETE_BUFFER = "DELETE FROM processing.buffer WHERE uid = :uid";
-    private static final String DELETE_BUFFERS_BY_SCHEME = "DELETE FROM processing.buffer WHERE connection_scheme_uid = :connection_scheme_uid";
+    private static final String DELETE_BUFFERS_BY_DEVICE = "DELETE FROM processing.buffer WHERE device_uid = :device_uid";
+
+    // SQL для работы со связями connection_scheme_buffer
+    private static final String INSERT_SCHEME_BUFFER_LINK = "INSERT INTO processing.connection_scheme_buffer (uid, scheme_uid, buffer_uid) "
+            +
+            "VALUES (:link_uid, :scheme_uid, :buffer_uid)";
+
+    private static final String DELETE_SCHEME_BUFFER_LINKS = "DELETE FROM processing.connection_scheme_buffer WHERE buffer_uid = :buffer_uid";
+    private static final String DELETE_SCHEME_BUFFER_LINKS_BY_SCHEME = "DELETE FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid";
+    private static final String DELETE_SPECIFIC_SCHEME_BUFFER_LINK = "DELETE FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid AND buffer_uid = :buffer_uid";
+
+    private static final String SELECT_BUFFER_UIDS_BY_SCHEME = "SELECT buffer_uid FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid";
+    private static final String EXISTS_SCHEME_BUFFER_LINK = "SELECT COUNT(*) FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid AND buffer_uid = :buffer_uid";
+    private static final String EXISTS_BY_DEVICE_AND_NAME = "SELECT COUNT(*) FROM processing.buffer WHERE device_uid = :device_uid AND message_prototype = :message_prototype";
+
+
+    private final BufferConverter converter = new BufferConverter();
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
-    private final RowMapper<BufferDALM> bufferRowMapper = (rs, rowNum) -> {
-        BufferDALM buffer = new BufferDALM();
+    private final RowMapper<BufferBLM> bufferRowMapper = (rs, rowNum) -> {
+        BufferBLM buffer = new BufferBLM();
         buffer.setUid(UUID.fromString(rs.getString("uid")));
-        buffer.setConnectionSchemeUid(UUID.fromString(rs.getString("connection_scheme_uid")));
+        buffer.setDeviceUid(UUID.fromString(rs.getString("device_uid")));
         buffer.setMaxMessagesNumber(rs.getInt("max_messages_number"));
         buffer.setMaxMessageSize(rs.getInt("max_message_size"));
         buffer.setMessagePrototype(rs.getString("message_prototype"));
@@ -940,14 +351,14 @@ public class BufferRepositorySQLImpl implements BufferRepository {
 
     @Override
     @Transactional
-    public void add(BufferDALM buffer) throws BufferAlreadyExistsException {
+    public void add(BufferBLM buffer) throws BufferAlreadyExistsException {
         if (exists(buffer.getUid())) {
             throw new BufferAlreadyExistsException("Buffer with UID " + buffer.getUid() + " already exists");
         }
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", buffer.getUid());
-        params.addValue("connection_scheme_uid", buffer.getConnectionSchemeUid());
+        params.addValue("device_uid", buffer.getDeviceUid());
         params.addValue("max_messages_number", buffer.getMaxMessagesNumber());
         params.addValue("max_message_size", buffer.getMaxMessageSize());
         params.addValue("message_prototype", buffer.getMessagePrototype());
@@ -957,13 +368,14 @@ public class BufferRepositorySQLImpl implements BufferRepository {
 
     @Override
     @Transactional
-    public void update(BufferDALM buffer) throws BufferNotFoundException {
+    public void update(BufferBLM buffer) throws BufferNotFoundException {
         if (!exists(buffer.getUid())) {
             throw new BufferNotFoundException("Buffer with UID " + buffer.getUid() + " not found");
         }
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", buffer.getUid());
+        params.addValue("device_uid", buffer.getDeviceUid());
         params.addValue("max_messages_number", buffer.getMaxMessagesNumber());
         params.addValue("max_message_size", buffer.getMaxMessageSize());
         params.addValue("message_prototype", buffer.getMessagePrototype());
@@ -978,24 +390,39 @@ public class BufferRepositorySQLImpl implements BufferRepository {
             throw new BufferNotFoundException("Buffer with UID " + uid + " not found");
         }
 
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", uid);
+        // Сначала удаляем связи со схемами соединений
+        MapSqlParameterSource deleteLinksParams = new MapSqlParameterSource();
+        deleteLinksParams.addValue("buffer_uid", uid);
+        jdbcTemplate.update(DELETE_SCHEME_BUFFER_LINKS, deleteLinksParams);
 
-        jdbcTemplate.update(DELETE_BUFFER, params);
+        // Затем удаляем сам буфер
+        MapSqlParameterSource deleteParams = new MapSqlParameterSource();
+        deleteParams.addValue("uid", uid);
+        jdbcTemplate.update(DELETE_BUFFER, deleteParams);
     }
 
     @Override
     @Transactional
-    public void deleteByConnectionSchemeUid(UUID connectionSchemeUid) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("connection_scheme_uid", connectionSchemeUid);
+    public void deleteByDeviceUid(UUID deviceUid) {
+        // Сначала находим все буферы устройства
+        List<BufferBLM> deviceBuffers = findByDeviceUid(deviceUid);
 
-        jdbcTemplate.update(DELETE_BUFFERS_BY_SCHEME, params);
+        // Удаляем связи этих буферов со схемами
+        for (BufferBLM buffer : deviceBuffers) {
+            MapSqlParameterSource deleteLinksParams = new MapSqlParameterSource();
+            deleteLinksParams.addValue("buffer_uid", buffer.getUid());
+            jdbcTemplate.update(DELETE_SCHEME_BUFFER_LINKS, deleteLinksParams);
+        }
+
+        // Затем удаляем сами буферы
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("device_uid", deviceUid);
+        jdbcTemplate.update(DELETE_BUFFERS_BY_DEVICE, params);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public BufferDALM findByUid(UUID uid) throws BufferNotFoundException {
+    public BufferBLM findByUid(UUID uid) throws BufferNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
         try {
@@ -1007,9 +434,17 @@ public class BufferRepositorySQLImpl implements BufferRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<BufferDALM> findByConnectionSchemeUid(UUID connectionSchemeUid) {
+    public List<BufferBLM> findByDeviceUid(UUID deviceUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("connection_scheme_uid", connectionSchemeUid);
+        params.addValue("device_uid", deviceUid);
+        return jdbcTemplate.query(SELECT_BUFFERS_BY_DEVICE, params, bufferRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BufferBLM> findByConnectionSchemeUid(UUID connectionSchemeUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("scheme_uid", connectionSchemeUid);
         return jdbcTemplate.query(SELECT_BUFFERS_BY_SCHEME, params, bufferRowMapper);
     }
 
@@ -1026,217 +461,117 @@ public class BufferRepositorySQLImpl implements BufferRepository {
         }
     }
 
+    
+    /**
+     * Привязать конкретный буфер к схеме соединений
+     */
     @Override
-    public void addToConnectionScheme(UUID connectionSchemeUid) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'addToConnectionScheme'");
+    @Transactional
+    public void addBufferToConnectionScheme(UUID bufferUid, UUID connectionSchemeUid) {
+        // Проверяем существование буфера
+        if (!exists(bufferUid)) {
+            throw new BufferNotFoundException("Buffer with UID " + bufferUid + " not found");
+        }
+
+        // Проверяем, не привязан ли уже этот буфер к схеме
+        if (isBufferLinkedToScheme(bufferUid, connectionSchemeUid)) {
+            throw new IllegalArgumentException(
+                    "Buffer " + bufferUid + " is already linked to scheme " + connectionSchemeUid);
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("link_uid", UUID.randomUUID());
+        params.addValue("scheme_uid", connectionSchemeUid);
+        params.addValue("buffer_uid", bufferUid);
+
+        jdbcTemplate.update(INSERT_SCHEME_BUFFER_LINK, params);
     }
 
+    /**
+     * Отвязать конкретный буфер от схемы соединений
+     */
     @Override
-    public void removeFromConnectionScheme(UUID connectionSchemeUid) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'removeFromConnectionScheme'");
+    @Transactional
+    public void removeBufferFromConnectionScheme(UUID bufferUid, UUID connectionSchemeUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("scheme_uid", connectionSchemeUid);
+        params.addValue("buffer_uid", bufferUid);
+
+        String deleteSpecificLink = "DELETE FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid AND buffer_uid = :buffer_uid";
+        jdbcTemplate.update(deleteSpecificLink, params);
     }
-}// BufferRepository.java
-package com.connection.processing.buffer.repository;
+
+    /**
+     * Получить все UID буферов, привязанных к схеме соединений
+     */
+    @Transactional(readOnly = true)
+    public List<UUID> findBufferUidsByConnectionScheme(UUID connectionSchemeUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("scheme_uid", connectionSchemeUid);
+
+        return jdbcTemplate.query(SELECT_BUFFER_UIDS_BY_SCHEME, params,
+                (rs, rowNum) -> UUID.fromString(rs.getString("buffer_uid")));
+    }
+
+    /**
+     * Проверить, привязан ли буфер к схеме соединений
+     */
+    @Transactional(readOnly = true)
+    public boolean isBufferLinkedToScheme(UUID bufferUid, UUID connectionSchemeUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("scheme_uid", connectionSchemeUid);
+        params.addValue("buffer_uid", bufferUid);
+
+        Integer count = jdbcTemplate.queryForObject(EXISTS_SCHEME_BUFFER_LINK, params, Integer.class);
+        return count != null && count > 0;
+    }
+
+    /**
+     * Получить количество буферов, привязанных к схеме соединений
+     */
+    @Transactional(readOnly = true)
+    public int countByConnectionScheme(UUID connectionSchemeUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("scheme_uid", connectionSchemeUid);
+
+        String countSql = "SELECT COUNT(*) FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid";
+        Integer count = jdbcTemplate.queryForObject(countSql, params, Integer.class);
+        return count != null ? count : 0;
+    }
+
+    /**
+     * Очистить все связи буфера со схемами соединений
+     */
+    @Transactional
+    public void clearBufferSchemeLinks(UUID bufferUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+        jdbcTemplate.update(DELETE_SCHEME_BUFFER_LINKS, params);
+    }
+}package com.connection.processing.buffer.repository;
 
 import java.util.List;
 import java.util.UUID;
-
 import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
 import com.connection.processing.buffer.exception.BufferNotFoundException;
-import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferBLM;
 
 public interface BufferRepository {
-    /**
-     * Добавить новый буфер
-     */
-    void add(BufferDALM buffer) throws BufferAlreadyExistsException;
-
-    /**
-     * Обновить буфер
-     */
-    void update(BufferDALM buffer) throws BufferNotFoundException;
-
-    /**
-     * Удалить буфер
-     */
+    // Основные CRUD операции
+    void add(BufferBLM buffer) throws BufferAlreadyExistsException;
+    void update(BufferBLM buffer) throws BufferNotFoundException;
     void delete(UUID uid) throws BufferNotFoundException;
-
-    /**
-     * Найти буфер по UID
-     */
-    BufferDALM findByUid(UUID uid) throws BufferNotFoundException;
-
-    /**
-     * Найти все буферы схемы соединения
-     */
-    List<BufferDALM> findByConnectionSchemeUid(UUID connectionSchemeUid);
-
-    /**
-     * Проверить существование буфера
-     */
+    BufferBLM findByUid(UUID uid) throws BufferNotFoundException;
+    
+    // Методы для работы с device
+    List<BufferBLM> findByDeviceUid(UUID deviceUid);
     boolean exists(UUID uid);
-
-    /**
-     * Удалить все буферы схемы соединения
-     */
-    void deleteByConnectionSchemeUid(UUID connectionSchemeUid);
-
-    /**
-     * Привязать к схеме взаимодействий
-     * @param connectionSchemeUid 
-     */
-    void addToConnectionScheme(UUID connectionSchemeUid);
-
-    /**
-     * Отвязать от схемы взаимодействий
-     * @param connectionSchemeUid 
-     */
-    void removeFromConnectionScheme(UUID connectionSchemeUid);
-}package com.connection.processing.buffer.objects.json.mother;
-
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.UUID;
-
-import com.connection.processing.buffer.objects.json.model.BufferJsonDataBLM;
-import com.connection.processing.buffer.objects.json.model.BufferJsonDataDALM;
-import com.connection.processing.buffer.objects.json.model.BufferJsonDataDTO;
-
-public class BufferJsonDataObjectMother {
-
-    private static final UUID DEFAULT_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
-    private static final UUID DEFAULT_BUFFER_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
-    private static final String DEFAULT_DATA = "{\"key\": \"value\", \"number\": 42}";
-    private static final Instant DEFAULT_CREATED_AT = Instant.now().truncatedTo(ChronoUnit.MILLIS);
-
-    public static BufferJsonDataDTO createValidBufferJsonDataDTO() {
-        return BufferJsonDataDTO.builder()
-                .uid(DEFAULT_UID.toString())
-                .bufferUid(DEFAULT_BUFFER_UID.toString())
-                .data(DEFAULT_DATA)
-                .createdAt(DEFAULT_CREATED_AT)
-                .build();
-    }
-
-    public static BufferJsonDataBLM createValidBufferJsonDataBLM() {
-        return BufferJsonDataBLM.builder()
-                .uid(DEFAULT_UID)
-                .bufferUid(DEFAULT_BUFFER_UID)
-                .data(DEFAULT_DATA)
-                .createdAt(DEFAULT_CREATED_AT)
-                .build();
-    }
-
-    public static BufferJsonDataDALM createValidBufferJsonDataDALM() {
-        return BufferJsonDataDALM.builder()
-                .uid(DEFAULT_UID)
-                .bufferUid(DEFAULT_BUFFER_UID)
-                .data(DEFAULT_DATA)
-                .createdAt(DEFAULT_CREATED_AT)
-                .build();
-    }
-
-    public static BufferJsonDataDTO createBufferJsonDataDTOWithNullUid() {
-        return BufferJsonDataDTO.builder()
-                .uid(null)
-                .bufferUid(DEFAULT_BUFFER_UID.toString())
-                .data(DEFAULT_DATA)
-                .createdAt(DEFAULT_CREATED_AT)
-                .build();
-    }
-
-    public static BufferJsonDataDTO createBufferJsonDataDTOWithInvalidUid() {
-        return BufferJsonDataDTO.builder()
-                .uid("invalid-uuid")
-                .bufferUid(DEFAULT_BUFFER_UID.toString())
-                .data(DEFAULT_DATA)
-                .createdAt(DEFAULT_CREATED_AT)
-                .build();
-    }
-
-    public static BufferJsonDataDTO createBufferJsonDataDTOWithEmptyData() {
-        return BufferJsonDataDTO.builder()
-                .uid(DEFAULT_UID.toString())
-                .bufferUid(DEFAULT_BUFFER_UID.toString())
-                .data("")
-                .createdAt(DEFAULT_CREATED_AT)
-                .build();
-    }
-
-    public static BufferJsonDataDTO createBufferJsonDataDTOWithNullData() {
-        return BufferJsonDataDTO.builder()
-                .uid(DEFAULT_UID.toString())
-                .bufferUid(DEFAULT_BUFFER_UID.toString())
-                .data(null)
-                .createdAt(DEFAULT_CREATED_AT)
-                .build();
-    }
-
-    public static BufferJsonDataBLM createBufferJsonDataBLMWithNullFields() {
-        return BufferJsonDataBLM.builder()
-                .uid(null)
-                .bufferUid(null)
-                .data(null)
-                .createdAt(null)
-                .build();
-    }
-
-    public static BufferJsonDataDALM createBufferJsonDataForBuffer(UUID bufferUid) {
-        return BufferJsonDataDALM.builder()
-                .uid(UUID.randomUUID())
-                .bufferUid(bufferUid)
-                .data("{\"buffer\": \"" + bufferUid + "\", \"timestamp\": \"" + Instant.now() + "\"}")
-                .createdAt(Instant.now().truncatedTo(ChronoUnit.MILLIS))
-                .build();
-    }
-
-    public static BufferJsonDataDALM createBufferJsonDataWithTimestamp(UUID bufferUid, Instant timestamp) {
-        return BufferJsonDataDALM.builder()
-                .uid(UUID.randomUUID())
-                .bufferUid(bufferUid)
-                .data("{\"timestamp\": \"" + timestamp + "\"}")
-                .createdAt(timestamp)
-                .build();
-    }
-    // Добавляем в существующий BufferJsonDataObjectMother.java
-
-    public static BufferJsonDataDTO createBufferJsonDataDTOWithInvalidJson() {
-        return BufferJsonDataDTO.builder()
-                .uid(DEFAULT_UID.toString())
-                .bufferUid(DEFAULT_BUFFER_UID.toString())
-                .data("invalid json")
-                .createdAt(DEFAULT_CREATED_AT)
-                .build();
-    }
-
-    public static BufferJsonDataDTO createBufferJsonDataDTOWithArrayJson() {
-        return BufferJsonDataDTO.builder()
-                .uid(DEFAULT_UID.toString())
-                .bufferUid(DEFAULT_BUFFER_UID.toString())
-                .data("[1, 2, 3]")
-                .createdAt(DEFAULT_CREATED_AT)
-                .build();
-    }
-
-    public static BufferJsonDataDTO createBufferJsonDataDTOWithFutureTimestamp() {
-        return BufferJsonDataDTO.builder()
-                .uid(DEFAULT_UID.toString())
-                .bufferUid(DEFAULT_BUFFER_UID.toString())
-                .data(DEFAULT_DATA)
-                .createdAt(Instant.now().plusSeconds(3600))
-                .build();
-    }
-
-    public static BufferJsonDataDTO createBufferJsonDataDTOWithNullTimestamp() {
-        return BufferJsonDataDTO.builder()
-                .uid(DEFAULT_UID.toString())
-                .bufferUid(DEFAULT_BUFFER_UID.toString())
-                .data(DEFAULT_DATA)
-                .createdAt(null)
-                .build();
-    }
+    void deleteByDeviceUid(UUID deviceUid);
+    
+    // Методы для связи с connection scheme
+    void addBufferToConnectionScheme(UUID bufferUid, UUID connectionSchemeUid);
+    void removeBufferFromConnectionScheme(UUID bufferUid, UUID connectionSchemeUid);
+    List<BufferBLM> findByConnectionSchemeUid(UUID connectionSchemeUid);
 }package com.connection.processing.buffer.mother;
 
 import java.util.UUID;
@@ -1248,7 +583,7 @@ import com.connection.processing.buffer.model.BufferDTO;
 public class BufferObjectMother {
 
     private static final UUID DEFAULT_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
-    private static final UUID DEFAULT_SCHEME_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
+    private static final UUID DEFAULT_DEVICE_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174001"); // Изменено
     private static final Integer DEFAULT_MAX_MESSAGES = 100;
     private static final Integer DEFAULT_MAX_SIZE = 1024;
     private static final String DEFAULT_PROTOTYPE = "message prototype";
@@ -1256,7 +591,7 @@ public class BufferObjectMother {
     public static BufferDTO createValidBufferDTO() {
         return BufferDTO.builder()
                 .uid(DEFAULT_UID.toString())
-                .connectionSchemeUid(DEFAULT_SCHEME_UID.toString())
+                .deviceUid(DEFAULT_DEVICE_UID.toString()) // Изменено
                 .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
                 .maxMessageSize(DEFAULT_MAX_SIZE)
                 .messagePrototype(DEFAULT_PROTOTYPE)
@@ -1266,7 +601,7 @@ public class BufferObjectMother {
     public static BufferBLM createValidBufferBLM() {
         return BufferBLM.builder()
                 .uid(DEFAULT_UID)
-                .connectionSchemeUid(DEFAULT_SCHEME_UID)
+                .deviceUid(DEFAULT_DEVICE_UID) // Изменено
                 .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
                 .maxMessageSize(DEFAULT_MAX_SIZE)
                 .messagePrototype(DEFAULT_PROTOTYPE)
@@ -1276,7 +611,7 @@ public class BufferObjectMother {
     public static BufferDALM createValidBufferDALM() {
         return BufferDALM.builder()
                 .uid(DEFAULT_UID)
-                .connectionSchemeUid(DEFAULT_SCHEME_UID)
+                .deviceUid(DEFAULT_DEVICE_UID) // Изменено
                 .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
                 .maxMessageSize(DEFAULT_MAX_SIZE)
                 .messagePrototype(DEFAULT_PROTOTYPE)
@@ -1286,7 +621,7 @@ public class BufferObjectMother {
     public static BufferDTO createBufferDTOWithNullUid() {
         return BufferDTO.builder()
                 .uid(null)
-                .connectionSchemeUid(DEFAULT_SCHEME_UID.toString())
+                .deviceUid(DEFAULT_DEVICE_UID.toString()) // Изменено
                 .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
                 .maxMessageSize(DEFAULT_MAX_SIZE)
                 .messagePrototype(DEFAULT_PROTOTYPE)
@@ -1296,7 +631,7 @@ public class BufferObjectMother {
     public static BufferDTO createBufferDTOWithInvalidUid() {
         return BufferDTO.builder()
                 .uid("invalid-uuid")
-                .connectionSchemeUid(DEFAULT_SCHEME_UID.toString())
+                .deviceUid(DEFAULT_DEVICE_UID.toString()) // Изменено
                 .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
                 .maxMessageSize(DEFAULT_MAX_SIZE)
                 .messagePrototype(DEFAULT_PROTOTYPE)
@@ -1306,7 +641,7 @@ public class BufferObjectMother {
     public static BufferDTO createBufferDTOWithZeroMaxMessages() {
         return BufferDTO.builder()
                 .uid(DEFAULT_UID.toString())
-                .connectionSchemeUid(DEFAULT_SCHEME_UID.toString())
+                .deviceUid(DEFAULT_DEVICE_UID.toString()) // Изменено
                 .maxMessagesNumber(0)
                 .maxMessageSize(DEFAULT_MAX_SIZE)
                 .messagePrototype(DEFAULT_PROTOTYPE)
@@ -1316,7 +651,7 @@ public class BufferObjectMother {
     public static BufferDTO createBufferDTOWithNegativeMaxSize() {
         return BufferDTO.builder()
                 .uid(DEFAULT_UID.toString())
-                .connectionSchemeUid(DEFAULT_SCHEME_UID.toString())
+                .deviceUid(DEFAULT_DEVICE_UID.toString()) // Изменено
                 .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
                 .maxMessageSize(-1)
                 .messagePrototype(DEFAULT_PROTOTYPE)
@@ -1326,7 +661,7 @@ public class BufferObjectMother {
     public static BufferDTO createBufferDTOWithEmptyPrototype() {
         return BufferDTO.builder()
                 .uid(DEFAULT_UID.toString())
-                .connectionSchemeUid(DEFAULT_SCHEME_UID.toString())
+                .deviceUid(DEFAULT_DEVICE_UID.toString()) // Изменено
                 .maxMessagesNumber(DEFAULT_MAX_MESSAGES)
                 .maxMessageSize(DEFAULT_MAX_SIZE)
                 .messagePrototype("")
@@ -1336,102 +671,31 @@ public class BufferObjectMother {
     public static BufferBLM createBufferBLMWithNullFields() {
         return BufferBLM.builder()
                 .uid(null)
-                .connectionSchemeUid(null)
+                .deviceUid(null) // Изменено
                 .maxMessagesNumber(null)
                 .maxMessageSize(null)
                 .messagePrototype(null)
                 .build();
     }
 
-    public static BufferDALM createBufferForScheme(UUID schemeUid) {
+    public static BufferDALM createBufferForDevice(UUID deviceUid) { // Изменено название метода
         return BufferDALM.builder()
                 .uid(UUID.randomUUID())
-                .connectionSchemeUid(schemeUid)
+                .deviceUid(deviceUid) // Изменено
                 .maxMessagesNumber(50)
                 .maxMessageSize(512)
-                .messagePrototype("scheme-specific prototype")
-                .build();
-    }
-}package com.connection.processing.buffer.bufferdevice.mother;
-
-import java.util.UUID;
-
-import com.connection.processing.buffer.bufferdevice.model.BufferDeviceBLM;
-import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDALM;
-import com.connection.processing.buffer.bufferdevice.model.BufferDeviceDTO;
-
-public class BufferDeviceObjectMother {
-
-    private static final UUID DEFAULT_BUFFER_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
-    private static final UUID DEFAULT_DEVICE_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
-
-    public static BufferDeviceDTO createValidBufferDeviceDTO() {
-        return BufferDeviceDTO.builder()
-                .bufferUid(DEFAULT_BUFFER_UID.toString())
-                .deviceUid(DEFAULT_DEVICE_UID.toString())
+                .messagePrototype("device-specific prototype")
                 .build();
     }
 
-    public static BufferDeviceBLM createValidBufferDeviceBLM() {
-        return BufferDeviceBLM.builder()
-                .bufferUid(DEFAULT_BUFFER_UID)
-                .deviceUid(DEFAULT_DEVICE_UID)
-                .build();
-    }
-
-    public static BufferDeviceDALM createValidBufferDeviceDALM() {
-        return BufferDeviceDALM.builder()
-                .bufferUid(DEFAULT_BUFFER_UID)
-                .deviceUid(DEFAULT_DEVICE_UID)
-                .build();
-    }
-
-    public static BufferDeviceDTO createBufferDeviceDTOWithNullBufferUid() {
-        return BufferDeviceDTO.builder()
-                .bufferUid(null)
-                .deviceUid(DEFAULT_DEVICE_UID.toString())
-                .build();
-    }
-
-    public static BufferDeviceDTO createBufferDeviceDTOWithNullDeviceUid() {
-        return BufferDeviceDTO.builder()
-                .bufferUid(DEFAULT_BUFFER_UID.toString())
-                .deviceUid(null)
-                .build();
-    }
-
-    public static BufferDeviceDTO createBufferDeviceDTOWithInvalidBufferUid() {
-        return BufferDeviceDTO.builder()
-                .bufferUid("invalid-uuid")
-                .deviceUid(DEFAULT_DEVICE_UID.toString())
-                .build();
-    }
-
-    public static BufferDeviceDTO createBufferDeviceDTOWithInvalidDeviceUid() {
-        return BufferDeviceDTO.builder()
-                .bufferUid(DEFAULT_BUFFER_UID.toString())
-                .deviceUid("invalid-uuid")
-                .build();
-    }
-
-    public static BufferDeviceBLM createBufferDeviceBLMWithNullFields() {
-        return BufferDeviceBLM.builder()
-                .bufferUid(null)
-                .deviceUid(null)
-                .build();
-    }
-
-    public static BufferDeviceDALM createBufferDeviceForBuffer(UUID bufferUid) {
-        return BufferDeviceDALM.builder()
-                .bufferUid(bufferUid)
-                .deviceUid(UUID.randomUUID())
-                .build();
-    }
-
-    public static BufferDeviceDALM createBufferDeviceForDevice(UUID deviceUid) {
-        return BufferDeviceDALM.builder()
-                .bufferUid(UUID.randomUUID())
+    // Новый метод для тестирования связи со схемами соединений
+    public static BufferDALM createBufferForConnectionSchemeTest(UUID deviceUid) {
+        return BufferDALM.builder()
+                .uid(UUID.randomUUID())
                 .deviceUid(deviceUid)
+                .maxMessagesNumber(75)
+                .maxMessageSize(768)
+                .messagePrototype("scheme-test-prototype")
                 .build();
     }
 }

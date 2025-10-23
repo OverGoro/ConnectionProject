@@ -1,0 +1,1 @@
+{"uuid":"433a827c-2c95-478e-b0d6-b394b2b6762f","name":"Validate MessageDTO with null buffer UID - Negative","children":["5169eb1c-d6ed-40ec-a453-9825aa958154"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1760921598048,"stop":1760921598048}],"afters":[],"start":1760921598047,"stop":1760921598049}

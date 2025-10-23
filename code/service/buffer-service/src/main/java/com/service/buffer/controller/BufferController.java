@@ -73,14 +73,20 @@ public class BufferController {
             log.info("Getting all buffers for client with offset: {}, limit: {}", offset, limit);
             buffers = bufferService.getBuffersByClient(clientUid);
         }
-        
+        BuffersListResponse.PaginationInfo paginationInfo = 
+            new BuffersListResponse.PaginationInfo(
+                offset, 
+                limit, 
+                buffers.size(), 
+                (offset + limit) < buffers.size()
+            );
         // Применяем пагинацию
         List<BufferDTO> bufferDTOs = applyPagination(buffers, offset, limit)
                 .stream()
                 .map(bufferConverter::toDTO)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(new BuffersListResponse(bufferDTOs));
+        return ResponseEntity.ok(new BuffersListResponse(bufferDTOs, paginationInfo));
     }
     @PatchMapping("/buffers/{bufferUid}")
     public ResponseEntity<BufferResponse> partialUpdateBuffer(
@@ -92,6 +98,12 @@ public class BufferController {
         
         // Временная реализация - получаем текущий буфер и возвращаем его
         BufferBLM buffer = bufferService.getBufferByUid(bufferUid);
+        buffer.setMaxMessageSize(updateRequest.maxSize);
+        buffer.setMaxMessagesNumber(updateRequest.maxMessages);
+        
+        bufferValidator.validate(buffer);
+
+        bufferService.updateBuffer(bufferUid, bufferConverter.toDTO(buffer));
         
         return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
     }

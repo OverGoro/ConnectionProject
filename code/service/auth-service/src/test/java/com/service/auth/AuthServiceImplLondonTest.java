@@ -22,7 +22,6 @@ import org.springframework.data.util.Pair;
 
 import com.connection.client.converter.ClientConverter;
 import com.connection.client.model.ClientBLM;
-import com.connection.client.model.ClientDALM;
 import com.connection.client.validator.ClientValidator;
 import com.connection.token.converter.RefreshTokenConverter;
 import com.connection.token.generator.AccessTokenGenerator;
@@ -94,14 +93,12 @@ class AuthServiceImplLondonTest {
     @DisplayName("Authorize by email - Positive")
     void shouldAuthorizeByEmailWhenValidCredentials() {
         // Arrange
-        ClientDALM clientDALM = createValidClientDALM();
         ClientBLM clientBLM = createValidClientBLM();
         AccessTokenBLM accessTokenBLM = createValidAccessTokenBLM();
         RefreshTokenBLM refreshTokenBLM = createValidRefreshTokenBLM();
         RefreshTokenDALM refreshTokenDALM = new RefreshTokenDALM();
 
-        when(clientRepository.findByEmail(VALID_EMAIL)).thenReturn(clientDALM);
-        when(clientConverter.toBLM(clientDALM)).thenReturn(clientBLM);
+        when(clientRepository.findByEmail(VALID_EMAIL)).thenReturn(clientBLM);
         when(refreshTokenGenerator.generateRefreshToken(any(), any(), any(), any()))
                 .thenReturn(refreshTokenBLM.getToken());
         when(accessTokenGenerator.generateAccessToken(any(), any(), any()))
@@ -142,16 +139,14 @@ class AuthServiceImplLondonTest {
     void shouldRegisterClientWhenValidData() {
         // Arrange
         ClientBLM clientBLM = createValidClientBLM();
-        ClientDALM clientDALM = createValidClientDALM();
 
-        when(clientConverter.toDALM(clientBLM)).thenReturn(clientDALM);
 
         // Act
         authService.register(clientBLM);
 
         // Assert
         verify(clientValidator).validate(clientBLM);
-        verify(clientRepository).add(clientDALM);
+        verify(clientRepository).add(clientBLM);
     }
 
     @Test

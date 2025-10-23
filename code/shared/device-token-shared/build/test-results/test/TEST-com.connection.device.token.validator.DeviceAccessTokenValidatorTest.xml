@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Device Access Token Validator Tests" tests="7" skipped="0" failures="0" errors="0" timestamp="2025-10-20T00:42:34.369Z" hostname="Yurik" time="0.015">
+  <properties/>
+  <testcase name="Validate DeviceAccessTokenBLM with invalid dates - Negative" classname="com.connection.device.token.validator.DeviceAccessTokenValidatorTest" time="0.001"/>
+  <testcase name="Validate DeviceAccessTokenDALM with null device token UID - Negative" classname="com.connection.device.token.validator.DeviceAccessTokenValidatorTest" time="0.001"/>
+  <testcase name="Validate DeviceAccessTokenDTO with long token - Negative" classname="com.connection.device.token.validator.DeviceAccessTokenValidatorTest" time="0.001"/>
+  <testcase name="Validate null DeviceAccessTokenDTO - Negative" classname="com.connection.device.token.validator.DeviceAccessTokenValidatorTest" time="0.001"/>
+  <testcase name="Validate valid DeviceAccessTokenBLM - Positive" classname="com.connection.device.token.validator.DeviceAccessTokenValidatorTest" time="0.001"/>
+  <testcase name="Validate valid DeviceAccessTokenDALM - Positive" classname="com.connection.device.token.validator.DeviceAccessTokenValidatorTest" time="0.001"/>
+  <testcase name="Validate valid DeviceAccessTokenDTO - Positive" classname="com.connection.device.token.validator.DeviceAccessTokenValidatorTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

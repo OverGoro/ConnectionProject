@@ -1,0 +1,898 @@
+// ConnectionSchemeNotFoundException.java
+package com.connection.scheme.exception;
+
+public class ConnectionSchemeNotFoundException extends BaseConnectionSchemeException {
+    public ConnectionSchemeNotFoundException(String schemeUid) {
+        super(schemeUid);
+    }
+
+    public String toString() {
+        return super.toString() + "\ndescription: connection scheme not found";
+    }
+}// BaseConnectionSchemeException.java
+package com.connection.scheme.exception;
+
+public class BaseConnectionSchemeException extends RuntimeException {
+    private final String schemeUid;
+
+    public BaseConnectionSchemeException(String schemeUid) {
+        super("connection scheme");
+        this.schemeUid = schemeUid;
+    }
+
+    public String toString() {
+        return super.toString() + "\nscheme: " + schemeUid;
+    }
+}// ConnectionSchemeValidateException.java
+package com.connection.scheme.exception;
+
+public class ConnectionSchemeValidateException extends BaseConnectionSchemeException {
+    private final String description;
+
+    public ConnectionSchemeValidateException(String schemeUid, String description) {
+        super(schemeUid);
+        this.description = description;
+    }
+
+    public String toString() {
+        return super.toString() + "\ndescription: " + description;
+    }
+}// ConnectionSchemeAlreadyExistsException.java
+package com.connection.scheme.exception;
+
+public class ConnectionSchemeAlreadyExistsException extends BaseConnectionSchemeException {
+    public ConnectionSchemeAlreadyExistsException(String schemeUid) {
+        super(schemeUid);
+    }
+
+    public String toString() {
+        return super.toString() + "\ndescription: connection scheme already exists";
+    }
+}// ConnectionSchemeDTO.java
+package com.connection.scheme.model;
+
+import java.util.List;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class ConnectionSchemeDTO {
+    
+    protected String uid;
+    
+    protected String clientUid;
+
+    protected List<UUID> usedBuffers;
+
+    protected String schemeJson;
+}// ConnectionSchemeBLM.java
+package com.connection.scheme.model;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class ConnectionSchemeBLM {
+    
+    protected UUID uid;
+    
+    protected UUID clientUid;
+
+    protected String schemeJson;
+    
+    protected List<UUID> usedBuffers;
+    
+    protected Map<UUID, List<UUID>> bufferTransitions;
+}package com.connection.scheme.model;
+
+import java.util.List;
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/**
+ * DALM для схемы подключения
+ */
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class ConnectionSchemeDALM {
+    
+    protected UUID uid;
+    
+    protected UUID clientUid;
+
+    protected String schemeJson;
+
+    protected List<UUID> usedBuffers;
+}package com.connection.scheme.converter;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+public class ConnectionSchemeConverter {
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+        public ConnectionSchemeBLM toBLM(ConnectionSchemeDALM dalm) {
+        try {
+            // Извлекаем transitions из JSON
+            Map<UUID, List<UUID>> bufferTransitions = extractTransitionsFromJson(dalm.getSchemeJson());
+            
+            return ConnectionSchemeBLM.builder()
+                .uid(dalm.getUid())
+                .clientUid(dalm.getClientUid())
+                .schemeJson(dalm.getSchemeJson())
+                .usedBuffers(dalm.getUsedBuffers()) // Теперь получаем из DALM
+                .bufferTransitions(bufferTransitions)
+                .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert DALM to BLM", e);
+        }
+    }
+
+    public ConnectionSchemeBLM toBLM(ConnectionSchemeDTO dto) {
+        try {
+            // Извлекаем transitions из JSON
+            Map<UUID, List<UUID>> bufferTransitions = extractTransitionsFromJson(dto.getSchemeJson());
+            
+            return ConnectionSchemeBLM.builder()
+                .uid(UUID.fromString(dto.getUid()))
+                .clientUid(UUID.fromString(dto.getClientUid()))
+                .schemeJson(dto.getSchemeJson())
+                .usedBuffers(dto.getUsedBuffers()) // Используем переданные usedBuffers
+                .bufferTransitions(bufferTransitions)
+                .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert DTO to BLM", e);
+        }
+    }
+
+    public ConnectionSchemeDTO toDTO(ConnectionSchemeBLM blm) {
+
+        String transitionsJson = convertTransitionsToJson(blm.getBufferTransitions());
+
+        return ConnectionSchemeDTO.builder()
+                .uid(blm.getUid().toString())
+                .clientUid(blm.getClientUid().toString())
+                .schemeJson(transitionsJson)
+                .usedBuffers(blm.getUsedBuffers())
+                .build();
+    }
+
+    public ConnectionSchemeDALM toDALM(ConnectionSchemeBLM blm) {
+
+        String transitionsJson = convertTransitionsToJson(blm.getBufferTransitions());
+
+        return ConnectionSchemeDALM.builder()
+                .uid(blm.getUid())
+                .clientUid(blm.getClientUid())
+                .schemeJson(transitionsJson)
+                .usedBuffers(blm.getUsedBuffers())
+                .build();
+    }
+
+    private Map<UUID, List<UUID>> extractTransitionsFromJson(String schemeJson) {
+        try {
+
+            return objectMapper.readValue(schemeJson, new TypeReference<Map<UUID, List<UUID>>>() {
+            });
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extract transitions from JSON", e);
+        }
+    }
+
+    private List<UUID> extractUsedBuffersFromJson(String schemeJson) {
+        try {
+
+            Map<UUID, List<UUID>> transitions = extractTransitionsFromJson(schemeJson);
+
+            return transitions.entrySet().stream()
+                    .flatMap(entry -> {
+                        java.util.stream.Stream<UUID> keyStream = java.util.stream.Stream.of(entry.getKey());
+                        java.util.stream.Stream<UUID> valueStream = entry.getValue().stream();
+                        return java.util.stream.Stream.concat(keyStream, valueStream);
+                    })
+                    .distinct()
+                    .collect(java.util.stream.Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extract used buffers from JSON", e);
+        }
+    }
+
+    private String convertTransitionsToJson(Map<UUID, List<UUID>> bufferTransitions) {
+        try {
+            return objectMapper.writeValueAsString(bufferTransitions);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert transitions to JSON", e);
+        }
+    }
+}// ConnectionSchemeValidator.java
+package com.connection.scheme.validator;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.connection.scheme.exception.ConnectionSchemeValidateException;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+public class ConnectionSchemeValidator {
+    
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    
+    public void validate(ConnectionSchemeDTO scheme) {
+        if (scheme == null) {
+            throw new ConnectionSchemeValidateException("null", "Scheme is null");
+        }
+        try {
+            validateUid(scheme.getUid());
+            validateClientUid(scheme.getClientUid());
+            validateSchemeJson(scheme.getSchemeJson());
+        } catch (IllegalArgumentException e) {
+            throw new ConnectionSchemeValidateException(scheme.getUid(), e.getMessage());
+        }
+    }
+
+    public void validate(ConnectionSchemeBLM scheme) {
+        if (scheme == null) {
+            throw new ConnectionSchemeValidateException("null", "Scheme is null");
+        }
+        try {
+            validateUid(scheme.getUid());
+            validateClientUid(scheme.getClientUid());
+            validateSchemeJson(scheme.getSchemeJson());
+            validateUsedBuffers(scheme.getUsedBuffers());
+            validateBufferTransitions(scheme.getBufferTransitions());
+        } catch (IllegalArgumentException e) {
+            throw new ConnectionSchemeValidateException(scheme.getUid() != null ? scheme.getUid().toString() : "null", e.getMessage());
+        }
+    }
+
+    public void validate(ConnectionSchemeDALM scheme) {
+        if (scheme == null) {
+            throw new ConnectionSchemeValidateException("null", "Scheme is null");
+        }
+        try {
+            validateUid(scheme.getUid());
+            validateClientUid(scheme.getClientUid());
+            validateSchemeJson(scheme.getSchemeJson());
+            validateUsedBuffers(scheme.getUsedBuffers());
+        } catch (IllegalArgumentException e) {
+            throw new ConnectionSchemeValidateException(scheme.getUid() != null ? scheme.getUid().toString() : "null", e.getMessage());
+        }
+    }
+
+    private void validateUid(String uid) {
+        if (uid == null || uid.trim().isEmpty()) {
+            throw new IllegalArgumentException("UID cannot be empty");
+        }
+        try {
+            UUID.fromString(uid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid UID format");
+        }
+    }
+
+    private void validateUid(UUID uid) {
+        if (uid == null) {
+            throw new IllegalArgumentException("UID cannot be null");
+        }
+    }
+
+    private void validateClientUid(String clientUid) {
+        if (clientUid == null || clientUid.trim().isEmpty()) {
+            throw new IllegalArgumentException("Client UID cannot be empty");
+        }
+        try {
+            UUID.fromString(clientUid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid Client UID format");
+        }
+    }
+
+    private void validateClientUid(UUID clientUid) {
+        if (clientUid == null) {
+            throw new IllegalArgumentException("Client UID cannot be null");
+        }
+    }
+
+        private void validateSchemeJson(String schemeJson) {
+        if (schemeJson == null || schemeJson.trim().isEmpty()) {
+            throw new IllegalArgumentException("Scheme JSON cannot be empty");
+        }
+        if (!schemeJson.trim().startsWith("{")) {
+            throw new IllegalArgumentException("Invalid JSON format");
+        }
+        
+        // Проверяем структуру JSON (теперь только transitions)
+        try {
+            Map<UUID, List<UUID>> transitions = objectMapper.readValue(
+                schemeJson, 
+                new TypeReference<Map<UUID, List<UUID>>>() {}
+            );
+            
+            // Проверяем, что transitions не пусты
+            if (transitions.isEmpty()) {
+                throw new IllegalArgumentException("Transitions cannot be empty");
+            }
+            
+            // Проверяем формат UUID в ключах и значениях
+            for (Map.Entry<UUID, List<UUID>> entry : transitions.entrySet()) {
+                if (entry.getKey() == null) {
+                    throw new IllegalArgumentException("Transition key cannot be null");
+                }
+                if (entry.getValue() == null) {
+                    throw new IllegalArgumentException("Transition value list cannot be null");
+                }
+                for (UUID bufferUid : entry.getValue()) {
+                    if (bufferUid == null) {
+                        throw new IllegalArgumentException("Buffer UID in transition list cannot be null");
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid transitions JSON structure: " + e.getMessage());
+        }
+    }
+    
+    private void validateUsedBuffers(List<UUID> usedBuffers) {
+        if (usedBuffers == null) {
+            throw new IllegalArgumentException("Used buffers cannot be null");
+        }
+        // usedBuffers может быть пустым, но не null
+    }
+    
+    private void validateBufferTransitions(Map<UUID, List<UUID>> bufferTransitions) {
+        if (bufferTransitions == null) {
+            throw new IllegalArgumentException("Buffer transitions cannot be null");
+        }
+        
+        // Проверяем, что все ключи и значения - валидные UUID
+        for (Map.Entry<UUID, List<UUID>> entry : bufferTransitions.entrySet()) {
+            if (entry.getKey() == null) {
+                throw new IllegalArgumentException("Buffer transition key cannot be null");
+            }
+            if (entry.getValue() == null) {
+                throw new IllegalArgumentException("Buffer transition value list cannot be null");
+            }
+            for (UUID bufferUid : entry.getValue()) {
+                if (bufferUid == null) {
+                    throw new IllegalArgumentException("Buffer UID in transition list cannot be null");
+                }
+            }
+        }
+    }
+}package com.connection.scheme.repository;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
+import com.connection.scheme.exception.ConnectionSchemeNotFoundException;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeRepository {
+
+    // Основные запросы для схем
+    private static final String SELECT_SCHEME = "SELECT cs.uid, cs.client_uid, cs.scheme_json";
+    private static final String FROM_SCHEME = " FROM processing.connection_scheme cs";
+
+    private static final String SELECT_SCHEME_BY_UID = SELECT_SCHEME + FROM_SCHEME + " WHERE cs.uid = :uid";
+    private static final String SELECT_SCHEMES_BY_CLIENT = SELECT_SCHEME + FROM_SCHEME
+            + " WHERE cs.client_uid = :client_uid";
+    private static final String SELECT_SCHEMES_BY_BUFFER = SELECT_SCHEME +
+            FROM_SCHEME +
+            " INNER JOIN processing.connection_scheme_buffer csb ON cs.uid = csb.scheme_uid" +
+            " WHERE csb.buffer_uid = :buffer_uid";
+
+    // Запросы для получения usedBuffers из связующей таблицы
+    private static final String SELECT_USED_BUFFERS = "SELECT csb.buffer_uid FROM processing.connection_scheme_buffer csb "
+            +
+            "WHERE csb.scheme_uid = :scheme_uid";
+
+    // Операции со схемами - ИСПРАВЛЕНО: добавлено ::jsonb для преобразования типа
+    private static final String INSERT_SCHEME = "INSERT INTO processing.connection_scheme (uid, client_uid, scheme_json) "
+            +
+            "VALUES (:uid, :client_uid, :scheme_json::jsonb)";
+
+    private static final String UPDATE_SCHEME = "UPDATE processing.connection_scheme SET scheme_json = :scheme_json::jsonb "
+            +
+            "WHERE uid = :uid";
+
+    private static final String DELETE_SCHEME = "DELETE FROM processing.connection_scheme WHERE uid = :uid";
+
+    // Операции со связующей таблицей буферов
+    private static final String INSERT_SCHEME_BUFFER = "INSERT INTO processing.connection_scheme_buffer (uid, scheme_uid, buffer_uid) "
+            +
+            "VALUES (:uid, :scheme_uid, :buffer_uid)";
+
+    private static final String DELETE_SCHEME_BUFFERS = "DELETE FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid";
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private final RowMapper<ConnectionSchemeDALM> schemeRowMapper = (rs, rowNum) -> {
+        ConnectionSchemeDALM scheme = new ConnectionSchemeDALM();
+        UUID schemeUid = UUID.fromString(rs.getString("uid"));
+
+        scheme.setUid(schemeUid);
+        scheme.setClientUid(UUID.fromString(rs.getString("client_uid")));
+        scheme.setSchemeJson(rs.getString("scheme_json"));
+        // UsedBuffers будут заполняться отдельным запросом
+        scheme.setUsedBuffers(getUsedBuffersForScheme(schemeUid));
+
+        return scheme;
+    };
+
+    public ConnectionSchemeRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    @Transactional
+    public void add(ConnectionSchemeDALM scheme) throws ConnectionSchemeAlreadyExistsException {
+        if (exists(scheme.getUid())) {
+            throw new ConnectionSchemeAlreadyExistsException("Scheme with UID " + scheme.getUid() + " already exists");
+        }
+
+        try {
+            // Сохраняем основную схему
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", scheme.getUid());
+            params.addValue("client_uid", scheme.getClientUid());
+            params.addValue("scheme_json", scheme.getSchemeJson());
+
+            int rowsAffected = jdbcTemplate.update(INSERT_SCHEME, params);
+
+            // Сохраняем связи с буферами
+            if (scheme.getUsedBuffers() != null && !scheme.getUsedBuffers().isEmpty()) {
+                saveSchemeBuffers(scheme.getUid(), scheme.getUsedBuffers());
+
+            } else {
+
+            }
+
+        } catch (Exception e) {
+
+            throw new ConnectionSchemeAlreadyExistsException("Failed to create scheme: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void update(ConnectionSchemeDALM scheme) throws ConnectionSchemeNotFoundException {
+        if (!exists(scheme.getUid())) {
+            throw new ConnectionSchemeNotFoundException("Scheme with UID " + scheme.getUid() + " not found");
+        }
+
+        try {
+            // Обновляем основную схему
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", scheme.getUid());
+            params.addValue("scheme_json", scheme.getSchemeJson());
+
+            int rowsAffected = jdbcTemplate.update(UPDATE_SCHEME, params);
+
+            // Обновляем связи с буферами
+            updateSchemeBuffers(scheme.getUid(), scheme.getUsedBuffers());
+
+        } catch (Exception e) {
+
+            throw new ConnectionSchemeNotFoundException("Failed to update scheme: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void delete(UUID uid) throws ConnectionSchemeNotFoundException {
+        if (!exists(uid)) {
+            throw new ConnectionSchemeNotFoundException("Scheme with UID " + uid + " not found");
+        }
+
+        try {
+            // Удаляем схему (связи с буферами удалятся каскадом благодаря FOREIGN KEY
+            // constraint)
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", uid);
+
+            int rowsAffected = jdbcTemplate.update(DELETE_SCHEME, params);
+
+        } catch (Exception e) {
+
+            throw new ConnectionSchemeNotFoundException("Failed to delete scheme: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ConnectionSchemeDALM findByUid(UUID uid) throws ConnectionSchemeNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+
+            ConnectionSchemeDALM scheme = jdbcTemplate.queryForObject(SELECT_SCHEME_BY_UID, params, schemeRowMapper);
+
+            return scheme;
+        } catch (EmptyResultDataAccessException e) {
+
+            throw new ConnectionSchemeNotFoundException("Scheme with UID " + uid + " not found");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConnectionSchemeDALM> findByClientUid(UUID clientUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("client_uid", clientUid);
+
+        List<ConnectionSchemeDALM> schemes = jdbcTemplate.query(SELECT_SCHEMES_BY_CLIENT, params, schemeRowMapper);
+
+        return schemes;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConnectionSchemeDALM> findByBufferUid(UUID bufferUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("buffer_uid", bufferUid);
+
+        List<ConnectionSchemeDALM> schemes = jdbcTemplate.query(SELECT_SCHEMES_BY_BUFFER, params, schemeRowMapper);
+
+        return schemes;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean exists(UUID uid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            jdbcTemplate.queryForObject(SELECT_SCHEME_BY_UID, params, schemeRowMapper);
+
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+
+            return false;
+        }
+    }
+
+    /**
+     * Получает список UID буферов, привязанных к схеме
+     */
+    private List<UUID> getUsedBuffersForScheme(UUID schemeUid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("scheme_uid", schemeUid);
+
+        List<UUID> buffers = jdbcTemplate.query(SELECT_USED_BUFFERS, params,
+                (rs, rowNum) -> UUID.fromString(rs.getString("buffer_uid")));
+
+        return buffers;
+    }
+
+    /**
+     * Сохраняет связи схемы с буферами
+     */
+    private void saveSchemeBuffers(UUID schemeUid, List<UUID> usedBuffers) {
+        if (usedBuffers == null || usedBuffers.isEmpty()) {
+            return;
+        }
+
+        for (UUID bufferUid : usedBuffers) {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", UUID.randomUUID()); // Генерируем новый UUID для связи
+            params.addValue("scheme_uid", schemeUid);
+            params.addValue("buffer_uid", bufferUid);
+
+            try {
+                jdbcTemplate.update(INSERT_SCHEME_BUFFER, params);
+
+            } catch (Exception e) {
+
+                throw new RuntimeException("Failed to save buffer connection", e);
+            }
+        }
+    }
+
+    /**
+     * Обновляет связи схемы с буферами
+     */
+    private void updateSchemeBuffers(UUID schemeUid, List<UUID> usedBuffers) {
+
+        // Удаляем старые связи
+        MapSqlParameterSource deleteParams = new MapSqlParameterSource();
+        deleteParams.addValue("scheme_uid", schemeUid);
+
+        int deletedRows = jdbcTemplate.update(DELETE_SCHEME_BUFFERS, deleteParams);
+
+        // Сохраняем новые связи
+        saveSchemeBuffers(schemeUid, usedBuffers);
+    }
+}// ConnectionSchemeRepository.java
+package com.connection.scheme.repository;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
+import com.connection.scheme.exception.ConnectionSchemeNotFoundException;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+
+public interface ConnectionSchemeRepository {
+    /**
+     * Добавить новуб схему
+     * @param scheme
+     * @throws ConnectionSchemeAlreadyExistsException
+     */
+    void add(ConnectionSchemeBLM scheme) throws ConnectionSchemeAlreadyExistsException;
+    /**
+     * Обновить параметры схемы
+     * @param scheme
+     * @throws ConnectionSchemeNotFoundException
+     */
+    void update(ConnectionSchemeBLM scheme) throws ConnectionSchemeNotFoundException;
+
+    /**
+     * Удалить схему по Uid
+     * @param uid
+     * @throws ConnectionSchemeNotFoundException
+     */
+    void delete(UUID uid) throws ConnectionSchemeNotFoundException;
+    /**
+     * Получить схему по Uid
+     * @param uid
+     * @return
+     * @throws ConnectionSchemeNotFoundException
+     */
+    ConnectionSchemeBLM findByUid(UUID uid) throws ConnectionSchemeNotFoundException;
+    /**
+     * Получить все схемы клиента
+     * @param clientUid
+     * @return
+     */
+    List<ConnectionSchemeBLM> findByClientUid(UUID clientUid);
+
+    /**
+     * Получить все схемы, в которых участвует буфер
+     * @param bufferUid
+     * @return
+     */
+    List<ConnectionSchemeBLM> findByBufferUid(UUID bufferUid);
+    /**
+     * Проверить существование схемы
+     * @param uid
+     * @return
+     */
+    boolean exists(UUID uid);
+}package com.connection.scheme.mother;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+public class ConnectionSchemeObjectMother {
+
+    private static final UUID DEFAULT_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    private static final UUID DEFAULT_CLIENT_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
+    private static final UUID BUFFER_UID_1 = UUID.fromString("223e4567-e89b-12d3-a456-426614174002");
+    private static final UUID BUFFER_UID_2 = UUID.fromString("223e4567-e89b-12d3-a456-426614174003");
+    private static final UUID BUFFER_UID_3 = UUID.fromString("223e4567-e89b-12d3-a456-426614174004");
+
+    // ИСПРАВЛЕНО: scheme_json содержит только transitions
+    private static final String DEFAULT_SCHEME_JSON = "{" +
+            "\"" + BUFFER_UID_1 + "\":[\"" + BUFFER_UID_2 + "\"]," +
+            "\"" + BUFFER_UID_2 + "\":[\"" + BUFFER_UID_3 + "\"]" +
+            "}";
+
+    // ИСПРАВЛЕНО: Пустой JSON для transitions
+    private static final String EMPTY_TRANSITIONS_JSON = "{}";
+
+    public static ConnectionSchemeDTO createValidConnectionSchemeDTO() {
+        return ConnectionSchemeDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(Arrays.asList(BUFFER_UID_1, BUFFER_UID_2, BUFFER_UID_3)) // Все буферы из transitions
+                .build();
+    }
+
+    public static ConnectionSchemeBLM createValidConnectionSchemeBLM() {
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UID_1, Arrays.asList(BUFFER_UID_2));
+        bufferTransitions.put(BUFFER_UID_2, Arrays.asList(BUFFER_UID_3));
+
+        return ConnectionSchemeBLM.builder()
+                .uid(DEFAULT_UID)
+                .clientUid(DEFAULT_CLIENT_UID)
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(Arrays.asList(BUFFER_UID_1, BUFFER_UID_2, BUFFER_UID_3)) // Все буферы из transitions
+                .bufferTransitions(bufferTransitions)
+                .build();
+    }
+
+    public static ConnectionSchemeDALM createValidConnectionSchemeDALM() {
+        return ConnectionSchemeDALM.builder()
+                .uid(DEFAULT_UID)
+                .clientUid(DEFAULT_CLIENT_UID)
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(Arrays.asList(BUFFER_UID_1, BUFFER_UID_2, BUFFER_UID_3)) // Все буферы из transitions
+                .build();
+    }
+
+    public static ConnectionSchemeDTO createConnectionSchemeDTOWithNullUid() {
+        return ConnectionSchemeDTO.builder()
+                .uid(null)
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(Arrays.asList(BUFFER_UID_1, BUFFER_UID_2, BUFFER_UID_3))
+                .build();
+    }
+
+    public static ConnectionSchemeDTO createConnectionSchemeDTOWithInvalidUid() {
+        return ConnectionSchemeDTO.builder()
+                .uid("invalid-uuid")
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(Arrays.asList(BUFFER_UID_1, BUFFER_UID_2, BUFFER_UID_3))
+                .build();
+    }
+
+    public static ConnectionSchemeDTO createConnectionSchemeDTOWithEmptyJson() {
+        return ConnectionSchemeDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson("")
+                .usedBuffers(Arrays.asList(BUFFER_UID_1, BUFFER_UID_2, BUFFER_UID_3))
+                .build();
+    }
+
+    public static ConnectionSchemeDTO createConnectionSchemeDTOWithInvalidJson() {
+        return ConnectionSchemeDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson("invalid json")
+                .usedBuffers(Arrays.asList(BUFFER_UID_1, BUFFER_UID_2, BUFFER_UID_3))
+                .build();
+    }
+
+    // ИСПРАВЛЕНО: Теперь это тест на пустые transitions
+    public static ConnectionSchemeDTO createConnectionSchemeDTOWithEmptyTransitions() {
+        return ConnectionSchemeDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .clientUid(DEFAULT_CLIENT_UID.toString())
+                .schemeJson(EMPTY_TRANSITIONS_JSON) // Пустые transitions
+                .usedBuffers(Arrays.asList()) // Нет used buffers при пустых transitions
+                .build();
+    }
+
+    public static ConnectionSchemeBLM createConnectionSchemeBLMWithNullFields() {
+        return ConnectionSchemeBLM.builder()
+                .uid(null)
+                .clientUid(null)
+                .schemeJson(null)
+                .usedBuffers(null)
+                .bufferTransitions(null)
+                .build();
+    }
+
+    public static ConnectionSchemeDALM createConnectionSchemeForClient(UUID clientUid) {
+        // ИСПРАВЛЕНО: scheme_json содержит только transitions
+        String clientSpecificJson = "{" +
+                "\"" + BUFFER_UID_1 + "\": []" + // Пустой список transitions
+                "}";
+
+        return ConnectionSchemeDALM.builder()
+                .uid(UUID.randomUUID())
+                .clientUid(clientUid)
+                .schemeJson(clientSpecificJson)
+                .usedBuffers(Arrays.asList(BUFFER_UID_1)) // Только ключевой буфер
+                .build();
+    }
+
+    public static ConnectionSchemeDALM createConnectionSchemeDALMWithUsedBuffers(List<UUID> usedBuffers) {
+        return ConnectionSchemeDALM.builder()
+                .uid(UUID.randomUUID())
+                .clientUid(DEFAULT_CLIENT_UID)
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(usedBuffers)
+                .build();
+    }
+
+    // ДОБАВЛЕНО: Метод для создания схемы с конкретными transitions
+    public static ConnectionSchemeDALM createConnectionSchemeDALMWithTransitions(Map<UUID, List<UUID>> transitions) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            String schemeJson = objectMapper.writeValueAsString(transitions);
+            
+            // Вычисляем usedBuffers из transitions
+            List<UUID> usedBuffers = transitions.entrySet().stream()
+                    .flatMap(entry -> {
+                        java.util.stream.Stream<UUID> keyStream = java.util.stream.Stream.of(entry.getKey());
+                        java.util.stream.Stream<UUID> valueStream = entry.getValue().stream();
+                        return java.util.stream.Stream.concat(keyStream, valueStream);
+                    })
+                    .distinct()
+                    .collect(java.util.stream.Collectors.toList());
+            
+            return ConnectionSchemeDALM.builder()
+                    .uid(UUID.randomUUID())
+                    .clientUid(DEFAULT_CLIENT_UID)
+                    .schemeJson(schemeJson)
+                    .usedBuffers(usedBuffers)
+                    .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create ConnectionSchemeDALM with transitions", e);
+        }
+    }
+
+    // ДОБАВЛЕНО: Метод для создания схемы без usedBuffers
+    public static ConnectionSchemeDALM createConnectionSchemeDALMWithoutUsedBuffers() {
+        return ConnectionSchemeDALM.builder()
+                .uid(UUID.randomUUID())
+                .clientUid(DEFAULT_CLIENT_UID)
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(null)
+                .build();
+    }
+
+    // ДОБАВЛЕНО: Метод для создания схемы с пустыми usedBuffers
+    public static ConnectionSchemeDALM createConnectionSchemeDALMWithEmptyUsedBuffers() {
+        return ConnectionSchemeDALM.builder()
+                .uid(UUID.randomUUID())
+                .clientUid(DEFAULT_CLIENT_UID)
+                .schemeJson(DEFAULT_SCHEME_JSON)
+                .usedBuffers(Arrays.asList())
+                .build();
+    }
+}

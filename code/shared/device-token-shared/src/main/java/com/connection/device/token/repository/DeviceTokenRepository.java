@@ -1,20 +1,19 @@
-// DeviceTokenRepository.java
 package com.connection.device.token.repository;
 
 import java.util.UUID;
 
 import com.connection.device.token.exception.DeviceTokenAlreadyExistsException;
 import com.connection.device.token.exception.DeviceTokenNotFoundException;
-import com.connection.device.token.model.DeviceTokenDALM;
+import com.connection.device.token.model.DeviceTokenBLM;
 
 public interface DeviceTokenRepository {
     /**
      * Добавить новый device token
      * 
-     * @param deviceTokenDALM Новый токен
+     * @param deviceTokenBLM Новый токен
      * @throws DeviceTokenAlreadyExistsException Если токен уже существует
      */
-    void add(DeviceTokenDALM deviceTokenDALM) throws DeviceTokenAlreadyExistsException;
+    void add(DeviceTokenBLM deviceTokenBLM) throws DeviceTokenAlreadyExistsException;
 
     /**
      * Найти токен по UID
@@ -23,7 +22,7 @@ public interface DeviceTokenRepository {
      * @return Найденный токен
      * @throws DeviceTokenNotFoundException Если токен не найден
      */
-    DeviceTokenDALM findByUid(UUID uid) throws DeviceTokenNotFoundException;
+    DeviceTokenBLM findByUid(UUID uid) throws DeviceTokenNotFoundException;
 
     /**
      * Найти токен по значению токена
@@ -32,7 +31,7 @@ public interface DeviceTokenRepository {
      * @return Найденный токен
      * @throws DeviceTokenNotFoundException Если токен не найден
      */
-    DeviceTokenDALM findByToken(String token) throws DeviceTokenNotFoundException;
+    DeviceTokenBLM findByToken(String token) throws DeviceTokenNotFoundException;
 
     /**
      * Найти токен по UID устройства
@@ -41,7 +40,7 @@ public interface DeviceTokenRepository {
      * @return Найденный токен
      * @throws DeviceTokenNotFoundException Если токен не найден
      */
-    DeviceTokenDALM findByDeviceUid(UUID deviceUid) throws DeviceTokenNotFoundException;
+    DeviceTokenBLM findByDeviceUid(UUID deviceUid) throws DeviceTokenNotFoundException;
 
     /**
      * Отозвать токен по UID

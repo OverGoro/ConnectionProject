@@ -1,4 +1,3 @@
-// DeviceTokenRepositorySQLImpl.java
 package com.connection.device.token.repository;
 
 import java.sql.Timestamp;
@@ -11,9 +10,13 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.connection.device.token.converter.DeviceTokenConverter;
 import com.connection.device.token.exception.DeviceTokenAlreadyExistsException;
 import com.connection.device.token.exception.DeviceTokenNotFoundException;
+import com.connection.device.token.generator.DeviceTokenGenerator;
+import com.connection.device.token.model.DeviceTokenBLM;
 import com.connection.device.token.model.DeviceTokenDALM;
+import com.connection.device.token.validator.DeviceTokenValidator;
 
 @Repository
 public class DeviceTokenRepositorySQLImpl implements DeviceTokenRepository {
@@ -37,6 +40,8 @@ public class DeviceTokenRepositorySQLImpl implements DeviceTokenRepository {
     private static final String EXISTS_BY_DEVICE_UID = "SELECT COUNT(*) FROM access.device_token WHERE device_uid = :device_uid AND expires_at > NOW()";
     private static final String DEVICE_EXISTS = "SELECT COUNT(*) FROM core.device WHERE uid = :device_uid";
 
+    private final DeviceTokenConverter converter;
+    private final DeviceTokenValidator validator = new DeviceTokenValidator();
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     private final RowMapper<DeviceTokenDALM> deviceTokenRowMapper = (rs, rowNum) -> {
@@ -49,26 +54,33 @@ public class DeviceTokenRepositorySQLImpl implements DeviceTokenRepository {
         return token;
     };
 
-    public DeviceTokenRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate) {
+    public DeviceTokenRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate, DeviceTokenGenerator generator) {
         this.jdbcTemplate = jdbcTemplate;
+        this.converter = new DeviceTokenConverter(generator);
     }
 
     @Override
     @Transactional
-    public void add(DeviceTokenDALM deviceTokenDALM) throws DeviceTokenAlreadyExistsException {
+    public void add(DeviceTokenBLM deviceTokenBLM) throws DeviceTokenAlreadyExistsException {
+        // Валидация BLM модели
+        validator.validate(deviceTokenBLM);
+        
         // Проверяем существование device
-        if (!deviceExists(deviceTokenDALM.getDeviceUid())) {
-            throw new IllegalArgumentException("Device with UID " + deviceTokenDALM.getDeviceUid() + " not found");
+        if (!deviceExists(deviceTokenBLM.getDeviceUid())) {
+            throw new IllegalArgumentException("Device with UID " + deviceTokenBLM.getDeviceUid() + " not found");
         }
+
+        // Проверяем существование по uid
+        if (exists(deviceTokenBLM.getUid())) {
+            throw new DeviceTokenAlreadyExistsException("Device token with UID " + deviceTokenBLM.getUid() + " already exists");
+        }
+
+        // Конвертация BLM в DALM
+        DeviceTokenDALM deviceTokenDALM = converter.toDALM(deviceTokenBLM);
 
         // Проверяем существование по token
         if (tokenExists(deviceTokenDALM.getToken())) {
             throw new DeviceTokenAlreadyExistsException("Device token already exists");
-        }
-
-        // Проверяем существование по uid
-        if (uidExists(deviceTokenDALM.getUid())) {
-            throw new DeviceTokenAlreadyExistsException("Device token with UID " + deviceTokenDALM.getUid() + " already exists");
         }
 
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -83,11 +95,13 @@ public class DeviceTokenRepositorySQLImpl implements DeviceTokenRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public DeviceTokenDALM findByUid(UUID uid) throws DeviceTokenNotFoundException {
+    public DeviceTokenBLM findByUid(UUID uid) throws DeviceTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
         try {
-            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_UID, params, deviceTokenRowMapper);
+            DeviceTokenDALM dalToken = jdbcTemplate.queryForObject(SELECT_TOKEN_BY_UID, params, deviceTokenRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalToken);
         } catch (EmptyResultDataAccessException e) {
             throw new DeviceTokenNotFoundException("Device token with UID " + uid + " not found");
         }
@@ -95,11 +109,13 @@ public class DeviceTokenRepositorySQLImpl implements DeviceTokenRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public DeviceTokenDALM findByToken(String token) throws DeviceTokenNotFoundException {
+    public DeviceTokenBLM findByToken(String token) throws DeviceTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("token", token);
         try {
-            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_TOKEN, params, deviceTokenRowMapper);
+            DeviceTokenDALM dalToken = jdbcTemplate.queryForObject(SELECT_TOKEN_BY_TOKEN, params, deviceTokenRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalToken);
         } catch (EmptyResultDataAccessException e) {
             throw new DeviceTokenNotFoundException("Device token not found");
         }
@@ -107,11 +123,13 @@ public class DeviceTokenRepositorySQLImpl implements DeviceTokenRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public DeviceTokenDALM findByDeviceUid(UUID deviceUid) throws DeviceTokenNotFoundException {
+    public DeviceTokenBLM findByDeviceUid(UUID deviceUid) throws DeviceTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("device_uid", deviceUid);
         try {
-            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_DEVICE_UID, params, deviceTokenRowMapper);
+            DeviceTokenDALM dalToken = jdbcTemplate.queryForObject(SELECT_TOKEN_BY_DEVICE_UID, params, deviceTokenRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalToken);
         } catch (EmptyResultDataAccessException e) {
             throw new DeviceTokenNotFoundException("Device token for device UID " + deviceUid + " not found");
         }
@@ -121,7 +139,7 @@ public class DeviceTokenRepositorySQLImpl implements DeviceTokenRepository {
     @Transactional
     public void revoke(UUID uid) throws DeviceTokenNotFoundException {
         // Проверяем существование токена
-        if (!uidExists(uid)) {
+        if (!exists(uid)) {
             throw new DeviceTokenNotFoundException("Device token with UID " + uid + " not found");
         }
 
@@ -165,7 +183,7 @@ public class DeviceTokenRepositorySQLImpl implements DeviceTokenRepository {
     }
 
     @Transactional(readOnly = true)
-    boolean uidExists(UUID uid) {
+    boolean exists(UUID uid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
         try {

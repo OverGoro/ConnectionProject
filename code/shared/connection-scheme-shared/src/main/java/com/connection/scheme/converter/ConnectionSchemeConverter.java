@@ -12,43 +12,43 @@ import com.connection.scheme.model.ConnectionSchemeDTO;
 
 public class ConnectionSchemeConverter {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private  final ObjectMapper objectMapper = new ObjectMapper();
 
-        public ConnectionSchemeBLM toBLM(ConnectionSchemeDALM dalm) {
+    public  ConnectionSchemeBLM toBLM(ConnectionSchemeDALM dalm) {
         try {
             // Извлекаем transitions из JSON
             Map<UUID, List<UUID>> bufferTransitions = extractTransitionsFromJson(dalm.getSchemeJson());
-            
+
             return ConnectionSchemeBLM.builder()
-                .uid(dalm.getUid())
-                .clientUid(dalm.getClientUid())
-                .schemeJson(dalm.getSchemeJson())
-                .usedBuffers(dalm.getUsedBuffers()) // Теперь получаем из DALM
-                .bufferTransitions(bufferTransitions)
-                .build();
+                    .uid(dalm.getUid())
+                    .clientUid(dalm.getClientUid())
+                    .schemeJson(dalm.getSchemeJson())
+                    .usedBuffers(dalm.getUsedBuffers()) // Теперь получаем из DALM
+                    .bufferTransitions(bufferTransitions)
+                    .build();
         } catch (Exception e) {
             throw new RuntimeException("Failed to convert DALM to BLM", e);
         }
     }
 
-    public ConnectionSchemeBLM toBLM(ConnectionSchemeDTO dto) {
+    public  ConnectionSchemeBLM toBLM(ConnectionSchemeDTO dto) {
         try {
             // Извлекаем transitions из JSON
             Map<UUID, List<UUID>> bufferTransitions = extractTransitionsFromJson(dto.getSchemeJson());
-            
+
             return ConnectionSchemeBLM.builder()
-                .uid(UUID.fromString(dto.getUid()))
-                .clientUid(UUID.fromString(dto.getClientUid()))
-                .schemeJson(dto.getSchemeJson())
-                .usedBuffers(dto.getUsedBuffers()) // Используем переданные usedBuffers
-                .bufferTransitions(bufferTransitions)
-                .build();
+                    .uid(UUID.fromString(dto.getUid()))
+                    .clientUid(UUID.fromString(dto.getClientUid()))
+                    .schemeJson(dto.getSchemeJson())
+                    .usedBuffers(dto.getUsedBuffers()) // Используем переданные usedBuffers
+                    .bufferTransitions(bufferTransitions)
+                    .build();
         } catch (Exception e) {
             throw new RuntimeException("Failed to convert DTO to BLM", e);
         }
     }
 
-    public ConnectionSchemeDTO toDTO(ConnectionSchemeBLM blm) {
+    public  ConnectionSchemeDTO toDTO(ConnectionSchemeBLM blm) {
 
         String transitionsJson = convertTransitionsToJson(blm.getBufferTransitions());
 
@@ -60,7 +60,7 @@ public class ConnectionSchemeConverter {
                 .build();
     }
 
-    public ConnectionSchemeDALM toDALM(ConnectionSchemeBLM blm) {
+    public  ConnectionSchemeDALM toDALM(ConnectionSchemeBLM blm) {
 
         String transitionsJson = convertTransitionsToJson(blm.getBufferTransitions());
 
@@ -72,7 +72,7 @@ public class ConnectionSchemeConverter {
                 .build();
     }
 
-    private Map<UUID, List<UUID>> extractTransitionsFromJson(String schemeJson) {
+    private  Map<UUID, List<UUID>> extractTransitionsFromJson(String schemeJson) {
         try {
 
             return objectMapper.readValue(schemeJson, new TypeReference<Map<UUID, List<UUID>>>() {
@@ -82,7 +82,7 @@ public class ConnectionSchemeConverter {
         }
     }
 
-    private List<UUID> extractUsedBuffersFromJson(String schemeJson) {
+    private  List<UUID> extractUsedBuffersFromJson(String schemeJson) {
         try {
 
             Map<UUID, List<UUID>> transitions = extractTransitionsFromJson(schemeJson);
@@ -100,7 +100,7 @@ public class ConnectionSchemeConverter {
         }
     }
 
-    private String convertTransitionsToJson(Map<UUID, List<UUID>> bufferTransitions) {
+    private  String convertTransitionsToJson(Map<UUID, List<UUID>> bufferTransitions) {
         try {
             return objectMapper.writeValueAsString(bufferTransitions);
         } catch (Exception e) {

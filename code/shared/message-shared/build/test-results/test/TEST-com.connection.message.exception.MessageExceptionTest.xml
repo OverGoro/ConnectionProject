@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Message Exception Tests" tests="5" skipped="0" failures="0" errors="0" timestamp="2025-10-20T00:53:16.647Z" hostname="Yurik" time="0.013">
+  <properties/>
+  <testcase name="BaseMessageException toString format" classname="com.connection.message.exception.MessageExceptionTest" time="0.002"/>
+  <testcase name="Exception inheritance hierarchy" classname="com.connection.message.exception.MessageExceptionTest" time="0.002"/>
+  <testcase name="MessageAddException toString format" classname="com.connection.message.exception.MessageExceptionTest" time="0.0"/>
+  <testcase name="MessageNotFoundException toString format" classname="com.connection.message.exception.MessageExceptionTest" time="0.001"/>
+  <testcase name="MessageValidateException toString format" classname="com.connection.message.exception.MessageExceptionTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
+import com.connection.token.exception.AccessTokenValidateException;
 import com.connection.token.model.AccessTokenBLM;
 
 import io.jsonwebtoken.Claims;
@@ -37,6 +38,7 @@ public class AccessTokenGenerator {
     }
 
     public AccessTokenBLM getAccessTokenBLM(String token) {
+        try{
         Jws<Claims> jws = Jwts.parser()
                 .verifyWith(jwtSecretKey)
                 .build()
@@ -53,5 +55,9 @@ public class AccessTokenGenerator {
         }
 
         return new AccessTokenBLM(token, clientUid, issuedAt, expiration);
+    }
+    catch (RuntimeException e){
+        throw new AccessTokenValidateException(token, "Invalid jwt");
+    }
     }
 }

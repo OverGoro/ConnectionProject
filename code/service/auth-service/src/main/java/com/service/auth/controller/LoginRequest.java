@@ -15,9 +15,9 @@ import lombok.Setter;
 @Schema(description = "Login request with email and password")
 public class LoginRequest {
     
-    @Schema(description = "User email", example = "user@example.com", required = true)
+    @Schema(description = "User email", required = true)
     private String email;
     
-    @Schema(description = "User password", example = "password123", required = true)
+    @Schema(description = "User password", required = true)
     private String password;
 }

@@ -1,1 +1,0 @@
-{"uuid":"17573b1d-4abe-4a92-bed2-0260c10f0322","name":"Health check - Negative: Auth service error","children":["fec6c8c1-f932-4de0-8071-729fddf0c161"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1760663820234,"stop":1760663820234}],"afters":[],"start":1760663820232,"stop":1760663820236}

@@ -1,4 +1,3 @@
-// DeviceRepository.java
 package com.connection.device.repository;
 
 import java.util.List;
@@ -6,18 +5,18 @@ import java.util.UUID;
 
 import com.connection.device.exception.DeviceAlreadyExistsException;
 import com.connection.device.exception.DeviceNotFoundException;
-import com.connection.device.model.DeviceDALM;
+import com.connection.device.model.DeviceBLM;
 
 public interface DeviceRepository {
     /**
      * Добавить новое устройство
      */
-    void add(DeviceDALM device) throws DeviceAlreadyExistsException;
+    void add(DeviceBLM device) throws DeviceAlreadyExistsException;
 
     /**
      * Обновить устройство
      */
-    void update(DeviceDALM device) throws DeviceNotFoundException;
+    void update(DeviceBLM device) throws DeviceNotFoundException;
 
     /**
      * Удалить устройство
@@ -27,12 +26,12 @@ public interface DeviceRepository {
     /**
      * Найти устройство по UID
      */
-    DeviceDALM findByUid(UUID uid) throws DeviceNotFoundException;
+    DeviceBLM findByUid(UUID uid) throws DeviceNotFoundException;
 
     /**
      * Найти все устройства клиента
      */
-    List<DeviceDALM> findByClientUuid(UUID clientUuid);
+    List<DeviceBLM> findByClientUuid(UUID clientUuid);
 
     /**
      * Проверить существование устройства

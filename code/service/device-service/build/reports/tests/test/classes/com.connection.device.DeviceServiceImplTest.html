@@ -41,7 +41,7 @@
 </td>
 <td>
 <div class="infoBox" id="duration">
-<div class="counter">2.204s</div>
+<div class="counter">3.402s</div>
 <p>duration</p>
 </div>
 </td>
@@ -84,79 +84,79 @@
 <tr>
 <td class="success">Create device - Positive</td>
 <td class="success">shouldCreateDeviceWhenValidData()</td>
-<td class="success">2.105s</td>
+<td class="success">3.214s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Delete device - Positive</td>
 <td class="success">shouldDeleteDeviceWhenValidRequest()</td>
-<td class="success">0.003s</td>
+<td class="success">0.004s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get device - Positive</td>
 <td class="success">shouldGetDeviceWhenValidRequest()</td>
-<td class="success">0.004s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get devices by client - Positive</td>
 <td class="success">shouldGetDevicesByClientWhenValidRequest()</td>
-<td class="success">0.018s</td>
+<td class="success">0.060s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Health check - Negative: Auth service error</td>
 <td class="success">shouldHandleAuthServiceErrorInHealthCheck()</td>
-<td class="success">0.002s</td>
+<td class="success">0.003s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Health check - Negative: Auth service timeout</td>
 <td class="success">shouldHandleAuthServiceTimeoutInHealthCheck()</td>
-<td class="success">0.008s</td>
+<td class="success">0.010s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Device exists - Negative: Device not found</td>
 <td class="success">shouldReturnFalseWhenDeviceNotExists()</td>
-<td class="success">0.002s</td>
+<td class="success">0.003s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Health check - Positive</td>
 <td class="success">shouldReturnHealthStatus()</td>
-<td class="success">0.037s</td>
+<td class="success">0.070s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Device exists - Positive</td>
 <td class="success">shouldReturnTrueWhenDeviceExists()</td>
-<td class="success">0.003s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Create device - Negative: Client UID mismatch</td>
 <td class="success">shouldThrowExceptionWhenClientUidMismatch()</td>
-<td class="success">0.003s</td>
+<td class="success">0.004s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Create device - Negative: Device already exists</td>
 <td class="success">shouldThrowExceptionWhenDeviceAlreadyExists()</td>
-<td class="success">0.009s</td>
+<td class="success">0.011s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get device - Negative: Device doesn't belong to client</td>
 <td class="success">shouldThrowExceptionWhenDeviceNotBelongsToClient()</td>
-<td class="success">0.005s</td>
+<td class="success">0.007s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Update device - Positive</td>
 <td class="success">shouldUpdateDeviceWhenValidData()</td>
-<td class="success">0.005s</td>
+<td class="success">0.006s</td>
 <td class="success">passed</td>
 </tr>
 </table>
@@ -164,10 +164,10 @@
 <div class="tab">
 <h2>Standard output</h2>
 <span class="code">
-<pre>04:16:59.593 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceApiImpl -- Device created: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
-04:17:00.160 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceApiImpl -- Device updated: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
-04:17:00.266 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceApiImpl -- Device deleted: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
-04:17:00.275 [ForkJoinPool-1-worker-1] ERROR com.connection.device.DeviceServiceApiImpl -- Kafka Client: 
+<pre>14:45:32.674 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceApiImpl -- Device created: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
+14:45:33.465 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceApiImpl -- Device updated: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
+14:45:33.662 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceApiImpl -- Device deleted: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
+14:45:33.675 [ForkJoinPool-1-worker-1] ERROR com.connection.device.DeviceServiceApiImpl -- Kafka Client: 
 java.util.concurrent.ExecutionException: java.util.concurrent.TimeoutException: Timeout
 	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
 	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
@@ -268,7 +268,7 @@ WARNING: Dynamic loading of agents will be disallowed by default in a future rel
 <input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
 </label>
 </div>Generated by 
-<a href="https://www.gradle.org">Gradle 8.13</a> at 17 окт. 2025 г., 04:17:00</p>
+<a href="https://www.gradle.org">Gradle 8.14.3</a> at 18 окт. 2025 г., 14:45:34</p>
 </div>
 </div>
 </body>

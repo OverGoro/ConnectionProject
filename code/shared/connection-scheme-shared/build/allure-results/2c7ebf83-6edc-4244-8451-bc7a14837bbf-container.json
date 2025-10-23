@@ -1,0 +1,1 @@
+{"uuid":"2c7ebf83-6edc-4244-8451-bc7a14837bbf","name":"Validate ConnectionSchemeDTO with empty JSON - Negative","children":["b5782554-a47b-45e4-963f-028f37c7232f"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1760916432508,"stop":1760916432509}],"afters":[],"start":1760916432507,"stop":1760916432510}

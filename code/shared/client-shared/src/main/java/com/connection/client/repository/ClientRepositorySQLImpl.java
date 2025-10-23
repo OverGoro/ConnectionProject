@@ -8,9 +8,12 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import java.sql.Date;
 import java.util.UUID;
 
+import com.connection.client.converter.ClientConverter;
 import com.connection.client.exception.ClientAlreadyExisistsException;
 import com.connection.client.exception.ClientNotFoundException;
+import com.connection.client.model.ClientBLM;
 import com.connection.client.model.ClientDALM;
+import com.connection.client.validator.ClientValidator;
 
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +42,8 @@ public class ClientRepositorySQLImpl implements ClientRepository {
 
     private static final String DELETE_CLIENT_BY_UID = "DELETE FROM core.client WHERE uid = :uid";
 
+    private final ClientConverter converter = new ClientConverter();
+    private final ClientValidator validator = new ClientValidator();
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     private final RowMapper<ClientDALM> clientRowMapper = (rs, rowNum) -> {
@@ -57,23 +62,29 @@ public class ClientRepositorySQLImpl implements ClientRepository {
 
     @Override
     @Transactional
-    public void add(ClientDALM clientDALM) throws ClientAlreadyExisistsException {
+    public void add(ClientBLM clientBLM) throws ClientAlreadyExisistsException {
+        // Валидация BLM модели
+        validator.validate(clientBLM);
+        
         try {
             // Проверяем существование по email
-            findByEmail(clientDALM.getEmail());
-            throw new ClientAlreadyExisistsException("Client with email " + clientDALM.getEmail() + " already exists");
+            findByEmail(clientBLM.getEmail());
+            throw new ClientAlreadyExisistsException("Client with email " + clientBLM.getEmail() + " already exists");
         } catch (ClientNotFoundException e) {
             // Клиент не найден по email - продолжаем
         }
 
         try {
             // Проверяем существование по username
-            findByUsername(clientDALM.getUsername());
+            findByUsername(clientBLM.getUsername());
             throw new ClientAlreadyExisistsException(
-                    "Client with username " + clientDALM.getUsername() + " already exists");
+                    "Client with username " + clientBLM.getUsername() + " already exists");
         } catch (ClientNotFoundException e) {
             // Клиент не найден по username - продолжаем
         }
+
+        // Конвертация BLM в DALM
+        ClientDALM clientDALM = converter.toDALM(clientBLM);
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", clientDALM.getUid() != null ? clientDALM.getUid() : UUID.randomUUID());
@@ -88,11 +99,13 @@ public class ClientRepositorySQLImpl implements ClientRepository {
 
     @Override
     @Transactional
-    public ClientDALM findByUid(UUID uuid) throws ClientNotFoundException {
+    public ClientBLM findByUid(UUID uuid) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uuid);
         try {
-            return jdbcTemplate.queryForObject(SELECT_CLIENT_BY_UID, params, clientRowMapper);
+            ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_UID, params, clientRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalClient);
         } catch (EmptyResultDataAccessException e) {
             throw new ClientNotFoundException("Client with UID " + uuid + " not found");
         }
@@ -100,11 +113,13 @@ public class ClientRepositorySQLImpl implements ClientRepository {
 
     @Override
     @Transactional
-    public ClientDALM findByEmail(String emailString) throws ClientNotFoundException {
+    public ClientBLM findByEmail(String emailString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("email", emailString);
         try {
-            return jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL, params, clientRowMapper);
+            ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL, params, clientRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalClient);
         } catch (EmptyResultDataAccessException e) {
             throw new ClientNotFoundException("Client with email " + emailString + " not found");
         }
@@ -112,11 +127,13 @@ public class ClientRepositorySQLImpl implements ClientRepository {
 
     @Override
     @Transactional
-    public ClientDALM findByUsername(String usernameString) throws ClientNotFoundException {
+    public ClientBLM findByUsername(String usernameString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("username", usernameString);
         try {
-            return jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME, params, clientRowMapper);
+            ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME, params, clientRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalClient);
         } catch (EmptyResultDataAccessException e) {
             throw new ClientNotFoundException("Client with username " + usernameString + " not found");
         }
@@ -124,12 +141,14 @@ public class ClientRepositorySQLImpl implements ClientRepository {
 
     @Override
     @Transactional
-    public ClientDALM findByEmailPassword(String emailString, String passwordString) throws ClientNotFoundException {
+    public ClientBLM findByEmailPassword(String emailString, String passwordString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("email", emailString);
         params.addValue("password", passwordString);
         try {
-            return jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL_PASSWORD, params, clientRowMapper);
+            ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL_PASSWORD, params, clientRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalClient);
         } catch (EmptyResultDataAccessException e) {
             throw new ClientNotFoundException("Client with email " + emailString + " and provided password not found");
         }
@@ -137,13 +156,15 @@ public class ClientRepositorySQLImpl implements ClientRepository {
 
     @Override
     @Transactional
-    public ClientDALM findByUsernamePassword(String usernameString, String passwordString)
+    public ClientBLM findByUsernamePassword(String usernameString, String passwordString)
             throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("username", usernameString);
         params.addValue("password", passwordString);
         try {
-            return jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME_PASSWORD, params, clientRowMapper);
+            ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME_PASSWORD, params, clientRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalClient);
         } catch (EmptyResultDataAccessException e) {
             throw new ClientNotFoundException(
                     "Client with username " + usernameString + " and provided password not found");

@@ -36,10 +36,12 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/v1/health").permitAll()
                         
+                        // Разрешаем доступ с любой аутентификацией (клиент ИЛИ устройство)
                         .requestMatchers("/api/v1/messages/**").hasAnyAuthority("ROLE_CLIENT", "ROLE_DEVICE")
                         
                         .anyRequest().denyAll()
                 )
+                // Оба фильтра будут работать по принципу ИЛИ
                 .addFilterBefore(clientJwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(deviceJwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

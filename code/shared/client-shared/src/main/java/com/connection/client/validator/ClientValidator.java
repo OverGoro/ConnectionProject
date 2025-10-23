@@ -96,8 +96,8 @@ public class ClientValidator {
         if (username.length() < 3) {
             throw new IllegalArgumentException("Username too short (min 3 chars)");
         }
-        if (username.length() > 20) {
-            throw new IllegalArgumentException("Username too long (max 20 chars)");
+        if (username.length() > 50) {
+            throw new IllegalArgumentException("Username too long (max 50 chars)");
         }
         // if (!USERNAME_PATTERN.matcher(username).matches()) {
         //     throw new IllegalArgumentException("Username can only contain letters, numbers and underscores");

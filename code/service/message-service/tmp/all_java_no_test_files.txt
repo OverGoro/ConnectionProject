@@ -1,7 +1,281 @@
 package com.connection.message.config;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.util.backoff.FixedBackOff;
+
+import com.connection.auth.events.AuthEventConstants;
+import com.connection.buffer.events.BufferEventConstants;
+import com.connection.device.events.DeviceEventConstants;
+import com.connection.device.auth.events.DeviceAuthEventConstants;
+import com.connection.scheme.events.ConnectionSchemeEventConstants;
+import com.connection.message.events.MessageEventConstants;
+
+@Configuration
+public class MessageKafkaConfig {
+    
+    @Value("${spring.kafka.bootstrap-servers:localhost:29092}")
+    private String bootstrapServers;
+
+    @Bean
+    public NewTopic authResponsesTopic() {
+        return TopicBuilder.name(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic deviceAuthResponsesTopic() {
+        return TopicBuilder.name(DeviceAuthEventConstants.DEVICE_AUTH_RESPONSES_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic deviceResponsesTopic() {
+        return TopicBuilder.name(DeviceEventConstants.DEVICE_RESPONSES_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic connectionSchemeResponsesTopic() {
+        return TopicBuilder.name(ConnectionSchemeEventConstants.CONNECTION_SCHEME_RESPONSES_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic bufferResponsesTopic() {
+        return TopicBuilder.name(BufferEventConstants.BUFFER_RESPONSES_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    // Конфигурация топиков для message-service
+    @Bean
+    public NewTopic messageCommandsTopic() {
+        return TopicBuilder.name(MessageEventConstants.MESSAGE_COMMANDS_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic messageResponsesTopic() {
+        return TopicBuilder.name(MessageEventConstants.MESSAGE_RESPONSES_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic messageEventsTopic() {
+        return TopicBuilder.name(MessageEventConstants.MESSAGE_EVENTS_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    // Конфигурация для Consumer с обработкой ошибок десериализации
+    @Bean
+    public ConsumerFactory<String, Object> consumerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "message-service-group");
+        configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        
+        // Конфигурация для ErrorHandlingDeserializer
+        configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, org.apache.kafka.common.serialization.StringDeserializer.class);
+        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
+        
+        // Конфигурация для JsonDeserializer
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, 
+            "com.connection.auth.events.commands,"+
+            "com.connection.auth.events.responses," +
+            "com.connection.common.events," +
+            "com.connection.buffer.events.commands," +
+            "com.connection.buffer.events.responses," +
+            "com.connection.auth.events.commands," +
+            "com.connection.auth.events.responses," +
+            "com.connection.device.events.commands," +
+            "com.connection.device.events.responses," +
+            "com.connection.scheme.events.commands," +
+            "com.connection.scheme.events.responses," +
+            "com.connection.device.auth.events.commands," +
+            "com.connection.device.auth.events.responses," +
+            "com.connection.message.events.commands,"+
+            "com.connection.message.events.responses");
+        configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
+        configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
+        configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");
+        
+        return new DefaultKafkaConsumerFactory<>(configProps);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory = 
+            new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        
+        // Обработка ошибок десериализации - пропускаем некорректные сообщения
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(
+                (record, exception) -> {
+                    org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("KafkaErrorHandler");
+                    logger.error("Skipping invalid message - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}",
+                            record.topic(),
+                            record.partition(),
+                            record.offset(),
+                            record.key(),
+                            exception.getMessage());
+                },
+                new FixedBackOff(0L, 0L)
+        );
+
+        factory.setCommonErrorHandler(errorHandler);
+        
+        return factory;
+    }
+
+    // Конфигурация для Producer
+    @Bean
+    public ProducerFactory<String, Object> producerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.StringSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
+        return new DefaultKafkaProducerFactory<>(configProps);
+    }
+
+    @Bean
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
+    }
+}package com.connection.message.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.connection.message.converter.MessageConverter;
+import com.connection.message.validator.MessageValidator;
+import com.connection.device.converter.DeviceConverter;
+import com.connection.processing.buffer.converter.BufferConverter;
+import com.connection.scheme.converter.ConnectionSchemeConverter;
+
+@Configuration
+public class MessageUtilsConfig {
+    
+    @Bean("MessageConverter")
+    MessageConverter messageConverter(){
+        return new MessageConverter();
+    }
+
+    @Bean("MessageValidator")
+    MessageValidator messageValidator(){
+        return new MessageValidator();
+    }
+
+    @Bean("BufferConverter")
+    BufferConverter bufferConverter(){
+        return new BufferConverter();
+    }
+
+    @Bean("ConnectionSchemeConverter")
+    ConnectionSchemeConverter connectionSchemeConverter(){
+        return new ConnectionSchemeConverter();
+    }
+
+    @Bean("DeviceConverter")
+    DeviceConverter deviceConverter(){
+        return new DeviceConverter();
+    }
+}package com.connection.message.config;
+
+import java.util.Properties;
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.atomikos.jdbc.AtomikosDataSourceBean;
+
+@Configuration
+public class MessageJDBCConfig {
+    
+    @Value("${app.datasource.message.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    private String xaDataSourceClassName;
+
+    @Value("${app.datasource.message.xa-properties.url}")
+    private String jdbcUrl;
+
+    @Value("${app.datasource.message.xa-properties.user}")
+    private String username;
+
+    @Value("${app.datasource.message.xa-properties.password}")
+    private String password;
+
+    @Value("${app.datasource.message.unique-resource-name:messageXADataSource}")
+    private String uniqueResourceName;
+
+    @Bean("MessageDataSource")
+    DataSource messageDataSource() {
+        AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
+        dataSource.setUniqueResourceName(uniqueResourceName);
+        dataSource.setXaDataSourceClassName(xaDataSourceClassName);
+        
+        Properties xaProperties = new Properties();
+        xaProperties.setProperty("url", jdbcUrl);
+        xaProperties.setProperty("user", username);
+        xaProperties.setProperty("password", password);
+
+        dataSource.setXaProperties(xaProperties);
+        dataSource.setPoolSize(5);
+        dataSource.setTestQuery("SELECT 1");
+
+        return dataSource;
+    }
+
+    @Bean("MessageJdbcTemplate")
+    NamedParameterJdbcTemplate messageNamedParameterJdbcTemplate(
+            @Qualifier("MessageDataSource") DataSource messageDataSource) {
+        return new NamedParameterJdbcTemplate(messageDataSource);
+    }
+}// SwaggerConfig.java
+package com.connection.message.config;
+
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.annotations.security.SecuritySchemes;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.Components;
@@ -10,12 +284,22 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@SecurityScheme(
-    name = "bearerAuth",
-    type = SecuritySchemeType.HTTP,
-    bearerFormat = "JWT",
-    scheme = "bearer"
-)
+@SecuritySchemes({
+    @SecurityScheme(
+        name = "clientAuth",
+        type = SecuritySchemeType.HTTP,
+        bearerFormat = "JWT",
+        scheme = "bearer",
+        description = "Client JWT token for client operations"
+    ),
+    @SecurityScheme(
+        name = "deviceAuth", 
+        type = SecuritySchemeType.HTTP,
+        bearerFormat = "JWT",
+        scheme = "bearer",
+        description = "Device JWT token for device-specific operations"
+    )
+})
 public class SwaggerConfig {
 
     @Bean
@@ -23,15 +307,182 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Message Service API")
-                        .version("1.0")
-                        .description("API для управления сообщениями устрйоств"))
-                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
+                        .version("1.0"))
+                .addSecurityItem(new SecurityRequirement().addList("clientAuth"))
+                .addSecurityItem(new SecurityRequirement().addList("deviceAuth"))
                 .components(new Components()
-                        .addSecuritySchemes("bearerAuth", 
+                        .addSecuritySchemes("clientAuth", 
                             new io.swagger.v3.oas.models.security.SecurityScheme()
                                 .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
-                                .bearerFormat("JWT")));
+                                .bearerFormat("JWT")
+                                .description("Client JWT Token"))
+                        .addSecuritySchemes("deviceAuth",
+                            new io.swagger.v3.oas.models.security.SecurityScheme()
+                                .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")
+                                .description("Device JWT Token")));
+    }
+}// SecurityUtils.java
+package com.connection.message.config;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+
+import java.util.UUID;
+
+@Component
+public class SecurityUtils {
+
+    public static UUID getCurrentClientUid() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new SecurityException("User not authenticated");
+        }
+
+        Object principal = authentication.getPrincipal();
+        
+        if (principal instanceof UUID) {
+            return (UUID) principal;
+        } else if (principal instanceof String) {
+            try {
+                return UUID.fromString((String) principal);
+            } catch (IllegalArgumentException e) {
+                throw new SecurityException("Invalid client UID format in principal");
+            }
+        } else {
+            throw new SecurityException("Unexpected principal type: " + principal.getClass());
+        }
+    }
+
+    public static UUID getCurrentDeviceUid() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new SecurityException("Device not authenticated");
+        }
+
+        Object principal = authentication.getPrincipal();
+        
+        if (principal instanceof UUID) {
+            return (UUID) principal;
+        } else if (principal instanceof String) {
+            try {
+                return UUID.fromString((String) principal);
+            } catch (IllegalArgumentException e) {
+                throw new SecurityException("Invalid device UID format in principal");
+            }
+        } else {
+            throw new SecurityException("Unexpected principal type: " + principal.getClass());
+        }
+    }
+
+    public static boolean isClientAuthenticated() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.isAuthenticated() 
+            && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CLIENT"));
+    }
+
+    public static boolean isDeviceAuthenticated() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.isAuthenticated() 
+            && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_DEVICE"));
+    }
+}package com.connection.message.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.jta.JtaTransactionManager;
+
+import com.atomikos.icatch.jta.UserTransactionManager;
+
+import jakarta.transaction.SystemException;
+
+@Configuration
+public class TransactionConfig {
+
+    @Bean
+    public UserTransactionManager userTransactionManager() throws SystemException{
+        UserTransactionManager manager = new UserTransactionManager();
+        manager.setTransactionTimeout(300);
+        manager.setForceShutdown(true);
+        return manager;
+    }
+
+    @Bean(name = "atomicosTransactionManager")
+    public JtaTransactionManager jtaTransactionManager() throws SystemException {
+        JtaTransactionManager jtaTransactionManager = new JtaTransactionManager();
+        jtaTransactionManager.setTransactionManager(userTransactionManager());
+        jtaTransactionManager.setUserTransaction(userTransactionManager());
+        return jtaTransactionManager;
+    }
+}package com.connection.message.config;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.message.repository.MessageRepository;
+import com.connection.message.repository.MessageRepositorySQLImpl;
+
+@Configuration
+public class MessageRepositoryConfig {
+    
+    @Bean("MessageRepository")
+    MessageRepository messageRepository(@Qualifier("MessageJdbcTemplate") NamedParameterJdbcTemplate template){
+        return new MessageRepositorySQLImpl(template);
+    }
+}package com.connection.message.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.connection.message.client.ClientJwtKafkaAuthenticationFilter;
+import com.connection.message.client.DeviceJwtKafkaAuthenticationFilter;
+
+import lombok.RequiredArgsConstructor;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final ClientJwtKafkaAuthenticationFilter clientJwtKafkaAuthenticationFilter;
+    private final DeviceJwtKafkaAuthenticationFilter deviceJwtKafkaAuthenticationFilter;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/swagger-ui.html").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/api-docs/**").permitAll()
+                        .requestMatchers("/webjars/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/v1/health").permitAll()
+                        
+                        .requestMatchers("/api/v1/messages/**").hasAnyAuthority("ROLE_CLIENT", "ROLE_DEVICE")
+                        
+                        .anyRequest().denyAll()
+                )
+                .addFilterBefore(clientJwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(deviceJwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
     }
 }// MessageResponse.java
 package com.connection.message.controller;
@@ -40,24 +491,70 @@ import java.util.List;
 
 import com.connection.message.model.MessageDTO;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @AllArgsConstructor
 @Getter
+@Schema(description = "Ответ с списком сообщений")
 public class MessageResponse {
+    
+    @Schema(description = "Список сообщений")
     private final List<MessageDTO> messageDTOs;
-}// HealthResponse.java
+}// GlobalExceptionHandler.java
 package com.connection.message.controller;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<?> handleSecurityException(SecurityException e) {
+        log.warn("Security exception: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse(
+                "access_denied",
+                e.getMessage()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handleGenericException(Exception e) {
+        log.error("Unexpected error occurred: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse(
+                "internal_server_error",
+                "An unexpected error occurred"));
+    }
+    
+    @AllArgsConstructor
+    @Getter
+    public static class ErrorResponse {
+        private final String error;
+        private final String message;
+    }
+}// HealthResponse.java
+package com.connection.message.controller;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 @AllArgsConstructor
 @Getter
+@Schema(description = "Ответ health check")
 public class HealthResponse {
+    
+    @Schema(description = "Статус сервиса и зависимостей")
     private final String message;
-}package com.connection.message.controller;
+}// MessageController.java (обновленная версия с аннотациями Swagger)
+package com.connection.message.controller;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -78,6 +575,11 @@ import com.connection.message.converter.MessageConverter;
 import com.connection.message.model.MessageBLM;
 import com.connection.message.model.MessageDTO;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -85,6 +587,7 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
+@Tag(name = "Message Service", description = "API для управления сообщениями устройств")
 public class MessageController {
     
     // Константы для пагинации по умолчанию
@@ -92,15 +595,33 @@ public class MessageController {
     private static final int DEFAULT_LIMIT = 1;
     private static final int MAX_LIMIT = 1000;
 
-    protected MessageConverter messageConverter;
-    protected MessageService messageService;
+    protected final MessageConverter messageConverter;
+    protected final MessageService messageService;
 
+    @Operation(
+        security = @SecurityRequirement(name = "deviceAuth")
+    )
     @PostMapping("/messages")
     public ResponseEntity<Void> addMessage(
+            @Parameter(description = "DTO сообщения для добавления")
             @RequestBody MessageDTO messageDTO) {
         throw new UnsupportedOperationException("Unimplemented method 'addMessage'");
     }
 
+    @Operation(
+        security = {
+            @SecurityRequirement(name = "clientAuth"),
+            @SecurityRequirement(name = "deviceAuth")
+        },
+        parameters = {
+            @Parameter(name = "schemeUids", description = "Список UID схем соединения", in = ParameterIn.QUERY),
+            @Parameter(name = "bufferUids", description = "Список UID буферов", in = ParameterIn.QUERY),
+            @Parameter(name = "deviceUids", description = "Список UID устройств", in = ParameterIn.QUERY),
+            @Parameter(name = "deleteOnGet", description = "Удалять сообщения после получения", in = ParameterIn.QUERY),
+            @Parameter(name = "offset", description = "Смещение для пагинации", in = ParameterIn.QUERY),
+            @Parameter(name = "limit", description = "Лимит для пагинации (макс. 1000)", in = ParameterIn.QUERY)
+        }
+    )
     @GetMapping("/messages/")
     public ResponseEntity<MessageResponse> getMessage(
             @RequestParam(required = false) List<UUID> schemeUids,
@@ -122,14 +643,14 @@ public class MessageController {
         if (bufferUids != null){
             for (UUID bufferUid : bufferUids){
                 log.info("Getting messages for bufferUid: {}", bufferUid);
-                messageBLMs.addAll(messageService.getMessagesByScheme(bufferUid, deleteOnGet, offset, limit));
+                messageBLMs.addAll(messageService.getMessagesByBuffer(bufferUid, deleteOnGet, offset, limit));
             }
         }
 
         if (deviceUids != null){
             for (UUID deviceUid : deviceUids){
                 log.info("Getting messages for deviceUid: {}", deviceUid);
-                messageBLMs.addAll(messageService.getMessagesByScheme(deviceUid, deleteOnGet, offset, limit));
+                messageBLMs.addAll(messageService.getMessagesByDevice(deviceUid, deleteOnGet, offset, limit));
             }
         }
         log.info("Got messages: {}", messageBLMs.size());
@@ -139,19 +660,23 @@ public class MessageController {
         return ResponseEntity.ok().body( new MessageResponse(resultDTO));
     }
 
+    @Operation(
+        summary = "Health Check",
+        description = "Проверка статуса сервиса и зависимостей. Не требует аутентификации."
+    )
     @GetMapping("/health")
     public ResponseEntity<HealthResponse> healthCheck() {
         log.info("Health check: service: message-service, timestamp: {}",
                 System.currentTimeMillis());
 
         return ResponseEntity.ok().body(new HealthResponse(messageService.health().toString()));
-
     }
 }// MessagesListResponse.java
 package com.connection.message.controller;
 
 import com.connection.message.model.MessageDTO;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -159,23 +684,40 @@ import java.util.List;
 
 @AllArgsConstructor
 @Getter
+@Schema(description = "Ответ с списком сообщений и информацией о пагинации")
 public class MessagesListResponse {
+    
+    @Schema(description = "Список сообщений")
     private final List<MessageDTO> messages;
+    
+    @Schema(description = "Информация о пагинации")
     private final PaginationInfo pagination;
 
     @AllArgsConstructor
     @Getter
+    @Schema(description = "Информация о пагинации")
     public static class PaginationInfo {
+        
+        @Schema(description = "Смещение", example = "0")
         private final int offset;
+        
+        @Schema(description = "Лимит", example = "50")
         private final int limit;
+        
+        @Schema(description = "Общее количество элементов")
         private final int totalCount;
+        
+        @Schema(description = "Есть ли еще элементы")
         private final boolean hasMore;
     }
-}// ConnectionSchemeResponseConsumer.java
-package com.connection.message.kafka;
+}package com.connection.message.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.stereotype.Component;
 
 import com.connection.common.events.CommandResponse;
@@ -188,17 +730,20 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ConnectionSchemeResponseConsumer {
+public class ConnectionSchemeResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
 
     private final TypedConnectionSchemeKafkaClient connectionSchemeKafkaClient;
+    private final KafkaListenerEndpointRegistry registry;
 
-    @KafkaListener(topics = "${app.kafka.topics.connection-scheme-responses:connection-scheme.responses}")
+    @KafkaListener(id = "dynamicConnectionSchemeListener", 
+                   topics = "#{@typedConnectionSchemeKafkaClient.getInstanceReplyTopic()}")
     public void handleConnectionSchemeResponse(ConsumerRecord<String, CommandResponse> record) {
         try {
             CommandResponse message = record.value();
             String correlationId = record.key();
             
-            log.info("Received connection scheme response: correlationId={}", correlationId);
+            log.info("Received connection scheme response from instance topic: correlationId={}, topic={}", 
+                    correlationId, record.topic());
                 
             if (message instanceof GetConnectionSchemeByUidResponse) {
                 GetConnectionSchemeByUidResponse typedResponse = (GetConnectionSchemeByUidResponse) message;
@@ -214,10 +759,28 @@ public class ConnectionSchemeResponseConsumer {
             log.error("Error processing connection scheme response: correlationId={}", record.key(), e);
         }
     }
+
+    @Override
+    public void onApplicationEvent(ApplicationReadyEvent event) {
+        try {
+            MessageListenerContainer container = registry.getListenerContainer("dynamicConnectionSchemeListener");
+            if (container != null && !container.isRunning()) {
+                container.start();
+                log.info("Dynamic connection scheme response listener started for topic: {}", 
+                        connectionSchemeKafkaClient.getInstanceReplyTopic());
+            }
+        } catch (Exception e) {
+            log.error("Failed to start dynamic connection scheme listener", e);
+        }
+    }
 }package com.connection.message.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.stereotype.Component;
 
 import com.connection.buffer.events.responses.GetBufferByUidResponse;
@@ -233,17 +796,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class BufferResponseConsumer {
+public class BufferResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
 
     private final TypedBufferKafkaClient bufferKafkaClient;
+    private final KafkaListenerEndpointRegistry registry;
 
-    @KafkaListener(topics = "${app.kafka.topics.buffer-responses:buffer.responses}")
+    @KafkaListener(id = "dynamicBufferListener", topics = "#{@typedBufferKafkaClient.getInstanceReplyTopic()}")
     public void handleBufferResponse(ConsumerRecord<String, CommandResponse> record) {
         try {
             CommandResponse message = record.value();
             String correlationId = record.key();
             
-            log.info("Received buffer response: correlationId={}", correlationId);
+            log.info("Received buffer response from instance topic: correlationId={}, topic={}", 
+                    correlationId, record.topic());
                 
             if (message instanceof GetBufferByUidResponse) {
                 GetBufferByUidResponse typedResponse = (GetBufferByUidResponse) message;
@@ -268,10 +833,28 @@ public class BufferResponseConsumer {
             log.error("Error processing buffer response: correlationId={}", record.key(), e);
         }
     }
+
+    @Override
+    public void onApplicationEvent(ApplicationReadyEvent event) {
+        try {
+            MessageListenerContainer container = registry.getListenerContainer("dynamicBufferListener");
+            if (container != null && !container.isRunning()) {
+                container.start();
+                log.info("Dynamic buffer response listener started for topic: {}", 
+                        bufferKafkaClient.getInstanceReplyTopic());
+            }
+        } catch (Exception e) {
+            log.error("Failed to start dynamic buffer listener", e);
+        }
+    }
 }package com.connection.message.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.stereotype.Component;
 
 import com.connection.auth.events.responses.TokenValidationResponse;
@@ -285,17 +868,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class AuthResponseConsumer {
+public class AuthResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
 
     private final TypedAuthKafkaClient authKafkaClient;
+    private final KafkaListenerEndpointRegistry registry;
 
-    @KafkaListener(topics = "${app.kafka.topics.auth-responses:auth.responses}")
+    @KafkaListener(id = "dynamicAuthListener", topics = "#{@typedAuthKafkaClient.getInstanceReplyTopic()}")
     public void handleAuthResponse(ConsumerRecord<String, CommandResponse> record) {
         try {
             CommandResponse message = record.value();
             String correlationId = record.key();
             
-            log.info("Received auth response: correlationId={}", correlationId);
+            log.info("Received auth response from instance topic: correlationId={}, topic={}", 
+                    correlationId, record.topic());
                 
             if (message instanceof TokenValidationResponse) {
                 TokenValidationResponse typedResponse = (TokenValidationResponse) message;
@@ -314,6 +899,20 @@ public class AuthResponseConsumer {
             log.error("Error processing auth response: correlationId={}", record.key(), e);
         }
     }
+
+    @Override
+    public void onApplicationEvent(ApplicationReadyEvent event) {
+        try {
+            MessageListenerContainer container = registry.getListenerContainer("dynamicAuthListener");
+            if (container != null && !container.isRunning()) {
+                container.start();
+                log.info("Dynamic auth response listener started for topic: {}", 
+                        authKafkaClient.getInstanceReplyTopic());
+            }
+        } catch (Exception e) {
+            log.error("Failed to start dynamic auth listener", e);
+        }
+    }
 }package com.connection.message.kafka;
 
 import java.util.Date;
@@ -321,6 +920,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -349,6 +949,9 @@ public class TypedBufferKafkaClient {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+    
+    // 👇 Уникальный топик для этого инстанса
+    private final String instanceReplyTopic = "buffer.responses." + UUID.randomUUID().toString();
 
     private static class PendingRequest<T> {
         final CompletableFuture<T> future;
@@ -365,7 +968,7 @@ public class TypedBufferKafkaClient {
             GetBufferByUidCommand.builder()
                 .bufferUid(bufferUid)
                 .sourceService(sourceService)
-                .replyTopic(BufferEventConstants.BUFFER_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(BufferEventUtils.generateCorrelationId())
                 .build(),
             GetBufferByUidResponse.class
@@ -377,7 +980,7 @@ public class TypedBufferKafkaClient {
             GetBuffersByClientUidCommand.builder()
                 .clientUid(clientUid)
                 .sourceService(sourceService)
-                .replyTopic(BufferEventConstants.BUFFER_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(BufferEventUtils.generateCorrelationId())
                 .build(),
             GetBuffersByClientResponse.class
@@ -389,7 +992,7 @@ public class TypedBufferKafkaClient {
             GetBuffersByDeviceUidCommand.builder()
                 .deviceUid(deviceUid)
                 .sourceService(sourceService)
-                .replyTopic(BufferEventConstants.BUFFER_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(BufferEventUtils.generateCorrelationId())
                 .build(),
             GetBuffersByDeviceResponse.class
@@ -401,7 +1004,7 @@ public class TypedBufferKafkaClient {
             GetBuffersByConnectionSchemeUidCommand.builder()
                 .connectionSchemeUid(connectionSchemeUid)
                 .sourceService(sourceService)
-                .replyTopic(BufferEventConstants.BUFFER_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(BufferEventUtils.generateCorrelationId())
                 .build(),
             GetBuffersByConnectionSchemeResponse.class
@@ -414,7 +1017,7 @@ public class TypedBufferKafkaClient {
                 .eventId(UUID.randomUUID().toString())
                 .sourceService(sourceService)
                 .timestamp(new Date().toInstant())
-                .replyTopic(BufferEventConstants.BUFFER_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(BufferEventUtils.generateCorrelationId())
                 .commandType(BufferEventConstants.COMMAND_HEALTH_CHECK)
                 .build(),
@@ -442,12 +1045,23 @@ public class TypedBufferKafkaClient {
         CompletableFuture<T> future = new CompletableFuture<>();
         pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
 
+        // 👇 Добавляем таймаут 30 секунд
+        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, ex) -> {
+            if (ex != null) {
+                pendingRequests.remove(correlationId);
+                log.warn("Buffer request timeout or error for correlationId: {}", correlationId);
+            }
+        });
+
         kafkaTemplate.send(BufferEventConstants.BUFFER_COMMANDS_TOPIC, correlationId, command)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
                         future.completeExceptionally(ex);
                         pendingRequests.remove(correlationId);
                         log.error("Failed to send buffer command: {}", ex.getMessage());
+                    } else {
+                        log.info("Buffer command sent successfully: correlationId={}, topic={}", 
+                                correlationId, BufferEventConstants.BUFFER_COMMANDS_TOPIC);
                     }
                 });
 
@@ -462,6 +1076,7 @@ public class TypedBufferKafkaClient {
                 if (pendingRequest.responseType.isInstance(response)) {
                     CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
                     future.complete(response);
+                    log.info("Buffer response handled successfully: correlationId={}", correlationId);
                 } else {
                     log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
                             correlationId, pendingRequest.responseType, response.getClass());
@@ -476,6 +1091,11 @@ public class TypedBufferKafkaClient {
             log.warn("Received buffer response for unknown correlationId: {}", correlationId);
         }
     }
+    
+    // 👇 Геттер для получения уникального топика инстанса
+    public String getInstanceReplyTopic() {
+        return instanceReplyTopic;
+    }
 }package com.connection.message.kafka;
 
 import java.util.Date;
@@ -483,6 +1103,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -507,6 +1128,9 @@ public class TypedAuthKafkaClient {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+    
+    // 👇 Уникальный топик для этого инстанса
+    private final String instanceReplyTopic = "auth.responses." + UUID.randomUUID().toString();
 
     private static class PendingRequest<T> {
         final CompletableFuture<T> future;
@@ -524,7 +1148,7 @@ public class TypedAuthKafkaClient {
                 .token(token)
                 .tokenType(ValidateTokenCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(AuthEventUtils.generateCorrelationId())
                 .build(),
             TokenValidationResponse.class
@@ -537,7 +1161,7 @@ public class TypedAuthKafkaClient {
                 .token(token)
                 .tokenType(ExtractClientUidCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(AuthEventUtils.generateCorrelationId())
                 .build(),
             ClientUidResponse.class
@@ -550,7 +1174,7 @@ public class TypedAuthKafkaClient {
                 .eventId(UUID.randomUUID().toString())
                 .sourceService(sourceService)
                 .timestamp(new Date().toInstant())
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(AuthEventUtils.generateCorrelationId())
                 .commandType(AuthEventConstants.COMMAND_HEALTH_CHECK)
                 .build(),
@@ -574,12 +1198,23 @@ public class TypedAuthKafkaClient {
         CompletableFuture<T> future = new CompletableFuture<>();
         pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
 
+        // 👇 Добавляем таймаут 30 секунд
+        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, ex) -> {
+            if (ex != null) {
+                pendingRequests.remove(correlationId);
+                log.warn("Auth request timeout or error for correlationId: {}", correlationId);
+            }
+        });
+
         kafkaTemplate.send(AuthEventConstants.AUTH_COMMANDS_TOPIC, correlationId, command)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
                         future.completeExceptionally(ex);
                         pendingRequests.remove(correlationId);
-                        log.error("Failed to send command: {}", ex.getMessage());
+                        log.error("Failed to send auth command: {}", ex.getMessage());
+                    } else {
+                        log.info("Auth command sent successfully: correlationId={}, topic={}", 
+                                correlationId, AuthEventConstants.AUTH_COMMANDS_TOPIC);
                     }
                 });
 
@@ -594,19 +1229,25 @@ public class TypedAuthKafkaClient {
                 if (pendingRequest.responseType.isInstance(response)) {
                     CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
                     future.complete(response);
+                    log.info("Auth response handled successfully: correlationId={}", correlationId);
                 } else {
                     log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
                             correlationId, pendingRequest.responseType, response.getClass());
                     pendingRequest.future.completeExceptionally(
-                        new ClassCastException("Type mismatch in response")
+                        new ClassCastException("Type mismatch in auth response")
                     );
                 }
             } catch (Exception e) {
                 pendingRequest.future.completeExceptionally(e);
             }
         } else {
-            log.warn("Received response for unknown correlationId: {}", correlationId);
+            log.warn("Received auth response for unknown correlationId: {}", correlationId);
         }
+    }
+    
+    // 👇 Геттер для получения уникального топика инстанса
+    public String getInstanceReplyTopic() {
+        return instanceReplyTopic;
     }
 }// TypedDeviceKafkaClient.java
 package com.connection.message.kafka;
@@ -639,6 +1280,7 @@ public class TypedDeviceKafkaClient {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+    private final String instanceReplyTopic = "device.responses." + UUID.randomUUID().toString();
 
     private static class PendingRequest<T> {
         final CompletableFuture<T> future;
@@ -652,41 +1294,38 @@ public class TypedDeviceKafkaClient {
 
     public CompletableFuture<GetDeviceByUidResponse> getDeviceByUid(UUID deviceUid, String sourceService) {
         return sendRequest(
-            GetDeviceByUidCommand.builder()
-                .deviceUid(deviceUid)
-                .sourceService(sourceService)
-                .replyTopic(DeviceEventConstants.DEVICE_RESPONSES_TOPIC)
-                .correlationId(DeviceEventUtils.generateCorrelationId())
-                .build(),
-            GetDeviceByUidResponse.class
-        );
+                GetDeviceByUidCommand.builder()
+                        .deviceUid(deviceUid)
+                        .sourceService(sourceService)
+                        .replyTopic(instanceReplyTopic)
+                        .correlationId(DeviceEventUtils.generateCorrelationId())
+                        .build(),
+                GetDeviceByUidResponse.class);
     }
 
     public CompletableFuture<GetDevicesByClientResponse> getDevicesByClient(UUID clientUid, String sourceService) {
         return sendRequest(
-            GetDevicesByClientUid.builder()
-                .clientUid(clientUid)
-                .sourceService(sourceService)
-                .replyTopic(DeviceEventConstants.DEVICE_RESPONSES_TOPIC)
-                .correlationId(DeviceEventUtils.generateCorrelationId())
-                .build(),
-            GetDevicesByClientResponse.class
-        );
+                GetDevicesByClientUid.builder()
+                        .clientUid(clientUid)
+                        .sourceService(sourceService)
+                        .replyTopic(instanceReplyTopic)
+                        .correlationId(DeviceEventUtils.generateCorrelationId())
+                        .build(),
+                GetDevicesByClientResponse.class);
     }
 
     public CompletableFuture<HealthCheckResponse> healthCheck(String sourceService) {
         return sendRequest(
-            HealthCheckCommand.builder()
-                .sourceService(sourceService)
-                .replyTopic(DeviceEventConstants.DEVICE_RESPONSES_TOPIC)
-                .correlationId(DeviceEventUtils.generateCorrelationId())
-                .build(),
-            HealthCheckResponse.class
-        );
+                HealthCheckCommand.builder()
+                        .sourceService(sourceService)
+                        .replyTopic(instanceReplyTopic)
+                        .correlationId(DeviceEventUtils.generateCorrelationId())
+                        .build(),
+                HealthCheckResponse.class);
     }
 
     // Вспомогательные методы для удобства
-    public boolean deviceExistsAndBelongsToClient(UUID deviceUid) {
+    public boolean deviceExists(UUID deviceUid) {
         try {
             GetDeviceByUidResponse response = getDeviceByUid(deviceUid, "buffer-service")
                     .get(10, java.util.concurrent.TimeUnit.SECONDS);
@@ -697,11 +1336,24 @@ public class TypedDeviceKafkaClient {
         }
     }
 
+    // В TypedDeviceKafkaClient добавим метод:
+    public boolean deviceExistsAndBelongsToClient(UUID deviceUid, UUID clientUid) {
+        try {
+            GetDeviceByUidResponse response = getDeviceByUid(deviceUid, "message-service")
+                    .get(10, java.util.concurrent.TimeUnit.SECONDS);
+            return response.isSuccess() && response.getDeviceDTO() != null
+                    && response.getDeviceDTO().getClientUuid().equals(clientUid.toString());
+        } catch (Exception e) {
+            log.error("Error checking device existence: {}", e.getMessage());
+            return false;
+        }
+    }
+
     public List<UUID> getClientDeviceUids(UUID clientUid) {
         try {
             GetDevicesByClientResponse response = getDevicesByClient(clientUid, "buffer-service")
                     .get(10, java.util.concurrent.TimeUnit.SECONDS);
-            
+
             if (response.isSuccess() && response.getDeviceDTOs() != null) {
                 return response.getDeviceDTOs().stream()
                         .map(device -> UUID.fromString(device.getUid()))
@@ -716,7 +1368,7 @@ public class TypedDeviceKafkaClient {
 
     private <T> CompletableFuture<T> sendRequest(Object command, Class<T> responseType) {
         String correlationId = extractCorrelationId(command);
-        
+
         CompletableFuture<T> future = new CompletableFuture<>();
         pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
 
@@ -741,11 +1393,10 @@ public class TypedDeviceKafkaClient {
                     CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
                     future.complete(response);
                 } else {
-                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
+                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}",
                             correlationId, pendingRequest.responseType, response.getClass());
                     pendingRequest.future.completeExceptionally(
-                        new ClassCastException("Type mismatch in device response")
-                    );
+                            new ClassCastException("Type mismatch in device response"));
                 }
             } catch (Exception e) {
                 pendingRequest.future.completeExceptionally(e);
@@ -766,13 +1417,17 @@ public class TypedDeviceKafkaClient {
             throw new IllegalArgumentException("Unsupported device command type: " + command.getClass());
         }
     }
-}// TypedConnectionSchemeKafkaClient.java
-package com.connection.message.kafka;
+
+    public String getInstanceReplyTopic() {
+        return instanceReplyTopic;
+    }
+}package com.connection.message.kafka;
 
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -796,6 +1451,8 @@ public class TypedConnectionSchemeKafkaClient {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+    
+    private final String instanceReplyTopic = "connection-scheme.responses." + UUID.randomUUID().toString();
 
     private static class PendingRequest<T> {
         final CompletableFuture<T> future;
@@ -807,47 +1464,58 @@ public class TypedConnectionSchemeKafkaClient {
         }
     }
 
-    public CompletableFuture<GetConnectionSchemeByUidResponse> getConnectionSchemeByUid(UUID connectionSchemeUid, String sourceService) {
+    public CompletableFuture<GetConnectionSchemeByUidResponse> getConnectionSchemeByUid(UUID connectionSchemeUid,
+            String sourceService) {
         return sendRequest(
-            GetConnectionSchemeByUidCommand.builder()
-                .connectionSchemeUid(connectionSchemeUid)
-                .sourceService(sourceService)
-                .replyTopic(ConnectionSchemeEventConstants.CONNECTION_SCHEME_RESPONSES_TOPIC)
-                .correlationId(ConnectionSchemeEventUtils.generateCorrelationId())
-                .build(),
-            GetConnectionSchemeByUidResponse.class
-        );
+                GetConnectionSchemeByUidCommand.builder()
+                        .connectionSchemeUid(connectionSchemeUid)
+                        .sourceService(sourceService)
+                        .replyTopic(instanceReplyTopic) 
+                        .correlationId(ConnectionSchemeEventUtils.generateCorrelationId())
+                        .build(),
+                GetConnectionSchemeByUidResponse.class);
     }
 
-    public CompletableFuture<GetConnectionSchemesByBufferResponse> getConnectionSchemesByBufferUid(UUID bufferUid, String sourceService) {
+    public CompletableFuture<GetConnectionSchemesByBufferResponse> getConnectionSchemesByBufferUid(UUID bufferUid,
+            String sourceService) {
         return sendRequest(
-            GetConnectionSchemesByBufferUid.builder()
-                .bufferUid(bufferUid)
-                .sourceService(sourceService)
-                .replyTopic(ConnectionSchemeEventConstants.CONNECTION_SCHEME_RESPONSES_TOPIC)
-                .correlationId(ConnectionSchemeEventUtils.generateCorrelationId())
-                .build(),
-            GetConnectionSchemesByBufferResponse.class
-        );
+                GetConnectionSchemesByBufferUid.builder()
+                        .bufferUid(bufferUid)
+                        .sourceService(sourceService)
+                        .replyTopic(instanceReplyTopic) 
+                        .correlationId(ConnectionSchemeEventUtils.generateCorrelationId())
+                        .build(),
+                GetConnectionSchemesByBufferResponse.class);
     }
 
     public CompletableFuture<HealthCheckResponse> healthCheck(String sourceService) {
         return sendRequest(
-            HealthCheckCommand.builder()
-                .sourceService(sourceService)
-                .replyTopic(ConnectionSchemeEventConstants.CONNECTION_SCHEME_RESPONSES_TOPIC)
-                .correlationId(ConnectionSchemeEventUtils.generateCorrelationId())
-                .build(),
-            HealthCheckResponse.class
-        );
+                HealthCheckCommand.builder()
+                        .sourceService(sourceService)
+                        .replyTopic(instanceReplyTopic) 
+                        .correlationId(ConnectionSchemeEventUtils.generateCorrelationId())
+                        .build(),
+                HealthCheckResponse.class);
     }
 
     // Вспомогательные методы для удобства
     public boolean connectionSchemeExistsAndBelongsToClient(UUID connectionSchemeUid) {
         try {
-            GetConnectionSchemeByUidResponse response = getConnectionSchemeByUid(connectionSchemeUid, "buffer-service")
-                    .get(10, java.util.concurrent.TimeUnit.SECONDS);
+            GetConnectionSchemeByUidResponse response = getConnectionSchemeByUid(connectionSchemeUid, "message-service")
+                    .get(10, TimeUnit.SECONDS);
             return response.isSuccess() && response.getConnectionSchemeDTO() != null;
+        } catch (Exception e) {
+            log.error("Error checking connection scheme existence: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean connectionSchemeExistsAndBelongsToClient(UUID connectionSchemeUid, UUID clientUuid) {
+        try {
+            GetConnectionSchemeByUidResponse response = getConnectionSchemeByUid(connectionSchemeUid, "message-service")
+                    .get(10, TimeUnit.SECONDS);
+            return response.isSuccess() && response.getConnectionSchemeDTO() != null
+                    && response.getConnectionSchemeDTO().getClientUid().equals(clientUuid.toString());
         } catch (Exception e) {
             log.error("Error checking connection scheme existence: {}", e.getMessage());
             return false;
@@ -856,9 +1524,17 @@ public class TypedConnectionSchemeKafkaClient {
 
     private <T> CompletableFuture<T> sendRequest(Object command, Class<T> responseType) {
         String correlationId = extractCorrelationId(command);
-        
+
         CompletableFuture<T> future = new CompletableFuture<>();
         pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
+
+        // 👇 Добавляем таймаут 30 секунд
+        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, ex) -> {
+            if (ex != null) {
+                pendingRequests.remove(correlationId);
+                log.warn("Connection scheme request timeout or error for correlationId: {}", correlationId);
+            }
+        });
 
         kafkaTemplate.send(ConnectionSchemeEventConstants.CONNECTION_SCHEME_COMMANDS_TOPIC, correlationId, command)
                 .whenComplete((result, ex) -> {
@@ -866,6 +1542,9 @@ public class TypedConnectionSchemeKafkaClient {
                         future.completeExceptionally(ex);
                         pendingRequests.remove(correlationId);
                         log.error("Failed to send connection scheme command: {}", ex.getMessage());
+                    } else {
+                        log.info("Connection scheme command sent successfully: correlationId={}, topic={}", 
+                                correlationId, ConnectionSchemeEventConstants.CONNECTION_SCHEME_COMMANDS_TOPIC);
                     }
                 });
 
@@ -880,12 +1559,12 @@ public class TypedConnectionSchemeKafkaClient {
                 if (pendingRequest.responseType.isInstance(response)) {
                     CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
                     future.complete(response);
+                    log.info("Connection scheme response handled successfully: correlationId={}", correlationId);
                 } else {
-                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
+                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}",
                             correlationId, pendingRequest.responseType, response.getClass());
                     pendingRequest.future.completeExceptionally(
-                        new ClassCastException("Type mismatch in connection scheme response")
-                    );
+                            new ClassCastException("Type mismatch in connection scheme response"));
                 }
             } catch (Exception e) {
                 pendingRequest.future.completeExceptionally(e);
@@ -898,17 +1577,27 @@ public class TypedConnectionSchemeKafkaClient {
     private String extractCorrelationId(Object command) {
         if (command instanceof GetConnectionSchemeByUidCommand) {
             return ((GetConnectionSchemeByUidCommand) command).getCorrelationId();
+        } else if (command instanceof GetConnectionSchemesByBufferUid) {
+            return ((GetConnectionSchemesByBufferUid) command).getCorrelationId();
         } else if (command instanceof HealthCheckCommand) {
             return ((HealthCheckCommand) command).getCorrelationId();
         } else {
             throw new IllegalArgumentException("Unsupported connection scheme command type: " + command.getClass());
         }
     }
-}// DeviceResponseConsumer.java
-package com.connection.message.kafka;
+    
+    // 👇 Геттер для получения уникального топика инстанса
+    public String getInstanceReplyTopic() {
+        return instanceReplyTopic;
+    }
+}package com.connection.message.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.stereotype.Component;
 
 import com.connection.common.events.CommandResponse;
@@ -922,17 +1611,20 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DeviceResponseConsumer {
+public class DeviceResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
 
     private final TypedDeviceKafkaClient deviceKafkaClient;
+    private final KafkaListenerEndpointRegistry registry;
 
-    @KafkaListener(topics = "${app.kafka.topics.device-responses:device.responses}")
+    @KafkaListener(id = "dynamicDeviceListener", 
+                   topics = "#{@typedDeviceKafkaClient.getInstanceReplyTopic()}")
     public void handleDeviceResponse(ConsumerRecord<String, CommandResponse> record) {
         try {
             CommandResponse message = record.value();
             String correlationId = record.key();
             
-            log.info("Received device response: correlationId={}", correlationId);
+            log.info("Received device response from instance topic: correlationId={}, topic={}", 
+                    correlationId, record.topic());
                 
             if (message instanceof GetDeviceByUidResponse) {
                 GetDeviceByUidResponse typedResponse = (GetDeviceByUidResponse) message;
@@ -949,6 +1641,20 @@ public class DeviceResponseConsumer {
             
         } catch (Exception e) {
             log.error("Error processing device response: correlationId={}", record.key(), e);
+        }
+    }
+
+    @Override
+    public void onApplicationEvent(ApplicationReadyEvent event) {
+        try {
+            MessageListenerContainer container = registry.getListenerContainer("dynamicDeviceListener");
+            if (container != null && !container.isRunning()) {
+                container.start();
+                log.info("Dynamic device response listener started for topic: {}", 
+                        deviceKafkaClient.getInstanceReplyTopic());
+            }
+        } catch (Exception e) {
+            log.error("Failed to start dynamic device listener", e);
         }
     }
 }package com.connection.message.kafka;
@@ -983,6 +1689,8 @@ public class TypedDeviceAuthKafkaClient {
     
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
 
+    private final String instanceReplyTopic = "device.auth.responses." + UUID.randomUUID().toString();
+
     private static class PendingRequest<T> {
         final CompletableFuture<T> future;
         final Class<T> responseType;
@@ -999,7 +1707,7 @@ public class TypedDeviceAuthKafkaClient {
                 .token(token)
                 .tokenType(ValidateTokenCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(DeviceAuthEventConstants.DEVICE_AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic)
                 .correlationId(DeviceAuthEventUtils.generateCorrelationId())
                 .build(),
             TokenValidationResponse.class
@@ -1012,7 +1720,7 @@ public class TypedDeviceAuthKafkaClient {
                 .token(token)
                 .tokenType(ValidateTokenCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(DeviceAuthEventConstants.DEVICE_AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic)
                 .correlationId(DeviceAuthEventUtils.generateCorrelationId())
                 .build(),
             TokenValidationResponse.class
@@ -1025,7 +1733,7 @@ public class TypedDeviceAuthKafkaClient {
                 .token(token)
                 .tokenType(ExtractDeviceUidCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(DeviceAuthEventConstants.DEVICE_AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic)
                 .correlationId(DeviceAuthEventUtils.generateCorrelationId())
                 .build(),
             DeviceUidResponse.class
@@ -1038,7 +1746,7 @@ public class TypedDeviceAuthKafkaClient {
                 .token(token)
                 .tokenType(ExtractDeviceUidCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(DeviceAuthEventConstants.DEVICE_AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic)
                 .correlationId(DeviceAuthEventUtils.generateCorrelationId())
                 .build(),
             DeviceUidResponse.class
@@ -1051,7 +1759,7 @@ public class TypedDeviceAuthKafkaClient {
                 .eventId(UUID.randomUUID().toString())
                 .sourceService(sourceService)
                 .timestamp(new Date().toInstant())
-                .replyTopic(DeviceAuthEventConstants.DEVICE_AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic)
                 .correlationId(DeviceAuthEventUtils.generateCorrelationId())
                 .commandType(DeviceAuthEventConstants.COMMAND_HEALTH_CHECK)
                 .build(),
@@ -1109,10 +1817,18 @@ public class TypedDeviceAuthKafkaClient {
             log.warn("Received device auth response for unknown correlationId: {}", correlationId);
         }
     }
+    // 👇 Геттер для получения уникального топика инстанса
+    public String getInstanceReplyTopic() {
+        return instanceReplyTopic;
+    }
 }package com.connection.message.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.stereotype.Component;
 
 import com.connection.device.auth.events.responses.TokenValidationResponse;
@@ -1126,17 +1842,20 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DeviceAuthResponseConsumer {
+public class DeviceAuthResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
 
     private final TypedDeviceAuthKafkaClient deviceAuthKafkaClient;
+    private final KafkaListenerEndpointRegistry registry;
 
-    @KafkaListener(topics = "${app.kafka.topics.device-auth-responses:device.auth.responses}")
+    @KafkaListener(id = "dynamicDeviceAuthListener", 
+                   topics = "#{@typedDeviceAuthKafkaClient.getInstanceReplyTopic()}")
     public void handleDeviceAuthResponse(ConsumerRecord<String, CommandResponse> record) {
         try {
             CommandResponse message = record.value();
             String correlationId = record.key();
             
-            log.info("Received device auth response: correlationId={}", correlationId);
+            log.info("Received device auth response from instance topic: correlationId={}, topic={}", 
+                    correlationId, record.topic());
                 
             if (message instanceof TokenValidationResponse) {
                 TokenValidationResponse typedResponse = (TokenValidationResponse) message;
@@ -1153,6 +1872,20 @@ public class DeviceAuthResponseConsumer {
             
         } catch (Exception e) {
             log.error("Error processing device auth response: correlationId={}", record.key(), e);
+        }
+    }
+
+    @Override
+    public void onApplicationEvent(ApplicationReadyEvent event) {
+        try {
+            MessageListenerContainer container = registry.getListenerContainer("dynamicDeviceAuthListener");
+            if (container != null && !container.isRunning()) {
+                container.start();
+                log.info("Dynamic device auth response listener started for topic: {}", 
+                        deviceAuthKafkaClient.getInstanceReplyTopic());
+            }
+        } catch (Exception e) {
+            log.error("Failed to start dynamic device auth listener", e);
         }
     }
 }package com.connection.message;
@@ -1174,6 +1907,7 @@ import org.springframework.stereotype.Service;
 import com.connection.buffer.events.responses.GetBuffersByConnectionSchemeResponse;
 import com.connection.buffer.events.responses.GetBuffersByDeviceResponse;
 import com.connection.device.converter.DeviceConverter;
+import com.connection.message.config.SecurityUtils;
 import com.connection.message.converter.MessageConverter;
 import com.connection.message.kafka.TypedAuthKafkaClient;
 import com.connection.message.kafka.TypedBufferKafkaClient;
@@ -1203,22 +1937,32 @@ import lombok.extern.slf4j.Slf4j;
 })
 public class MessageServiceImpl implements MessageService {
 
-    protected MessageRepository messageRepository;
-    protected MessageValidator messageValidator;
-
-    protected TypedAuthKafkaClient authKafkaClient;
-    protected TypedBufferKafkaClient bufferKafkaClient;
-    protected TypedConnectionSchemeKafkaClient connectionSchemeKafkaClient;
-    protected TypedDeviceAuthKafkaClient deviceAuthKafkaClient;
-    protected TypedDeviceKafkaClient deviceKafkaClient;
-
-    protected BufferConverter bufferConverter;
-    protected ConnectionSchemeConverter connectionSchemeConverter;
-    protected DeviceConverter deviceConverter;
-    protected MessageConverter messageConverter;
+    protected final MessageRepository messageRepository;
+    protected final MessageValidator messageValidator;
+    protected final TypedAuthKafkaClient authKafkaClient;
+    protected final TypedBufferKafkaClient bufferKafkaClient;
+    protected final TypedConnectionSchemeKafkaClient connectionSchemeKafkaClient;
+    protected final TypedDeviceAuthKafkaClient deviceAuthKafkaClient;
+    protected final TypedDeviceKafkaClient deviceKafkaClient;
+    protected final BufferConverter bufferConverter;
+    protected final ConnectionSchemeConverter connectionSchemeConverter;
+    protected final DeviceConverter deviceConverter;
+    protected final MessageConverter messageConverter;
 
     @Override
     public void addMessage(MessageBLM messageBLM) {
+        // Для добавления сообщений требуется аутентификация устройства
+        if (!SecurityUtils.isDeviceAuthenticated()) {
+            throw new SecurityException("Only devices can add messages");
+        }
+
+        UUID currentDeviceUid = SecurityUtils.getCurrentDeviceUid();
+
+        // Проверяем, что устройство имеет доступ к буферу
+        if (!hasDeviceAccessToBuffer(currentDeviceUid, messageBLM.getBufferUid())) {
+            throw new SecurityException("Device doesn't have access to this buffer");
+        }
+
         messageValidator.validate(messageBLM);
         MessageDALM messageDALM = messageConverter.toDALM(messageBLM);
         messageRepository.add(messageDALM);
@@ -1227,16 +1971,16 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public List<MessageBLM> getMessagesByBuffer(UUID bufferUuid, boolean deleteOnGet, int offset, int limit) {
-        List<MessageDALM> messageDALMs = messageRepository.findByBufferUid(bufferUuid)
-                .stream()
-                .sorted((x, y) -> {
-                    return x.getCreatedAt().compareTo(y.getCreatedAt());
-                })
+        checkBufferAccess(bufferUuid);
+
+        List<MessageDALM> messageDALMs = messageRepository.findByBufferUid(bufferUuid);
+        messageDALMs = messageDALMs.stream()
+                .sorted((x, y) -> x.getCreatedAt().compareTo(y.getCreatedAt()))
                 .toList()
-                .subList(offset, offset + limit);
+                .subList(offset, Math.min(offset + limit, messageDALMs.size()));
 
         List<MessageBLM> messageBLMs = messageDALMs.stream()
-                .<MessageBLM>map(messageConverter::toBLM)
+                .map(messageConverter::toBLM)
                 .toList();
 
         if (deleteOnGet)
@@ -1247,39 +1991,70 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public List<MessageBLM> getMessagesByScheme(UUID schemeUuid, boolean deleteOnGet, int offset, int limit) {
+        // Для схем требуется аутентификация клиента
+        if (!SecurityUtils.isClientAuthenticated()) {
+            throw new SecurityException("Only clients can access messages by scheme");
+        }
+
+        UUID currentClientUid = SecurityUtils.getCurrentClientUid();
+
+        // Проверяем, что схема принадлежит клиенту
+        if (!connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(schemeUuid, currentClientUid)) {
+            throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
+        }
+
         List<BufferBLM> bufferBLMs = getSchemeBuffers(schemeUuid);
         Set<MessageBLM> set = new HashSet<>();
         for (BufferBLM b : bufferBLMs) {
             set.addAll(getMessagesByBuffer(b.getUid(), deleteOnGet, offset, limit));
         }
-        List<MessageBLM> rMessageBLMs = new ArrayList<>(set)
-                .stream()
-                .sorted((x, y) -> {
-                    return x.getCreatedAt().compareTo(y.getCreatedAt());
-                })
+
+        List<MessageBLM> rMessageBLMs = new ArrayList<>(set);
+
+        rMessageBLMs = rMessageBLMs.stream()
+                .sorted((x, y) -> x.getCreatedAt().compareTo(y.getCreatedAt()))
                 .toList()
-                .subList(offset, offset + limit);
+                .subList(offset, Math.min(offset + limit, rMessageBLMs.size()));
+
         if (deleteOnGet)
             rMessageBLMs.forEach(this::deleteMessage);
+
         return rMessageBLMs;
     }
 
     @Override
-    public List<MessageBLM> getMessagesByDevice(UUID devicUuid, boolean deleteOnGet, int offset, int limit) {
-        List<BufferBLM> bufferBLMs = getDeviceBuffers(devicUuid);
+    public List<MessageBLM> getMessagesByDevice(UUID deviceUuid, boolean deleteOnGet, int offset, int limit) {
+        if (SecurityUtils.isClientAuthenticated()) {
+            // Клиент может получать сообщения своих устройств
+            UUID currentClientUid = SecurityUtils.getCurrentClientUid();
+            if (!deviceKafkaClient.deviceExistsAndBelongsToClient(deviceUuid, currentClientUid)) {
+                throw new SecurityException("Device doesn't belong to the authenticated client");
+            }
+        } else if (SecurityUtils.isDeviceAuthenticated()) {
+            // Устройство может получать только свои сообщения
+            UUID currentDeviceUid = SecurityUtils.getCurrentDeviceUid();
+            if (!currentDeviceUid.equals(deviceUuid)) {
+                throw new SecurityException("Device can only access its own messages");
+            }
+        } else {
+            throw new SecurityException("Authentication required");
+        }
+
+        List<BufferBLM> bufferBLMs = getDeviceBuffers(deviceUuid);
         Set<MessageBLM> set = new HashSet<>();
         for (BufferBLM b : bufferBLMs) {
             set.addAll(getMessagesByBuffer(b.getUid(), deleteOnGet, offset, limit));
         }
-        List<MessageBLM> rMessageBLMs = new ArrayList<>(set)
-                .stream()
-                .sorted((x, y) -> {
-                    return x.getCreatedAt().compareTo(y.getCreatedAt());
-                })
+        List<MessageBLM> rMessageBLMs = new ArrayList<>(set);
+
+        rMessageBLMs = rMessageBLMs.stream()
+                .sorted((x, y) -> x.getCreatedAt().compareTo(y.getCreatedAt()))
                 .toList()
-                .subList(offset, offset + limit);
+                .subList(offset, Math.min(offset + limit, rMessageBLMs.size()));
+
         if (deleteOnGet)
             rMessageBLMs.forEach(this::deleteMessage);
+
         return rMessageBLMs;
     }
 
@@ -1311,19 +2086,70 @@ public class MessageServiceImpl implements MessageService {
                     "service", "message-service",
                     "timestamp", String.valueOf(System.currentTimeMillis()),
                     "auth-service", authHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
-                    "auth-service", buufferHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
-                    "auth-service", connectionSchemeHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
+                    "buffer-service", buufferHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
+                    "connection-scheme-service", connectionSchemeHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
                     "device-service", deviceHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
-                    "device-auth-service", deviceAuthHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
-                    "database", "CONNECTED");
+                    "device-auth-service", deviceAuthHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE");
 
         } catch (Exception e) {
             log.error("Health check error: ", e);
             return Map.of(
                     "status", "DEGRADED",
-                    "service", "buffer-service",
+                    "service", "message-service",
                     "timestamp", String.valueOf(System.currentTimeMillis()),
                     "error", e.getMessage());
+        }
+    }
+
+    private void checkBufferAccess(UUID bufferUuid) {
+        if (SecurityUtils.isClientAuthenticated()) {
+            // Клиент должен иметь доступ к буферу через свои устройства
+            UUID currentClientUid = SecurityUtils.getCurrentClientUid();
+            if (!hasClientAccessToBuffer(currentClientUid, bufferUuid)) {
+                throw new SecurityException("Client doesn't have access to this buffer");
+            }
+        } else if (SecurityUtils.isDeviceAuthenticated()) {
+            // Устройство должно иметь доступ к буферу
+            UUID currentDeviceUid = SecurityUtils.getCurrentDeviceUid();
+            if (!hasDeviceAccessToBuffer(currentDeviceUid, bufferUuid)) {
+                throw new SecurityException("Device doesn't have access to this buffer");
+            }
+        } else {
+            throw new SecurityException("Authentication required");
+        }
+    }
+
+    private boolean hasClientAccessToBuffer(UUID clientUid, UUID bufferUuid) {
+        try {
+            // Получаем информацию о буфере и проверяем принадлежность устройства клиенту
+            var bufferResponse = bufferKafkaClient.getBufferByUid(bufferUuid, "message-service")
+                    .get(10, java.util.concurrent.TimeUnit.SECONDS);
+
+            if (bufferResponse.isSuccess() && bufferResponse.getBufferDTO() != null) {
+                UUID deviceUid = UUID.fromString(bufferResponse.getBufferDTO().getDeviceUid());
+                return deviceKafkaClient.deviceExistsAndBelongsToClient(deviceUid, clientUid);
+            }
+            return false;
+        } catch (Exception e) {
+            log.error("Error checking client buffer access: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean hasDeviceAccessToBuffer(UUID deviceUid, UUID bufferUuid) {
+        try {
+            // Получаем информацию о буфере и проверяем принадлежность устройству
+            var bufferResponse = bufferKafkaClient.getBufferByUid(bufferUuid, "message-service")
+                    .get(10, java.util.concurrent.TimeUnit.SECONDS);
+
+            if (bufferResponse.isSuccess() && bufferResponse.getBufferDTO() != null) {
+                UUID bufferDeviceUid = UUID.fromString(bufferResponse.getBufferDTO().getDeviceUid());
+                return deviceUid.equals(bufferDeviceUid);
+            }
+            return false;
+        } catch (Exception e) {
+            log.error("Error checking device buffer access: {}", e.getMessage());
+            return false;
         }
     }
 
@@ -1465,6 +2291,188 @@ public interface MessageService {
     List<MessageBLM> getMessagesByScheme(UUID schemeUuid, boolean deleteOnGet, int offset, int limit);
     List<MessageBLM> getMessagesByDevice(UUID devicUuid, boolean deleteOnGet, int offset, int limit);
     Map<String, String> health();
+}package com.connection.message.client;
+
+import com.connection.message.kafka.TypedAuthKafkaClient;
+import com.connection.auth.events.responses.TokenValidationResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ClientJwtKafkaAuthenticationFilter extends OncePerRequestFilter {
+
+    private final TypedAuthKafkaClient authKafkaClient;
+    private static final String AUTH_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
+
+        String authHeader = request.getHeader(AUTH_HEADER);
+
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String jwtToken = authHeader.substring(BEARER_PREFIX.length());
+
+        try {
+            authenticateWithToken(jwtToken, request);
+        } catch (Exception e) {
+            log.error("Client authentication failed for token: {}", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        filterChain.doFilter(request, response);
+    }
+
+    private void authenticateWithToken(String token, HttpServletRequest request) {
+        try {
+            String cleanToken = token.trim();
+            cleanToken = cleanToken.replace("Bearer ", "");
+
+            log.info("Validating client token: {}...", cleanToken.substring(0, Math.min(cleanToken.length(), 10)) + "...");
+
+            CompletableFuture<TokenValidationResponse> validationFuture = authKafkaClient.validateToken(cleanToken,
+                    "message-service");
+
+            TokenValidationResponse validationResponse = validationFuture
+                    .get(10, TimeUnit.SECONDS);
+
+            if (!validationResponse.isValid()) {
+                throw new SecurityException("Client token validation failed: " + validationResponse.getError());
+            }
+
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    validationResponse.getClientUid(),
+                    null,
+                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_CLIENT")));
+
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            log.info("Successfully authenticated client: {}", validationResponse.getClientUid());
+
+        } catch (java.util.concurrent.TimeoutException e) {
+            throw new SecurityException("Client token validation timeout");
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new SecurityException("Client token validation error: " + e.getCause().getMessage());
+        } catch (Exception e) {
+            throw new SecurityException("Client authentication failed: " + e.getMessage());
+        }
+    }
+}package com.connection.message.client;
+
+import com.connection.message.kafka.TypedDeviceAuthKafkaClient;
+import com.connection.device.auth.events.responses.TokenValidationResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class DeviceJwtKafkaAuthenticationFilter extends OncePerRequestFilter {
+
+    private final TypedDeviceAuthKafkaClient deviceAuthKafkaClient;
+    private static final String DEVICE_AUTH_HEADER = "Device-Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
+
+        String authHeader = request.getHeader(DEVICE_AUTH_HEADER);
+
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String deviceToken = authHeader.substring(BEARER_PREFIX.length());
+
+        try {
+            authenticateWithToken(deviceToken, request);
+        } catch (Exception e) {
+            log.error("Device authentication failed for token: {}", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        filterChain.doFilter(request, response);
+    }
+
+    private void authenticateWithToken(String token, HttpServletRequest request) {
+        try {
+            String cleanToken = token.trim();
+            cleanToken = cleanToken.replace("Bearer ", "");
+
+            log.info("Validating device token: {}...", cleanToken.substring(0, Math.min(cleanToken.length(), 10)) + "...");
+
+            CompletableFuture<TokenValidationResponse> validationFuture = deviceAuthKafkaClient.validateDeviceToken(cleanToken,
+                    "message-service");
+
+            TokenValidationResponse validationResponse = validationFuture
+                    .get(10, TimeUnit.SECONDS);
+
+            if (!validationResponse.isValid()) {
+                throw new SecurityException("Device token validation failed: " + validationResponse.getError());
+            }
+
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    validationResponse.getDeviceUid(),
+                    null,
+                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_DEVICE")));
+
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            log.info("Successfully authenticated device: {}", validationResponse.getDeviceUid());
+
+        } catch (java.util.concurrent.TimeoutException e) {
+            throw new SecurityException("Device token validation timeout");
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new SecurityException("Device token validation error: " + e.getCause().getMessage());
+        } catch (Exception e) {
+            throw new SecurityException("Device authentication failed: " + e.getMessage());
+        }
+    }
 }// MessageServiceApplication.java
 package com.connection.message;
 

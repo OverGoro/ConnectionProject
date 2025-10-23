@@ -1,4 +1,3 @@
-// DeviceRepositorySQLImpl.java
 package com.connection.device.repository;
 
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -10,9 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
+import com.connection.device.converter.DeviceConverter;
 import com.connection.device.exception.DeviceAlreadyExistsException;
 import com.connection.device.exception.DeviceNotFoundException;
+import com.connection.device.model.DeviceBLM;
 import com.connection.device.model.DeviceDALM;
+import com.connection.device.validator.DeviceValidator;
 
 public class DeviceRepositorySQLImpl implements DeviceRepository {
 
@@ -31,6 +33,8 @@ public class DeviceRepositorySQLImpl implements DeviceRepository {
 
     private static final String DELETE_DEVICE = "DELETE FROM core.device WHERE uid = :uid";
 
+    private final DeviceConverter converter = new DeviceConverter();
+    private final DeviceValidator validator = new DeviceValidator();
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     private final RowMapper<DeviceDALM> deviceRowMapper = (rs, rowNum) -> {
@@ -48,31 +52,43 @@ public class DeviceRepositorySQLImpl implements DeviceRepository {
 
     @Override
     @Transactional
-    public void add(DeviceDALM device) throws DeviceAlreadyExistsException {
+    public void add(DeviceBLM device) throws DeviceAlreadyExistsException {
+        // Валидация BLM модели
+        validator.validate(device);
+        
         if (exists(device.getUid())) {
             throw new DeviceAlreadyExistsException("Device with UID " + device.getUid() + " already exists");
         }
 
+        // Конвертация BLM в DALM
+        DeviceDALM dalDevice = converter.toDALM(device);
+
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", device.getUid());
-        params.addValue("client_uuid", device.getClientUuid());
-        params.addValue("device_name", device.getDeviceName());
-        params.addValue("device_description", device.getDeviceDescription());
+        params.addValue("uid", dalDevice.getUid());
+        params.addValue("client_uuid", dalDevice.getClientUuid());
+        params.addValue("device_name", dalDevice.getDeviceName());
+        params.addValue("device_description", dalDevice.getDeviceDescription());
 
         jdbcTemplate.update(INSERT_DEVICE, params);
     }
 
     @Override
     @Transactional
-    public void update(DeviceDALM device) throws DeviceNotFoundException {
+    public void update(DeviceBLM device) throws DeviceNotFoundException {
+        // Валидация BLM модели
+        validator.validate(device);
+        
         if (!exists(device.getUid())) {
             throw new DeviceNotFoundException("Device with UID " + device.getUid() + " not found");
         }
 
+        // Конвертация BLM в DALM
+        DeviceDALM dalDevice = converter.toDALM(device);
+
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", device.getUid());
-        params.addValue("device_name", device.getDeviceName());
-        params.addValue("device_description", device.getDeviceDescription());
+        params.addValue("uid", dalDevice.getUid());
+        params.addValue("device_name", dalDevice.getDeviceName());
+        params.addValue("device_description", dalDevice.getDeviceDescription());
 
         jdbcTemplate.update(UPDATE_DEVICE, params);
     }
@@ -92,11 +108,13 @@ public class DeviceRepositorySQLImpl implements DeviceRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public DeviceDALM findByUid(UUID uid) throws DeviceNotFoundException {
+    public DeviceBLM findByUid(UUID uid) throws DeviceNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
         try {
-            return jdbcTemplate.queryForObject(SELECT_DEVICE_BY_UID, params, deviceRowMapper);
+            DeviceDALM dalDevice = jdbcTemplate.queryForObject(SELECT_DEVICE_BY_UID, params, deviceRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalDevice);
         } catch (EmptyResultDataAccessException e) {
             throw new DeviceNotFoundException("Device with UID " + uid + " not found");
         }
@@ -104,10 +122,15 @@ public class DeviceRepositorySQLImpl implements DeviceRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<DeviceDALM> findByClientUuid(UUID clientUuid) {
+    public List<DeviceBLM> findByClientUuid(UUID clientUuid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("client_uuid", clientUuid);
-        return jdbcTemplate.query(SELECT_DEVICES_BY_CLIENT, params, deviceRowMapper);
+        List<DeviceDALM> dalDevices = jdbcTemplate.query(SELECT_DEVICES_BY_CLIENT, params, deviceRowMapper);
+        
+        // Конвертация списка DALM в BLM
+        return dalDevices.stream()
+                .map(converter::toBLM)
+                .toList();
     }
 
     @Override

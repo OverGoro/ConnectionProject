@@ -1,4 +1,3 @@
-// SecurityUtils.java
 package com.connection.message.config;
 
 import org.springframework.security.core.Authentication;
@@ -15,6 +14,11 @@ public class SecurityUtils {
         
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new SecurityException("User not authenticated");
+        }
+
+        // Проверяем, что это клиент
+        if (!isClientAuthenticated()) {
+            throw new SecurityException("Client authentication required");
         }
 
         Object principal = authentication.getPrincipal();
@@ -37,6 +41,11 @@ public class SecurityUtils {
         
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new SecurityException("Device not authenticated");
+        }
+
+        // Проверяем, что это устройство
+        if (!isDeviceAuthenticated()) {
+            throw new SecurityException("Device authentication required");
         }
 
         Object principal = authentication.getPrincipal();
@@ -66,5 +75,22 @@ public class SecurityUtils {
         return authentication != null && authentication.isAuthenticated() 
             && authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_DEVICE"));
+    }
+
+    // Новый метод для проверки любой аутентификации
+    public static boolean isAuthenticated() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.isAuthenticated();
+    }
+
+    // Новый метод для получения типа аутентификации
+    public static String getAuthenticationType() {
+        if (isClientAuthenticated()) {
+            return "CLIENT";
+        } else if (isDeviceAuthenticated()) {
+            return "DEVICE";
+        } else {
+            return "NONE";
+        }
     }
 }

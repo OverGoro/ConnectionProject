@@ -1,17 +1,25 @@
 package com.service.auth.controller;
 
-import java.util.UUID;
-
 import org.springframework.data.util.Pair;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+import com.connection.auth.events.exceptions.TokenValidationException;
 import com.connection.client.converter.ClientConverter;
 import com.connection.client.model.ClientBLM;
 import com.connection.client.model.ClientDTO;
 import com.connection.client.validator.ClientValidator;
 import com.connection.token.converter.AccessTokenConverter;
 import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.exception.AccessTokenValidateException;
+import com.connection.token.exception.BaseTokenException;
+import com.connection.token.exception.RefreshTokenAlreadyExisistsException;
+import com.connection.token.exception.RefreshTokenExpiredException;
 import com.connection.token.model.AccessTokenBLM;
 import com.connection.token.model.AccessTokenDTO;
 import com.connection.token.model.RefreshTokenBLM;
@@ -47,12 +55,13 @@ public class AuthServiceController {
             @Parameter(description = "Client data", required = true) @RequestBody ClientDTO clientDTO) {
 
         log.info("Registration attempt for email: {}", clientDTO.getEmail());
+
         clientValidator.validate(clientDTO);
 
         ClientBLM clientBLM = clientConverter.toBLM(clientDTO);
         authService.register(clientBLM);
 
-        log.info("Client registered successfully: {}", clientDTO.getEmail());
+        log.info("Client registered successfully: {}", clientDTO.getUid());
         return ResponseEntity.ok(new RegistrationResponse(
                 "User registered successfully",
                 clientDTO.getEmail()));
@@ -84,21 +93,27 @@ public class AuthServiceController {
     @PostMapping("/refresh")
     public ResponseEntity<LoginResponse> refreshToken(
             @Parameter(description = "Refresh token request", required = true) @RequestBody RefreshTokenRequest refreshRequest) {
+        try {
+            log.info("Token refresh attempt");
+            log.info(refreshRequest.getRefreshToken());
+            RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshRequest.getRefreshToken());
+            RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
 
-        log.info("Token refresh attempt");
+            log.info(refreshTokenBLM.getToken());
+            log.info(refreshTokenBLM.getClientUID().toString());
 
-        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshRequest.getRefreshToken());
-        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
+            Pair<AccessTokenBLM, RefreshTokenBLM> newTokens = authService.refresh(refreshTokenBLM);
 
-        Pair<AccessTokenBLM, RefreshTokenBLM> newTokens = authService.refresh(refreshTokenBLM);
-
-        log.info("Token refresh successful");
-        return ResponseEntity.ok(new LoginResponse(
-                newTokens.getFirst().getToken(),
-                newTokens.getSecond().getToken(),
-                newTokens.getFirst().getExpiresAt(),
-                newTokens.getSecond().getExpiresAt(),
-                newTokens.getFirst().getClientUID()));
+            log.info("Token refresh successful");
+            return ResponseEntity.ok(new LoginResponse(
+                    newTokens.getFirst().getToken(),
+                    newTokens.getSecond().getToken(),
+                    newTokens.getFirst().getExpiresAt(),
+                    newTokens.getSecond().getExpiresAt(),
+                    newTokens.getFirst().getClientUID()));
+        } catch (BaseTokenException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @Operation(summary = "Health check", description = "Check service health")
@@ -119,14 +134,18 @@ public class AuthServiceController {
     @PostMapping("/validate/access")
     public ResponseEntity<ValidationResponse> validateAccessToken(
             @Parameter(description = "Access token to validate", required = true) @RequestParam String accessToken) {
+        try {
+            log.info("Validating access token");
+            AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
 
-        log.info("Validating access token");
-        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
+            AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
+            authService.validateAccessToken(accessTokenBLM);
 
-        AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
-        authService.validateAccessToken(accessTokenBLM);
+            return ResponseEntity.ok(new ValidationResponse("OK"));
+        } catch (BaseTokenException e) {
+            return ResponseEntity.badRequest().build();
+        }
 
-        return ResponseEntity.ok(new ValidationResponse("OK"));
     }
 
     @Operation(summary = "Validate refresh token", description = "Check if refresh token is valid")

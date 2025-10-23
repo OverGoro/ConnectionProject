@@ -36,6 +36,7 @@ public class DeviceJwtKafkaAuthenticationFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader(DEVICE_AUTH_HEADER);
 
+        // Если нет device заголовка - пропускаем (возможно, это клиент)
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             filterChain.doFilter(request, response);
             return;
@@ -45,10 +46,11 @@ public class DeviceJwtKafkaAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             authenticateWithToken(deviceToken, request);
+            log.info("Device authentication successful");
         } catch (Exception e) {
             log.error("Device authentication failed for token: {}", e.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+            // Не прерываем цепочку - возможно, будет успешная client аутентификация
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
@@ -59,7 +61,7 @@ public class DeviceJwtKafkaAuthenticationFilter extends OncePerRequestFilter {
             String cleanToken = token.trim();
             cleanToken = cleanToken.replace("Bearer ", "");
 
-            log.info("Validating device token: {}...", cleanToken.substring(0, Math.min(cleanToken.length(), 10)) + "...");
+            log.info("Validating device token: {}...", cleanToken.substring(0, Math.min(cleanToken.length(), 10)));
 
             CompletableFuture<TokenValidationResponse> validationFuture = deviceAuthKafkaClient.validateDeviceToken(cleanToken,
                     "message-service");
@@ -88,5 +90,12 @@ public class DeviceJwtKafkaAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             throw new SecurityException("Device authentication failed: " + e.getMessage());
         }
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        // Проверяем, есть ли клиентская авторизация - если есть, пропускаем device аутентификацию
+        String clientAuthHeader = request.getHeader("Authorization");
+        return clientAuthHeader != null && clientAuthHeader.startsWith("Bearer ");
     }
 }

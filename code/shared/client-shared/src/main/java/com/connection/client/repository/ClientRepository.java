@@ -4,25 +4,25 @@ import java.util.UUID;
 
 import com.connection.client.exception.ClientAlreadyExisistsException;
 import com.connection.client.exception.ClientNotFoundException;
-import com.connection.client.model.ClientDALM;
+import com.connection.client.model.ClientBLM;
 
 public interface ClientRepository {
-    public void add(ClientDALM clientDALM)
+    public void add(ClientBLM clientBLM)
             throws ClientAlreadyExisistsException;
 
-    public ClientDALM findByUid(UUID uuid)
+    public ClientBLM findByUid(UUID uuid)
             throws ClientNotFoundException;
 
-    public ClientDALM findByEmail(String emailString)
+    public ClientBLM findByEmail(String emailString)
             throws ClientNotFoundException;
 
-    public ClientDALM findByUsername(String usernameString)
+    public ClientBLM findByUsername(String usernameString)
             throws ClientNotFoundException;
 
-    public ClientDALM findByEmailPassword(String emailString, String passwordString)
+    public ClientBLM findByEmailPassword(String emailString, String passwordString)
             throws ClientNotFoundException;
 
-    public ClientDALM findByUsernamePassword(String usernameString, String passwordString)
+    public ClientBLM findByUsernamePassword(String usernameString, String passwordString)
             throws ClientNotFoundException;
     
     public void deleteByUid(UUID uuid)

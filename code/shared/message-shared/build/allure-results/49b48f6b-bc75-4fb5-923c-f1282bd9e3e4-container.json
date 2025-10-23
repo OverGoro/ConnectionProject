@@ -1,0 +1,1 @@
+{"uuid":"49b48f6b-bc75-4fb5-923c-f1282bd9e3e4","name":"Validate MessageDTO with null content type - Negative","children":["dc82cdc2-8c8f-4e75-97f6-88e18c20755d"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1760921598050,"stop":1760921598050}],"afters":[],"start":1760921598049,"stop":1760921598050}

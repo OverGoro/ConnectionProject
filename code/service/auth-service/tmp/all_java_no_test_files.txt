@@ -38,133 +38,6 @@ public class ClientUtilsConfig {
 }
 package com.service.auth.config;
 
-import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
-import org.springframework.kafka.config.TopicBuilder;
-import org.springframework.kafka.core.ConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.listener.DefaultErrorHandler;
-import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.kafka.support.serializer.JsonSerializer;
-import org.springframework.util.backoff.FixedBackOff;
-
-import com.connection.auth.events.AuthEventConstants;
-
-import java.util.HashMap;
-import java.util.Map;
-
-@Configuration
-public class AuthKafkaConfig {
-
-    @Value("${spring.kafka.bootstrap-servers:kafka:9092}")
-    private String bootstrapServers;
-
-    // Конфигурация топиков
-    @Bean
-    public NewTopic authCommandsTopic() {
-        return TopicBuilder.name(AuthEventConstants.AUTH_COMMANDS_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
-
-    @Bean
-    public NewTopic authResponsesTopic() {
-        return TopicBuilder.name(AuthEventConstants.AUTH_RESPONSES_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
-
-    @Bean
-    public NewTopic authEventsTopic() {
-        return TopicBuilder.name(AuthEventConstants.AUTH_EVENTS_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
-
-    // Конфигурация для Consumer с правильным ErrorHandlingDeserializer
-    @Bean
-    public ConsumerFactory<String, Object> consumerFactory() {
-        Map<String, Object> configProps = new HashMap<>();
-        configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "auth-service-group");
-        configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
-        // Используем ErrorHandlingDeserializer для ключа и значения
-        configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-        configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-
-        // Настройка десериализаторов для ErrorHandlingDeserializer
-        configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS,
-                org.apache.kafka.common.serialization.StringDeserializer.class);
-        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
-
-        // Конфигурация для JsonDeserializer
-        configProps.put(JsonDeserializer.TRUSTED_PACKAGES,
-                "com.connection.auth.events.commands,com.connection.common.events");
-        configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
-        configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
-        configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");
-
-        // Разрешаем десериализатору возвращать null при ошибках
-        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        configProps.put(JsonDeserializer.KEY_DEFAULT_TYPE, String.class);
-
-        return new DefaultKafkaConsumerFactory<>(configProps);
-    }
-
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
-
-        // Обработчик ошибок, который пропускает некорректные сообщения
-        DefaultErrorHandler errorHandler = new DefaultErrorHandler(
-                (record, exception) -> { // Логируем ошибку с помощью SLF4J
-                    org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("KafkaErrorHandler");
-                    logger.error("Skipping invalid message - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}",
-                            record.topic(),
-                            record.partition(),
-                            record.offset(),
-                            record.key(),
-                            exception.getMessage());
-                },
-                new FixedBackOff(0L, 0L) // Без повторных попыток
-        );
-
-        factory.setCommonErrorHandler(errorHandler);
-        return factory;
-    }
-
-    // Конфигурация для Producer
-    @Bean
-    public ProducerFactory<String, Object> producerFactory() {
-        Map<String, Object> configProps = new HashMap<>();
-        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-                org.apache.kafka.common.serialization.StringSerializer.class);
-        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
-        return new DefaultKafkaProducerFactory<>(configProps);
-    }
-
-    @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
-    }
-}package com.service.auth.config;
-
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -438,6 +311,8 @@ public class RefreshTokenUtilsConfig {
 }
 package com.service.auth.config;
 
+import java.util.UUID;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.jta.JtaTransactionManager;
@@ -448,9 +323,14 @@ import jakarta.transaction.SystemException;
 
 @Configuration
 public class TransactionConfig {
-
+    
     @Bean
-    public UserTransactionManager userTransactionManager() throws SystemException{
+    public UserTransactionManager userTransactionManager() throws SystemException {
+        // Устанавливаем уникальное имя через системные свойства только если они еще не установлены
+        setPropertyIfNotExists("com.atomikos.icatch.log_base_name", "atomikos-tm-" + UUID.randomUUID().toString().substring(0, 8));
+        setPropertyIfNotExists("com.atomikos.icatch.log_base_dir", "./logs");
+        setPropertyIfNotExists("com.atomikos.icatch.tm_unique_name", "tm-" + UUID.randomUUID().toString().substring(0, 8));
+        
         UserTransactionManager manager = new UserTransactionManager();
         manager.setTransactionTimeout(300);
         manager.setForceShutdown(true);
@@ -463,6 +343,20 @@ public class TransactionConfig {
         jtaTransactionManager.setTransactionManager(userTransactionManager());
         jtaTransactionManager.setUserTransaction(userTransactionManager());
         return jtaTransactionManager;
+    }
+    
+    /**
+     * Устанавливает системное свойство только если оно еще не было установлено
+     * @param key ключ свойства
+     * @param value значение свойства
+     */
+    private void setPropertyIfNotExists(String key, String value) {
+        if (System.getProperty(key) == null) {
+            System.setProperty(key, value);
+            System.out.println("Set property: " + key + " = " + value);
+        } else {
+            System.out.println("Property already set: " + key + " = " + System.getProperty(key));
+        }
     }
 }package com.service.auth.config;
 
@@ -534,18 +428,26 @@ public class AccessTokenUtilsConfig {
 }
 package com.service.auth.controller;
 
-import java.util.UUID;
-
 import org.springframework.data.util.Pair;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+import com.connection.auth.events.exceptions.TokenValidationException;
 import com.connection.client.converter.ClientConverter;
 import com.connection.client.model.ClientBLM;
 import com.connection.client.model.ClientDTO;
 import com.connection.client.validator.ClientValidator;
 import com.connection.token.converter.AccessTokenConverter;
 import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.exception.AccessTokenValidateException;
+import com.connection.token.exception.BaseTokenException;
+import com.connection.token.exception.RefreshTokenAlreadyExisistsException;
+import com.connection.token.exception.RefreshTokenExpiredException;
 import com.connection.token.model.AccessTokenBLM;
 import com.connection.token.model.AccessTokenDTO;
 import com.connection.token.model.RefreshTokenBLM;
@@ -581,12 +483,13 @@ public class AuthServiceController {
             @Parameter(description = "Client data", required = true) @RequestBody ClientDTO clientDTO) {
 
         log.info("Registration attempt for email: {}", clientDTO.getEmail());
+
         clientValidator.validate(clientDTO);
 
         ClientBLM clientBLM = clientConverter.toBLM(clientDTO);
         authService.register(clientBLM);
 
-        log.info("Client registered successfully: {}", clientDTO.getEmail());
+        log.info("Client registered successfully: {}", clientDTO.getUid());
         return ResponseEntity.ok(new RegistrationResponse(
                 "User registered successfully",
                 clientDTO.getEmail()));
@@ -618,21 +521,27 @@ public class AuthServiceController {
     @PostMapping("/refresh")
     public ResponseEntity<LoginResponse> refreshToken(
             @Parameter(description = "Refresh token request", required = true) @RequestBody RefreshTokenRequest refreshRequest) {
+        try {
+            log.info("Token refresh attempt");
+            log.info(refreshRequest.getRefreshToken());
+            RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshRequest.getRefreshToken());
+            RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
 
-        log.info("Token refresh attempt");
+            log.info(refreshTokenBLM.getToken());
+            log.info(refreshTokenBLM.getClientUID().toString());
 
-        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshRequest.getRefreshToken());
-        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
+            Pair<AccessTokenBLM, RefreshTokenBLM> newTokens = authService.refresh(refreshTokenBLM);
 
-        Pair<AccessTokenBLM, RefreshTokenBLM> newTokens = authService.refresh(refreshTokenBLM);
-
-        log.info("Token refresh successful");
-        return ResponseEntity.ok(new LoginResponse(
-                newTokens.getFirst().getToken(),
-                newTokens.getSecond().getToken(),
-                newTokens.getFirst().getExpiresAt(),
-                newTokens.getSecond().getExpiresAt(),
-                newTokens.getFirst().getClientUID()));
+            log.info("Token refresh successful");
+            return ResponseEntity.ok(new LoginResponse(
+                    newTokens.getFirst().getToken(),
+                    newTokens.getSecond().getToken(),
+                    newTokens.getFirst().getExpiresAt(),
+                    newTokens.getSecond().getExpiresAt(),
+                    newTokens.getFirst().getClientUID()));
+        } catch (BaseTokenException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @Operation(summary = "Health check", description = "Check service health")
@@ -653,14 +562,18 @@ public class AuthServiceController {
     @PostMapping("/validate/access")
     public ResponseEntity<ValidationResponse> validateAccessToken(
             @Parameter(description = "Access token to validate", required = true) @RequestParam String accessToken) {
+        try {
+            log.info("Validating access token");
+            AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
 
-        log.info("Validating access token");
-        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
+            AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
+            authService.validateAccessToken(accessTokenBLM);
 
-        AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
-        authService.validateAccessToken(accessTokenBLM);
+            return ResponseEntity.ok(new ValidationResponse("OK"));
+        } catch (BaseTokenException e) {
+            return ResponseEntity.badRequest().build();
+        }
 
-        return ResponseEntity.ok(new ValidationResponse("OK"));
     }
 
     @Operation(summary = "Validate refresh token", description = "Check if refresh token is valid")
@@ -707,7 +620,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(com.connection.client.exception.ClientAlreadyExisistsException.class)
     public ResponseEntity<?> handleClientAlreadyExistsException(
             com.connection.client.exception.ClientAlreadyExisistsException e) {
-        log.warn("Client registration failed: {}", e.getMessage());
+        log.warn("Client registration failed: {}", e);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
                 "client_already_exist",
                 "An account with such email or uid already exists"));
@@ -715,7 +628,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(com.connection.client.exception.ClientNotFoundException.class)
     public ResponseEntity<?> handleClientNotFoundException(com.connection.client.exception.ClientNotFoundException e) {
-        log.warn("Client not found: {}", e.getMessage());
+        log.warn("Client not found: {}", e);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(
                 "client_not_found",
                 "User not found"));
@@ -723,7 +636,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(com.connection.client.exception.ClientValidateException.class)
     public ResponseEntity<?> handleClientValidateException(com.connection.client.exception.ClientValidateException e) {
-        log.warn("Client validation failed: {}", e.getMessage());
+        log.warn("Client validation failed: {}\n {}", e, e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
                 "validation_failed",
                 e.getMessage() != null ? e.getMessage() : "Invalid user data"));
@@ -731,7 +644,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGenericException(Exception e) {
-        log.error("Unexpected error occurred: {}", e.getMessage());
+        log.error("Unexpected error occurred: {}", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "error", "Internal server error",
                 "message", "An unexpected error occurred"));
@@ -796,10 +709,10 @@ import lombok.Setter;
 @Schema(description = "Login request with email and password")
 public class LoginRequest {
     
-    @Schema(description = "User email", example = "user@example.com", required = true)
+    @Schema(description = "User email", required = true)
     private String email;
     
-    @Schema(description = "User password", example = "password123", required = true)
+    @Schema(description = "User password", required = true)
     private String password;
 }package com.service.auth.controller;
 
@@ -846,6 +759,7 @@ public class RefreshTokenRequest {
 package com.service.auth.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -871,9 +785,24 @@ public class AuthCommandConsumer {
     private final AccessTokenConverter accessTokenConverter;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @KafkaListener(topics = "${app.kafka.topics.auth-commands:auth.commands}")
+    @Value("${app.kafka.topics.auth-commands:auth.commands}")
+    private String authCommandsTopic;
+
+    @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
+    private String bootstrapServers;
+
+    @KafkaListener(
+        topics = "${app.kafka.topics.auth-commands:auth.commands}",
+        properties = {
+            "spring.json.value.default.type=com.connection.common.events.Command",
+            "spring.json.use.type.headers=false"
+        }
+    )
     public void handleAuthCommand(ConsumerRecord<String, Command> record) {
         try {
+            log.debug("Received command from Kafka [{}]: key={}, topic={}, partition={}", 
+                     bootstrapServers, record.key(), record.topic(), record.partition());
+
             Command command = record.value();
             String key = record.key();
 
@@ -883,16 +812,13 @@ public class AuthCommandConsumer {
             } else if (command instanceof HealthCheckCommand) {
                 HealthCheckCommand healthCommand = (HealthCheckCommand) command;
                 handleHealthCheckCommand(healthCommand, key);
-            }
-
-            else {
+            } else {
                 log.warn("Unknown command typeId: {}", command.getClass().getCanonicalName());
             }
 
-        } catch (
-
-        Exception e) {
-            log.error("Error processing auth command: key={}", record.key(), e);
+        } catch (Exception e) {
+            log.error("Error processing auth command from Kafka [{}]: key={}", 
+                     bootstrapServers, record.key(), e);
         }
     }
 
@@ -909,10 +835,9 @@ public class AuthCommandConsumer {
                     tokenBLM.getClientUID(),
                     command.getTokenType().name());
 
-            // ✅ ОТПРАВЛЯЕМ В replyTopic ИЗ КОМАНДЫ (динамический топик)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Token validation response sent to {}: correlationId={}",
-                    command.getReplyTopic(), command.getCorrelationId());
+            log.info("Token validation response sent to {} via Kafka [{}]: correlationId={}",
+                    command.getReplyTopic(), bootstrapServers, command.getCorrelationId());
 
         } catch (Exception e) {
             TokenValidationResponse response = TokenValidationResponse.error(
@@ -920,8 +845,8 @@ public class AuthCommandConsumer {
                     e.getMessage());
 
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.error("Token validation failed: correlationId={}, error={}",
-                    command.getCorrelationId(), e.getMessage());
+            log.error("Token validation failed via Kafka [{}]: correlationId={}, error={}",
+                    bootstrapServers, command.getCorrelationId(), e.getMessage());
         }
     }
 
@@ -936,10 +861,9 @@ public class AuthCommandConsumer {
                     command.getCorrelationId(),
                     healthStatus);
 
-            // ✅ ОТПРАВЛЯЕМ В replyTopic ИЗ КОМАНДЫ (динамический топик)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Health check response sent to {}: correlationId={}",
-                    command.getReplyTopic(), command.getCorrelationId());
+            log.info("Health check response sent to {} via Kafka [{}]: correlationId={}",
+                    command.getReplyTopic(), bootstrapServers, command.getCorrelationId());
 
         } catch (Exception e) {
             HealthCheckResponse response = HealthCheckResponse.error(
@@ -947,8 +871,8 @@ public class AuthCommandConsumer {
                     e.getMessage());
 
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.error("Health check failed: correlationId={}, error={}",
-                    command.getCorrelationId(), e.getMessage());
+            log.error("Health check failed via Kafka [{}]: correlationId={}, error={}",
+                    bootstrapServers, command.getCorrelationId(), e.getMessage());
         }
     }
 }package com.service.auth;
@@ -996,9 +920,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.connection.client.converter.ClientConverter;
 import com.connection.client.model.ClientBLM;
-import com.connection.client.model.ClientDALM;
 import com.connection.client.repository.ClientRepository;
 import com.connection.client.validator.ClientValidator;
 import com.connection.token.converter.RefreshTokenConverter;
@@ -1018,12 +940,11 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Service
 @EnableAutoConfiguration(exclude = {
-    JpaRepositoriesAutoConfiguration.class
+        JpaRepositoriesAutoConfiguration.class
 })
 @EnableTransactionManagement
 public class AuthServiceImpl implements AuthService {
     private final RefreshTokenConverter refreshTokenConverter;
-    private final ClientConverter clientConverter;
 
     private final ClientValidator clientValidator;
     private final RefreshTokenValidator refreshTokenValidator;
@@ -1046,8 +967,11 @@ public class AuthServiceImpl implements AuthService {
     public Pair<AccessTokenBLM, RefreshTokenBLM> authorizeByEmail(String email, String password) {
         clientValidator.validateEmail(email);
 
-        ClientDALM clientDALM = clientRepository.findByEmail(email);
-        ClientBLM clientBLM = clientConverter.toBLM(clientDALM);        
+        ClientBLM clientBLM = clientRepository.findByEmail(email);
+
+        if (!clientBLM.getPassword().equals(password)) {
+            throw new SecurityException("Invalid email or password");
+        }
 
         // Инициалаизация общих полей
         UUID newClientUuid = clientBLM.getUid();
@@ -1055,7 +979,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Инициализация нового refreshToken
         UUID newRefreshUID = UUID.randomUUID();
-        
+
         Date newRefreshExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
         String newRefreshTokenString = refreshTokenGenerator.generateRefreshToken(newRefreshUID, newClientUuid,
                 newCreatedAt, newRefreshExpiresAt);
@@ -1072,7 +996,6 @@ public class AuthServiceImpl implements AuthService {
         AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAcessTokenString, newClientUuid, newCreatedAt,
                 newAccessExpiresAt);
         accessTokenValidator.validate(newAccessTokenBLM);
-
 
         // Добавление нового refreshToken в БД
         RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
@@ -1086,12 +1009,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional("atomicosTransactionManager")
     public void register(ClientBLM clientBLM) {
-        // Создаем нового клиента
         clientValidator.validate(clientBLM);
-        ClientDALM clientDALM = clientConverter.toDALM(clientBLM);
-        clientRepository.add(clientDALM);
-
-        // Создаем refreshToken 
+        clientRepository.add(clientBLM);
     }
 
     @Override
@@ -1099,7 +1018,9 @@ public class AuthServiceImpl implements AuthService {
     public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(
             RefreshTokenBLM refreshTokenBLM) {
 
+        log.info("Validating refresh token");
         refreshTokenValidator.validate(refreshTokenBLM);
+        log.info("Validated refresh token");
 
         // Инициалаизация общих полей
         UUID newClientUuid = refreshTokenBLM.getClientUID();
@@ -1113,29 +1034,33 @@ public class AuthServiceImpl implements AuthService {
 
         RefreshTokenBLM newRefreshTokenBLM = new RefreshTokenBLM(newRefreshTokenString, newRefreshUID, newClientUuid,
                 newCreatedAt, newRefreshExpiresAt);
-
+        log.info("Validating new refresh token");
         refreshTokenValidator.validate(newRefreshTokenBLM);
+        log.info("Validated new refresh token");
 
         // Инициалищация нового accessToken
         Date newAccessExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
         String newAcessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
                 newAccessExpiresAt);
+        log.info("Generated new access token");
         AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAcessTokenString, newClientUuid, newCreatedAt,
                 newAccessExpiresAt);
         accessTokenValidator.validate(newAccessTokenBLM);
+        log.info("Validated new access token");
 
         // Обновление RefreshToken в репозитории
         RefreshTokenDALM refreshTokenDALM = refreshTokenConverter.toDALM(refreshTokenBLM);
+        log.info("Converted refresh token");
         RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
+        log.info("Converted new refresh token");
         refreshTokenRepository.updateToken(refreshTokenDALM, newRefreshTokenDALM);
-
+        log.info("Updated by repo refresh token");
         // Возвращат новых токенов
         return Pair.of(newAccessTokenBLM, newRefreshTokenBLM);
     }
 
     @Override
     public void validateAccessToken(AccessTokenBLM accessTokenBLM) {
-        log.info("Validating tokeb: |{}|", accessTokenBLM.getToken());
         accessTokenValidator.validate(accessTokenBLM);
     }
 
@@ -1151,6 +1076,7 @@ import java.util.UUID;
 
 import com.connection.client.model.ClientBLM;
 import com.connection.client.model.ClientDALM;
+import com.connection.client.model.ClientDTO;
 import com.connection.token.model.AccessTokenBLM;
 import com.connection.token.model.RefreshTokenBLM;
 
@@ -1162,6 +1088,34 @@ public class AuthObjectMother {
     public static final String VALID_PASSWORD = "securePassword123";
     public static final String VALID_USERNAME = "testuser";
     public static final Date BIRTH_DATE = new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000); // 25 years ago
+
+    public static ClientDTO randomValidClientDTO() {
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String threadId = String.valueOf(Thread.currentThread().getId());
+        String uniqueSuffix = timestamp + "_" + threadId;
+
+        return new ClientDTO(
+            UUID.randomUUID(),
+            new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000),
+            "test_" + uniqueSuffix + "@example.com",
+            "Password123!" + uniqueSuffix,
+            "user_" + uniqueSuffix
+        );
+    }
+
+    public static ClientBLM randomValidClientBLM() {
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String threadId = String.valueOf(Thread.currentThread().getId());
+        String uniqueSuffix = timestamp + "_" + threadId;
+
+        return new ClientBLM(
+            UUID.randomUUID(),
+            new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000),
+            "test_" + uniqueSuffix + "@example.com",
+            "Password123!" + uniqueSuffix,
+            "user_" + uniqueSuffix
+        );
+    }
 
     public static ClientBLM createValidClientBLM() {
         return new ClientBLM(

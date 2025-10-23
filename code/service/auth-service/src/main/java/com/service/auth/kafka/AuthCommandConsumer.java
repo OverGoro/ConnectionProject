@@ -26,28 +26,29 @@ public class AuthCommandConsumer {
     private final AccessTokenConverter accessTokenConverter;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @KafkaListener(topics = "${app.kafka.topics.auth-commands:auth.commands}")
-    public void handleAuthCommand(ConsumerRecord<String, Command> record) {
+    @KafkaListener(
+        topics = "${app.kafka.topics.auth-commands:auth.commands}",
+        containerFactory = "kafkaListenerContainerFactory" // Указываем конкретную фабрику
+    )
+    public void handleAuthCommand(ConsumerRecord<String, Object> record) { // Изменен тип на Object
         try {
-            Command command = record.value();
-            String key = record.key();
+            log.debug("Received command from Kafka: key={}, topic={}, partition={}", 
+                     record.key(), record.topic(), record.partition());
+
+            Object command = record.value();
 
             if (command instanceof ValidateTokenCommand) {
                 ValidateTokenCommand validateCommand = (ValidateTokenCommand) command;
-                handleValidateTokenCommand(validateCommand, key);
+                handleValidateTokenCommand(validateCommand, record.key());
             } else if (command instanceof HealthCheckCommand) {
                 HealthCheckCommand healthCommand = (HealthCheckCommand) command;
-                handleHealthCheckCommand(healthCommand, key);
+                handleHealthCheckCommand(healthCommand, record.key());
+            } else {
+                log.warn("Unknown command type: {}", command != null ? command.getClass().getCanonicalName() : "null");
             }
 
-            else {
-                log.warn("Unknown command typeId: {}", command.getClass().getCanonicalName());
-            }
-
-        } catch (
-
-        Exception e) {
-            log.error("Error processing auth command: key={}", record.key(), e);
+        } catch (Exception e) {
+            log.error("Error processing auth command from Kafka: key={}", record.key(), e);
         }
     }
 
@@ -64,7 +65,6 @@ public class AuthCommandConsumer {
                     tokenBLM.getClientUID(),
                     command.getTokenType().name());
 
-            // ✅ ОТПРАВЛЯЕМ В replyTopic ИЗ КОМАНДЫ (динамический топик)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
             log.info("Token validation response sent to {}: correlationId={}",
                     command.getReplyTopic(), command.getCorrelationId());
@@ -91,7 +91,6 @@ public class AuthCommandConsumer {
                     command.getCorrelationId(),
                     healthStatus);
 
-            // ✅ ОТПРАВЛЯЕМ В replyTopic ИЗ КОМАНДЫ (динамический топик)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
             log.info("Health check response sent to {}: correlationId={}",
                     command.getReplyTopic(), command.getCorrelationId());

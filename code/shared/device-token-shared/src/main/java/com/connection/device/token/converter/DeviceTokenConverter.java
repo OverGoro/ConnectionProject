@@ -12,13 +12,13 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class DeviceTokenConverter {
-    @NonNull
+    
     private final DeviceTokenGenerator deviceTokenGenerator;
 
     public DeviceTokenBLM toBLM(DeviceTokenDALM dalm) {
         try {
             String token = deviceTokenGenerator.generateDeviceToken(
-                dalm.getDeviceUid(), dalm.getCreatedAt(), dalm.getExpiresAt());
+                dalm.getDeviceUid(), dalm.getUid(), dalm.getCreatedAt(), dalm.getExpiresAt());
             
             return DeviceTokenBLM.builder()
                     .token(token)

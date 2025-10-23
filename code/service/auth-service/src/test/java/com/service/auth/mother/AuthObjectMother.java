@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import com.connection.client.model.ClientBLM;
 import com.connection.client.model.ClientDALM;
+import com.connection.client.model.ClientDTO;
 import com.connection.token.model.AccessTokenBLM;
 import com.connection.token.model.RefreshTokenBLM;
 
@@ -16,6 +17,34 @@ public class AuthObjectMother {
     public static final String VALID_PASSWORD = "securePassword123";
     public static final String VALID_USERNAME = "testuser";
     public static final Date BIRTH_DATE = new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000); // 25 years ago
+
+    public static ClientDTO randomValidClientDTO() {
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String threadId = String.valueOf(Thread.currentThread().getId());
+        String uniqueSuffix = timestamp + "_" + threadId;
+
+        return new ClientDTO(
+            UUID.randomUUID(),
+            new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000),
+            "test_" + uniqueSuffix + "@example.com",
+            "Password123!" + uniqueSuffix,
+            "user_" + uniqueSuffix
+        );
+    }
+
+    public static ClientBLM randomValidClientBLM() {
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String threadId = String.valueOf(Thread.currentThread().getId());
+        String uniqueSuffix = timestamp + "_" + threadId;
+
+        return new ClientBLM(
+            UUID.randomUUID(),
+            new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000),
+            "test_" + uniqueSuffix + "@example.com",
+            "Password123!" + uniqueSuffix,
+            "user_" + uniqueSuffix
+        );
+    }
 
     public static ClientBLM createValidClientBLM() {
         return new ClientBLM(

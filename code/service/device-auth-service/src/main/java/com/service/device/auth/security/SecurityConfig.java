@@ -32,7 +32,7 @@ public class SecurityConfig {
                         .requestMatchers("/webjars/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/v1/device-token").authenticated()
-                        .requestMatchers("/api/v1/health").permitAll()
+                        .requestMatchers("/api/v1/device-token/**").authenticated()
                         .requestMatchers("/api/v1/**").permitAll()
                         .anyRequest().denyAll()
                 )

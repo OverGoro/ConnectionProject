@@ -1,0 +1,1228 @@
+// DeviceValidateException.java
+package com.connection.device.exception;
+
+public class DeviceValidateException extends BaseDeviceException {
+    String descriptionString;
+
+    public DeviceValidateException(String deviceUid, String description) {
+        super(deviceUid);
+        this.descriptionString = description;
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: device is invalid";
+        res += "\n" + descriptionString;
+        return res;
+    }
+}// BaseDeviceException.java
+package com.connection.device.exception;
+
+public class BaseDeviceException extends RuntimeException {
+    private final String deviceUid;
+
+    public BaseDeviceException(String deviceUid) {
+        super("device");
+        this.deviceUid = deviceUid;
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "device: " + deviceUid;
+        return res;
+    }
+}// DeviceNotFoundException.java
+package com.connection.device.exception;
+
+public class DeviceNotFoundException extends BaseDeviceException {
+    public DeviceNotFoundException(String deviceUid) {
+        super(deviceUid);
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: device not found";
+        return res;
+    }
+}package com.connection.device.exception;
+
+public class DeviceAddException extends BaseDeviceException{
+    public DeviceAddException(String deviceString){
+        super(deviceString);
+    }
+
+    public String toString(){
+        String res = super.toString();
+        res += "\n" + "description: cannot add device";
+        return res;
+    }
+}
+// DeviceAlreadyExistsException.java
+package com.connection.device.exception;
+
+public class DeviceAlreadyExistsException extends BaseDeviceException {
+    public DeviceAlreadyExistsException(String deviceUid) {
+        super(deviceUid);
+    }
+
+    public String toString() {
+        String res = super.toString();
+        res += "\n" + "description: device already exists";
+        return res;
+    }
+}// DeviceBLM.java
+package com.connection.device.model;
+
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class DeviceBLM {
+
+    protected UUID uid;
+
+    protected UUID clientUuid;
+
+    protected String deviceName;
+
+    protected String deviceDescription;
+}// DeviceDTO.java
+package com.connection.device.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class DeviceDTO {
+    
+    protected String uid;
+    
+    protected String clientUuid;
+    
+    protected String deviceName;
+    
+    protected String deviceDescription;
+}// DeviceDALM.java
+package com.connection.device.model;
+
+import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@EqualsAndHashCode
+public class DeviceDALM {
+    
+    protected UUID uid;
+    
+    protected UUID clientUuid;
+    
+    protected String deviceName;
+    
+    protected String deviceDescription;
+}// DeviceConverter.java
+package com.connection.device.converter;
+
+import java.util.UUID;
+
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.model.DeviceDTO;
+
+public class DeviceConverter {
+    public DeviceBLM toBLM(DeviceDALM dalm) {
+        return new DeviceBLM(
+            dalm.getUid(),
+            dalm.getClientUuid(),
+            dalm.getDeviceName(),
+            dalm.getDeviceDescription()
+        );
+    }
+
+    public DeviceBLM toBLM(DeviceDTO dto) {
+        return new DeviceBLM(
+            UUID.fromString(dto.getUid()),
+            UUID.fromString(dto.getClientUuid()),
+            dto.getDeviceName(),
+            dto.getDeviceDescription()
+        );
+    }
+
+    public DeviceDTO toDTO(DeviceBLM blm) {
+        return new DeviceDTO(
+            blm.getUid().toString(),
+            blm.getClientUuid().toString(),
+            blm.getDeviceName(),
+            blm.getDeviceDescription()
+        );
+    }
+
+    public DeviceDALM toDALM(DeviceBLM blm) {
+        return new DeviceDALM(
+            blm.getUid(),
+            blm.getClientUuid(),
+            blm.getDeviceName(),
+            blm.getDeviceDescription()
+        );
+    }
+}// DeviceValidator.java
+package com.connection.device.validator;
+
+import java.util.UUID;
+
+import com.connection.device.exception.DeviceValidateException;
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.model.DeviceDTO;
+
+public class DeviceValidator {
+    public void validate(DeviceDTO device) {
+        if (device == null) {
+            throw new DeviceValidateException("null", "Device is null");
+        }
+        try {
+            validateUid(device.getUid());
+            validateClientUuid(device.getClientUuid());
+            validateDeviceName(device.getDeviceName());
+            validateDeviceDescription(device.getDeviceDescription());
+        } catch (IllegalArgumentException e) {
+            throw new DeviceValidateException(device.getUid(), e.getMessage());
+        }
+    }
+
+    public void validate(DeviceBLM device) {
+        if (device == null) {
+            throw new DeviceValidateException("null", "Device is null");
+        }
+        try {
+            validateUid(device.getUid());
+            validateClientUuid(device.getClientUuid());
+            validateDeviceName(device.getDeviceName());
+            validateDeviceDescription(device.getDeviceDescription());
+        } catch (IllegalArgumentException e) {
+            throw new DeviceValidateException(device.getUid() != null ? device.getUid().toString() : "null", e.getMessage());
+        }
+    }
+
+    public void validate(DeviceDALM device) {
+        if (device == null) {
+            throw new DeviceValidateException("null", "Device is null");
+        }
+        try {
+            validateUid(device.getUid());
+            validateClientUuid(device.getClientUuid());
+            validateDeviceName(device.getDeviceName());
+            validateDeviceDescription(device.getDeviceDescription());
+        } catch (IllegalArgumentException e) {
+            throw new DeviceValidateException(device.getUid() != null ? device.getUid().toString() : "null", e.getMessage());
+        }
+    }
+
+    private void validateUid(UUID uid) {
+        if (uid == null) {
+            throw new IllegalArgumentException("UID cannot be null");
+        }
+    }
+
+    private void validateUid(String uid) {
+        if (uid == null || uid.trim().isEmpty()) {
+            throw new IllegalArgumentException("UID cannot be empty");
+        }
+        try {
+            UUID.fromString(uid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid UID format");
+        }
+    }
+
+    private void validateClientUuid(UUID clientUuid) {
+        if (clientUuid == null) {
+            throw new IllegalArgumentException("Client UUID cannot be null");
+        }
+    }
+
+    private void validateClientUuid(String clientUuid) {
+        if (clientUuid == null || clientUuid.trim().isEmpty()) {
+            throw new IllegalArgumentException("Client UUID cannot be empty");
+        }
+        try {
+            UUID.fromString(clientUuid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid Client UUID format");
+        }
+    }
+
+    private void validateDeviceName(String deviceName) {
+        if (deviceName == null || deviceName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Device name cannot be empty");
+        }
+        if (deviceName.length() > 100) {
+            throw new IllegalArgumentException("Device name cannot exceed 100 characters");
+        }
+    }
+
+    private void validateDeviceDescription(String deviceDescription) {
+        if (deviceDescription == null || deviceDescription.trim().isEmpty()) {
+            throw new IllegalArgumentException("Device description cannot be empty");
+        }
+        if (deviceDescription.length() > 500) {
+            throw new IllegalArgumentException("Device description cannot exceed 500 characters");
+        }
+    }
+}// DeviceRepositorySQLImpl.java
+package com.connection.device.repository;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.connection.device.exception.DeviceAlreadyExistsException;
+import com.connection.device.exception.DeviceNotFoundException;
+import com.connection.device.model.DeviceDALM;
+
+public class DeviceRepositorySQLImpl implements DeviceRepository {
+
+    private static final String SELECT_DEVICE = "SELECT uid, client_uuid, device_name, device_description";
+    private static final String FROM_DEVICE = " FROM core.device";
+
+    private static final String SELECT_DEVICE_BY_UID = SELECT_DEVICE + FROM_DEVICE + " WHERE uid = :uid";
+    private static final String SELECT_DEVICES_BY_CLIENT = SELECT_DEVICE + FROM_DEVICE + " WHERE client_uuid = :client_uuid";
+    private static final String SELECT_DEVICE_BY_CLIENT_AND_NAME = SELECT_DEVICE + FROM_DEVICE + " WHERE client_uuid = :client_uuid AND device_name = :device_name";
+
+    private static final String INSERT_DEVICE = "INSERT INTO core.device (uid, client_uuid, device_name, device_description) " +
+            "VALUES (:uid, :client_uuid, :device_name, :device_description)";
+
+    private static final String UPDATE_DEVICE = "UPDATE core.device SET device_name = :device_name, device_description = :device_description " +
+            "WHERE uid = :uid";
+
+    private static final String DELETE_DEVICE = "DELETE FROM core.device WHERE uid = :uid";
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private final RowMapper<DeviceDALM> deviceRowMapper = (rs, rowNum) -> {
+        DeviceDALM device = new DeviceDALM();
+        device.setUid(UUID.fromString(rs.getString("uid")));
+        device.setClientUuid(UUID.fromString(rs.getString("client_uuid")));
+        device.setDeviceName(rs.getString("device_name"));
+        device.setDeviceDescription(rs.getString("device_description"));
+        return device;
+    };
+
+    public DeviceRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    @Transactional
+    public void add(DeviceDALM device) throws DeviceAlreadyExistsException {
+        if (exists(device.getUid())) {
+            throw new DeviceAlreadyExistsException("Device with UID " + device.getUid() + " already exists");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", device.getUid());
+        params.addValue("client_uuid", device.getClientUuid());
+        params.addValue("device_name", device.getDeviceName());
+        params.addValue("device_description", device.getDeviceDescription());
+
+        jdbcTemplate.update(INSERT_DEVICE, params);
+    }
+
+    @Override
+    @Transactional
+    public void update(DeviceDALM device) throws DeviceNotFoundException {
+        if (!exists(device.getUid())) {
+            throw new DeviceNotFoundException("Device with UID " + device.getUid() + " not found");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", device.getUid());
+        params.addValue("device_name", device.getDeviceName());
+        params.addValue("device_description", device.getDeviceDescription());
+
+        jdbcTemplate.update(UPDATE_DEVICE, params);
+    }
+
+    @Override
+    @Transactional
+    public void delete(UUID uid) throws DeviceNotFoundException {
+        if (!exists(uid)) {
+            throw new DeviceNotFoundException("Device with UID " + uid + " not found");
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+
+        jdbcTemplate.update(DELETE_DEVICE, params);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceDALM findByUid(UUID uid) throws DeviceNotFoundException {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_DEVICE_BY_UID, params, deviceRowMapper);
+        } catch (EmptyResultDataAccessException e) {
+            throw new DeviceNotFoundException("Device with UID " + uid + " not found");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DeviceDALM> findByClientUuid(UUID clientUuid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("client_uuid", clientUuid);
+        return jdbcTemplate.query(SELECT_DEVICES_BY_CLIENT, params, deviceRowMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean exists(UUID uid) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("uid", uid);
+        try {
+            jdbcTemplate.queryForObject(SELECT_DEVICE_BY_UID, params, deviceRowMapper);
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsByClientAndName(UUID clientUuid, String deviceName) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("client_uuid", clientUuid);
+        params.addValue("device_name", deviceName);
+        try {
+            jdbcTemplate.queryForObject(SELECT_DEVICE_BY_CLIENT_AND_NAME, params, deviceRowMapper);
+            return true;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+}// DeviceRepository.java
+package com.connection.device.repository;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.connection.device.exception.DeviceAlreadyExistsException;
+import com.connection.device.exception.DeviceNotFoundException;
+import com.connection.device.model.DeviceDALM;
+
+public interface DeviceRepository {
+    /**
+     * Добавить новое устройство
+     */
+    void add(DeviceDALM device) throws DeviceAlreadyExistsException;
+
+    /**
+     * Обновить устройство
+     */
+    void update(DeviceDALM device) throws DeviceNotFoundException;
+
+    /**
+     * Удалить устройство
+     */
+    void delete(UUID uid) throws DeviceNotFoundException;
+
+    /**
+     * Найти устройство по UID
+     */
+    DeviceDALM findByUid(UUID uid) throws DeviceNotFoundException;
+
+    /**
+     * Найти все устройства клиента
+     */
+    List<DeviceDALM> findByClientUuid(UUID clientUuid);
+
+    /**
+     * Проверить существование устройства
+     */
+    boolean exists(UUID uid);
+
+    /**
+     * Проверить существование устройства по имени для клиента
+     */
+    boolean existsByClientAndName(UUID clientUuid, String deviceName);
+}package com.connection.device.exception;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Device Exception Tests")
+class DeviceExceptionTest {
+
+    @Test
+    @Order(1)
+    @DisplayName("BaseDeviceException toString format")
+    void testBaseDeviceExceptionToString() {
+        // Arrange
+        String deviceUid = "test-uid-123";
+        BaseDeviceException exception = new BaseDeviceException(deviceUid);
+
+        // Act
+        String result = exception.toString();
+
+        // Assert
+        assertThat(result).contains(deviceUid);
+    }
+
+    @Test
+    @Order(2)
+    @DisplayName("DeviceValidateException toString format")
+    void testDeviceValidateExceptionToString() {
+        // Arrange
+        String deviceUid = "test-uid-456";
+        String description = "Validation failed";
+        DeviceValidateException exception = new DeviceValidateException(deviceUid, description);
+
+        // Act
+        String result = exception.toString();
+
+        // Assert
+        assertThat(result).contains(deviceUid);
+    }
+
+    @Test
+    @Order(3)
+    @DisplayName("DeviceAlreadyExistsException toString format")
+    void testDeviceAlreadyExistsExceptionToString() {
+        // Arrange
+        String deviceUid = "test-uid-789";
+        DeviceAlreadyExistsException exception = new DeviceAlreadyExistsException(deviceUid);
+
+        // Act
+        String result = exception.toString();
+
+        // Assert
+        assertThat(result).contains(deviceUid);
+    }
+
+    @Test
+    @Order(4)
+    @DisplayName("DeviceNotFoundException toString format")
+    void testDeviceNotFoundExceptionToString() {
+        // Arrange
+        String deviceUid = "test-uid-012";
+        DeviceNotFoundException exception = new DeviceNotFoundException(deviceUid);
+
+        // Act
+        String result = exception.toString();
+
+        // Assert
+        assertThat(result).contains(deviceUid);
+    }
+
+    @Test
+    @Order(5)
+    @DisplayName("DeviceAddException toString format")
+    void testDeviceAddExceptionToString() {
+        // Arrange
+        String deviceUid = "test-uid-345";
+        DeviceAddException exception = new DeviceAddException(deviceUid);
+
+        // Act
+        String result = exception.toString();
+
+        // Assert
+        assertThat(result).contains(deviceUid);
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("Exception inheritance hierarchy")
+    void testExceptionInheritance() {
+        // Arrange & Act
+        DeviceValidateException validateException = new DeviceValidateException("uid", "desc");
+        DeviceAlreadyExistsException existsException = new DeviceAlreadyExistsException("uid");
+        DeviceNotFoundException notFoundException = new DeviceNotFoundException("uid");
+        DeviceAddException addException = new DeviceAddException("uid");
+
+        // Assert
+        assertThat(validateException).isInstanceOf(BaseDeviceException.class);
+        assertThat(existsException).isInstanceOf(BaseDeviceException.class);
+        assertThat(notFoundException).isInstanceOf(BaseDeviceException.class);
+        assertThat(addException).isInstanceOf(BaseDeviceException.class);
+        assertThat(validateException).isInstanceOf(RuntimeException.class);
+    }
+}package com.connection.device.converter;
+
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBLM;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDALM;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDTO;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.model.DeviceDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Device Converter Tests")
+class DeviceConverterTest {
+
+    private DeviceConverter converter;
+
+    @BeforeEach
+    void setUp() {
+        converter = new DeviceConverter();
+    }
+
+    @Test
+    @DisplayName("Convert DALM to BLM - Positive")
+    void testToBLMFromDALM_Positive() {
+
+        DeviceDALM dalM = createValidDeviceDALM();
+
+        DeviceBLM result = converter.toBLM(dalM);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(dalM.getUid());
+        assertThat(result.getClientUuid()).isEqualTo(dalM.getClientUuid());
+        assertThat(result.getDeviceName()).isEqualTo(dalM.getDeviceName());
+        assertThat(result.getDeviceDescription()).isEqualTo(dalM.getDeviceDescription());
+    }
+
+    @Test
+    @DisplayName("Convert DTO to BLM - Positive")
+    void testToBLMFromDTO_Positive() {
+
+        DeviceDTO dto = createValidDeviceDTO();
+
+        DeviceBLM result = converter.toBLM(dto);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid().toString()).isEqualTo(dto.getUid());
+        assertThat(result.getClientUuid().toString()).isEqualTo(dto.getClientUuid());
+        assertThat(result.getDeviceName()).isEqualTo(dto.getDeviceName());
+        assertThat(result.getDeviceDescription()).isEqualTo(dto.getDeviceDescription());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DTO - Positive")
+    void testToDTOFromBLM_Positive() {
+
+        DeviceBLM blm = createValidDeviceBLM();
+
+        DeviceDTO result = converter.toDTO(blm);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid().toString());
+        assertThat(result.getClientUuid()).isEqualTo(blm.getClientUuid().toString());
+        assertThat(result.getDeviceName()).isEqualTo(blm.getDeviceName());
+        assertThat(result.getDeviceDescription()).isEqualTo(blm.getDeviceDescription());
+    }
+
+    @Test
+    @DisplayName("Convert BLM to DALM - Positive")
+    void testToDALMFromBLM_Positive() {
+
+        DeviceBLM blm = createValidDeviceBLM();
+
+        DeviceDALM result = converter.toDALM(blm);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(blm.getUid());
+        assertThat(result.getClientUuid()).isEqualTo(blm.getClientUuid());
+        assertThat(result.getDeviceName()).isEqualTo(blm.getDeviceName());
+        assertThat(result.getDeviceDescription()).isEqualTo(blm.getDeviceDescription());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
+    void testRoundTripDTOToBLMToDTO() {
+
+        DeviceDTO original = createValidDeviceDTO();
+
+        DeviceBLM blm = converter.toBLM(original);
+        DeviceDTO result = converter.toDTO(blm);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getClientUuid()).isEqualTo(original.getClientUuid());
+        assertThat(result.getDeviceName()).isEqualTo(original.getDeviceName());
+        assertThat(result.getDeviceDescription()).isEqualTo(original.getDeviceDescription());
+    }
+
+    @Test
+    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
+    void testRoundTripDALMToBLMToDALM() {
+
+        DeviceDALM original = createValidDeviceDALM();
+
+        DeviceBLM blm = converter.toBLM(original);
+        DeviceDALM result = converter.toDALM(blm);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(original.getUid());
+        assertThat(result.getClientUuid()).isEqualTo(original.getClientUuid());
+        assertThat(result.getDeviceName()).isEqualTo(original.getDeviceName());
+        assertThat(result.getDeviceDescription()).isEqualTo(original.getDeviceDescription());
+    }
+}package com.connection.device.validator;
+
+import static com.connection.device.mother.DeviceObjectMother.createDeviceBLMWithNullFields;
+import static com.connection.device.mother.DeviceObjectMother.createDeviceDTOWithInvalidUid;
+import static com.connection.device.mother.DeviceObjectMother.createDeviceDTOWithLongDescription;
+import static com.connection.device.mother.DeviceObjectMother.createDeviceDTOWithLongName;
+import static com.connection.device.mother.DeviceObjectMother.createDeviceDTOWithNullUid;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBLM;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDALM;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDTO;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.connection.device.exception.DeviceValidateException;
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.model.DeviceDTO;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Device Validator Tests")
+class DeviceValidatorTest {
+
+    private DeviceValidator validator;
+
+    @BeforeEach
+    void setUp() {
+        validator = new DeviceValidator();
+    }
+
+    // Positive tests
+    @Test
+    @Order(1)
+    @DisplayName("Validate valid DeviceDTO - Positive")
+    void testValidateDeviceDTO_Positive() {
+
+        DeviceDTO device = createValidDeviceDTO();
+
+        assertThat(device).isNotNull();
+        validator.validate(device);
+    }
+
+    @Test
+    @Order(2)
+    @DisplayName("Validate valid DeviceBLM - Positive")
+    void testValidateDeviceBLM_Positive() {
+
+        DeviceBLM device = createValidDeviceBLM();
+
+        assertThat(device).isNotNull();
+        validator.validate(device);
+    }
+
+    @Test
+    @Order(3)
+    @DisplayName("Validate valid DeviceDALM - Positive")
+    void testValidateDeviceDALM_Positive() {
+
+        DeviceDALM device = createValidDeviceDALM();
+
+        assertThat(device).isNotNull();
+        validator.validate(device);
+    }
+
+    // Negative tests - DeviceDTO
+    @Test
+    @Order(4)
+    @DisplayName("Validate null DeviceDTO - Negative")
+    void testValidateNullDeviceDTO_Negative() {
+
+        DeviceDTO device = null;
+
+        assertThatThrownBy(() -> validator.validate(device))
+                .isInstanceOf(DeviceValidateException.class);
+    }
+
+    @Test
+    @Order(5)
+    @DisplayName("Validate DeviceDTO with null UID - Negative")
+    void testValidateDeviceDTOWithNullUid_Negative() {
+
+        DeviceDTO device = createDeviceDTOWithNullUid();
+
+        assertThatThrownBy(() -> validator.validate(device))
+                .isInstanceOf(DeviceValidateException.class);
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("Validate DeviceDTO with invalid UID - Negative")
+    void testValidateDeviceDTOWithInvalidUid_Negative() {
+
+        DeviceDTO device = createDeviceDTOWithInvalidUid();
+
+        assertThatThrownBy(() -> validator.validate(device))
+                .isInstanceOf(DeviceValidateException.class);
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("Validate DeviceDTO with long name - Negative")
+    void testValidateDeviceDTOWithLongName_Negative() {
+
+        DeviceDTO device = createDeviceDTOWithLongName();
+
+        assertThatThrownBy(() -> validator.validate(device))
+                .isInstanceOf(DeviceValidateException.class);
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("Validate DeviceDTO with long description - Negative")
+    void testValidateDeviceDTOWithLongDescription_Negative() {
+
+        DeviceDTO device = createDeviceDTOWithLongDescription();
+
+        assertThatThrownBy(() -> validator.validate(device))
+                .isInstanceOf(DeviceValidateException.class);
+    }
+
+    // Negative tests - DeviceBLM
+    @Test
+    @Order(9)
+    @DisplayName("Validate null DeviceBLM - Negative")
+    void testValidateNullDeviceBLM_Negative() {
+
+        DeviceBLM device = null;
+
+        assertThatThrownBy(() -> validator.validate(device))
+                .isInstanceOf(DeviceValidateException.class);
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("Validate DeviceBLM with null fields - Negative")
+    void testValidateDeviceBLMWithNullFields_Negative() {
+
+        DeviceBLM device = createDeviceBLMWithNullFields();
+
+        assertThatThrownBy(() -> validator.validate(device))
+                .isInstanceOf(DeviceValidateException.class);
+    }
+
+    // Edge cases
+    @Test
+    @Order(11)
+    @DisplayName("Validate DeviceDTO with empty name - Negative")
+    void testValidateDeviceDTOWithEmptyName_Negative() {
+
+        DeviceDTO device = DeviceDTO.builder()
+                .uid(UUID.randomUUID().toString())
+                .clientUuid(UUID.randomUUID().toString())
+                .deviceName("")
+                .deviceDescription("Valid description")
+                .build();
+
+        assertThatThrownBy(() -> validator.validate(device))
+                .isInstanceOf(DeviceValidateException.class);
+    }
+
+    @Test
+    @Order(12)
+    @DisplayName("Validate DeviceDTO with whitespace name - Negative")
+    void testValidateDeviceDTOWithWhitespaceName_Negative() {
+
+        DeviceDTO device = DeviceDTO.builder()
+                .uid(UUID.randomUUID().toString())
+                .clientUuid(UUID.randomUUID().toString())
+                .deviceName("   ")
+                .deviceDescription("Valid description")
+                .build();
+
+        assertThatThrownBy(() -> validator.validate(device))
+                .isInstanceOf(DeviceValidateException.class);
+    }
+}package com.connection.device.mother;
+
+import java.util.UUID;
+
+import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.model.DeviceDTO;
+
+public class DeviceObjectMother {
+
+    private static final UUID DEFAULT_UID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    private static final UUID DEFAULT_CLIENT_UUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
+    private static final String DEFAULT_NAME = "Test Device";
+    private static final String DEFAULT_DESCRIPTION = "Test Device Description";
+
+    // Valid devices
+    public static DeviceDTO createValidDeviceDTO() {
+        return DeviceDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .clientUuid(DEFAULT_CLIENT_UUID.toString())
+                .deviceName(DEFAULT_NAME)
+                .deviceDescription(DEFAULT_DESCRIPTION)
+                .build();
+    }
+
+    public static DeviceBLM createValidDeviceBLM() {
+        return DeviceBLM.builder()
+                .uid(DEFAULT_UID)
+                .clientUuid(DEFAULT_CLIENT_UUID)
+                .deviceName(DEFAULT_NAME)
+                .deviceDescription(DEFAULT_DESCRIPTION)
+                .build();
+    }
+
+    public static DeviceDALM createValidDeviceDALM() {
+        return DeviceDALM.builder()
+                .uid(DEFAULT_UID)
+                .clientUuid(DEFAULT_CLIENT_UUID)
+                .deviceName(DEFAULT_NAME)
+                .deviceDescription(DEFAULT_DESCRIPTION)
+                .build();
+    }
+
+    // Invalid devices
+    public static DeviceDTO createDeviceDTOWithNullUid() {
+        return DeviceDTO.builder()
+                .uid(null)
+                .clientUuid(DEFAULT_CLIENT_UUID.toString())
+                .deviceName(DEFAULT_NAME)
+                .deviceDescription(DEFAULT_DESCRIPTION)
+                .build();
+    }
+
+    public static DeviceDTO createDeviceDTOWithInvalidUid() {
+        return DeviceDTO.builder()
+                .uid("invalid-uuid")
+                .clientUuid(DEFAULT_CLIENT_UUID.toString())
+                .deviceName(DEFAULT_NAME)
+                .deviceDescription(DEFAULT_DESCRIPTION)
+                .build();
+    }
+
+    public static DeviceDTO createDeviceDTOWithLongName() {
+        return DeviceDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .clientUuid(DEFAULT_CLIENT_UUID.toString())
+                .deviceName("A".repeat(101)) // Exceeds 100 characters
+                .deviceDescription(DEFAULT_DESCRIPTION)
+                .build();
+    }
+
+    public static DeviceDTO createDeviceDTOWithLongDescription() {
+        return DeviceDTO.builder()
+                .uid(DEFAULT_UID.toString())
+                .clientUuid(DEFAULT_CLIENT_UUID.toString())
+                .deviceName(DEFAULT_NAME)
+                .deviceDescription("A".repeat(501)) // Exceeds 500 characters
+                .build();
+    }
+
+    public static DeviceBLM createDeviceBLMWithNullFields() {
+        return DeviceBLM.builder()
+                .uid(null)
+                .clientUuid(null)
+                .deviceName(null)
+                .deviceDescription(null)
+                .build();
+    }
+
+    // Devices for specific scenarios
+    public static DeviceDALM createDeviceForClient(UUID clientUuid) {
+        return DeviceDALM.builder()
+                .uid(UUID.randomUUID())
+                .clientUuid(clientUuid)
+                .deviceName("Client Specific Device")
+                .deviceDescription("Device for client " + clientUuid)
+                .build();
+    }
+
+    public static DeviceDALM createDeviceWithName(UUID clientUuid, String name) {
+        return DeviceDALM.builder()
+                .uid(UUID.randomUUID())
+                .clientUuid(clientUuid)
+                .deviceName(name)
+                .deviceDescription("Device with name " + name)
+                .build();
+    }
+}package com.connection.device.repository;
+
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDALM;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.device.exception.DeviceAlreadyExistsException;
+import com.connection.device.exception.DeviceNotFoundException;
+import com.connection.device.model.DeviceDALM;
+
+@TestMethodOrder(MethodOrderer.DisplayName.class)
+@DisplayName("Device Repository Tests - SQL implementation tests")
+class DeviceRepositorySQLImplTest {
+
+        @Mock
+        private NamedParameterJdbcTemplate jdbcTemplate;
+
+        @InjectMocks
+        private DeviceRepositorySQLImpl repository;
+
+        private DeviceDALM testDevice;
+
+        @BeforeEach
+        void setUp() {
+                MockitoAnnotations.openMocks(this);
+                testDevice = createValidDeviceDALM();
+        }
+
+        @Test
+        @Order(1)
+        @DisplayName("Add device - Positive")
+        @SuppressWarnings("unchecked")
+        void testAddDevice_Positive() {
+                // Arrange
+                when(jdbcTemplate.queryForObject(
+                                anyString(),
+                                any(MapSqlParameterSource.class),
+                                any(RowMapper.class))).thenThrow(new EmptyResultDataAccessException(1)); // Device
+                                                                                                         // doesn't
+                                                                                                         // exist
+
+                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+                // Act
+                repository.add(testDevice);
+
+                // Assert
+                verify(jdbcTemplate, times(1)).queryForObject(
+                                eq("SELECT uid, client_uuid, device_name, device_description FROM core.device WHERE uid = :uid"),
+                                any(MapSqlParameterSource.class),
+                                any(RowMapper.class));
+                verify(jdbcTemplate, times(1)).update(
+                                eq("INSERT INTO core.device (uid, client_uuid, device_name, device_description) VALUES (:uid, :client_uuid, :device_name, :device_description)"),
+                                any(MapSqlParameterSource.class));
+        }
+
+        @Test
+        @Order(2)
+        @DisplayName("Add existing device - Negative")
+        @SuppressWarnings("unchecked")
+        void testAddExistingDevice_Negative() {
+                // Arrange
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testDevice); // Device exists
+
+                // Act & Assert
+                assertThatThrownBy(() -> repository.add(testDevice))
+                                .isInstanceOf(DeviceAlreadyExistsException.class);
+
+                verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+        }
+
+        @Test
+        @Order(3)
+        @DisplayName("Update device - Positive")
+        @SuppressWarnings("unchecked")
+        void testUpdateDevice_Positive() {
+                // Arrange
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testDevice); // Device exists
+                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+                // Act
+                repository.update(testDevice);
+
+                // Assert
+                verify(jdbcTemplate, times(1)).update(
+                                eq("UPDATE core.device SET device_name = :device_name, device_description = :device_description WHERE uid = :uid"),
+                                any(MapSqlParameterSource.class));
+        }
+
+        @Test
+        @Order(4)
+        @DisplayName("Update non-existent device - Negative")
+        @SuppressWarnings("unchecked")
+        void testUpdateNonExistentDevice_Negative() {
+                // Arrange
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1)); // Device doesn't exist
+
+                // Act & Assert
+                assertThatThrownBy(() -> repository.update(testDevice))
+                                .isInstanceOf(DeviceNotFoundException.class);
+
+                verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+        }
+
+        @Test
+        @Order(5)
+        @DisplayName("Delete device - Positive")
+        @SuppressWarnings("unchecked")
+        void testDeleteDevice_Positive() {
+                // Arrange
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testDevice); // Device exists
+                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+                // Act
+                repository.delete(testDevice.getUid());
+
+                // Assert
+                verify(jdbcTemplate, times(1)).update(
+                                eq("DELETE FROM core.device WHERE uid = :uid"),
+                                any(MapSqlParameterSource.class));
+        }
+
+        @Test
+        @Order(6)
+        @DisplayName("Delete non-existent device - Negative")
+        @SuppressWarnings("unchecked")
+        void testDeleteNonExistentDevice_Negative() {
+                // Arrange
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1)); // Device doesn't exist
+
+                // Act & Assert
+                assertThatThrownBy(() -> repository.delete(testDevice.getUid()))
+                                .isInstanceOf(DeviceNotFoundException.class);
+
+                verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
+        }
+
+        @Test
+        @Order(7)
+        @DisplayName("Find device by UID - Positive")
+        @SuppressWarnings("unchecked")
+        void testFindByUid_Positive() {
+                // Arrange
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testDevice);
+
+                // Act
+                DeviceDALM result = repository.findByUid(testDevice.getUid());
+
+                // Assert
+                assertThat(result).isEqualTo(testDevice);
+                verify(jdbcTemplate, times(1)).queryForObject(
+                                eq("SELECT uid, client_uuid, device_name, device_description FROM core.device WHERE uid = :uid"),
+                                any(MapSqlParameterSource.class),
+                                any(RowMapper.class));
+        }
+
+        @Test
+        @Order(8)
+        @DisplayName("Find non-existent device by UID - Negative")
+        @SuppressWarnings("unchecked")
+        void testFindByUid_Negative() {
+                // Arrange
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1));
+
+                // Act & Assert
+                assertThatThrownBy(() -> repository.findByUid(testDevice.getUid()))
+                                .isInstanceOf(DeviceNotFoundException.class);
+        }
+
+        @Test
+        @Order(9)
+        @DisplayName("Check device exists - Positive")
+        @SuppressWarnings("unchecked")
+        void testExists_Positive() {
+                // Arrange
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenReturn(testDevice);
+
+                // Act
+                boolean result = repository.exists(testDevice.getUid());
+
+                // Assert
+                assertThat(result).isTrue();
+        }
+
+        @Test
+        @Order(10)
+        @DisplayName("Check device exists - Negative")
+        @SuppressWarnings("unchecked")
+        void testExists_Negative() {
+                // Arrange
+                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
+                                .thenThrow(new EmptyResultDataAccessException(1));
+
+                // Act
+                boolean result = repository.exists(testDevice.getUid());
+
+                // Assert
+                assertThat(result).isFalse();
+        }
+}

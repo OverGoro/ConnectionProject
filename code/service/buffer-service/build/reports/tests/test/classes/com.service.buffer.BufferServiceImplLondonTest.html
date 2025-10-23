@@ -41,7 +41,7 @@
 </td>
 <td>
 <div class="infoBox" id="duration">
-<div class="counter">2.007s</div>
+<div class="counter">3.959s</div>
 <p>duration</p>
 </div>
 </td>
@@ -84,103 +84,103 @@
 <tr>
 <td class="success">Create buffer - Positive</td>
 <td class="success">shouldCreateBufferWhenValidData()</td>
-<td class="success">0.008s</td>
+<td class="success">0.011s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Delete all buffers from connection scheme - Positive</td>
 <td class="success">shouldDeleteAllBuffersFromConnectionSchemeWhenValidRequest()</td>
-<td class="success">0.004s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Delete buffer from connection scheme - Positive</td>
 <td class="success">shouldDeleteBufferFromConnectionSchemeWhenValidRequest()</td>
-<td class="success">0.003s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Delete buffer - Positive</td>
 <td class="success">shouldDeleteBufferWhenValidRequest()</td>
-<td class="success">0.011s</td>
+<td class="success">0.017s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get buffer - Positive</td>
 <td class="success">shouldGetBufferWhenValidRequest()</td>
-<td class="success">0.003s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get buffers by client - Positive</td>
 <td class="success">shouldGetBuffersByClientWhenValidRequest()</td>
-<td class="success">0.004s</td>
+<td class="success">0.006s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get buffers by connection scheme - Positive</td>
 <td class="success">shouldGetBuffersByConnectionSchemeWhenValidRequest()</td>
-<td class="success">0.004s</td>
+<td class="success">0.008s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get buffers by device - Positive</td>
 <td class="success">shouldGetBuffersByDeviceWhenValidRequest()</td>
-<td class="success">0.003s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get buffers by client - Negative: Device service returns error</td>
 <td class="success">shouldReturnEmptyListWhenDeviceServiceFails()</td>
-<td class="success">0.083s</td>
+<td class="success">0.046s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Buffer exists - Negative: Buffer not found</td>
 <td class="success">shouldReturnFalseWhenBufferNotExists()</td>
-<td class="success">0.003s</td>
+<td class="success">0.004s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Buffer exists - Negative: Device doesn't belong to client</td>
 <td class="success">shouldReturnFalseWhenDeviceNotBelongsToClient()</td>
-<td class="success">1.855s</td>
+<td class="success">3.801s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Buffer exists - Positive</td>
 <td class="success">shouldReturnTrueWhenBufferExists()</td>
-<td class="success">0.003s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Create buffer - Negative: Buffer already exists</td>
 <td class="success">shouldThrowExceptionWhenBufferAlreadyExists()</td>
-<td class="success">0.003s</td>
+<td class="success">0.006s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Create buffer - Negative: Device doesn't belong to client</td>
 <td class="success">shouldThrowExceptionWhenDeviceNotBelongsToClient()</td>
-<td class="success">0.006s</td>
+<td class="success">0.012s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get buffers by client - Negative: Device service timeout</td>
 <td class="success">shouldThrowExceptionWhenDeviceServiceTimeout()</td>
-<td class="success">0.007s</td>
+<td class="success">0.012s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Update buffer - Negative: Cannot change buffer UID</td>
 <td class="success">shouldThrowExceptionWhenTryingToChangeBufferUid()</td>
-<td class="success">0.003s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Update buffer - Positive</td>
 <td class="success">shouldUpdateBufferWhenValidData()</td>
-<td class="success">0.004s</td>
+<td class="success">0.006s</td>
 <td class="success">passed</td>
 </tr>
 </table>
@@ -188,11 +188,11 @@
 <div class="tab">
 <h2>Standard output</h2>
 <span class="code">
-<pre>04:16:43.068 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Buffer deleted: 323e4567-e89b-12d3-a456-426614174002 for client: 123e4567-e89b-12d3-a456-426614174000, device: 423e4567-e89b-12d3-a456-426614174003
-04:16:43.083 [ForkJoinPool-1-worker-1] WARN com.service.buffer.ApiBufferServiceImpl -- Failed to get devices for client: 123e4567-e89b-12d3-a456-426614174000
-04:16:43.166 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Buffer created: 323e4567-e89b-12d3-a456-426614174002 for device: 423e4567-e89b-12d3-a456-426614174003
-04:16:43.174 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Buffer updated: 323e4567-e89b-12d3-a456-426614174002 for device: 423e4567-e89b-12d3-a456-426614174003
-04:16:43.198 [ForkJoinPool-1-worker-1] ERROR com.service.buffer.ApiBufferServiceImpl -- Error getting devices for client: 123e4567-e89b-12d3-a456-426614174000
+<pre>13:43:08.399 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Buffer deleted: 323e4567-e89b-12d3-a456-426614174002 for client: 123e4567-e89b-12d3-a456-426614174000, device: 423e4567-e89b-12d3-a456-426614174003
+13:43:08.421 [ForkJoinPool-1-worker-1] WARN com.service.buffer.ApiBufferServiceImpl -- Failed to get devices for client: 123e4567-e89b-12d3-a456-426614174000
+13:43:08.466 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Buffer created: 323e4567-e89b-12d3-a456-426614174002 for device: 423e4567-e89b-12d3-a456-426614174003
+13:43:08.478 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Buffer updated: 323e4567-e89b-12d3-a456-426614174002 for device: 423e4567-e89b-12d3-a456-426614174003
+13:43:08.520 [ForkJoinPool-1-worker-1] ERROR com.service.buffer.ApiBufferServiceImpl -- Error getting devices for client: 123e4567-e89b-12d3-a456-426614174000
 java.util.concurrent.ExecutionException: java.util.concurrent.TimeoutException: Timeout
 	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
 	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
@@ -275,8 +275,8 @@ java.util.concurrent.ExecutionException: java.util.concurrent.TimeoutException: 
 Caused by: java.util.concurrent.TimeoutException: Timeout
 	at com.service.buffer.BufferServiceImplLondonTest.shouldThrowExceptionWhenDeviceServiceTimeout(BufferServiceImplLondonTest.java:473)
 	... 63 common frames omitted
-04:16:43.231 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Deleted buffers for connection scheme: 423e4567-e89b-12d3-a456-426614174003
-04:16:43.236 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Deleted buffers for connection scheme: 423e4567-e89b-12d3-a456-426614174003
+13:43:08.570 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Deleted buffers for connection scheme: 423e4567-e89b-12d3-a456-426614174003
+13:43:08.579 [ForkJoinPool-1-worker-1] INFO com.service.buffer.ApiBufferServiceImpl -- Deleted buffers for connection scheme: 423e4567-e89b-12d3-a456-426614174003
 </pre>
 </span>
 </div>
@@ -299,7 +299,7 @@ WARNING: Dynamic loading of agents will be disallowed by default in a future rel
 <input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
 </label>
 </div>Generated by 
-<a href="https://www.gradle.org">Gradle 8.13</a> at 17 окт. 2025 г., 04:16:43</p>
+<a href="https://www.gradle.org">Gradle 8.14.3</a> at 18 окт. 2025 г., 13:43:08</p>
 </div>
 </div>
 </body>

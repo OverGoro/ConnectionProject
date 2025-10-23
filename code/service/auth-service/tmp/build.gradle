@@ -1,155 +1,523 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.5.5'
-	id 'io.spring.dependency-management' version '1.1.7'
-	id 'io.qameta.allure' version '2.11.2'
+    id 'java'
+    id 'org.springframework.boot' version '3.5.5'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'io.qameta.allure' version '3.0.0'
+    id 'com.avast.gradle.docker-compose' version '0.17.6'
+}
+
+// ========== CONFIGURATION ==========
+ext {
+    SERVICE_NAME = 'auth-service'
+    K8S_DIR = new File(System.getProperty('user.home') + "/GitHub/ConnectionProject/kubernetes/auth-service").toString()
+    ALLURE_RESULTS_DIR = "${buildDir}/allure-results"
+    ALLURE_REPORT_DIR =  "${buildDir}/reports/allure-report"
+    ALLURE_HISTORY_DIR = "${projectDir}/allure-history"
 }
 
 group = 'com.service'
 version = '0.0.1-SNAPSHOT'
-description = 'Authorisation service'
-
-import java.nio.file.Paths
-def service_name = 'auth-service'
-def k8sDir = Paths.get(System.getProperty('user.home'), "GitHub", "ConnectionProject", "kubernetes", "auth-service").toString()
+description = 'Authorization Service'
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
-
 configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+    
+    // Конфигурация для интеграционных тестов
+    integrationTestImplementation {
+        extendsFrom testImplementation
+    }
+    integrationTestRuntimeOnly {
+        extendsFrom testRuntimeOnly
+    }
+}
+
+// ========== ALLURE CONFIGURATION ==========
+allure {
+    version = "2.29.0"
+    
+    // Используем адаптер для JUnit 5
+    adapter {
+        allureJavaVersion = "2.29.0"
+        aspectjWeaver = true
+        frameworks {
+            junit5 {
+                enabled = true
+                autoconfigure = true
+                aspectjVersion = "1.9.22"
+            }
+        }
+    }
+    
+    // Настройки отчета
+    report {
+        reportDir = layout.buildDirectory.dir("reports/allure-report")
+    }
 }
 
 repositories {
-	mavenCentral()
-	mavenLocal()
+    mavenCentral()
+    mavenLocal()
 }
 
+// ========== DEPENDENCIES ==========
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter'
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-
-	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-	implementation 'org.springframework.data:spring-data-commons'
-	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
-	implementation'org.springframework.boot:spring-boot-starter-web'
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.data:spring-data-commons'
     implementation 'org.springframework.kafka:spring-kafka:3.3.10'
+    
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
+    // Database & Transactions
+    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'com.atomikos:transactions-spring-boot3-starter:6.0.0'
 
-	implementation 'com.atomikos:transactions-spring-boot3-starter:6.0.0'
-	
-	runtimeOnly 'org.postgresql:postgresql'
-
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
+    // Security
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
 
+    // Documentation
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
 
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.38'
+    annotationProcessor 'org.projectlombok:lombok:1.18.38'
+    testCompileOnly 'org.projectlombok:lombok:1.18.38'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
 
-	
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
-	compileOnly 'org.projectlombok:lombok:1.18.38'
-	annotationProcessor 'org.projectlombok:lombok:1.18.38'
-	
-
-	implementation 'com.connection:client-shared:1.0.0'
-	compileOnly 'com.connection:client-shared:1.0.0'
-
-	implementation 'com.connection:token-shared:1.0.0'
-	compileOnly 'com.connection:token-shared:1.0.0'
-
+    // Shared modules
+    implementation 'com.connection:client-shared:1.0.0'
+    implementation 'com.connection:token-shared:1.0.0'
     implementation 'com.connection:common-events:1.0.0'
-	compileOnly 'com.connection:common-events:1.0.0'
     implementation 'com.connection:common-auth-events:1.0.0'
-	compileOnly 'com.connection:common-auth-events:1.0.0'
 
-	// Тестовые зависимости
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // Test dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.10'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    
     testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
     testImplementation 'org.mockito:mockito-core:5.18.0'
     testImplementation 'org.mockito:mockito-junit-jupiter:5.18.0'
     testImplementation 'org.assertj:assertj-core:3.27.3'
+    
+    // Allure dependencies
     testImplementation 'io.qameta.allure:allure-junit5:2.29.1'
+    testImplementation 'io.qameta.allure:allure-assertj:2.29.1'
+    testImplementation 'io.qameta.allure:allure-rest-assured:2.29.1'
+    testImplementation 'io.qameta.allure:allure-java-commons:2.29.1'
+        
+    // Additional test tools
+    testImplementation 'io.rest-assured:rest-assured:5.4.0'
+    testImplementation 'org.awaitility:awaitility:4.2.0'
+    
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-tasks.withType(JavaCompile) {
+// ========== COMPILATION CONFIGURATION ==========
+tasks.withType(JavaCompile).configureEach {
     options.compilerArgs += ['-parameters']
+    options.encoding = 'UTF-8'
 }
 
-compileJava {
-    options.compilerArgs += ['-parameters']
+// ========== DOCKER COMPOSE CONFIGURATION ==========
+dockerCompose {
+    useComposeFiles = ['src/test/resources/docker-compose.yaml']
+    projectName = "${SERVICE_NAME}-test"
+    stopContainers = true
+    removeContainers = true
+    removeImages = 'Local'
+    removeVolumes = true
+    environment.put 'COMPOSE_PROJECT_NAME', "${SERVICE_NAME}-test"
 }
 
-compileTestJava {
-    options.compilerArgs += ['-parameters']
-}
-tasks.named('test') {
-    useJUnitPlatform()
-    systemProperty 'junit.jupiter.execution.order.random.seed', '42'
-    systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
-    systemProperty 'allure.results.directory', 'build/allure-results'
+// ========== ALLURE TASKS ==========
+task generateAllureReport(type: Exec) {
+    description = 'Generate Allure report from results with history'
+    group = 'Reporting'
     
-    // Для оффлайн тестирования
-    systemProperty 'offline.mode', 'false'
-    
-    // ВАЖНО: гарантируем выполнение тестов перед генерацией отчета
-    finalizedBy 'allureReport'
-}
-
-// Задача для запуска тестов в оффлайн режиме
-task offlineTest(type: Test) {
-    useJUnitPlatform()
-    systemProperty 'offline.mode', 'true'
-    finalizedBy 'allureReport'
-}
-
-// Настройка генерации Allure отчета
-tasks.allureReport {
-    dependsOn test // Генерировать отчет после тестов
-    
-    // Сохранять историю между запусками
+    // Копируем историю из предыдущего отчета перед генерацией нового
     doFirst {
-        println "Генерация Allure отчета с сохранением истории..."
+        logger.lifecycle("📊 Generating Allure report with history...")
+        logger.lifecycle("   Results: ${ALLURE_RESULTS_DIR}")
+        logger.lifecycle("   Report: ${ALLURE_REPORT_DIR}")
+        logger.lifecycle("   History: ${ALLURE_HISTORY_DIR}")
+        
+        // Создаем директории если их нет
+        file(ALLURE_HISTORY_DIR).mkdirs()
+        file("${ALLURE_HISTORY_DIR}/history").mkdirs()
+        file(ALLURE_RESULTS_DIR).mkdirs()
+        
+        // Копируем историю из предыдущего отчета в результаты текущего запуска
+        def historySource = file("${ALLURE_HISTORY_DIR}/history")
+        def historyTarget = file("${ALLURE_RESULTS_DIR}/history")
+        
+        if (historySource.exists()) {
+            logger.lifecycle("   Copying history from previous report...")
+            copy {
+                from historySource
+                into historyTarget
+            }
+        }
     }
-}
-
-task copyJarToK8s(type: Copy) {
-    dependsOn bootJar
     
-    doFirst {
-        file(k8sDir).mkdirs()
-        println "📁 Целевая директория: $k8sDir"
-        println "📦 Исходный JAR: ${bootJar.archiveFile.get()}"
-    }
-    
-    from bootJar.archiveFile.get()
-    into k8sDir
-    
-    rename { String fileName ->
-        "${service_name}.jar"
-    }
+    commandLine 'allure', 'generate', "${ALLURE_RESULTS_DIR}", '-o', "${ALLURE_REPORT_DIR}", '--clean'
     
     doLast {
-        println "JAR файл скопирован в: $k8sDir"
-        println "Файл: ${service_name}.jar"
-        
-        def targetFile = file("$k8sDir/${service_name}.jar")
-        if (targetFile.exists()) {
-            println "Размер скопированного файла: ${targetFile.length()} bytes"
+        def reportFile = file("${ALLURE_REPORT_DIR}/index.html")
+        if (reportFile.exists()) {
+            logger.lifecycle("✅ Allure report generated at: ${ALLURE_REPORT_DIR}")
+            
+            // Сохраняем историю для следующего запуска
+            def historySource = file("${ALLURE_REPORT_DIR}/history")
+            def historyTarget = file("${ALLURE_HISTORY_DIR}/history")
+            
+            if (historySource.exists()) {
+                logger.lifecycle("   Copying history from previous report...")
+                copy {
+                    from historySource
+                    into historyTarget
+                }
+            }
+            
+            logger.lifecycle("   Open: file://${reportFile.absolutePath}")
         } else {
-            println "Ошибка: файл не был скопирован!"
+            logger.lifecycle("⚠️  Allure report generation completed but index.html not found")
         }
     }
 }
 
-bootJar.finalizedBy copyJarToK8s
+task openAllureReport(type: Exec) {
+    description = 'Open Allure report in default browser'
+    group = 'Reporting'
+    
+    commandLine 'open', "${ALLURE_REPORT_DIR}/index.html"
+    
+    dependsOn generateAllureReport
+    
+    doFirst {
+        logger.lifecycle("🌐 Opening Allure report in browser...")
+    }
+}
+
+task serveAllureReport(type: Exec) {
+    description = 'Serve Allure report with built-in server and history'
+    group = 'Reporting'
+
+    commandLine 'allure', 'serve', "${ALLURE_RESULTS_DIR}"
+    
+    dependsOn generateAllureReport
+    
+    doFirst {
+        logger.lifecycle("🚀 Starting Allure server with history...")
+    }
+}
+
+task cleanAllureResults(type: Delete) {
+    description = 'Clean Allure results directory'
+    group = 'Reporting'
+    delete ALLURE_RESULTS_DIR
+    
+    doLast {
+        logger.lifecycle("🧹 Cleaned Allure results: ${ALLURE_RESULTS_DIR}")
+    }
+}
+
+task cleanAllureReport(type: Delete) {
+    description = 'Clean Allure report directory'
+    group = 'Reporting'
+    delete ALLURE_REPORT_DIR
+    
+    doLast {
+        logger.lifecycle("🧹 Cleaned Allure report: ${ALLURE_REPORT_DIR}")
+    }
+}
+
+task cleanAllureHistory(type: Delete) {
+    description = 'Clean Allure history directory'
+    group = 'Reporting'
+    delete ALLURE_HISTORY_DIR
+    
+    doLast {
+        logger.lifecycle("🧹 Cleaned Allure history: ${ALLURE_HISTORY_DIR}")
+    }
+}
+
+task showAllureResults {
+    description = 'Show Allure results structure'
+    group = 'Reporting'
+    
+    doLast {
+        def resultsDir = file(ALLURE_RESULTS_DIR)
+        logger.lifecycle("📁 Allure Results Directory: ${resultsDir.absolutePath}")
+        
+        if (resultsDir.exists()) {
+            def files = resultsDir.listFiles()
+            if (files) {
+                logger.lifecycle("📊 Found ${files.size()} result files:")
+                files.each { file ->
+                    logger.lifecycle("   📄 ${file.name} (${file.length()} bytes)")
+                }
+            } else {
+                logger.lifecycle("❌ No result files found in Allure results directory")
+            }
+        } else {
+            logger.lifecycle("❌ Allure results directory does not exist")
+        }
+        
+        // Показываем историю
+        def historyDir = file(ALLURE_HISTORY_DIR)
+        if (historyDir.exists()) {
+            def historyFiles = historyDir.listFiles()
+            if (historyFiles) {
+                logger.lifecycle("📈 Allure History: ${historyFiles.size()} history entries")
+            } else {
+                logger.lifecycle("📈 No history found")
+            }
+        }
+    }
+}
+
+task updateAllureHistory {
+    description = 'Update Allure history from current report'
+    group = 'Reporting'
+    
+    doLast {
+        def historySource = file("${ALLURE_REPORT_DIR}/history")
+        def historyTarget = file(ALLURE_HISTORY_DIR)
+        
+        if (historySource.exists()) {
+            copy {
+                from historySource
+                into historyTarget
+            }
+            logger.lifecycle("✅ Allure history updated from current report")
+        } else {
+            logger.lifecycle("⚠️  No history found in current report")
+        }
+    }
+}
+
+// ========== DOCKER MANAGEMENT TASKS ==========
+task startTestContainers {
+    description = 'Start test containers for integration tests'
+    group = 'Docker'
+    
+    doFirst {
+        logger.lifecycle("🚀 Starting test containers...")
+    }
+    
+    doLast {
+        exec {
+            commandLine 'docker-compose', '-f', 'src/test/resources/docker-compose.yaml', 
+                       '-p', "${SERVICE_NAME}-test", 'up', '-d'
+        }
+        logger.lifecycle("✅ Test containers started")
+        logger.lifecycle("   PostgreSQL: localhost:5434")
+        logger.lifecycle("   Kafka: localhost:29093")
+        
+        // Wait for containers to be ready
+        sleep(10_000)
+        logger.lifecycle("⏳ Containers are ready")
+    }
+}
+
+task stopTestContainers {
+    description = 'Stop test containers'
+    group = 'Docker'
+    
+    doFirst {
+        logger.lifecycle("🛑 Stopping test containers...")
+    }
+    
+    doLast {
+        exec {
+            commandLine 'docker-compose', '-f', 'src/test/resources/docker-compose.yaml', 
+                       '-p', "${SERVICE_NAME}-test", 'down'
+        }
+        logger.lifecycle("✅ Test containers stopped")
+    }
+}
+
+task cleanTestContainers {
+    description = 'Stop and remove test containers with volumes'
+    group = 'Docker'
+    
+    doLast {
+        logger.lifecycle("🧹 Cleaning test containers...")
+        exec {
+            commandLine 'docker-compose', '-f', 'src/test/resources/docker-compose.yaml', 
+                       '-p', "${SERVICE_NAME}-test", 'down', '-v', '--rmi', 'local'
+        }
+        logger.lifecycle("✅ Test containers and volumes cleaned")
+    }
+}
+
+// ========== TEST CONFIGURATION ==========
+// Общая конфигурация для всех типов тестов
+def configureTestTask = { Test task, String taskName ->
+    task.useJUnitPlatform()
+    
+    // Настройки для Allure
+    task.systemProperty 'allure.results.directory', "${ALLURE_RESULTS_DIR}"
+    task.systemProperty 'allure.junit5.listeners', 'io.qameta.allure.junit5.AllureJunit5'
+    
+    // Параллельное выполнение
+    task.systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
+    task.systemProperty 'junit.jupiter.execution.parallel.mode.default', 'concurrent'
+    task.systemProperty 'junit.jupiter.execution.parallel.config.strategy', 'dynamic'
+    task.systemProperty 'junit.jupiter.execution.parallel.config.dynamic.factor', '1.0'
+    
+
+    task.reports.html.required = false
+    task.reports.junitXml.required = false
+
+    task.testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = false
+    }
+
+    // Стандартные пути для отчетов
+    task.reports {
+        html.outputLocation = null
+        junitXml.outputLocation = null
+    }
+    
+    // Отключаем кэширование
+    task.outputs.upToDateWhen { false }
+}
+
+// Unit tests
+test {
+    description = 'Run unit tests'
+    group = 'Verification'
+    
+    configureTestTask(delegate, 'test')
+    exclude '**/*IntegrationTest.*', '**/*E2ETest.*'
+    
+    systemProperty 'junit.jupiter.execution.order.random.seed', '42'
+    systemProperty 'offline.mode', 'false'
+    
+    // Всегда очищаем результаты перед тестами, но сохраняем историю
+    dependsOn cleanAllureResults
+    finalizedBy generateAllureReport
+}
+
+// Integration tests
+task integrationTest(type: Test) {
+    description = 'Run integration tests with Testcontainers'
+    group = 'Verification'
+    
+    configureTestTask(delegate, 'integrationTest')
+    include '**/*IntegrationTest.*'
+    
+    systemProperty 'spring.profiles.active', 'integrationtest'
+    
+    doFirst {
+        logger.lifecycle("🔧 Running integration tests")
+        logger.lifecycle("   Database: localhost:5434/test_db")
+        logger.lifecycle("   Kafka: localhost:29093")
+    }
+    
+    dependsOn startTestContainers
+    finalizedBy generateAllureReport
+}
+
+// All tests sequence
+task allTests {
+    description = 'Run all tests in sequence: unit → integration → e2e'
+    group = 'Verification'
+    dependsOn test, integrationTest
+    tasks.findByName('integrationTest')?.mustRunAfter('test')
+    finalizedBy generateAllureReport
+}
+
+// Offline tests
+task offlineTest(type: Test) {
+    description = 'Run tests in offline mode'
+    group = 'Verification'
+    
+    configureTestTask(delegate, 'offlineTest')
+    systemProperty 'offline.mode', 'true'
+    finalizedBy generateAllureReport
+}
+
+// ========== DEPLOYMENT TASKS ==========
+task copyJarToK8s(type: Copy) {
+    description = 'Copy JAR to Kubernetes deployment directory'
+    group = 'Deployment'
+    
+    dependsOn bootJar
+    
+    doFirst {
+        file(K8S_DIR).mkdirs()
+        logger.lifecycle("📁 Target directory: $K8S_DIR")
+        logger.lifecycle("📦 Source JAR: ${bootJar.archiveFile.get()}")
+    }
+    
+    from bootJar.archiveFile.get()
+    into K8S_DIR
+    rename { "${SERVICE_NAME}.jar" }
+    
+    doLast {
+        def targetFile = file("$K8S_DIR/${SERVICE_NAME}.jar")
+        if (targetFile.exists()) {
+            logger.lifecycle("✅ JAR copied: ${targetFile.length()} bytes")
+        } else {
+            throw new GradleException("❌ JAR file was not copied!")
+        }
+    }
+}
+
+// ========== CLEANUP TASKS ==========
+task cleanTestResults(type: Delete) {
+    description = 'Clean old test results'
+    group = 'Build'
+    delete layout.buildDirectory.dir("test-results")
+    delete layout.buildDirectory.dir("reports/tests")
+}
+
+// ========== TASK DEPENDENCIES ==========
+bootJar {
+    finalizedBy copyJarToK8s
+}
+
+clean {
+    dependsOn cleanTestContainers
+}
+
+task deepClean {
+    description = 'Complete clean including Allure history'
+    group = 'Build'
+    dependsOn clean, cleanAllureResults, cleanAllureReport, cleanAllureHistory
+}
+
+// ========== TASK RELATIONS ==========
+tasks.named('integrationTest') { 
+    mustRunAfter test 
+}
+
+
+// Prevent running integration tests without containers
+tasks.withType(Test).configureEach { 
+    if (it.name.contains('integration') || it.name.contains('e2e')) {
+        it.dependsOn startTestContainers
+    }
+}
+
+
+// ========== DEFAULT TASKS ==========
+defaultTasks 'build'

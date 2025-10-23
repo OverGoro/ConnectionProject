@@ -40,7 +40,7 @@ class DeviceTokenConverterTest {
         DeviceTokenDALM dalM = createValidDeviceTokenDALM();
         DeviceTokenBLM expectedBLM = createValidDeviceTokenBLM();
         
-        when(deviceTokenGenerator.generateDeviceToken(any(), any(), any()))
+        when(deviceTokenGenerator.generateDeviceToken(any(),any(), any(), any()))
                 .thenReturn(expectedBLM.getToken());
 
         DeviceTokenBLM result = converter.toBLM(dalM);

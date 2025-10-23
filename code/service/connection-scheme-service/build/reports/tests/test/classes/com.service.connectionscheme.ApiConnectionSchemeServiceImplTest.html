@@ -41,7 +41,7 @@
 </td>
 <td>
 <div class="infoBox" id="duration">
-<div class="counter">2.546s</div>
+<div class="counter">3.856s</div>
 <p>duration</p>
 </div>
 </td>
@@ -84,25 +84,25 @@
 <tr>
 <td class="success">Create scheme - Positive</td>
 <td class="success">shouldCreateSchemeWhenValidData()</td>
-<td class="success">2.482s</td>
+<td class="success">3.768s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Delete scheme - Positive</td>
 <td class="success">shouldDeleteSchemeWhenValidRequest()</td>
-<td class="success">0.004s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get scheme by UID - Positive</td>
 <td class="success">shouldGetSchemeWhenValidRequest()</td>
-<td class="success">0.003s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get schemes by client - Positive</td>
 <td class="success">shouldGetSchemesByClientWhenValidRequest()</td>
-<td class="success">0.004s</td>
+<td class="success">0.006s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -114,19 +114,19 @@
 <tr>
 <td class="success">Health check - Negative: Auth service timeout</td>
 <td class="success">shouldHandleAuthServiceTimeoutInHealthCheck()</td>
-<td class="success">0.008s</td>
+<td class="success">0.011s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Scheme exists - Negative: Scheme not found</td>
 <td class="success">shouldReturnFalseWhenSchemeNotExists()</td>
-<td class="success">0.003s</td>
+<td class="success">0.004s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Health check - Positive</td>
 <td class="success">shouldReturnHealthStatus()</td>
-<td class="success">0.009s</td>
+<td class="success">0.013s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -138,37 +138,37 @@
 <tr>
 <td class="success">Create scheme - Negative: Client UID mismatch</td>
 <td class="success">shouldThrowExceptionWhenClientUidMismatch()</td>
-<td class="success">0.004s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Create scheme - Negative: Scheme already exists</td>
 <td class="success">shouldThrowExceptionWhenSchemeAlreadyExists()</td>
-<td class="success">0.003s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Get scheme by UID - Negative: Scheme doesn't belong to client</td>
 <td class="success">shouldThrowExceptionWhenSchemeNotBelongsToClient()</td>
-<td class="success">0.005s</td>
+<td class="success">0.007s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Update scheme - Negative: Client UID change attempt</td>
 <td class="success">shouldThrowExceptionWhenTryingToChangeClientUid()</td>
-<td class="success">0.008s</td>
+<td class="success">0.012s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Update scheme - Negative: UID change attempt</td>
 <td class="success">shouldThrowExceptionWhenTryingToChangeUid()</td>
-<td class="success">0.003s</td>
+<td class="success">0.004s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">Update scheme - Positive</td>
 <td class="success">shouldUpdateSchemeWhenValidData()</td>
-<td class="success">0.004s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 </table>
@@ -176,10 +176,10 @@
 <div class="tab">
 <h2>Standard output</h2>
 <span class="code">
-<pre>04:16:48.112 [ForkJoinPool-1-worker-1] INFO com.service.connectionscheme.ConnectionSchemeServiceImpl -- Connection scheme created: 323e4567-e89b-12d3-a456-426614174003 for client: 123e4567-e89b-12d3-a456-426614174000
-04:16:48.797 [ForkJoinPool-1-worker-1] INFO com.service.connectionscheme.ConnectionSchemeServiceImpl -- Connection scheme updated: 323e4567-e89b-12d3-a456-426614174003 for client: 123e4567-e89b-12d3-a456-426614174000
-04:16:48.803 [ForkJoinPool-1-worker-1] INFO com.service.connectionscheme.ConnectionSchemeServiceImpl -- Connection scheme deleted: 323e4567-e89b-12d3-a456-426614174003 for client: 123e4567-e89b-12d3-a456-426614174000
-04:16:48.845 [ForkJoinPool-1-worker-1] ERROR com.service.connectionscheme.ConnectionSchemeServiceImpl -- Kafka Client: 
+<pre>14:43:54.327 [ForkJoinPool-1-worker-1] INFO com.service.connectionscheme.ConnectionSchemeServiceImpl -- Connection scheme created: 323e4567-e89b-12d3-a456-426614174003 for client: 123e4567-e89b-12d3-a456-426614174000
+14:43:55.180 [ForkJoinPool-1-worker-1] INFO com.service.connectionscheme.ConnectionSchemeServiceImpl -- Connection scheme updated: 323e4567-e89b-12d3-a456-426614174003 for client: 123e4567-e89b-12d3-a456-426614174000
+14:43:55.189 [ForkJoinPool-1-worker-1] INFO com.service.connectionscheme.ConnectionSchemeServiceImpl -- Connection scheme deleted: 323e4567-e89b-12d3-a456-426614174003 for client: 123e4567-e89b-12d3-a456-426614174000
+14:43:55.251 [ForkJoinPool-1-worker-1] ERROR com.service.connectionscheme.ConnectionSchemeServiceImpl -- Kafka Client: 
 java.util.concurrent.ExecutionException: java.util.concurrent.TimeoutException: Timeout
 	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
 	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
@@ -279,7 +279,7 @@ WARNING: Dynamic loading of agents will be disallowed by default in a future rel
 <input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
 </label>
 </div>Generated by 
-<a href="https://www.gradle.org">Gradle 8.13</a> at 17 окт. 2025 г., 04:16:48</p>
+<a href="https://www.gradle.org">Gradle 8.14.3</a> at 18 окт. 2025 г., 14:43:55</p>
 </div>
 </div>
 </body>

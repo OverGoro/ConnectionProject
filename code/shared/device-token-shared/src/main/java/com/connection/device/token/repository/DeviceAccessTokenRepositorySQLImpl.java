@@ -1,4 +1,3 @@
-// DeviceAccessTokenRepositorySQLImpl.java
 package com.connection.device.token.repository;
 
 import java.sql.Timestamp;
@@ -11,10 +10,14 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.connection.device.token.converter.DeviceAccessTokenConverter;
 import com.connection.device.token.exception.DeviceAccessTokenExistsException;
 import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
 import com.connection.device.token.exception.DeviceTokenNotFoundException;
+import com.connection.device.token.generator.DeviceAccessTokenGenerator;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
 import com.connection.device.token.model.DeviceAccessTokenDALM;
+import com.connection.device.token.validator.DeviceAccessTokenValidator;
 
 @Repository
 public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepository {
@@ -35,6 +38,8 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
     private static final String HAS_ACTIVE_TOKEN = "SELECT COUNT(*) FROM access.device_access_token WHERE device_token_uid = :device_token_uid AND expires_at > NOW()";
     private static final String DEVICE_TOKEN_EXISTS = "SELECT COUNT(*) FROM access.device_token WHERE uid = :device_token_uid";
 
+    private final DeviceAccessTokenConverter converter;
+    private final DeviceAccessTokenValidator validator = new DeviceAccessTokenValidator();
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     private final RowMapper<DeviceAccessTokenDALM> deviceAccessTokenRowMapper = (rs, rowNum) -> {
@@ -47,31 +52,38 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
         return token;
     };
 
-    public DeviceAccessTokenRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate) {
+    public DeviceAccessTokenRepositorySQLImpl(NamedParameterJdbcTemplate jdbcTemplate, DeviceAccessTokenGenerator generator) {
         this.jdbcTemplate = jdbcTemplate;
+        this.converter = new DeviceAccessTokenConverter(generator);
     }
 
     @Override
     @Transactional
-    public void add(DeviceAccessTokenDALM deviceAccessTokenDALM) throws DeviceAccessTokenExistsException {
+    public void add(DeviceAccessTokenBLM deviceAccessTokenBLM) throws DeviceAccessTokenExistsException {
+        // Валидация BLM модели
+        validator.validate(deviceAccessTokenBLM);
+        
         // Проверяем существование device_token
-        if (!deviceTokenExists(deviceAccessTokenDALM.getDeviceTokenUid())) {
-            throw new DeviceTokenNotFoundException("Device token with UID " + deviceAccessTokenDALM.getDeviceTokenUid() + " not found");
+        if (!deviceTokenExists(deviceAccessTokenBLM.getDeviceTokenUid())) {
+            throw new DeviceTokenNotFoundException("Device token with UID " + deviceAccessTokenBLM.getDeviceTokenUid() + " not found");
         }
 
         // Проверяем, что нет активного токена для этого device_token_uid
-        if (hasDeviceAccessToken(deviceAccessTokenDALM.getDeviceTokenUid())) {
-            throw new DeviceAccessTokenExistsException("Device access token already exists for device token UID " + deviceAccessTokenDALM.getDeviceTokenUid());
+        if (hasDeviceAccessToken(deviceAccessTokenBLM.getDeviceTokenUid())) {
+            throw new DeviceAccessTokenExistsException("Device access token already exists for device token UID " + deviceAccessTokenBLM.getDeviceTokenUid());
+        }
+
+        // Конвертация BLM в DALM
+        DeviceAccessTokenDALM deviceAccessTokenDALM = converter.toDALM(deviceAccessTokenBLM);
+
+        // Проверяем существование по uid
+        if (uidExists(deviceAccessTokenDALM.getUid())) {
+            throw new DeviceAccessTokenExistsException("Device access token with UID " + deviceAccessTokenDALM.getUid() + " already exists");
         }
 
         // Проверяем существование по token
         if (tokenExists(deviceAccessTokenDALM.getToken())) {
             throw new DeviceAccessTokenExistsException("Device access token already exists");
-        }
-
-        // Проверяем существование по uid
-        if (uidExists(deviceAccessTokenDALM.getUid())) {
-            throw new DeviceAccessTokenExistsException("Device access token with UID " + deviceAccessTokenDALM.getUid() + " already exists");
         }
 
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -86,11 +98,13 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
 
     @Override
     @Transactional(readOnly = true)
-    public DeviceAccessTokenDALM findByUid(UUID uid) throws DeviceAccessTokenNotFoundException {
+    public DeviceAccessTokenBLM findByUid(UUID uid) throws DeviceAccessTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
         try {
-            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_UID, params, deviceAccessTokenRowMapper);
+            DeviceAccessTokenDALM dalToken = jdbcTemplate.queryForObject(SELECT_TOKEN_BY_UID, params, deviceAccessTokenRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalToken);
         } catch (EmptyResultDataAccessException e) {
             throw new DeviceAccessTokenNotFoundException("Device access token with UID " + uid + " not found");
         }
@@ -98,11 +112,13 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
 
     @Override
     @Transactional(readOnly = true)
-    public DeviceAccessTokenDALM findByToken(String token) throws DeviceAccessTokenNotFoundException {
+    public DeviceAccessTokenBLM findByToken(String token) throws DeviceAccessTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("token", token);
         try {
-            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_TOKEN, params, deviceAccessTokenRowMapper);
+            DeviceAccessTokenDALM dalToken = jdbcTemplate.queryForObject(SELECT_TOKEN_BY_TOKEN, params, deviceAccessTokenRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalToken);
         } catch (EmptyResultDataAccessException e) {
             throw new DeviceAccessTokenNotFoundException("Device access token not found");
         }
@@ -110,11 +126,13 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
 
     @Override
     @Transactional(readOnly = true)
-    public DeviceAccessTokenDALM findByDeviceTokenUid(UUID deviceTokenUid) throws DeviceAccessTokenNotFoundException {
+    public DeviceAccessTokenBLM findByDeviceTokenUid(UUID deviceTokenUid) throws DeviceAccessTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("device_token_uid", deviceTokenUid);
         try {
-            return jdbcTemplate.queryForObject(SELECT_TOKEN_BY_DEVICE_TOKEN_UID, params, deviceAccessTokenRowMapper);
+            DeviceAccessTokenDALM dalToken = jdbcTemplate.queryForObject(SELECT_TOKEN_BY_DEVICE_TOKEN_UID, params, deviceAccessTokenRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalToken);
         } catch (EmptyResultDataAccessException e) {
             throw new DeviceAccessTokenNotFoundException("Device access token for device token UID " + deviceTokenUid + " not found");
         }

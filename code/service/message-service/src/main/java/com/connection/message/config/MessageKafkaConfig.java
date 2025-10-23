@@ -116,15 +116,21 @@ public class MessageKafkaConfig {
         
         // Конфигурация для JsonDeserializer
         configProps.put(JsonDeserializer.TRUSTED_PACKAGES, 
-            "com.connection.auth.events.commands," +
+            "com.connection.auth.events.commands,"+
+            "com.connection.auth.events.responses," +
             "com.connection.common.events," +
             "com.connection.buffer.events.commands," +
+            "com.connection.buffer.events.responses," +
+            "com.connection.auth.events.commands," +
             "com.connection.auth.events.responses," +
             "com.connection.device.events.commands," +
+            "com.connection.device.events.responses," +
             "com.connection.scheme.events.commands," +
+            "com.connection.scheme.events.responses," +
             "com.connection.device.auth.events.commands," +
             "com.connection.device.auth.events.responses," +
-            "com.connection.message.events.commands");
+            "com.connection.message.events.commands,"+
+            "com.connection.message.events.responses");
         configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
         configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
         configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");

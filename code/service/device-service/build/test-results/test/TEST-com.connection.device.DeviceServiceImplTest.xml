@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="Device Service Implementation Tests - Kafka Version" tests="13" skipped="0" failures="0" errors="0" timestamp="2025-10-17T01:16:57.940Z" hostname="Yurik" time="2.34">
+<testsuite name="Device Service Implementation Tests - Kafka Version" tests="13" skipped="0" failures="0" errors="0" timestamp="2025-10-18T11:45:30.086Z" hostname="Yurik" time="3.596">
   <properties/>
-  <testcase name="Create device - Positive" classname="com.connection.device.DeviceServiceImplTest" time="2.105"/>
-  <testcase name="Update device - Positive" classname="com.connection.device.DeviceServiceImplTest" time="0.005"/>
-  <testcase name="Create device - Negative: Device already exists" classname="com.connection.device.DeviceServiceImplTest" time="0.009"/>
-  <testcase name="Device exists - Positive" classname="com.connection.device.DeviceServiceImplTest" time="0.003"/>
-  <testcase name="Get device - Positive" classname="com.connection.device.DeviceServiceImplTest" time="0.004"/>
-  <testcase name="Health check - Positive" classname="com.connection.device.DeviceServiceImplTest" time="0.037"/>
-  <testcase name="Get device - Negative: Device doesn't belong to client" classname="com.connection.device.DeviceServiceImplTest" time="0.005"/>
-  <testcase name="Health check - Negative: Auth service error" classname="com.connection.device.DeviceServiceImplTest" time="0.002"/>
-  <testcase name="Get devices by client - Positive" classname="com.connection.device.DeviceServiceImplTest" time="0.018"/>
-  <testcase name="Create device - Negative: Client UID mismatch" classname="com.connection.device.DeviceServiceImplTest" time="0.003"/>
-  <testcase name="Delete device - Positive" classname="com.connection.device.DeviceServiceImplTest" time="0.003"/>
-  <testcase name="Device exists - Negative: Device not found" classname="com.connection.device.DeviceServiceImplTest" time="0.002"/>
-  <testcase name="Health check - Negative: Auth service timeout" classname="com.connection.device.DeviceServiceImplTest" time="0.008"/>
-  <system-out><![CDATA[04:16:59.593 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceApiImpl -- Device created: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
-04:17:00.160 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceApiImpl -- Device updated: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
-04:17:00.266 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceApiImpl -- Device deleted: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
-04:17:00.275 [ForkJoinPool-1-worker-1] ERROR com.connection.device.DeviceServiceApiImpl -- Kafka Client: 
+  <testcase name="Create device - Positive" classname="com.connection.device.DeviceServiceImplTest" time="3.214"/>
+  <testcase name="Update device - Positive" classname="com.connection.device.DeviceServiceImplTest" time="0.006"/>
+  <testcase name="Create device - Negative: Device already exists" classname="com.connection.device.DeviceServiceImplTest" time="0.011"/>
+  <testcase name="Device exists - Positive" classname="com.connection.device.DeviceServiceImplTest" time="0.005"/>
+  <testcase name="Get device - Positive" classname="com.connection.device.DeviceServiceImplTest" time="0.005"/>
+  <testcase name="Health check - Positive" classname="com.connection.device.DeviceServiceImplTest" time="0.07"/>
+  <testcase name="Get device - Negative: Device doesn't belong to client" classname="com.connection.device.DeviceServiceImplTest" time="0.007"/>
+  <testcase name="Health check - Negative: Auth service error" classname="com.connection.device.DeviceServiceImplTest" time="0.003"/>
+  <testcase name="Get devices by client - Positive" classname="com.connection.device.DeviceServiceImplTest" time="0.06"/>
+  <testcase name="Create device - Negative: Client UID mismatch" classname="com.connection.device.DeviceServiceImplTest" time="0.004"/>
+  <testcase name="Delete device - Positive" classname="com.connection.device.DeviceServiceImplTest" time="0.004"/>
+  <testcase name="Device exists - Negative: Device not found" classname="com.connection.device.DeviceServiceImplTest" time="0.003"/>
+  <testcase name="Health check - Negative: Auth service timeout" classname="com.connection.device.DeviceServiceImplTest" time="0.01"/>
+  <system-out><![CDATA[14:45:32.674 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceApiImpl -- Device created: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
+14:45:33.465 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceApiImpl -- Device updated: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
+14:45:33.662 [ForkJoinPool-1-worker-1] INFO com.connection.device.DeviceServiceApiImpl -- Device deleted: 223e4567-e89b-12d3-a456-426614174001 for client: 123e4567-e89b-12d3-a456-426614174000
+14:45:33.675 [ForkJoinPool-1-worker-1] ERROR com.connection.device.DeviceServiceApiImpl -- Kafka Client: 
 java.util.concurrent.ExecutionException: java.util.concurrent.TimeoutException: Timeout
 	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
 	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)

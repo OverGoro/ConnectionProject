@@ -72,7 +72,7 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
         UUID tokenUid = UUID.randomUUID();
         
         // Генерируем токен
-        String tokenString = deviceTokenGenerator.generateDeviceToken(deviceUid, createdAt, expiresAt);
+        String tokenString = deviceTokenGenerator.generateDeviceToken(deviceUid, tokenUid, createdAt, expiresAt);
         DeviceTokenBLM deviceTokenBLM = DeviceTokenBLM.builder()
                 .token(tokenString)
                 .uid(tokenUid)

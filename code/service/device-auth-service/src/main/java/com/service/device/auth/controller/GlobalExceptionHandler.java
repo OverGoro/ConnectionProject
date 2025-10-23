@@ -115,7 +115,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGenericException(Exception e) {
-        log.error("Unexpected error occurred: {}", e.getMessage());
+        log.error("Unexpected error occurred: {}", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "error", "Internal server error",
                 "message", "An unexpected error occurred"));

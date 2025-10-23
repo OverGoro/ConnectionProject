@@ -16,7 +16,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(com.connection.client.exception.ClientAlreadyExisistsException.class)
     public ResponseEntity<?> handleClientAlreadyExistsException(
             com.connection.client.exception.ClientAlreadyExisistsException e) {
-        log.warn("Client registration failed: {}", e.getMessage());
+        log.warn("Client registration failed: {}", e);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
                 "client_already_exist",
                 "An account with such email or uid already exists"));
@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(com.connection.client.exception.ClientNotFoundException.class)
     public ResponseEntity<?> handleClientNotFoundException(com.connection.client.exception.ClientNotFoundException e) {
-        log.warn("Client not found: {}", e.getMessage());
+        log.warn("Client not found: {}", e);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(
                 "client_not_found",
                 "User not found"));
@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(com.connection.client.exception.ClientValidateException.class)
     public ResponseEntity<?> handleClientValidateException(com.connection.client.exception.ClientValidateException e) {
-        log.warn("Client validation failed: {}", e.getMessage());
+        log.warn("Client validation failed: {}\n {}", e, e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
                 "validation_failed",
                 e.getMessage() != null ? e.getMessage() : "Invalid user data"));
@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGenericException(Exception e) {
-        log.error("Unexpected error occurred: {}", e.getMessage());
+        log.error("Unexpected error occurred: {}", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "error", "Internal server error",
                 "message", "An unexpected error occurred"));

@@ -28,7 +28,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
             "VALUES (:uid, :client_id, :token, :created_at, :expires_at)";
 
     private static final String UPDATE_TOKEN = "UPDATE \"access\".refresh_token SET token = :new_token, expires_at = :new_expires_at, created_at = :new_created_at " +
-            "WHERE uid = :uid";
+            "WHERE token = :old_token";
 
     private static final String REVOKE_TOKEN = "DELETE FROM \"access\".refresh_token WHERE uid = :uid";
     private static final String REVOKE_ALL_CLIENT_TOKENS = "DELETE FROM \"access\".refresh_token WHERE client_id = :client_id";
@@ -78,8 +78,8 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     public void updateToken(RefreshTokenDALM refreshTokenDALM, RefreshTokenDALM newRefreshTokenDALM) 
             throws RefreshTokenNotFoundException {
         // Проверяем существование старого токена
-        if (!uidExists(refreshTokenDALM.getUid())) {
-            throw new RefreshTokenNotFoundException("Refresh token with UID " + refreshTokenDALM.getUid() + " not found");
+        if (!tokenExists(refreshTokenDALM.getToken())) {
+            throw new RefreshTokenNotFoundException("Refresh token not found");
         }
 
         // Проверяем что новый токен не существует
@@ -88,7 +88,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
 
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", refreshTokenDALM.getUid());
+        params.addValue("old_token", refreshTokenDALM.getToken());
         params.addValue("new_token", newRefreshTokenDALM.getToken());
         params.addValue("new_created_at", new Timestamp(newRefreshTokenDALM.getCreatedAt().getTime()));
         params.addValue("new_expires_at", new Timestamp(newRefreshTokenDALM.getExpiresAt().getTime()));

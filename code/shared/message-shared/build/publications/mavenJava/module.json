@@ -27,11 +27,11 @@
         {
           "name": "message-shared-1.0.0.jar",
           "url": "message-shared-1.0.0.jar",
-          "size": 21706,
-          "sha512": "6a0f656b9e921a6c9142e9d04c2f091513ddd32b7fb396a30ccd15bd56ee2d8d7f99b31afeea5fd8a873195859a378c0869a7f36613a395393f38fedba0e5b5b",
-          "sha256": "4462bf085752d37f711997dbd70ed7af166469efd2134ee7c397b5a4b06c3150",
-          "sha1": "6ad177fbe9d0c0e6285172bcf91979c920449b25",
-          "md5": "b9185562c3cf812f88a6ee8e8e532cfd"
+          "size": 22117,
+          "sha512": "e481ca7aa399598f8bf9e4309e7ef0dd088fb2f21e440db9e5d479322a4b6f1974546a2de771addff3b93f6b8dc7ca2f25cf378ba7cb6a04f6ea6c9e25857239",
+          "sha256": "5a6559074242a250115cdde8df323c80f00d9bf0457c81644a1ba21f8c745294",
+          "sha1": "6346d18b206180c67b7f7f553e7cd4a9a4d82b4b",
+          "md5": "afbc83e3bba5c16c4a3bfd39f64edc5d"
         }
       ]
     },
@@ -57,11 +57,11 @@
         {
           "name": "message-shared-1.0.0.jar",
           "url": "message-shared-1.0.0.jar",
-          "size": 21706,
-          "sha512": "6a0f656b9e921a6c9142e9d04c2f091513ddd32b7fb396a30ccd15bd56ee2d8d7f99b31afeea5fd8a873195859a378c0869a7f36613a395393f38fedba0e5b5b",
-          "sha256": "4462bf085752d37f711997dbd70ed7af166469efd2134ee7c397b5a4b06c3150",
-          "sha1": "6ad177fbe9d0c0e6285172bcf91979c920449b25",
-          "md5": "b9185562c3cf812f88a6ee8e8e532cfd"
+          "size": 22117,
+          "sha512": "e481ca7aa399598f8bf9e4309e7ef0dd088fb2f21e440db9e5d479322a4b6f1974546a2de771addff3b93f6b8dc7ca2f25cf378ba7cb6a04f6ea6c9e25857239",
+          "sha256": "5a6559074242a250115cdde8df323c80f00d9bf0457c81644a1ba21f8c745294",
+          "sha1": "6346d18b206180c67b7f7f553e7cd4a9a4d82b4b",
+          "md5": "afbc83e3bba5c16c4a3bfd39f64edc5d"
         }
       ]
     }

@@ -1,4 +1,3 @@
-// Репозиторий (интерфейс)
 package com.connection.message.repository;
 
 import java.util.Date;
@@ -7,19 +6,19 @@ import java.util.UUID;
 
 import com.connection.message.exception.MessageAddException;
 import com.connection.message.exception.MessageNotFoundException;
-import com.connection.message.model.MessageDALM;
+import com.connection.message.model.MessageBLM;
 
 public interface MessageRepository {
-    public void add(MessageDALM messageDALM)
+    public void add(MessageBLM messageBLM)
             throws MessageAddException;
 
-    public MessageDALM findByUid(UUID uuid)
+    public MessageBLM findByUid(UUID uuid)
             throws MessageNotFoundException;
 
-    public List<MessageDALM> findByBufferUid(UUID bufferUid)
+    public List<MessageBLM> findByBufferUid(UUID bufferUid)
             throws MessageNotFoundException;
 
-    public List<MessageDALM> findByBufferUidAndTimeRange(UUID bufferUid, Date startTime, Date endTime)
+    public List<MessageBLM> findByBufferUidAndTimeRange(UUID bufferUid, Date startTime, Date endTime)
             throws MessageNotFoundException;
 
     public void deleteByUid(UUID uuid)

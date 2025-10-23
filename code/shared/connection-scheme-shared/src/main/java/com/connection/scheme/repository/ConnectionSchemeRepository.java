@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
 import com.connection.scheme.exception.ConnectionSchemeNotFoundException;
-import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeBLM;
 
 public interface ConnectionSchemeRepository {
     /**
@@ -14,13 +14,13 @@ public interface ConnectionSchemeRepository {
      * @param scheme
      * @throws ConnectionSchemeAlreadyExistsException
      */
-    void add(ConnectionSchemeDALM scheme) throws ConnectionSchemeAlreadyExistsException;
+    void add(ConnectionSchemeBLM scheme) throws ConnectionSchemeAlreadyExistsException;
     /**
      * Обновить параметры схемы
      * @param scheme
      * @throws ConnectionSchemeNotFoundException
      */
-    void update(ConnectionSchemeDALM scheme) throws ConnectionSchemeNotFoundException;
+    void update(ConnectionSchemeBLM scheme) throws ConnectionSchemeNotFoundException;
 
     /**
      * Удалить схему по Uid
@@ -34,20 +34,20 @@ public interface ConnectionSchemeRepository {
      * @return
      * @throws ConnectionSchemeNotFoundException
      */
-    ConnectionSchemeDALM findByUid(UUID uid) throws ConnectionSchemeNotFoundException;
+    ConnectionSchemeBLM findByUid(UUID uid) throws ConnectionSchemeNotFoundException;
     /**
      * Получить все схемы клиента
      * @param clientUid
      * @return
      */
-    List<ConnectionSchemeDALM> findByClientUid(UUID clientUid);
+    List<ConnectionSchemeBLM> findByClientUid(UUID clientUid);
 
     /**
      * Получить все схемы, в которых участвует буфер
      * @param bufferUid
      * @return
      */
-    List<ConnectionSchemeDALM> findByBufferUid(UUID bufferUid);
+    List<ConnectionSchemeBLM> findByBufferUid(UUID bufferUid);
     /**
      * Проверить существование схемы
      * @param uid

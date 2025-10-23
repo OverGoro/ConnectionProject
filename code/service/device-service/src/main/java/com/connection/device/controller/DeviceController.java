@@ -1,6 +1,7 @@
 // DeviceController.java
 package com.connection.device.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -63,24 +64,24 @@ public class DeviceController {
         return ResponseEntity.ok(new DeviceResponse(device.getUid()));
     }
 
-    @GetMapping("/devices/{deviceUid}")
-    public ResponseEntity<DeviceResponse> getDevice(@PathVariable UUID deviceUid) {
-        log.info("Getting device: {}", deviceUid);
-
-        DeviceBLM device = deviceService.getDevice(deviceUid);
-
-        return ResponseEntity.ok(new DeviceResponse(device.getUid()));
-    }
-
     @GetMapping("/devices")
     public ResponseEntity<DevicesListResponse> getDevicesByClient(
+            @RequestParam(required = false) List<UUID> deviceUids,
             @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
             @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
         
-        log.info("Getting all devices for client with offset: {}, limit: {}", offset, limit);
+        log.info("Getting devices for client with offset: {}, limit: {}", offset, limit);
         
-        UUID clientUid = SecurityUtils.getCurrentClientUid();
-        List<DeviceBLM> allDevices = deviceService.getDevicesByClient(clientUid);
+        List<DeviceBLM> allDevices = new ArrayList<>();
+        if (deviceUids != null && !deviceUids.isEmpty()){
+            for (UUID devUuid : deviceUids){
+                allDevices.add(deviceService.getDevice(devUuid));
+            }
+        }
+        else{
+            UUID clientUid = SecurityUtils.getCurrentClientUid();
+            allDevices.addAll(deviceService.getDevicesByClient(clientUid));
+        }
         
         List<DeviceBLM> paginatedDevices = applyPagination(allDevices, offset, limit);
         List<DeviceDTO> deviceDTOs = paginatedDevices.stream()

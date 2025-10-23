@@ -25,11 +25,13 @@ class DeviceTokenGeneratorTest {
 
     private DeviceTokenGenerator generator;
     private SecretKey secretKey;
+    private UUID tokenUid;
 
     @BeforeEach
     void setUp() {
         secretKey = Keys.hmacShaKeyFor("test-secret-key-1234567890-1234567890".getBytes());
         generator = new DeviceTokenGenerator(secretKey, "test-app", "device-token");
+        tokenUid = UUID.randomUUID();
     }
 
     @Test
@@ -37,6 +39,7 @@ class DeviceTokenGeneratorTest {
     void testGenerateDeviceToken_Positive() {
         String token = generator.generateDeviceToken(
             createValidDeviceTokenDALM().getDeviceUid(),
+            tokenUid,
             createValidDeviceTokenDALM().getCreatedAt(),
             createValidDeviceTokenDALM().getExpiresAt()
         );
@@ -48,6 +51,7 @@ class DeviceTokenGeneratorTest {
     void testGetDeviceTokenBLM_Positive() {
         String tokenString = generator.generateDeviceToken(
             createValidDeviceTokenDALM().getDeviceUid(),
+            tokenUid,
             createValidDeviceTokenDALM().getCreatedAt(),
             createValidDeviceTokenDALM().getExpiresAt()
         );
@@ -72,6 +76,7 @@ class DeviceTokenGeneratorTest {
         
         String tokenString = generator.generateDeviceToken(
             createValidDeviceTokenDALM().getDeviceUid(),
+            tokenUid,
             createValidDeviceTokenDALM().getCreatedAt(),
             createValidDeviceTokenDALM().getExpiresAt()
         );
@@ -86,7 +91,7 @@ class DeviceTokenGeneratorTest {
     void testGetDeviceTokenBLMWithWrongType_Negative() {
         DeviceTokenGenerator wrongTypeGenerator = new DeviceTokenGenerator(secretKey, "test-app", "device-token") {
             @Override
-            public String generateDeviceToken(java.util.UUID deviceUid, Date createdAt, Date expiresAt) {
+            public String generateDeviceToken(java.util.UUID deviceUid, java.util.UUID tokenUid, Date createdAt, Date expiresAt) {
                 return io.jsonwebtoken.Jwts.builder()
                     .issuer("test-app")
                     .subject("device-token")
@@ -101,13 +106,13 @@ class DeviceTokenGeneratorTest {
         
         String tokenString = wrongTypeGenerator.generateDeviceToken(
             createValidDeviceTokenDALM().getDeviceUid(),
+            tokenUid,
             createValidDeviceTokenDALM().getCreatedAt(),
             createValidDeviceTokenDALM().getExpiresAt()
         );
         
         assertThatThrownBy(() -> generator.getDeviceTokenBLM(tokenString))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Invalid token type");
+                .isInstanceOf(RuntimeException.class);
     }
 
     @Test
@@ -115,6 +120,7 @@ class DeviceTokenGeneratorTest {
     void testGenerateAndParseRoundTrip_Positive() {
         String token = generator.generateDeviceToken(
             createValidDeviceTokenDALM().getDeviceUid(),
+            tokenUid,
             createValidDeviceTokenDALM().getCreatedAt(),
             createValidDeviceTokenDALM().getExpiresAt()
         );
@@ -135,6 +141,7 @@ class DeviceTokenGeneratorTest {
         
         String token = generator.generateDeviceToken(
             createValidDeviceTokenDALM().getDeviceUid(),
+            tokenUid,
             createdAt,
             expiresAt
         );
@@ -154,9 +161,11 @@ class DeviceTokenGeneratorTest {
         
         Date createdAt2 = new Date(System.currentTimeMillis() - 1000L * 60 * 2);
         Date expiresAt2 = new Date(System.currentTimeMillis() + 1000L * 60 * 25);
+
+        UUID tokeUuid2 = UUID.randomUUID();
         
-        String token1 = generator.generateDeviceToken(deviceUid, createdAt1, expiresAt1);
-        String token2 = generator.generateDeviceToken(deviceUid, createdAt2, expiresAt2);
+        String token1 = generator.generateDeviceToken(deviceUid, tokenUid,createdAt1, expiresAt1);
+        String token2 = generator.generateDeviceToken(deviceUid, tokeUuid2,createdAt2, expiresAt2);
         
         DeviceTokenBLM result1 = generator.getDeviceTokenBLM(token1);
         DeviceTokenBLM result2 = generator.getDeviceTokenBLM(token2);

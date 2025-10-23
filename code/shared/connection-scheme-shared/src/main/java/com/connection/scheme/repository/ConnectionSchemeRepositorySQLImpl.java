@@ -7,9 +7,12 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.connection.scheme.converter.ConnectionSchemeConverter;
 import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
 import com.connection.scheme.exception.ConnectionSchemeNotFoundException;
+import com.connection.scheme.model.ConnectionSchemeBLM;
 import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.validator.ConnectionSchemeValidator;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,32 +27,36 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
     private static final String SELECT_SCHEME_BY_UID = SELECT_SCHEME + FROM_SCHEME + " WHERE cs.uid = :uid";
     private static final String SELECT_SCHEMES_BY_CLIENT = SELECT_SCHEME + FROM_SCHEME
             + " WHERE cs.client_uid = :client_uid";
-    private static final String SELECT_SCHEMES_BY_BUFFER = 
-            SELECT_SCHEME + 
-            FROM_SCHEME + 
+    private static final String SELECT_SCHEMES_BY_BUFFER = SELECT_SCHEME +
+            FROM_SCHEME +
             " INNER JOIN processing.connection_scheme_buffer csb ON cs.uid = csb.scheme_uid" +
             " WHERE csb.buffer_uid = :buffer_uid";
 
-    // Запросы для получения usedBuffers из таблицы buffer
-    private static final String SELECT_USED_BUFFERS = "SELECT b.uid FROM processing.buffer b WHERE b.connection_scheme_uid = :scheme_uid";
+    // Запросы для получения usedBuffers из связующей таблицы
+    private static final String SELECT_USED_BUFFERS = "SELECT csb.buffer_uid FROM processing.connection_scheme_buffer csb "
+            +
+            "WHERE csb.scheme_uid = :scheme_uid";
 
-    // Операции со схемами
+    // Операции со схемами - ИСПРАВЛЕНО: добавлено ::jsonb для преобразования типа
     private static final String INSERT_SCHEME = "INSERT INTO processing.connection_scheme (uid, client_uid, scheme_json) "
             +
-            "VALUES (:uid, :client_uid, :scheme_json)";
+            "VALUES (:uid, :client_uid, :scheme_json::jsonb)";
 
-    private static final String UPDATE_SCHEME = "UPDATE processing.connection_scheme SET scheme_json = :scheme_json " +
+    private static final String UPDATE_SCHEME = "UPDATE processing.connection_scheme SET scheme_json = :scheme_json::jsonb "
+            +
             "WHERE uid = :uid";
 
     private static final String DELETE_SCHEME = "DELETE FROM processing.connection_scheme WHERE uid = :uid";
 
-    // Операции с буферами
-    private static final String INSERT_BUFFER = "INSERT INTO processing.buffer (uid, connection_scheme_uid, max_messages_number, max_message_size, message_prototype) "
+    // Операции со связующей таблицей буферов
+    private static final String INSERT_SCHEME_BUFFER = "INSERT INTO processing.connection_scheme_buffer (uid, scheme_uid, buffer_uid) "
             +
-            "VALUES (:buffer_uid, :scheme_uid, :max_messages_number, :max_message_size, :message_prototype)";
+            "VALUES (:uid, :scheme_uid, :buffer_uid)";
 
-    private static final String DELETE_SCHEME_BUFFERS = "DELETE FROM processing.buffer WHERE connection_scheme_uid = :scheme_uid";
+    private static final String DELETE_SCHEME_BUFFERS = "DELETE FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid";
 
+    private final ConnectionSchemeConverter converter = new ConnectionSchemeConverter();
+    private final ConnectionSchemeValidator validator = new ConnectionSchemeValidator();
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     private final RowMapper<ConnectionSchemeDALM> schemeRowMapper = (rs, rowNum) -> {
@@ -71,39 +78,63 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
 
     @Override
     @Transactional
-    public void add(ConnectionSchemeDALM scheme) throws ConnectionSchemeAlreadyExistsException {
+    public void add(ConnectionSchemeBLM scheme) throws ConnectionSchemeAlreadyExistsException {
+        // Валидация BLM модели
+        validator.validate(scheme);
+        
         if (exists(scheme.getUid())) {
             throw new ConnectionSchemeAlreadyExistsException("Scheme with UID " + scheme.getUid() + " already exists");
         }
 
-        // Сохраняем основную схему
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", scheme.getUid());
-        params.addValue("client_uid", scheme.getClientUid());
-        params.addValue("scheme_json", scheme.getSchemeJson());
+        try {
+            // Конвертация BLM в DALM
+            ConnectionSchemeDALM dalScheme = converter.toDALM(scheme);
+            
+            // Сохраняем основную схему
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", dalScheme.getUid());
+            params.addValue("client_uid", dalScheme.getClientUid());
+            params.addValue("scheme_json", dalScheme.getSchemeJson());
 
-        jdbcTemplate.update(INSERT_SCHEME, params);
+            int rowsAffected = jdbcTemplate.update(INSERT_SCHEME, params);
 
-        // Сохраняем буферы, если они есть
-        saveBuffers(scheme.getUid(), scheme.getUsedBuffers());
+            // Сохраняем связи с буферами
+            if (dalScheme.getUsedBuffers() != null && !dalScheme.getUsedBuffers().isEmpty()) {
+                saveSchemeBuffers(dalScheme.getUid(), dalScheme.getUsedBuffers());
+            }
+
+        } catch (Exception e) {
+            throw new ConnectionSchemeAlreadyExistsException("Failed to create scheme: " + e.getMessage());
+        }
     }
 
     @Override
     @Transactional
-    public void update(ConnectionSchemeDALM scheme) throws ConnectionSchemeNotFoundException {
+    public void update(ConnectionSchemeBLM scheme) throws ConnectionSchemeNotFoundException {
+        // Валидация BLM модели
+        validator.validate(scheme);
+        
         if (!exists(scheme.getUid())) {
             throw new ConnectionSchemeNotFoundException("Scheme with UID " + scheme.getUid() + " not found");
         }
 
-        // Обновляем основную схему
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", scheme.getUid());
-        params.addValue("scheme_json", scheme.getSchemeJson());
+        try {
+            // Конвертация BLM в DALM
+            ConnectionSchemeDALM dalScheme = converter.toDALM(scheme);
+            
+            // Обновляем основную схему
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", dalScheme.getUid());
+            params.addValue("scheme_json", dalScheme.getSchemeJson());
 
-        jdbcTemplate.update(UPDATE_SCHEME, params);
+            int rowsAffected = jdbcTemplate.update(UPDATE_SCHEME, params);
 
-        // Обновляем буферы
-        updateBuffers(scheme.getUid(), scheme.getUsedBuffers());
+            // Обновляем связи с буферами
+            updateSchemeBuffers(dalScheme.getUid(), dalScheme.getUsedBuffers());
+
+        } catch (Exception e) {
+            throw new ConnectionSchemeNotFoundException("Failed to update scheme: " + e.getMessage());
+        }
     }
 
     @Override
@@ -113,19 +144,27 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
             throw new ConnectionSchemeNotFoundException("Scheme with UID " + uid + " not found");
         }
 
-        // Удаляем схему (буферы удалятся каскадом благодаря FOREIGN KEY constraint)
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", uid);
-        jdbcTemplate.update(DELETE_SCHEME, params);
+        try {
+            // Удаляем схему (связи с буферами удалятся каскадом благодаря FOREIGN KEY constraint)
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", uid);
+
+            int rowsAffected = jdbcTemplate.update(DELETE_SCHEME, params);
+
+        } catch (Exception e) {
+            throw new ConnectionSchemeNotFoundException("Failed to delete scheme: " + e.getMessage());
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ConnectionSchemeDALM findByUid(UUID uid) throws ConnectionSchemeNotFoundException {
+    public ConnectionSchemeBLM findByUid(UUID uid) throws ConnectionSchemeNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
         try {
-            return jdbcTemplate.queryForObject(SELECT_SCHEME_BY_UID, params, schemeRowMapper);
+            ConnectionSchemeDALM dalScheme = jdbcTemplate.queryForObject(SELECT_SCHEME_BY_UID, params, schemeRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalScheme);
         } catch (EmptyResultDataAccessException e) {
             throw new ConnectionSchemeNotFoundException("Scheme with UID " + uid + " not found");
         }
@@ -133,19 +172,30 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
 
     @Override
     @Transactional(readOnly = true)
-    public List<ConnectionSchemeDALM> findByClientUid(UUID clientUid) {
+    public List<ConnectionSchemeBLM> findByClientUid(UUID clientUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("client_uid", clientUid);
-        return jdbcTemplate.query(SELECT_SCHEMES_BY_CLIENT, params, schemeRowMapper);
+
+        List<ConnectionSchemeDALM> dalSchemes = jdbcTemplate.query(SELECT_SCHEMES_BY_CLIENT, params, schemeRowMapper);
+        
+        // Конвертация списка DALM в BLM
+        return dalSchemes.stream()
+                .map(converter::toBLM)
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ConnectionSchemeDALM> findByBufferUid(UUID bufferUid) {
+    public List<ConnectionSchemeBLM> findByBufferUid(UUID bufferUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("buffer_uid", bufferUid);
 
-        return jdbcTemplate.query(SELECT_SCHEMES_BY_BUFFER, params, schemeRowMapper);
+        List<ConnectionSchemeDALM> dalSchemes = jdbcTemplate.query(SELECT_SCHEMES_BY_BUFFER, params, schemeRowMapper);
+        
+        // Конвертация списка DALM в BLM
+        return dalSchemes.stream()
+                .map(converter::toBLM)
+                .toList();
     }
 
     @Override
@@ -168,41 +218,45 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("scheme_uid", schemeUid);
 
-        return jdbcTemplate.query(SELECT_USED_BUFFERS, params,
-                (rs, rowNum) -> UUID.fromString(rs.getString("uid")));
+        List<UUID> buffers = jdbcTemplate.query(SELECT_USED_BUFFERS, params,
+                (rs, rowNum) -> UUID.fromString(rs.getString("buffer_uid")));
+
+        return buffers;
     }
 
     /**
-     * Сохраняет буферы для схемы
+     * Сохраняет связи схемы с буферами
      */
-    private void saveBuffers(UUID schemeUid, List<UUID> usedBuffers) {
+    private void saveSchemeBuffers(UUID schemeUid, List<UUID> usedBuffers) {
         if (usedBuffers == null || usedBuffers.isEmpty()) {
             return;
         }
 
         for (UUID bufferUid : usedBuffers) {
             MapSqlParameterSource params = new MapSqlParameterSource();
-            params.addValue("buffer_uid", bufferUid);
+            params.addValue("uid", UUID.randomUUID()); // Генерируем новый UUID для связи
             params.addValue("scheme_uid", schemeUid);
-            params.addValue("max_messages_number", 1000); // Значения по умолчанию
-            params.addValue("max_message_size", 1024);
-            params.addValue("message_prototype", "default");
+            params.addValue("buffer_uid", bufferUid);
 
-            jdbcTemplate.update(INSERT_BUFFER, params);
+            try {
+                jdbcTemplate.update(INSERT_SCHEME_BUFFER, params);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to save buffer connection", e);
+            }
         }
     }
 
     /**
-     * Обновляет буферы для схемы
+     * Обновляет связи схемы с буферами
      */
-    private void updateBuffers(UUID schemeUid, List<UUID> usedBuffers) {
-        // Удаляем старые буферы
+    private void updateSchemeBuffers(UUID schemeUid, List<UUID> usedBuffers) {
+        // Удаляем старые связи
         MapSqlParameterSource deleteParams = new MapSqlParameterSource();
         deleteParams.addValue("scheme_uid", schemeUid);
-        jdbcTemplate.update(DELETE_SCHEME_BUFFERS, deleteParams);
 
-        // Сохраняем новые буферы
-        saveBuffers(schemeUid, usedBuffers);
+        int deletedRows = jdbcTemplate.update(DELETE_SCHEME_BUFFERS, deleteParams);
+
+        // Сохраняем новые связи
+        saveSchemeBuffers(schemeUid, usedBuffers);
     }
-
 }

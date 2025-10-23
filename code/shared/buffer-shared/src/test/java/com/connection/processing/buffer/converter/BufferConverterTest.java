@@ -34,7 +34,6 @@ class BufferConverterTest {
         assertThat(result.getDeviceUid()).isEqualTo(dalM.getDeviceUid()); // Изменено
         assertThat(result.getMaxMessagesNumber()).isEqualTo(dalM.getMaxMessagesNumber());
         assertThat(result.getMaxMessageSize()).isEqualTo(dalM.getMaxMessageSize());
-        assertThat(result.getMessagePrototype()).isEqualTo(dalM.getMessagePrototype());
     }
 
     @Test
@@ -47,7 +46,6 @@ class BufferConverterTest {
         assertThat(result.getDeviceUid().toString()).isEqualTo(dto.getDeviceUid()); // Изменено
         assertThat(result.getMaxMessagesNumber()).isEqualTo(dto.getMaxMessagesNumber());
         assertThat(result.getMaxMessageSize()).isEqualTo(dto.getMaxMessageSize());
-        assertThat(result.getMessagePrototype()).isEqualTo(dto.getMessagePrototype());
     }
 
     @Test

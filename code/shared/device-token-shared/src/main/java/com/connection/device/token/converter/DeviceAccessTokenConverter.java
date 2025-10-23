@@ -10,20 +10,21 @@ import io.jsonwebtoken.JwtException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+// DeviceAccessTokenConverter.java
 @RequiredArgsConstructor
 public class DeviceAccessTokenConverter {
-    @NonNull
+    
     private final DeviceAccessTokenGenerator deviceTokenGenerator;
 
     public DeviceAccessTokenBLM toBLM(DeviceAccessTokenDALM dalm) {
         try {
-            String token = deviceTokenGenerator.generateDeviceAccessToken(
-                dalm.getDeviceTokenUid(), dalm.getCreatedAt(), dalm.getExpiresAt());
+            // ВАЛИДАЦИЯ существующего токена вместо генерации нового
+            DeviceAccessTokenBLM validatedToken = deviceTokenGenerator.getDeviceAccessTokenBLM(dalm.getToken());
             
             return DeviceAccessTokenBLM.builder()
-                    .token(token)
+                    .token(dalm.getToken()) // Используем исходный токен
                     .uid(dalm.getUid())
-                    .deviceTokenUid(dalm.getDeviceTokenUid())
+                    .deviceTokenUid(validatedToken.getDeviceTokenUid()) // Извлекаем из токена
                     .createdAt(dalm.getCreatedAt())
                     .expiresAt(dalm.getExpiresAt())
                     .build();
@@ -54,7 +55,7 @@ public class DeviceAccessTokenConverter {
         return DeviceAccessTokenDALM.builder()
                 .uid(blm.getUid())
                 .deviceTokenUid(blm.getDeviceTokenUid())
-                .token(blm.getToken())
+                .token(blm.getToken()) // Сохраняем тот же токен
                 .createdAt(blm.getCreatedAt())
                 .expiresAt(blm.getExpiresAt())
                 .build();

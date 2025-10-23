@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
+import com.connection.token.exception.RefreshTokenValidateException;
 import com.connection.token.model.RefreshTokenBLM;
 import com.connection.token.model.RefreshTokenDALM;
 
@@ -52,6 +53,7 @@ public class RefreshTokenGenerator {
     }
 
     public RefreshTokenBLM getRefreshToken(String token) {
+        try{
         Jws<Claims> jws = Jwts.parser()
                 .verifyWith(jwtSecretKey)
                 .build()
@@ -69,5 +71,9 @@ public class RefreshTokenGenerator {
         }
 
         return new RefreshTokenBLM(token, uid, clientUid, issuedAt, expiration);
+    }
+    catch (RuntimeException e){
+        throw new RefreshTokenValidateException(token, "Invalid jwt");
+    }
     }
 }

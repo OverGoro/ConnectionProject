@@ -171,7 +171,7 @@ class DeviceAccessTokenGeneratorTest {
         Date expiresAt = new Date(System.currentTimeMillis() + 3600000);
         
         DeviceTokenGenerator deviceTokenGenerator = new DeviceTokenGenerator(secretKey, "test-app", "device-token");
-        String deviceToken = deviceTokenGenerator.generateDeviceToken(deviceUid, createdAt, expiresAt);
+        String deviceToken = deviceTokenGenerator.generateDeviceToken(deviceUid,deviceTokenUid, createdAt, expiresAt);
         
         String deviceAccessToken = generator.generateDeviceAccessToken(deviceTokenUid, createdAt, expiresAt);
         

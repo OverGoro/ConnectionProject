@@ -4,17 +4,18 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
 import com.connection.processing.buffer.exception.BufferNotFoundException;
+import com.connection.processing.buffer.model.BufferBLM;
 import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.validator.BufferValidator;
 
 import java.util.List;
 import java.util.UUID;
 
-@Repository
 public class BufferRepositorySQLImpl implements BufferRepository {
 
     private static final String SELECT_BUFFER = "SELECT b.uid, b.device_uid, b.max_messages_number, b.max_message_size, b.message_prototype";
@@ -52,6 +53,8 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     private static final String EXISTS_SCHEME_BUFFER_LINK = "SELECT COUNT(*) FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid AND buffer_uid = :buffer_uid";
     private static final String EXISTS_BY_DEVICE_AND_NAME = "SELECT COUNT(*) FROM processing.buffer WHERE device_uid = :device_uid AND message_prototype = :message_prototype";
 
+    private final BufferConverter converter = new BufferConverter();
+    private final BufferValidator validator = new BufferValidator();
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     private final RowMapper<BufferDALM> bufferRowMapper = (rs, rowNum) -> {
@@ -70,34 +73,46 @@ public class BufferRepositorySQLImpl implements BufferRepository {
 
     @Override
     @Transactional
-    public void add(BufferDALM buffer) throws BufferAlreadyExistsException {
+    public void add(BufferBLM buffer) throws BufferAlreadyExistsException {
+        // Валидация BLM модели
+        validator.validate(buffer);
+        
         if (exists(buffer.getUid())) {
             throw new BufferAlreadyExistsException("Buffer with UID " + buffer.getUid() + " already exists");
         }
 
+        // Конвертация BLM в DALM
+        BufferDALM dalBuffer = converter.toDALM(buffer);
+
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", buffer.getUid());
-        params.addValue("device_uid", buffer.getDeviceUid());
-        params.addValue("max_messages_number", buffer.getMaxMessagesNumber());
-        params.addValue("max_message_size", buffer.getMaxMessageSize());
-        params.addValue("message_prototype", buffer.getMessagePrototype());
+        params.addValue("uid", dalBuffer.getUid());
+        params.addValue("device_uid", dalBuffer.getDeviceUid());
+        params.addValue("max_messages_number", dalBuffer.getMaxMessagesNumber());
+        params.addValue("max_message_size", dalBuffer.getMaxMessageSize());
+        params.addValue("message_prototype", dalBuffer.getMessagePrototype());
 
         jdbcTemplate.update(INSERT_BUFFER, params);
     }
 
     @Override
     @Transactional
-    public void update(BufferDALM buffer) throws BufferNotFoundException {
+    public void update(BufferBLM buffer) throws BufferNotFoundException {
+        // Валидация BLM модели
+        validator.validate(buffer);
+        
         if (!exists(buffer.getUid())) {
             throw new BufferNotFoundException("Buffer with UID " + buffer.getUid() + " not found");
         }
 
+        // Конвертация BLM в DALM
+        BufferDALM dalBuffer = converter.toDALM(buffer);
+
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", buffer.getUid());
-        params.addValue("device_uid", buffer.getDeviceUid());
-        params.addValue("max_messages_number", buffer.getMaxMessagesNumber());
-        params.addValue("max_message_size", buffer.getMaxMessageSize());
-        params.addValue("message_prototype", buffer.getMessagePrototype());
+        params.addValue("uid", dalBuffer.getUid());
+        params.addValue("device_uid", dalBuffer.getDeviceUid());
+        params.addValue("max_messages_number", dalBuffer.getMaxMessagesNumber());
+        params.addValue("max_message_size", dalBuffer.getMaxMessageSize());
+        params.addValue("message_prototype", dalBuffer.getMessagePrototype());
 
         jdbcTemplate.update(UPDATE_BUFFER, params);
     }
@@ -124,10 +139,10 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     @Transactional
     public void deleteByDeviceUid(UUID deviceUid) {
         // Сначала находим все буферы устройства
-        List<BufferDALM> deviceBuffers = findByDeviceUid(deviceUid);
+        List<BufferBLM> deviceBuffers = findByDeviceUid(deviceUid);
 
         // Удаляем связи этих буферов со схемами
-        for (BufferDALM buffer : deviceBuffers) {
+        for (BufferBLM buffer : deviceBuffers) {
             MapSqlParameterSource deleteLinksParams = new MapSqlParameterSource();
             deleteLinksParams.addValue("buffer_uid", buffer.getUid());
             jdbcTemplate.update(DELETE_SCHEME_BUFFER_LINKS, deleteLinksParams);
@@ -141,11 +156,13 @@ public class BufferRepositorySQLImpl implements BufferRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public BufferDALM findByUid(UUID uid) throws BufferNotFoundException {
+    public BufferBLM findByUid(UUID uid) throws BufferNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
         try {
-            return jdbcTemplate.queryForObject(SELECT_BUFFER_BY_UID, params, bufferRowMapper);
+            BufferDALM dalBuffer = jdbcTemplate.queryForObject(SELECT_BUFFER_BY_UID, params, bufferRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalBuffer);
         } catch (EmptyResultDataAccessException e) {
             throw new BufferNotFoundException("Buffer with UID " + uid + " not found");
         }
@@ -153,18 +170,28 @@ public class BufferRepositorySQLImpl implements BufferRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<BufferDALM> findByDeviceUid(UUID deviceUid) {
+    public List<BufferBLM> findByDeviceUid(UUID deviceUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("device_uid", deviceUid);
-        return jdbcTemplate.query(SELECT_BUFFERS_BY_DEVICE, params, bufferRowMapper);
+        List<BufferDALM> dalBuffers = jdbcTemplate.query(SELECT_BUFFERS_BY_DEVICE, params, bufferRowMapper);
+        
+        // Конвертация списка DALM в BLM
+        return dalBuffers.stream()
+                .map(converter::toBLM)
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<BufferDALM> findByConnectionSchemeUid(UUID connectionSchemeUid) {
+    public List<BufferBLM> findByConnectionSchemeUid(UUID connectionSchemeUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("scheme_uid", connectionSchemeUid);
-        return jdbcTemplate.query(SELECT_BUFFERS_BY_SCHEME, params, bufferRowMapper);
+        List<BufferDALM> dalBuffers = jdbcTemplate.query(SELECT_BUFFERS_BY_SCHEME, params, bufferRowMapper);
+        
+        // Конвертация списка DALM в BLM
+        return dalBuffers.stream()
+                .map(converter::toBLM)
+                .toList();
     }
 
     @Override

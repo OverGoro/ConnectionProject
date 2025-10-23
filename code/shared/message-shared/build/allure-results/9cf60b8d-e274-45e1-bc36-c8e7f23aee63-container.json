@@ -1,0 +1,1 @@
+{"uuid":"9cf60b8d-e274-45e1-bc36-c8e7f23aee63","name":"Validate valid MessageDTO - Positive","children":["b7485a4d-f3d0-408c-8f53-4d696e61e0bd"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1760921598061,"stop":1760921598061}],"afters":[],"start":1760921598060,"stop":1760921598061}

@@ -1,20 +1,19 @@
-// DeviceAccessTokenRepository.java
 package com.connection.device.token.repository;
 
 import java.util.UUID;
 
 import com.connection.device.token.exception.DeviceAccessTokenExistsException;
 import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
-import com.connection.device.token.model.DeviceAccessTokenDALM;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
 
 public interface DeviceAccessTokenRepository {
     /**
      * Добавить новый device access token
      * 
-     * @param deviceAccessTokenDALM Новый токен
+     * @param deviceAccessTokenBLM Новый токен
      * @throws DeviceAccessTokenExistsException Если активный токен уже существует
      */
-    void add(DeviceAccessTokenDALM deviceAccessTokenDALM) throws DeviceAccessTokenExistsException;
+    void add(DeviceAccessTokenBLM deviceAccessTokenBLM) throws DeviceAccessTokenExistsException;
 
     /**
      * Найти токен по UID
@@ -23,7 +22,7 @@ public interface DeviceAccessTokenRepository {
      * @return Найденный токен
      * @throws DeviceAccessTokenNotFoundException Если токен не найден
      */
-    DeviceAccessTokenDALM findByUid(UUID uid) throws DeviceAccessTokenNotFoundException;
+    DeviceAccessTokenBLM findByUid(UUID uid) throws DeviceAccessTokenNotFoundException;
 
     /**
      * Найти токен по значению токена
@@ -32,7 +31,7 @@ public interface DeviceAccessTokenRepository {
      * @return Найденный токен
      * @throws DeviceAccessTokenNotFoundException Если токен не найден
      */
-    DeviceAccessTokenDALM findByToken(String token) throws DeviceAccessTokenNotFoundException;
+    DeviceAccessTokenBLM findByToken(String token) throws DeviceAccessTokenNotFoundException;
 
     /**
      * Найти токен по UID device token
@@ -41,7 +40,7 @@ public interface DeviceAccessTokenRepository {
      * @return Найденный токен
      * @throws DeviceAccessTokenNotFoundException Если токен не найден
      */
-    DeviceAccessTokenDALM findByDeviceTokenUid(UUID deviceTokenUid) throws DeviceAccessTokenNotFoundException;
+    DeviceAccessTokenBLM findByDeviceTokenUid(UUID deviceTokenUid) throws DeviceAccessTokenNotFoundException;
 
     /**
      * Отозвать токен по UID
