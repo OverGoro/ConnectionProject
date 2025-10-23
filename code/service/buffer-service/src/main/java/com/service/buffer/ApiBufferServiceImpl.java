@@ -19,7 +19,7 @@ import com.connection.device.model.DeviceDTO;
 import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
 import com.connection.processing.buffer.model.BufferBLM;
-import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferBLM;
 import com.connection.processing.buffer.model.BufferDTO;
 import com.connection.processing.buffer.repository.BufferRepository;
 import com.connection.processing.buffer.validator.BufferValidator;
@@ -65,9 +65,7 @@ public class ApiBufferServiceImpl implements BufferService {
             throw new BufferAlreadyExistsException(
                     "Buffer with UID '" + bufferBLM.getUid() + "' already exists");
         }
-
-        BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
-        bufferRepository.add(bufferDALM);
+        bufferRepository.add(bufferBLM);
 
         log.info("Buffer created: {} for device: {}", bufferBLM.getUid(), bufferBLM.getDeviceUid());
         return bufferBLM;
@@ -76,13 +74,13 @@ public class ApiBufferServiceImpl implements BufferService {
     @Override
     public BufferBLM getBufferByUid(UUID bufferUid) {
         UUID clientUid = SecurityUtils.getCurrentClientUid();
-        BufferDALM bufferDALM = bufferRepository.findByUid(bufferUid);
+        BufferBLM bufferBLM = bufferRepository.findByUid(bufferUid);
 
-        if (!deviceKafkaClient.deviceExistsAndBelongsToClient(bufferDALM.getDeviceUid(), clientUid)) {
+        if (!deviceKafkaClient.deviceExistsAndBelongsToClient(bufferBLM.getDeviceUid(), clientUid)) {
             throw new SecurityException("Buffer doesn't exist or doesn't belong to the authenticated client");
         }
 
-        return bufferConverter.toBLM(bufferDALM);
+        return bufferBLM;
     }
 
     @Override
@@ -137,8 +135,8 @@ public class ApiBufferServiceImpl implements BufferService {
             throw new SecurityException("Device doesn't belong to the authenticated client");
         }
 
-        List<BufferDALM> bufferDALMs = bufferRepository.findByDeviceUid(deviceUid);
-        return bufferDALMs.stream().map(bufferConverter::toBLM).collect(Collectors.toList());
+        List<BufferBLM> bufferBLMs = bufferRepository.findByDeviceUid(deviceUid);
+        return bufferBLMs;
     }
 
     @Override
@@ -148,10 +146,8 @@ public class ApiBufferServiceImpl implements BufferService {
             throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
         }
 
-        List<BufferDALM> buffersDALM = bufferRepository.findByConnectionSchemeUid(connectionSchemeUid);
-        return buffersDALM.stream()
-                .map(bufferConverter::toBLM)
-                .collect(Collectors.toList());
+        List<BufferBLM> buffersBLM = bufferRepository.findByConnectionSchemeUid(connectionSchemeUid);
+        return buffersBLM;
     }
 
     @Override
@@ -159,7 +155,7 @@ public class ApiBufferServiceImpl implements BufferService {
         UUID clientUid = SecurityUtils.getCurrentClientUid();
         bufferValidator.validate(bufferDTO);
 
-        BufferDALM existingBuffer = bufferRepository.findByUid(bufferUid);
+        BufferBLM existingBuffer = bufferRepository.findByUid(bufferUid);
 
         if (!deviceKafkaClient.deviceExistsAndBelongsToClient(existingBuffer.getDeviceUid(), clientUid)) {
             throw new SecurityException("Buffer doesn't exist or doesn't belong to the authenticated client");
@@ -175,8 +171,7 @@ public class ApiBufferServiceImpl implements BufferService {
             throw new IllegalArgumentException("Cannot change buffer UID");
         }
 
-        BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
-        bufferRepository.update(bufferDALM);
+        bufferRepository.update(bufferBLM);
 
         log.info("Buffer updated: {} for device: {}", bufferUid, bufferBLM.getDeviceUid());
         return bufferBLM;
@@ -185,7 +180,7 @@ public class ApiBufferServiceImpl implements BufferService {
     @Override
     public void deleteBuffer(UUID bufferUid) {
         UUID clientUid = SecurityUtils.getCurrentClientUid();
-        BufferDALM existingBuffer = bufferRepository.findByUid(bufferUid);
+        BufferBLM existingBuffer = bufferRepository.findByUid(bufferUid);
 
         if (!deviceKafkaClient.deviceExistsAndBelongsToClient(existingBuffer.getDeviceUid(), clientUid)) {
             throw new SecurityException("Buffer doesn't exist or doesn't belong to the authenticated client");
@@ -203,7 +198,7 @@ public class ApiBufferServiceImpl implements BufferService {
         }
 
         try {
-            BufferDALM buffer = bufferRepository.findByUid(bufferUid);
+            BufferBLM buffer = bufferRepository.findByUid(bufferUid);
             return deviceKafkaClient.deviceExistsAndBelongsToClient(buffer.getDeviceUid(), clientUid);
         } catch (Exception e) {
             return false;

@@ -4,7 +4,6 @@ import static com.service.buffer.mother.BufferObjectMother.BUFFER_UUID;
 import static com.service.buffer.mother.BufferObjectMother.CLIENT_UUID;
 import static com.service.buffer.mother.BufferObjectMother.SCHEME_UUID;
 import static com.service.buffer.mother.BufferObjectMother.createValidBufferBLM;
-import static com.service.buffer.mother.BufferObjectMother.createValidBufferDALM;
 import static com.service.buffer.mother.BufferObjectMother.createValidBufferDTO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,7 +36,6 @@ import com.connection.device.model.DeviceDTO;
 import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
 import com.connection.processing.buffer.model.BufferBLM;
-import com.connection.processing.buffer.model.BufferDALM;
 import com.connection.processing.buffer.model.BufferDTO;
 import com.connection.processing.buffer.repository.BufferRepository;
 import com.connection.processing.buffer.validator.BufferValidator;
@@ -97,10 +95,8 @@ class BufferServiceImplLondonTest {
         // Arrange
         BufferDTO bufferDTO = createValidBufferDTO();
         BufferBLM bufferBLM = createValidBufferBLM();
-        BufferDALM bufferDALM = createValidBufferDALM();
 
         when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
-        when(bufferConverter.toDALM(bufferBLM)).thenReturn(bufferDALM);
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
                 eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
         when(bufferRepository.exists(BUFFER_UUID)).thenReturn(false);
@@ -115,7 +111,7 @@ class BufferServiceImplLondonTest {
         assertThat(result.getUid()).isEqualTo(BUFFER_UUID);
         verify(bufferValidator).validate(bufferDTO);
         verify(deviceKafkaClient).deviceExistsAndBelongsToClient(bufferBLM.getDeviceUid(), CLIENT_UUID);
-        verify(bufferRepository).add(bufferDALM);
+        verify(bufferRepository).add(bufferBLM);
     }
 
     @Test
@@ -164,13 +160,11 @@ class BufferServiceImplLondonTest {
     @DisplayName("Get buffer - Positive")
     void shouldGetBufferWhenValidRequest() {
         // Arrange
-        BufferDALM bufferDALM = createValidBufferDALM();
         BufferBLM bufferBLM = createValidBufferBLM();
 
-        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(bufferDALM);
-        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(bufferBLM);
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
-                eq(bufferDALM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
+                eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
         setupAuthentication(CLIENT_UUID);
 
         // Act
@@ -180,21 +174,19 @@ class BufferServiceImplLondonTest {
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(BUFFER_UUID);
         verify(bufferRepository).findByUid(BUFFER_UUID);
-        verify(deviceKafkaClient).deviceExistsAndBelongsToClient(bufferDALM.getDeviceUid(), CLIENT_UUID);
+        verify(deviceKafkaClient).deviceExistsAndBelongsToClient(bufferBLM.getDeviceUid(), CLIENT_UUID);
     }
 
     @Test
     @DisplayName("Get buffers by connection scheme - Positive")
     void shouldGetBuffersByConnectionSchemeWhenValidRequest() {
         // Arrange
-        BufferDALM bufferDALM = createValidBufferDALM();
         BufferBLM bufferBLM = createValidBufferBLM();
-        List<BufferDALM> buffersDALM = Collections.singletonList(bufferDALM);
+        List<BufferBLM> buffersBLM = Collections.singletonList(bufferBLM);
 
         when(connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(
                 eq(SCHEME_UUID), eq(CLIENT_UUID))).thenReturn(true);
-        when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersDALM);
-        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersBLM);
         setupAuthentication(CLIENT_UUID);
 
         // Act
@@ -222,9 +214,8 @@ class BufferServiceImplLondonTest {
         DeviceBLM deviceBLM = new DeviceBLM(DEVICE_UUID, CLIENT_UUID, "Test Device", "Test Device Description");
         List<DeviceDTO> deviceDTOs = Collections.singletonList(deviceDTO);
         
-        BufferDALM bufferDALM = createValidBufferDALM();
         BufferBLM bufferBLM = createValidBufferBLM();
-        List<BufferDALM> buffersDALM = Collections.singletonList(bufferDALM);
+        List<BufferBLM> buffersBLM = Collections.singletonList(bufferBLM);
 
         GetDevicesByClientResponse devicesResponse = GetDevicesByClientResponse.valid(
             "correlation-id", deviceDTOs
@@ -234,8 +225,7 @@ class BufferServiceImplLondonTest {
             .thenReturn(CompletableFuture.completedFuture(devicesResponse));
         when(deviceConverter.toBLM(deviceDTO)).thenReturn(deviceBLM);
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(eq(DEVICE_UUID), eq(CLIENT_UUID))).thenReturn(true);
-        when(bufferRepository.findByDeviceUid(DEVICE_UUID)).thenReturn(buffersDALM);
-        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        when(bufferRepository.findByDeviceUid(DEVICE_UUID)).thenReturn(buffersBLM);
         setupAuthentication(CLIENT_UUID);
 
         // Act
@@ -252,13 +242,11 @@ class BufferServiceImplLondonTest {
     @DisplayName("Get buffers by device - Positive")
     void shouldGetBuffersByDeviceWhenValidRequest() {
         // Arrange
-        BufferDALM bufferDALM = createValidBufferDALM();
         BufferBLM bufferBLM = createValidBufferBLM();
-        List<BufferDALM> buffersDALM = Collections.singletonList(bufferDALM);
+        List<BufferBLM> buffersBLM = Collections.singletonList(bufferBLM);
 
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(eq(DEVICE_UUID), eq(CLIENT_UUID))).thenReturn(true);
-        when(bufferRepository.findByDeviceUid(DEVICE_UUID)).thenReturn(buffersDALM);
-        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        when(bufferRepository.findByDeviceUid(DEVICE_UUID)).thenReturn(buffersBLM);
         setupAuthentication(CLIENT_UUID);
 
         // Act
@@ -277,14 +265,12 @@ class BufferServiceImplLondonTest {
         // Arrange
         BufferDTO bufferDTO = createValidBufferDTO();
         BufferBLM bufferBLM = createValidBufferBLM();
-        BufferDALM bufferDALM = createValidBufferDALM();
-        BufferDALM existingBuffer = createValidBufferDALM();
+        BufferBLM existingBuffer = createValidBufferBLM();
 
         when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(existingBuffer);
         when(bufferConverter.toBLM(bufferDTO)).thenReturn(bufferBLM);
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
                 eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
-        when(bufferConverter.toDALM(bufferBLM)).thenReturn(bufferDALM);
         setupAuthentication(CLIENT_UUID);
 
         // Act
@@ -293,14 +279,14 @@ class BufferServiceImplLondonTest {
         // Assert
         assertThat(result).isNotNull();
         verify(bufferValidator).validate(bufferDTO);
-        verify(bufferRepository).update(bufferDALM);
+        verify(bufferRepository).update(bufferBLM);
     }
 
     @Test
     @DisplayName("Delete buffer - Positive")
     void shouldDeleteBufferWhenValidRequest() {
         // Arrange
-        BufferDALM existingBuffer = createValidBufferDALM();
+        BufferBLM existingBuffer = createValidBufferBLM();
 
         when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(existingBuffer);
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
@@ -318,14 +304,12 @@ class BufferServiceImplLondonTest {
     @DisplayName("Delete all buffers from connection scheme - Positive")
     void shouldDeleteAllBuffersFromConnectionSchemeWhenValidRequest() {
         // Arrange
-        BufferDALM bufferDALM = createValidBufferDALM();
         BufferBLM bufferBLM = createValidBufferBLM();
-        List<BufferDALM> buffersDALM = Collections.singletonList(bufferDALM);
+        List<BufferBLM> buffersBLM = Collections.singletonList(bufferBLM);
 
         when(connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(
                 eq(SCHEME_UUID), eq(CLIENT_UUID))).thenReturn(true);
-        when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersDALM);
-        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersBLM);
         setupAuthentication(CLIENT_UUID);
 
         // Act
@@ -340,14 +324,12 @@ class BufferServiceImplLondonTest {
     @DisplayName("Delete buffer from connection scheme - Positive")
     void shouldDeleteBufferFromConnectionSchemeWhenValidRequest() {
         // Arrange
-        BufferDALM bufferDALM = createValidBufferDALM();
         BufferBLM bufferBLM = createValidBufferBLM();
-        List<BufferDALM> buffersDALM = Collections.singletonList(bufferDALM);
+        List<BufferBLM> buffersBLM = Collections.singletonList(bufferBLM);
 
         when(connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(
                 eq(SCHEME_UUID), eq(CLIENT_UUID))).thenReturn(true);
-        when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersDALM);
-        when(bufferConverter.toBLM(bufferDALM)).thenReturn(bufferBLM);
+        when(bufferRepository.findByConnectionSchemeUid(SCHEME_UUID)).thenReturn(buffersBLM);
         setupAuthentication(CLIENT_UUID);
 
         // Act
@@ -362,12 +344,12 @@ class BufferServiceImplLondonTest {
     @DisplayName("Buffer exists - Positive")
     void shouldReturnTrueWhenBufferExists() {
         // Arrange
-        BufferDALM bufferDALM = createValidBufferDALM();
+        BufferBLM bufferBLM = createValidBufferBLM();
 
         when(bufferRepository.exists(BUFFER_UUID)).thenReturn(true);
-        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(bufferDALM);
+        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(bufferBLM);
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
-                eq(bufferDALM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
+                eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(true);
         setupAuthentication(CLIENT_UUID);
 
         // Act
@@ -376,7 +358,7 @@ class BufferServiceImplLondonTest {
         // Assert
         assertThat(result).isTrue();
         verify(bufferRepository).exists(BUFFER_UUID);
-        verify(deviceKafkaClient).deviceExistsAndBelongsToClient(bufferDALM.getDeviceUid(), CLIENT_UUID);
+        verify(deviceKafkaClient).deviceExistsAndBelongsToClient(bufferBLM.getDeviceUid(), CLIENT_UUID);
     }
 
     @Test
@@ -398,12 +380,12 @@ class BufferServiceImplLondonTest {
     @DisplayName("Buffer exists - Negative: Device doesn't belong to client")
     void shouldReturnFalseWhenDeviceNotBelongsToClient() {
         // Arrange
-        BufferDALM bufferDALM = createValidBufferDALM();
+        BufferBLM bufferBLM = createValidBufferBLM();
 
         when(bufferRepository.exists(BUFFER_UUID)).thenReturn(true);
-        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(bufferDALM);
+        when(bufferRepository.findByUid(BUFFER_UUID)).thenReturn(bufferBLM);
         when(deviceKafkaClient.deviceExistsAndBelongsToClient(
-                eq(bufferDALM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(false);
+                eq(bufferBLM.getDeviceUid()), eq(CLIENT_UUID))).thenReturn(false);
         setupAuthentication(CLIENT_UUID);
 
         // Act
@@ -412,7 +394,7 @@ class BufferServiceImplLondonTest {
         // Assert
         assertThat(result).isFalse();
         verify(bufferRepository).exists(BUFFER_UUID);
-        verify(deviceKafkaClient).deviceExistsAndBelongsToClient(bufferDALM.getDeviceUid(), CLIENT_UUID);
+        verify(deviceKafkaClient).deviceExistsAndBelongsToClient(bufferBLM.getDeviceUid(), CLIENT_UUID);
     }
 
     @Test
@@ -420,7 +402,7 @@ class BufferServiceImplLondonTest {
     void shouldThrowExceptionWhenTryingToChangeBufferUid() {
         // Arrange
         BufferDTO bufferDTO = createValidBufferDTO();
-        BufferDALM existingBuffer = createValidBufferDALM();
+        BufferBLM existingBuffer = createValidBufferBLM();
         // Создаем BLM с другим UID
         BufferBLM bufferBLM = new BufferBLM(
             UUID.randomUUID(), // другой UID

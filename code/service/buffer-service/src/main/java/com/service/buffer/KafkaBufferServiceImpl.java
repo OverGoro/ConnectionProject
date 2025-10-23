@@ -18,7 +18,7 @@ import com.connection.device.model.DeviceDTO;
 import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
 import com.connection.processing.buffer.model.BufferBLM;
-import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferBLM;
 import com.connection.processing.buffer.model.BufferDTO;
 import com.connection.processing.buffer.repository.BufferRepository;
 import com.connection.processing.buffer.validator.BufferValidator;
@@ -58,8 +58,7 @@ public class KafkaBufferServiceImpl implements BufferService {
                     "Buffer with UID '" + bufferBLM.getUid() + "' already exists");
         }
 
-        BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
-        bufferRepository.add(bufferDALM);
+        bufferRepository.add(bufferBLM);
 
         log.info("Buffer created via Kafka: {} for device: {}", bufferBLM.getUid(), bufferBLM.getDeviceUid());
         return bufferBLM;
@@ -67,8 +66,8 @@ public class KafkaBufferServiceImpl implements BufferService {
 
     @Override
     public BufferBLM getBufferByUid(UUID bufferUid) {
-        BufferDALM bufferDALM = bufferRepository.findByUid(bufferUid);
-        return bufferConverter.toBLM(bufferDALM); // Без проверки безопасности
+        BufferBLM bufferBLM = bufferRepository.findByUid(bufferUid);
+        return (bufferBLM); // Без проверки безопасности
     }
 
     @Override
@@ -100,16 +99,14 @@ public class KafkaBufferServiceImpl implements BufferService {
 
     @Override
     public List<BufferBLM> getBuffersByDevice(UUID deviceUid) {
-        List<BufferDALM> bufferDALMs = bufferRepository.findByDeviceUid(deviceUid);
-        return bufferDALMs.stream().map(bufferConverter::toBLM).collect(Collectors.toList());
+        List<BufferBLM> bufferBLMs = bufferRepository.findByDeviceUid(deviceUid);
+        return bufferBLMs;
     }
 
     @Override
     public List<BufferBLM> getBuffersByConnectionScheme(UUID connectionSchemeUid) {
-        List<BufferDALM> buffersDALM = bufferRepository.findByConnectionSchemeUid(connectionSchemeUid);
-        return buffersDALM.stream()
-                .map(bufferConverter::toBLM)
-                .collect(Collectors.toList());
+        List<BufferBLM> buffersBLM = bufferRepository.findByConnectionSchemeUid(connectionSchemeUid);
+        return buffersBLM;
     }
 
     @Override
@@ -123,8 +120,7 @@ public class KafkaBufferServiceImpl implements BufferService {
             throw new IllegalArgumentException("Cannot change buffer UID");
         }
 
-        BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
-        bufferRepository.update(bufferDALM);
+        bufferRepository.update(bufferBLM);
 
         log.info("Buffer updated via Kafka: {} for device: {}", bufferUid, bufferBLM.getDeviceUid());
         return bufferBLM;

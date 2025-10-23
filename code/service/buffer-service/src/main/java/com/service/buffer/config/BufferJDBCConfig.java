@@ -12,7 +12,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.atomikos.jdbc.AtomikosDataSourceBean;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Configuration
+@Slf4j
 public class BufferJDBCConfig {
     
     @Value("${app.datasource.buffer.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
@@ -32,6 +35,10 @@ public class BufferJDBCConfig {
 
     @Bean("BufferDataSource")
     DataSource bufferDataSource() {
+        log.info("url: " + jdbcUrl);
+        log.info("user: " + username);
+        log.info("password: " + password);
+
         AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
         dataSource.setUniqueResourceName(uniqueResourceName);
         dataSource.setXaDataSourceClassName(xaDataSourceClassName);

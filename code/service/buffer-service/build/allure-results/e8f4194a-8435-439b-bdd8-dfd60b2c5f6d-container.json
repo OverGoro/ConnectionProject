@@ -1,1 +1,0 @@
-{"uuid":"e8f4194a-8435-439b-bdd8-dfd60b2c5f6d","name":"Get buffers by client - Positive","children":["a4829ab3-45c8-4d1a-b4fa-5dbd9f726dc8"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1760784188540,"stop":1760784188540}],"afters":[],"start":1760784188536,"stop":1760784188544}
