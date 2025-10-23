@@ -2,6 +2,7 @@ plugins {
     id 'base'
 }
 
+
 // Задача для запуска всех тестов во всех подпроектах
 task testAll {
     group = 'verification'
