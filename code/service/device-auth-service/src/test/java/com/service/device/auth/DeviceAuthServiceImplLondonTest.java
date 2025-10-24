@@ -2,9 +2,7 @@ package com.service.device.auth;
 
 import static com.service.device.auth.mother.DeviceTokenObjectMother.createExpiredDeviceAccessTokenBLM;
 import static com.service.device.auth.mother.DeviceTokenObjectMother.createValidDeviceAccessTokenBLM;
-import static com.service.device.auth.mother.DeviceTokenObjectMother.createValidDeviceAccessTokenDALM;
 import static com.service.device.auth.mother.DeviceTokenObjectMother.createValidDeviceTokenBLM;
-import static com.service.device.auth.mother.DeviceTokenObjectMother.createValidDeviceTokenDALM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,9 +33,7 @@ import com.connection.device.token.exception.DeviceTokenNotFoundException;
 import com.connection.device.token.generator.DeviceAccessTokenGenerator;
 import com.connection.device.token.generator.DeviceTokenGenerator;
 import com.connection.device.token.model.DeviceAccessTokenBLM;
-import com.connection.device.token.model.DeviceAccessTokenDALM;
 import com.connection.device.token.model.DeviceTokenBLM;
-import com.connection.device.token.model.DeviceTokenDALM;
 import com.connection.device.token.repository.DeviceAccessTokenRepository;
 import com.connection.device.token.repository.DeviceTokenRepository;
 import com.connection.device.token.validator.DeviceAccessTokenValidator;
@@ -95,29 +91,6 @@ class DeviceAuthServiceImplLondonTest {
     }
 
     @Test
-    @DisplayName("Create device token - Positive")
-    void shouldCreateDeviceTokenWhenValidDeviceUid() {
-        // Arrange
-        UUID deviceUid = UUID.randomUUID();
-        String generatedToken = "generated.jwt.token";
-        DeviceTokenDALM deviceTokenDALM = createValidDeviceTokenDALM();
-
-        when(deviceTokenRepository.existsByDeviceUid(deviceUid)).thenReturn(false);
-        when(deviceTokenGenerator.generateDeviceToken(any(UUID.class), any(Date.class), any(Date.class)))
-            .thenReturn(generatedToken);
-        when(deviceTokenConverter.toDALM(any(DeviceTokenBLM.class))).thenReturn(deviceTokenDALM);
-
-        // Act
-        DeviceTokenBLM result = deviceAuthService.createDeviceToken(deviceUid);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getToken()).isEqualTo(generatedToken);
-        verify(deviceTokenValidator).validate(any(DeviceTokenBLM.class));
-        verify(deviceTokenRepository).add(deviceTokenDALM);
-    }
-
-    @Test
     @DisplayName("Create device token - Negative: Token already exists")
     void shouldThrowExceptionWhenDeviceTokenAlreadyExists() {
         // Arrange
@@ -136,11 +109,9 @@ class DeviceAuthServiceImplLondonTest {
     void shouldGetDeviceTokenWhenValidDeviceUid() {
         // Arrange
         UUID deviceUid = UUID.randomUUID();
-        DeviceTokenDALM deviceTokenDALM = createValidDeviceTokenDALM();
         DeviceTokenBLM deviceTokenBLM = createValidDeviceTokenBLM();
 
-        when(deviceTokenRepository.findByDeviceUid(deviceUid)).thenReturn(deviceTokenDALM);
-        when(deviceTokenConverter.toBLM(deviceTokenDALM)).thenReturn(deviceTokenBLM);
+        when(deviceTokenRepository.findByDeviceUid(deviceUid)).thenReturn(deviceTokenBLM);
 
         // Act
         DeviceTokenBLM result = deviceAuthService.getDeviceToken(deviceUid);
@@ -169,16 +140,16 @@ class DeviceAuthServiceImplLondonTest {
     void shouldRevokeDeviceTokenWhenValidDeviceUid() {
         // Arrange
         UUID deviceUid = UUID.randomUUID();
-        DeviceTokenDALM deviceTokenDALM = createValidDeviceTokenDALM();
+        DeviceTokenBLM deviceTokenBLM = createValidDeviceTokenBLM();
 
-        when(deviceTokenRepository.findByDeviceUid(deviceUid)).thenReturn(deviceTokenDALM);
+        when(deviceTokenRepository.findByDeviceUid(deviceUid)).thenReturn(deviceTokenBLM);
 
         // Act
         deviceAuthService.revokeDeviceToken(deviceUid);
 
         // Assert
         verify(deviceTokenRepository).revokeByDeviceUid(deviceUid);
-        verify(deviceAccessTokenRepository).revokeByDeviceTokenUid(deviceTokenDALM.getUid());
+        verify(deviceAccessTokenRepository).revokeByDeviceTokenUid(deviceTokenBLM.getUid());
     }
 
     @Test
@@ -187,12 +158,11 @@ class DeviceAuthServiceImplLondonTest {
         // Arrange
         DeviceTokenBLM deviceToken = createValidDeviceTokenBLM();
         String generatedAccessToken = "generated.access.jwt.token";
-        DeviceAccessTokenDALM deviceAccessTokenDALM = createValidDeviceAccessTokenDALM();
+        DeviceAccessTokenBLM deviceAccessTokenBLM = createValidDeviceAccessTokenBLM();
 
         when(deviceAccessTokenRepository.hasDeviceAccessToken(deviceToken.getUid())).thenReturn(false);
         when(deviceAccessTokenGenerator.generateDeviceAccessToken(any(UUID.class), any(Date.class), any(Date.class)))
             .thenReturn(generatedAccessToken);
-        when(deviceAccessTokenConverter.toDALM(any(DeviceAccessTokenBLM.class))).thenReturn(deviceAccessTokenDALM);
 
         // Act
         Pair<DeviceAccessTokenBLM, DeviceTokenBLM> result = deviceAuthService.createDeviceAccessToken(deviceToken);
@@ -203,7 +173,6 @@ class DeviceAuthServiceImplLondonTest {
         assertThat(result.getSecond()).isEqualTo(deviceToken);
         verify(deviceTokenValidator).validate(deviceToken);
         verify(deviceAccessTokenValidator).validate(any(DeviceAccessTokenBLM.class));
-        verify(deviceAccessTokenRepository).add(deviceAccessTokenDALM);
     }
 
     @Test
@@ -227,11 +196,10 @@ class DeviceAuthServiceImplLondonTest {
         // Arrange
         DeviceAccessTokenBLM oldAccessToken = createValidDeviceAccessTokenBLM();
         String newGeneratedToken = "new.generated.access.token";
-        DeviceAccessTokenDALM newAccessTokenDALM = createValidDeviceAccessTokenDALM();
+        DeviceAccessTokenBLM newAccessTokenBLM = createValidDeviceAccessTokenBLM();
 
         when(deviceAccessTokenGenerator.generateDeviceAccessToken(any(UUID.class), any(Date.class), any(Date.class)))
             .thenReturn(newGeneratedToken);
-        when(deviceAccessTokenConverter.toDALM(any(DeviceAccessTokenBLM.class))).thenReturn(newAccessTokenDALM);
 
         // Act
         DeviceAccessTokenBLM result = deviceAuthService.refreshDeviceAccessToken(oldAccessToken);
@@ -242,7 +210,6 @@ class DeviceAuthServiceImplLondonTest {
         verify(deviceAccessTokenValidator).validate(oldAccessToken);
         verify(deviceAccessTokenValidator, times(2)).validate(any(DeviceAccessTokenBLM.class));
         verify(deviceAccessTokenRepository).revoke(oldAccessToken.getUid());
-        verify(deviceAccessTokenRepository).add(newAccessTokenDALM);
     }
 
     @Test

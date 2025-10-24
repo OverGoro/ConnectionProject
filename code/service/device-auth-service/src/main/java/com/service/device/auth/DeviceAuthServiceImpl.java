@@ -14,14 +14,12 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.connection.auth.events.responses.HealthCheckResponse;
-import com.connection.device.token.converter.DeviceAccessTokenConverter;
-import com.connection.device.token.converter.DeviceTokenConverter;
+
+
 import com.connection.device.token.generator.DeviceAccessTokenGenerator;
 import com.connection.device.token.generator.DeviceTokenGenerator;
 import com.connection.device.token.model.DeviceAccessTokenBLM;
-import com.connection.device.token.model.DeviceAccessTokenDALM;
 import com.connection.device.token.model.DeviceTokenBLM;
-import com.connection.device.token.model.DeviceTokenDALM;
 import com.connection.device.token.repository.DeviceAccessTokenRepository;
 import com.connection.device.token.repository.DeviceTokenRepository;
 import com.connection.device.token.validator.DeviceAccessTokenValidator;
@@ -35,24 +33,24 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Service
 @EnableAutoConfiguration(exclude = {
-    JpaRepositoriesAutoConfiguration.class
+        JpaRepositoriesAutoConfiguration.class
 })
 @EnableTransactionManagement
 public class DeviceAuthServiceImpl implements DeviceAuthService {
 
     private final TypedAuthKafkaClient authKafkaClient;
-    private final DeviceTokenConverter deviceTokenConverter;
-    private final DeviceAccessTokenConverter deviceAccessTokenConverter;
-    
+
+
+
     private final DeviceTokenValidator deviceTokenValidator;
     private final DeviceAccessTokenValidator deviceAccessTokenValidator;
-    
+
     private final DeviceTokenGenerator deviceTokenGenerator;
     private final DeviceAccessTokenGenerator deviceAccessTokenGenerator;
-    
+
     private final DeviceTokenRepository deviceTokenRepository;
     private final DeviceAccessTokenRepository deviceAccessTokenRepository;
-    
+
     private final Duration deviceTokenDuration;
     private final Duration deviceAccessTokenDuration;
 
@@ -60,17 +58,17 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     @Transactional
     public DeviceTokenBLM createDeviceToken(UUID deviceUid) {
         log.info("Creating device token for device: {}", deviceUid);
-        
+
         // Проверяем, нет ли уже активного токена
         if (deviceTokenRepository.existsByDeviceUid(deviceUid)) {
             throw new com.connection.device.token.exception.DeviceTokenAlreadyExistsException(
-                "Device token already exists for device: " + deviceUid);
+                    "Device token already exists for device: " + deviceUid);
         }
-        
+
         Date createdAt = new Date();
         Date expiresAt = Date.from(createdAt.toInstant().plus(deviceTokenDuration));
         UUID tokenUid = UUID.randomUUID();
-        
+
         // Генерируем токен
         String tokenString = deviceTokenGenerator.generateDeviceToken(deviceUid, tokenUid, createdAt, expiresAt);
         DeviceTokenBLM deviceTokenBLM = DeviceTokenBLM.builder()
@@ -80,13 +78,13 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
                 .createdAt(createdAt)
                 .expiresAt(expiresAt)
                 .build();
-        
+
         deviceTokenValidator.validate(deviceTokenBLM);
-        
+
         // Сохраняем в БД
-        DeviceTokenDALM deviceTokenDALM = deviceTokenConverter.toDALM(deviceTokenBLM);
-        deviceTokenRepository.add(deviceTokenDALM);
-        
+
+        deviceTokenRepository.add(deviceTokenBLM);
+
         log.info("Device token created successfully for device: {}", deviceUid);
         return deviceTokenBLM;
     }
@@ -95,10 +93,9 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     @Transactional(readOnly = true)
     public DeviceTokenBLM getDeviceToken(UUID deviceUid) {
         log.info("Getting device token for device: {}", deviceUid);
-        
-        DeviceTokenDALM deviceTokenDALM = deviceTokenRepository.findByDeviceUid(deviceUid);
-        DeviceTokenBLM deviceTokenBLM = deviceTokenConverter.toBLM(deviceTokenDALM);
-        
+
+        DeviceTokenBLM deviceTokenBLM = deviceTokenRepository.findByDeviceUid(deviceUid);
+
         deviceTokenValidator.validate(deviceTokenBLM);
         return deviceTokenBLM;
     }
@@ -107,13 +104,13 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     @Transactional
     public void revokeDeviceToken(UUID deviceUid) {
         log.info("Revoking device token for device: {}", deviceUid);
-        
-        DeviceTokenDALM deviceTokenDALM = deviceTokenRepository.findByDeviceUid(deviceUid);
+
+        DeviceTokenBLM deviceTokenBLM = deviceTokenRepository.findByDeviceUid(deviceUid);
         deviceTokenRepository.revokeByDeviceUid(deviceUid);
-        
+
         // Каскадно отзываем все access tokens
-        deviceAccessTokenRepository.revokeByDeviceTokenUid(deviceTokenDALM.getUid());
-        
+        deviceAccessTokenRepository.revokeByDeviceTokenUid(deviceTokenBLM.getUid());
+
         log.info("Device token revoked successfully for device: {}", deviceUid);
     }
 
@@ -127,23 +124,23 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     @Transactional
     public Pair<DeviceAccessTokenBLM, DeviceTokenBLM> createDeviceAccessToken(DeviceTokenBLM deviceToken) {
         log.info("Creating device access token for device token: {}", deviceToken.getUid());
-        
+
         deviceTokenValidator.validate(deviceToken);
-        
+
         // Проверяем, нет ли активного access token
         if (deviceAccessTokenRepository.hasDeviceAccessToken(deviceToken.getUid())) {
             throw new com.connection.device.token.exception.DeviceAccessTokenExistsException(
-                "Active device access token already exists for device token: " + deviceToken.getUid());
+                    "Active device access token already exists for device token: " + deviceToken.getUid());
         }
-        
+
         Date createdAt = new Date();
         Date expiresAt = Date.from(createdAt.toInstant().plus(deviceAccessTokenDuration));
         UUID accessTokenUid = UUID.randomUUID();
-        
+
         // Генерируем access token
         String accessTokenString = deviceAccessTokenGenerator.generateDeviceAccessToken(
-            deviceToken.getUid(), createdAt, expiresAt);
-        
+                deviceToken.getUid(), createdAt, expiresAt);
+
         DeviceAccessTokenBLM deviceAccessTokenBLM = DeviceAccessTokenBLM.builder()
                 .token(accessTokenString)
                 .uid(accessTokenUid)
@@ -151,13 +148,13 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
                 .createdAt(createdAt)
                 .expiresAt(expiresAt)
                 .build();
-        
+
         deviceAccessTokenValidator.validate(deviceAccessTokenBLM);
-        
+
         // Сохраняем в БД
-        DeviceAccessTokenDALM deviceAccessTokenDALM = deviceAccessTokenConverter.toDALM(deviceAccessTokenBLM);
-        deviceAccessTokenRepository.add(deviceAccessTokenDALM);
-        
+
+        deviceAccessTokenRepository.add(deviceAccessTokenBLM);
+
         log.info("Device access token created successfully for device token: {}", deviceToken.getUid());
         return Pair.of(deviceAccessTokenBLM, deviceToken);
     }
@@ -166,21 +163,22 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     @Transactional
     public DeviceAccessTokenBLM refreshDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
         log.info("Refreshing device access token: {}", deviceAccessToken.getUid());
-        
+
         deviceAccessTokenValidator.validate(deviceAccessToken);
-        
+
         // Отзываем старый токен
-        // DeviceAccessTokenDALM oldAccessTokenDALM = deviceAccessTokenConverter.toDALM(deviceAccessToken);
+        // DeviceAccessTokenBLM oldAccessTokenBLM =
+
         deviceAccessTokenRepository.revoke(deviceAccessToken.getUid());
-        
+
         Date createdAt = new Date();
         Date expiresAt = Date.from(createdAt.toInstant().plus(deviceAccessTokenDuration));
         UUID newAccessTokenUid = UUID.randomUUID();
-        
+
         // Генерируем новый access token
         String newAccessTokenString = deviceAccessTokenGenerator.generateDeviceAccessToken(
-            deviceAccessToken.getDeviceTokenUid(), createdAt, expiresAt);
-        
+                deviceAccessToken.getDeviceTokenUid(), createdAt, expiresAt);
+
         DeviceAccessTokenBLM newDeviceAccessTokenBLM = DeviceAccessTokenBLM.builder()
                 .token(newAccessTokenString)
                 .uid(newAccessTokenUid)
@@ -188,13 +186,13 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
                 .createdAt(createdAt)
                 .expiresAt(expiresAt)
                 .build();
-        
+
         deviceAccessTokenValidator.validate(newDeviceAccessTokenBLM);
-        
+
         // Сохраняем новый токен
-        DeviceAccessTokenDALM newAccessTokenDALM = deviceAccessTokenConverter.toDALM(newDeviceAccessTokenBLM);
-        deviceAccessTokenRepository.add(newAccessTokenDALM);
-        
+
+        deviceAccessTokenRepository.add(newDeviceAccessTokenBLM);
+
         log.info("Device access token refreshed successfully");
         return newDeviceAccessTokenBLM;
     }
@@ -206,8 +204,7 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
         deviceAccessTokenValidator.validate(deviceAccessToken);
     }
 
-
-     @Override
+    @Override
     public Map<String, Object> getHealthStatus() {
         try {
             HealthCheckResponse authHealth = authKafkaClient.healthCheck("device-service")
