@@ -7,10 +7,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import com.connection.device.events.DeviceEventConstants;
 import com.connection.device.events.DeviceEventUtils;
 import com.connection.device.events.commands.GetDeviceByUidCommand;
 import com.connection.device.events.commands.GetDevicesByClientUid;
@@ -19,18 +20,20 @@ import com.connection.device.events.responses.GetDeviceByUidResponse;
 import com.connection.device.events.responses.GetDevicesByClientResponse;
 import com.connection.device.events.responses.HealthCheckResponse;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class TypedDeviceKafkaClient {
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    @Autowired
+    private KafkaTemplate<String, Object> kafkaTemplate;
+
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
-    
-    // 👇 Уникальный топик для этого инстанса
+        
+    @Value("${app.kafka.topics.device-commands:device.commands}")
+    private String deviceCommandsTopic;
+
     private final String instanceReplyTopic = "device.responses." + UUID.randomUUID().toString();
 
     private static class PendingRequest<T> {
@@ -48,7 +51,7 @@ public class TypedDeviceKafkaClient {
             GetDeviceByUidCommand.builder()
                 .deviceUid(deviceUid)
                 .sourceService(sourceService)
-                .replyTopic(instanceReplyTopic) // 👈 Уникальный топик инстанса
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(DeviceEventUtils.generateCorrelationId())
                 .build(),
             GetDeviceByUidResponse.class
@@ -60,7 +63,7 @@ public class TypedDeviceKafkaClient {
             GetDevicesByClientUid.builder()
                 .sourceService(sourceService)
                 .clientUid(clientUid)
-                .replyTopic(instanceReplyTopic) // 👈 Уникальный топик инстанса
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(DeviceEventUtils.generateCorrelationId())
                 .build(),
             GetDevicesByClientResponse.class
@@ -71,14 +74,14 @@ public class TypedDeviceKafkaClient {
         return sendRequest(
             HealthCheckCommand.builder()
                 .sourceService(sourceService)
-                .replyTopic(instanceReplyTopic) // 👈 Уникальный топик инстанса
+                .replyTopic(instanceReplyTopic) 
                 .correlationId(DeviceEventUtils.generateCorrelationId())
                 .build(),
             HealthCheckResponse.class
         );
     }
 
-    // Вспомогательные методы для удобства
+    
     public boolean deviceExistsAndBelongsToClient(UUID deviceUid, UUID clientUid) {
         try {
             GetDeviceByUidResponse response = getDeviceByUid(deviceUid, "buffer-service")
@@ -114,7 +117,7 @@ public class TypedDeviceKafkaClient {
         CompletableFuture<T> future = new CompletableFuture<>();
         pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
 
-        // 👇 Добавляем таймаут 30 секунд
+        
         future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, ex) -> {
             if (ex != null) {
                 pendingRequests.remove(correlationId);
@@ -122,7 +125,7 @@ public class TypedDeviceKafkaClient {
             }
         });
 
-        kafkaTemplate.send(DeviceEventConstants.DEVICE_COMMANDS_TOPIC, correlationId, command)
+        kafkaTemplate.send(deviceCommandsTopic, correlationId, command)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
                         future.completeExceptionally(ex);
@@ -130,7 +133,7 @@ public class TypedDeviceKafkaClient {
                         log.error("Failed to send device command: {}", ex.getMessage());
                     } else {
                         log.info("Device command sent successfully: correlationId={}, topic={}", 
-                                correlationId, DeviceEventConstants.DEVICE_COMMANDS_TOPIC);
+                                correlationId, deviceCommandsTopic);
                     }
                 });
 
@@ -174,8 +177,9 @@ public class TypedDeviceKafkaClient {
         }
     }
     
-    // 👇 Геттер для получения уникального топика инстанса
+    
     public String getInstanceReplyTopic() {
+        log.info("Got teply topic: " + instanceReplyTopic);
         return instanceReplyTopic;
     }
 }

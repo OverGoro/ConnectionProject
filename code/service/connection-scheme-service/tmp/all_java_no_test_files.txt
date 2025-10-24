@@ -193,26 +193,32 @@ public class ConnectionSchemeKafkaConfig {
         configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-        
+
         // Конфигурация для ErrorHandlingDeserializer
-        configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, org.apache.kafka.common.serialization.StringDeserializer.class);
+        configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS,
+                org.apache.kafka.common.serialization.StringDeserializer.class);
         configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
-        
+
         // Конфигурация для JsonDeserializer
-        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "com.connection.auth.events.commands,com.connection.common.events,com.connection.device.events.commands,com.connection.auth.events.responses");
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, 
+            "com.connection.auth.events.commands," +
+            "com.connection.scheme.events.commands," +
+            "com.connection.scheme.events.responses," +
+                "com.connection.common.events," +
+                "com.connection.device.events.commands," +
+                "com.connection.auth.events.responses");
         configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
         configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
         configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");
-        
+
         return new DefaultKafkaConsumerFactory<>(configProps);
     }
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, Object> factory = 
-            new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
-        
+
         // Обработка ошибок десериализации - пропускаем некорректные сообщения
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(
                 (record, exception) -> {
@@ -224,11 +230,10 @@ public class ConnectionSchemeKafkaConfig {
                             record.key(),
                             exception.getMessage());
                 },
-                new FixedBackOff(0L, 0L)
-        );
+                new FixedBackOff(0L, 0L));
 
         factory.setCommonErrorHandler(errorHandler);
-        
+
         return factory;
     }
 
@@ -237,7 +242,8 @@ public class ConnectionSchemeKafkaConfig {
     public ProducerFactory<String, Object> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.StringSerializer.class);
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                org.apache.kafka.common.serialization.StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
         return new DefaultKafkaProducerFactory<>(configProps);
@@ -365,8 +371,8 @@ public class SecurityConfig {
                         .requestMatchers("/api-docs/**").permitAll()
                         .requestMatchers("/webjars/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/connection-scheme-service/health").permitAll()
-                        .requestMatchers("/api/connection-scheme-service/**").authenticated()
+                        .requestMatchers("/api/v1/health").permitAll()
+                        .requestMatchers("/api/v1/**").authenticated()
                         .anyRequest().denyAll()
                 )
                 .addFilterBefore(jwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
@@ -416,7 +422,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGenericException(Exception e) {
-        log.error("Unexpected error occurred: {}", e.getMessage());
+        log.error("Unexpected error occurred: {}", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse(
                 "internal_server_error",
                 "An unexpected error occurred"));
@@ -808,7 +814,11 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
 }package com.service.connectionscheme.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.stereotype.Component;
 
 import com.connection.auth.events.responses.TokenValidationResponse;
@@ -822,17 +832,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class AuthResponseConsumer {
+public class AuthResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
 
     private final TypedAuthKafkaClient authKafkaClient;
+    private final KafkaListenerEndpointRegistry registry;
 
-    @KafkaListener(topics = "${app.kafka.topics.auth-responses:auth.responses}")
+    @KafkaListener(id = "dynamicAuthListener", topics = "#{@typedAuthKafkaClient.getInstanceReplyTopic()}")
     public void handleAuthResponse(ConsumerRecord<String, CommandResponse> record) {
         try {
             CommandResponse message = record.value();
             String correlationId = record.key();
             
-            log.info("Received auth response: correlationId={}", correlationId);
+            log.info("Received auth response from instance topic: correlationId={}, topic={}", 
+                    correlationId, record.topic());
                 
             if (message instanceof TokenValidationResponse) {
                 TokenValidationResponse typedResponse = (TokenValidationResponse) message;
@@ -851,6 +863,20 @@ public class AuthResponseConsumer {
             log.error("Error processing auth response: correlationId={}", record.key(), e);
         }
     }
+
+    @Override
+    public void onApplicationEvent(ApplicationReadyEvent event) {
+        try {
+            MessageListenerContainer container = registry.getListenerContainer("dynamicAuthListener");
+            if (container != null && !container.isRunning()) {
+                container.start();
+                log.info("Dynamic auth response listener started for topic: {}", 
+                        authKafkaClient.getInstanceReplyTopic());
+            }
+        } catch (Exception e) {
+            log.error("Failed to start dynamic auth listener", e);
+        }
+    }
 }package com.service.connectionscheme.kafka;
 
 import java.util.Date;
@@ -858,6 +884,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -882,6 +909,9 @@ public class TypedAuthKafkaClient {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+    
+    // 👇 Уникальный топик для этого инстанса
+    private final String instanceReplyTopic = "auth.responses." + UUID.randomUUID().toString();
 
     private static class PendingRequest<T> {
         final CompletableFuture<T> future;
@@ -899,7 +929,7 @@ public class TypedAuthKafkaClient {
                 .token(token)
                 .tokenType(ValidateTokenCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) // 👈 Уникальный топик инстанса
                 .correlationId(AuthEventUtils.generateCorrelationId())
                 .build(),
             TokenValidationResponse.class
@@ -912,7 +942,7 @@ public class TypedAuthKafkaClient {
                 .token(token)
                 .tokenType(ExtractClientUidCommand.TokenType.ACCESS)
                 .sourceService(sourceService)
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) // 👈 Уникальный топик инстанса
                 .correlationId(AuthEventUtils.generateCorrelationId())
                 .build(),
             ClientUidResponse.class
@@ -925,7 +955,7 @@ public class TypedAuthKafkaClient {
                 .eventId(UUID.randomUUID().toString())
                 .sourceService(sourceService)
                 .timestamp(new Date().toInstant())
-                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .replyTopic(instanceReplyTopic) // 👈 Уникальный топик инстанса
                 .correlationId(AuthEventUtils.generateCorrelationId())
                 .commandType(AuthEventConstants.COMMAND_HEALTH_CHECK)
                 .build(),
@@ -949,12 +979,23 @@ public class TypedAuthKafkaClient {
         CompletableFuture<T> future = new CompletableFuture<>();
         pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
 
+        // 👇 Добавляем таймаут 30 секунд
+        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, ex) -> {
+            if (ex != null) {
+                pendingRequests.remove(correlationId);
+                log.warn("Auth request timeout or error for correlationId: {}", correlationId);
+            }
+        });
+
         kafkaTemplate.send(AuthEventConstants.AUTH_COMMANDS_TOPIC, correlationId, command)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
                         future.completeExceptionally(ex);
                         pendingRequests.remove(correlationId);
-                        log.error("Failed to send command: {}", ex.getMessage());
+                        log.error("Failed to send auth command: {}", ex.getMessage());
+                    } else {
+                        log.info("Auth command sent successfully: correlationId={}, topic={}", 
+                                correlationId, AuthEventConstants.AUTH_COMMANDS_TOPIC);
                     }
                 });
 
@@ -969,19 +1010,25 @@ public class TypedAuthKafkaClient {
                 if (pendingRequest.responseType.isInstance(response)) {
                     CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
                     future.complete(response);
+                    log.info("Auth response handled successfully: correlationId={}", correlationId);
                 } else {
                     log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
                             correlationId, pendingRequest.responseType, response.getClass());
                     pendingRequest.future.completeExceptionally(
-                        new ClassCastException("Type mismatch in response")
+                        new ClassCastException("Type mismatch in auth response")
                     );
                 }
             } catch (Exception e) {
                 pendingRequest.future.completeExceptionally(e);
             }
         } else {
-            log.warn("Received response for unknown correlationId: {}", correlationId);
+            log.warn("Received auth response for unknown correlationId: {}", correlationId);
         }
+    }
+    
+    // 👇 Геттер для получения уникального топика инстанса
+    public String getInstanceReplyTopic() {
+        return instanceReplyTopic;
     }
 }package com.service.connectionscheme.kafka;
 
@@ -1021,7 +1068,7 @@ public class ConnectionSchemeCommandConsumer {
     private final ConnectionSchemeConverter connectionSchemeConverter;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @KafkaListener(topics = "${app.kafka.topics.connection-scheme-commands:connection-scheme.commands}")
+    @KafkaListener(topics = "${app.kafka.topics.connection-scheme-commands:scheme.commands}")
     public void handleConnectionSchemeCommand(ConsumerRecord<String, Command> record) {
         try {
             Command command = record.value();
@@ -1061,8 +1108,10 @@ public class ConnectionSchemeCommandConsumer {
                     command.getCorrelationId(),
                     schemeDTO);
 
+            // 👇 Отправляем в replyTopic из команды (уникальный топик инстанса)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Successfully processed GetConnectionSchemeByUidCommand for scheme: {}", command.getConnectionSchemeUid());
+            log.info("GetConnectionSchemeByUid response sent to {}: correlationId={}", 
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             log.error("Error processing GetConnectionSchemeByUidCommand for scheme UID: {}", command.getConnectionSchemeUid(), e);
@@ -1088,10 +1137,10 @@ public class ConnectionSchemeCommandConsumer {
                     command.getCorrelationId(),
                     schemeDTOs);
 
+            // 👇 Отправляем в replyTopic из команды (уникальный топик инстанса)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-
-            log.info("Successfully processed GetConnectionSchemesByClientCommand for client: {}, found {} schemes",
-                    command.getClientUid(), schemeDTOs.size());
+            log.info("GetConnectionSchemesByClient response sent to {}: correlationId={}", 
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             log.error("Error processing GetConnectionSchemesByClientCommand for client UID: {}", command.getClientUid(), e);
@@ -1117,10 +1166,10 @@ public class ConnectionSchemeCommandConsumer {
                     command.getCorrelationId(),
                     schemeDTOs);
 
+            // 👇 Отправляем в replyTopic из команды (уникальный топик инстанса)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-
-            log.info("Successfully processed GetConnectionSchemesByBufferCommand for Buffer: {}, found {} schemes",
-                    command.getBufferUid(), schemeDTOs.size());
+            log.info("GetConnectionSchemesByBuffer response sent to {}: correlationId={}", 
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             log.error("Error processing GetConnectionSchemesByBufferCommand for Buffer UID: {}", command.getBufferUid(), e);
@@ -1143,9 +1192,10 @@ public class ConnectionSchemeCommandConsumer {
                     command.getCorrelationId(),
                     healthStatus);
 
+            // 👇 Отправляем в replyTopic из команды (уникальный топик инстанса)
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-
-            log.info("Successfully processed HealthCheckCommand");
+            log.info("HealthCheck response sent to {}: correlationId={}", 
+                    command.getReplyTopic(), command.getCorrelationId());
 
         } catch (Exception e) {
             log.error("Error processing HealthCheckCommand", e);

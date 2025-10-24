@@ -1,6 +1,7 @@
 package com.service.buffer.integration;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ import com.connection.device.events.responses.GetDevicesByClientResponse;
 import com.connection.device.events.responses.HealthCheckResponse;
 import com.connection.device.model.DeviceDTO;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,10 +32,21 @@ public class TestDeviceServiceResponder {
     
     private final KafkaTemplate<String, Object> kafkaTemplate;
     
+    
     // Хранилище тестовых данных
     private final Map<UUID, DeviceDTO> testDevices = new ConcurrentHashMap<>();
     private final Map<UUID, List<DeviceDTO>> clientDevices = new ConcurrentHashMap<>();
     
+    @Value("${app.kafka.topics.device-commands:device.commands}")
+    private String connectionSchemeCommandsTopic;
+    @PostConstruct
+    public void logKafkaConfiguration() {
+        log.info("""
+            🧪 Test Device Responder Kafka Configuration:
+               📨 Listening Topic: {}
+            """, connectionSchemeCommandsTopic);
+    }
+
     @KafkaListener(
         topics = "${app.kafka.topics.device-commands:device.commands}",
         groupId = "test-device-responder"
@@ -41,8 +54,6 @@ public class TestDeviceServiceResponder {
     public void handleDeviceCommand(ConsumerRecord<String, Object> record) {
         try {
             Object command = record.value();
-            log.info("🧪 Test Device Responder received command: {}", command.getClass().getSimpleName());
-            
             if (command instanceof GetDeviceByUidCommand) {
                 handleGetDeviceByUid((GetDeviceByUidCommand) command);
             } else if (command instanceof GetDevicesByClientUid) {
@@ -56,7 +67,7 @@ public class TestDeviceServiceResponder {
         }
     }
     
-    private void handleGetDeviceByUid(GetDeviceByUidCommand command) {
+        private void handleGetDeviceByUid(GetDeviceByUidCommand command) {
         try {
             UUID deviceUid = command.getDeviceUid();
             DeviceDTO device = testDevices.get(deviceUid);
@@ -77,6 +88,7 @@ public class TestDeviceServiceResponder {
             }
             
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.info("Test Responder: send response to {}", command.getReplyTopic());
             
         } catch (Exception e) {
             log.error("❌ Error handling GetDeviceByUid", e);
@@ -104,6 +116,7 @@ public class TestDeviceServiceResponder {
             }
             
             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.info("ℹ️ Test Responder: send response to {}", command.getReplyTopic());
             
         } catch (Exception e) {
             log.error("❌ Error handling GetDevicesByClient", e);

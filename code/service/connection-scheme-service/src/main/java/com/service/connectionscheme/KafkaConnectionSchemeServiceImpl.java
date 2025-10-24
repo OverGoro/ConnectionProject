@@ -10,11 +10,8 @@ import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfig
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.connection.scheme.converter.ConnectionSchemeConverter;
 import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
 import com.connection.scheme.model.ConnectionSchemeBLM;
-import com.connection.scheme.model.ConnectionSchemeDALM;
-import com.connection.scheme.model.ConnectionSchemeDTO;
 import com.connection.scheme.repository.ConnectionSchemeRepository;
 import com.connection.scheme.validator.ConnectionSchemeValidator;
 import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
@@ -32,23 +29,20 @@ import lombok.extern.slf4j.Slf4j;
 public class KafkaConnectionSchemeServiceImpl implements ConnectionSchemeService {
 
     private final ConnectionSchemeRepository schemeRepository;
-    private final ConnectionSchemeConverter schemeConverter;
     private final ConnectionSchemeValidator schemeValidator;
 
     private final TypedAuthKafkaClient authKafkaClient;
 
     @Override
-    public ConnectionSchemeBLM createScheme(ConnectionSchemeDTO schemeDTO) {
-        schemeValidator.validate(schemeDTO);
-        ConnectionSchemeBLM schemeBLM = schemeConverter.toBLM(schemeDTO);
+    public ConnectionSchemeBLM createScheme(ConnectionSchemeBLM schemeBLM) {
+        schemeValidator.validate(schemeBLM);
 
         if (schemeRepository.exists(schemeBLM.getUid())) {
             throw new ConnectionSchemeAlreadyExistsException(
                     "Scheme with UID '" + schemeBLM.getUid() + "' already exists");
         }
 
-        ConnectionSchemeDALM schemeDALM = schemeConverter.toDALM(schemeBLM);
-        schemeRepository.add(schemeDALM);
+        schemeRepository.add(schemeBLM);
 
         log.info("Connection scheme created via Kafka: {}", schemeBLM.getUid());
         return schemeBLM;
@@ -56,8 +50,8 @@ public class KafkaConnectionSchemeServiceImpl implements ConnectionSchemeService
 
     @Override
     public ConnectionSchemeBLM getSchemeByUid(UUID schemeUid) {
-        ConnectionSchemeDALM schemeDALM = schemeRepository.findByUid(schemeUid);
-        return schemeConverter.toBLM(schemeDALM); // Без проверки безопасности
+        ConnectionSchemeBLM schemeBLM = schemeRepository.findByUid(schemeUid);
+        return (schemeBLM); // Без проверки безопасности
     }
 
     @Override
@@ -69,26 +63,22 @@ public class KafkaConnectionSchemeServiceImpl implements ConnectionSchemeService
 
     @Override
     public List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUid) {
-        List<ConnectionSchemeDALM> schemesDALM = schemeRepository.findByClientUid(clientUid);
-        return schemesDALM.stream()
-                .map(schemeConverter::toBLM)
-                .collect(Collectors.toList());
+        List<ConnectionSchemeBLM> schemesBLM = schemeRepository.findByClientUid(clientUid);
+        return schemesBLM;
     }
 
     @Override
-    public ConnectionSchemeBLM updateScheme(UUID schemeUid, ConnectionSchemeDTO schemeDTO) {
+    public ConnectionSchemeBLM updateScheme(UUID schemeUid, ConnectionSchemeBLM schemeBLM) {
         schemeRepository.findByUid(schemeUid);
         
-        schemeValidator.validate(schemeDTO);
-        ConnectionSchemeBLM schemeBLM = schemeConverter.toBLM(schemeDTO);
+        schemeValidator.validate(schemeBLM);
 
         // Проверяем, что UID не изменяется
         if (!schemeUid.equals(schemeBLM.getUid())) {
             throw new IllegalArgumentException("Cannot change scheme UID");
         }
 
-        ConnectionSchemeDALM schemeDALM = schemeConverter.toDALM(schemeBLM);
-        schemeRepository.update(schemeDALM);
+        schemeRepository.update(schemeBLM);
 
         log.info("Connection scheme updated via Kafka: {}", schemeUid);
         return schemeBLM;
@@ -128,10 +118,8 @@ public class KafkaConnectionSchemeServiceImpl implements ConnectionSchemeService
     }
     @Override
     public List<ConnectionSchemeBLM> getSchemesByBuffer(UUID bufferUuid) {
-        List<ConnectionSchemeDALM> schemesDALM = schemeRepository.findByBufferUid(bufferUuid);
-        return schemesDALM.stream()
-                .map(schemeConverter::toBLM)
-                .collect(Collectors.toList());
+        List<ConnectionSchemeBLM> schemesBLM = schemeRepository.findByBufferUid(bufferUuid);
+        return schemesBLM;
     }
 
     @Override

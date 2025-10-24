@@ -6,10 +6,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import com.connection.scheme.events.ConnectionSchemeEventConstants;
 import com.connection.scheme.events.ConnectionSchemeEventUtils;
 import com.connection.scheme.events.commands.GetConnectionSchemeByUidCommand;
 import com.connection.scheme.events.commands.HealthCheckCommand;
@@ -24,9 +25,13 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TypedConnectionSchemeKafkaClient {
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    @Autowired
+    private KafkaTemplate<String, Object> kafkaTemplate;
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
     
+    @Value("${app.kafka.topics.connection-scheme-commands:connection.scheme.commands}")
+    private String connectionSchemeCommandsTopic;
+
     // 👇 Уникальный топик для этого инстанса
     private final String instanceReplyTopic = "connection-scheme.responses." + UUID.randomUUID().toString();
 
@@ -90,7 +95,7 @@ public class TypedConnectionSchemeKafkaClient {
             }
         });
 
-        kafkaTemplate.send(ConnectionSchemeEventConstants.CONNECTION_SCHEME_COMMANDS_TOPIC, correlationId, command)
+        kafkaTemplate.send(connectionSchemeCommandsTopic, correlationId, command)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
                         future.completeExceptionally(ex);
@@ -98,7 +103,7 @@ public class TypedConnectionSchemeKafkaClient {
                         log.error("Failed to send connection scheme command: {}", ex.getMessage());
                     } else {
                         log.info("Connection scheme command sent successfully: correlationId={}, topic={}", 
-                                correlationId, ConnectionSchemeEventConstants.CONNECTION_SCHEME_COMMANDS_TOPIC);
+                                correlationId, connectionSchemeCommandsTopic);
                     }
                 });
 

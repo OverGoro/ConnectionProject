@@ -4,14 +4,12 @@ package com.service.buffer.config;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
-import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
@@ -23,64 +21,10 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.util.backoff.FixedBackOff;
 
-import com.connection.auth.events.AuthEventConstants;
-import com.connection.buffer.events.BufferEventConstants;
-import com.connection.device.events.DeviceEventConstants;
-import com.connection.scheme.events.ConnectionSchemeEventConstants;
-
 @Configuration
 public class BufferKafkaConfig {
     @Value("${spring.kafka.bootstrap-servers:localhost:29092}")
     private String bootstrapServers;
-
-    @Bean
-    public NewTopic authResponsesTopic() {
-        return TopicBuilder.name(AuthEventConstants.AUTH_RESPONSES_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
-
-    @Bean
-    public NewTopic deviceResponsesTopic() {
-        return TopicBuilder.name(DeviceEventConstants.DEVICE_RESPONSES_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
-
-    @Bean
-    public NewTopic connectionSchemeResponsesTopic() {
-        return TopicBuilder.name(ConnectionSchemeEventConstants.CONNECTION_SCHEME_RESPONSES_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
-
-    // Конфигурация топиков для buffer-service
-    @Bean
-    public NewTopic bufferCommandsTopic() {
-        return TopicBuilder.name(BufferEventConstants.BUFFER_COMMANDS_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
-
-    @Bean
-    public NewTopic bufferResponsesTopic() {
-        return TopicBuilder.name(BufferEventConstants.BUFFER_RESPONSES_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
-
-    @Bean
-    public NewTopic bufferEventsTopic() {
-        return TopicBuilder.name(BufferEventConstants.BUFFER_EVENTS_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
 
     // Конфигурация для Consumer с обработкой ошибок десериализации
     @Bean

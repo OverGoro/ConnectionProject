@@ -2062,7 +2062,6 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -2076,8 +2075,14 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.connection.auth.events.commands.HealthCheckCommand;
+import com.connection.auth.events.commands.ValidateTokenCommand;
 import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.auth.events.responses.TokenValidationResponse;
+import com.connection.client.model.ClientBLM;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.RefreshTokenBLM;
 import com.service.auth.AuthService;
+import com.service.auth.mother.AuthObjectMother;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -2086,11 +2091,11 @@ import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 @SpringBootTest
 @ActiveProfiles("integrationtest")
@@ -2104,8 +2109,8 @@ public class KafkaIntegrationTest extends BaseIntegrationTest {
 
     private Consumer<String, Object> responseConsumer;
     private String replyTopic;
-
     private String testEmail;
+    private ClientBLM testClient;
 
     @BeforeEach
     void setUpKafkaConsumer() {
@@ -2130,13 +2135,7 @@ public class KafkaIntegrationTest extends BaseIntegrationTest {
         consumerProps.put(JsonDeserializer.TRUSTED_PACKAGES,
                 "com.connection.auth.events.commands," +
                         "com.connection.auth.events.responses," +
-                        "com.connection.common.events," +
-                        "com.connection.buffer.events.commands," +
-                        "com.connection.buffer.events.responses," +
-                        "com.connection.device.events.commands," +
-                        "com.connection.device.events.responses," +
-                        "com.connection.scheme.events.commands," +
-                        "com.connection.scheme.events.responses");
+                        "com.connection.common.events");
 
         // Конфигурация для ErrorHandlingDeserializer
         consumerProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS,
@@ -2151,8 +2150,8 @@ public class KafkaIntegrationTest extends BaseIntegrationTest {
         consumerProps.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 10000);
         consumerProps.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 3000);
         consumerProps.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 30000);
-        consumerProps.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, 15000);
-        consumerProps.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 500);
+        consumerProps.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, 11000);
+        consumerProps.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 100);
         consumerProps.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 1);
         consumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
 
@@ -2163,9 +2162,9 @@ public class KafkaIntegrationTest extends BaseIntegrationTest {
         // Подписываемся ДО отправки сообщений
         responseConsumer.subscribe(Collections.singletonList(replyTopic));
 
-        // Ждем инициализации consumer'а - более надежный способ
+        // Ждем инициализации consumer'а
         await().atMost(Duration.ofSeconds(15))
-                .pollInterval(Duration.ofMillis(500))
+                .pollInterval(Duration.ofMillis(100))
                 .until(() -> {
                     responseConsumer.poll(Duration.ofMillis(100));
                     return !responseConsumer.assignment().isEmpty();
@@ -2173,18 +2172,33 @@ public class KafkaIntegrationTest extends BaseIntegrationTest {
 
         log.info("Kafka consumer setup completed for topic: {}, assigned partitions: {}",
                 replyTopic, responseConsumer.assignment());
+
+        // Создаем тестового клиента
+        String timestamp = String.valueOf(System.currentTimeMillis()) + UUID.randomUUID().toString().substring(0, 8);
+        testEmail = "kafka_test_" + timestamp + "@example.com";
+        
+        testClient = new ClientBLM(
+            UUID.randomUUID(),
+            new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000),
+            testEmail,
+            "SecurePassword123!" + timestamp,
+            "kafka_user_" + timestamp
+        );
+        
+        // Регистрируем клиента для тестов валидации токенов
+        authService.register(testClient);
+        log.info("Created test client for Kafka tests: {}", testEmail);
     }
 
     private void createTopic(String topicName, int partitions) {
         try {
-            // Используем AdminClient для создания топика
             Map<String, Object> config = new HashMap<>();
             config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:29093");
 
             try (AdminClient adminClient = AdminClient.create(config)) {
                 NewTopic newTopic = new NewTopic(topicName, partitions, (short) 1);
                 CreateTopicsResult result = adminClient.createTopics(Collections.singleton(newTopic));
-                result.all().get(30, TimeUnit.SECONDS);
+                result.all().get(30, java.util.concurrent.TimeUnit.SECONDS);
                 log.info("Created topic: {}", topicName);
             }
         } catch (Exception e) {
@@ -2214,102 +2228,314 @@ public class KafkaIntegrationTest extends BaseIntegrationTest {
     @Test
     @DisplayName("Should process HealthCheckCommand and return response")
     void shouldProcessHealthCheckCommand() {
-    // Given
-    String correlationId = UUID.randomUUID().toString();
-    HealthCheckCommand command = HealthCheckCommand.builder()
-    .correlationId(correlationId)
-    .sourceService("test-service")
-    .replyTopic(replyTopic)
-    .build();
+        // Given
+        String correlationId = UUID.randomUUID().toString();
+        HealthCheckCommand command = HealthCheckCommand.builder()
+                .correlationId(correlationId)
+                .sourceService("test-service")
+                .replyTopic(replyTopic)
+                .build();
 
-    log.info("Sending HealthCheckCommand with correlationId: {} to replyTopic:{}",
-    correlationId, replyTopic);
+        log.info("Sending HealthCheckCommand with correlationId: {} to replyTopic: {}",
+                correlationId, replyTopic);
 
-    // When
-    kafkaTemplate.send("auth.commands", correlationId, command);
-    kafkaTemplate.flush();
+        // When
+        kafkaTemplate.send("auth.commands", correlationId, command);
+        kafkaTemplate.flush();
 
-    // Then
-    await().atMost(Duration.ofSeconds(30))
-    .pollInterval(Duration.ofMillis(500))
-    .untilAsserted(() -> {
-    ConsumerRecords<String, Object> records =
-    responseConsumer.poll(Duration.ofMillis(2000));
-    log.info("Polled {} records from topic: {}", records.count(), replyTopic);
+        // Then
+        await().atMost(Duration.ofSeconds(30))
+                .pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> {
+                    ConsumerRecords<String, Object> records = responseConsumer.poll(Duration.ofMillis(2000));
+                    log.info("Polled {} records from topic: {}", records.count(), replyTopic);
 
-    assertThat(records).isNotEmpty();
+                    assertThat(records).isNotEmpty();
 
-    // Ищем запись с нашим correlationId
-    boolean found = false;
-    for (ConsumerRecord<String, Object> record : records) {
-    log.info("Checking record - key: {}, value type: {}",
-    record.key(), record.value() != null ?
-    record.value().getClass().getSimpleName() : "null");
+                    boolean found = false;
+                    for (ConsumerRecord<String, Object> record : records) {
+                        log.info("Checking record - key: {}, value type: {}",
+                                record.key(), record.value() != null ?
+                                        record.value().getClass().getSimpleName() : "null");
 
-    if (record.key().equals(correlationId) && record.value() instanceof
-    HealthCheckResponse) {
-    HealthCheckResponse response = (HealthCheckResponse) record.value();
-    log.info("Found matching response: correlationId={}, success={}",
-    response.getCorrelationId(), response.isSuccess());
+                        if (record.key().equals(correlationId) && record.value() instanceof HealthCheckResponse) {
+                            HealthCheckResponse response = (HealthCheckResponse) record.value();
+                            log.info("Found matching response: correlationId={}, success={}",
+                                    response.getCorrelationId(), response.isSuccess());
 
-    assertThat(response.getCorrelationId()).isEqualTo(correlationId);
-    assertThat(response.isSuccess()).isTrue();
-    assertThat(response.getHealthStatus()).isNotNull();
-    assertThat(response.getHealthStatus().get("status")).isEqualTo("OK");
-    assertThat(response.getHealthStatus().get("service")).isEqualTo("auth-service");
-    found = true;
-    break;
-    }
-    }
+                            assertThat(response.getCorrelationId()).isEqualTo(correlationId);
+                            assertThat(response.isSuccess()).isTrue();
+                            assertThat(response.getHealthStatus()).isNotNull();
+                            assertThat(response.getHealthStatus().get("status")).isEqualTo("OK");
+                            assertThat(response.getHealthStatus().get("service")).isEqualTo("auth-service");
+                            found = true;
+                            break;
+                        }
+                    }
 
-    assertThat(found).withFailMessage("Response with correlationId %s not found",
-    correlationId).isTrue();
-    });
+                    assertThat(found).withFailMessage("Response with correlationId %s not found", correlationId).isTrue();
+                });
 
-    log.info("Successfully processed HealthCheckCommand with correlationId: {}",
-    correlationId);
+        log.info("Successfully processed HealthCheckCommand with correlationId: {}", correlationId);
     }
 
     @Test
-    @DisplayName("Should handle multiple HealthCheckCommands")
-    void shouldHandleMultipleHealthCheckCommands() {
+    @DisplayName("Should validate access token successfully via Kafka")
+    void shouldValidateAccessTokenSuccessfullyViaKafka() {
+        // Given - получаем валидный access token
+        var tokens = authService.authorizeByEmail(testEmail, testClient.getPassword());
+        String validAccessToken = tokens.getFirst().getToken();
+        
+        String correlationId = UUID.randomUUID().toString();
+        ValidateTokenCommand command = ValidateTokenCommand.builder()
+                .correlationId(correlationId)
+                .sourceService("test-service")
+                .replyTopic(replyTopic)
+                .token(validAccessToken)
+                .tokenType(ValidateTokenCommand.TokenType.ACCESS)
+                .build();
+
+        log.info("Sending ValidateTokenCommand for access token with correlationId: {}", correlationId);
+
+        // When
+        kafkaTemplate.send("auth.commands", correlationId, command);
+        kafkaTemplate.flush();
+
+        // Then
+        await().atMost(Duration.ofSeconds(30))
+                .pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> {
+                    ConsumerRecords<String, Object> records = responseConsumer.poll(Duration.ofMillis(2000));
+                    
+                    boolean found = false;
+                    for (ConsumerRecord<String, Object> record : records) {
+                        if (record.key().equals(correlationId) && record.value() instanceof TokenValidationResponse) {
+                            TokenValidationResponse response = (TokenValidationResponse) record.value();
+                            log.info("Found token validation response: correlationId={}, isValid={}, clientUid={}",
+                                    response.getCorrelationId(), response.isValid(), response.getClientUid());
+
+                            assertThat(response.getCorrelationId()).isEqualTo(correlationId);
+                            assertThat(response.isSuccess()).isTrue();
+                            assertThat(response.isValid()).isTrue();
+                            assertThat(response.getClientUid()).isEqualTo(testClient.getUid());
+                            assertThat(response.getTokenType()).isEqualTo("ACCESS");
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    assertThat(found).withFailMessage("Token validation response with correlationId %s not found", correlationId).isTrue();
+                });
+
+        log.info("Successfully validated access token via Kafka with correlationId: {}", correlationId);
+    }
+
+    @Test
+    @DisplayName("Should reject invalid access token via Kafka")
+    void shouldRejectInvalidAccessTokenViaKafka() {
+        // Given
+        String invalidToken = "invalid.token.string";
+        String correlationId = UUID.randomUUID().toString();
+        ValidateTokenCommand command = ValidateTokenCommand.builder()
+                .correlationId(correlationId)
+                .sourceService("test-service")
+                .replyTopic(replyTopic)
+                .token(invalidToken)
+                .tokenType(ValidateTokenCommand.TokenType.ACCESS)
+                .build();
+
+        log.info("Sending ValidateTokenCommand for invalid token with correlationId: {}", correlationId);
+
+        // When
+        kafkaTemplate.send("auth.commands", correlationId, command);
+        kafkaTemplate.flush();
+
+        // Then
+        await().atMost(Duration.ofSeconds(30))
+                .pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> {
+                    ConsumerRecords<String, Object> records = responseConsumer.poll(Duration.ofMillis(2000));
+                    
+                    boolean found = false;
+                    for (ConsumerRecord<String, Object> record : records) {
+                        if (record.key().equals(correlationId) && record.value() instanceof TokenValidationResponse) {
+                            TokenValidationResponse response = (TokenValidationResponse) record.value();
+                            log.info("Found token validation response for invalid token: correlationId={}, success={}, isValid={}",
+                                    response.getCorrelationId(), response.isSuccess(), response.isValid());
+
+                            // Может быть либо success=false, либо success=true но isValid=false
+                            if (!response.isSuccess() || (response.isSuccess() && !response.isValid())) {
+                                assertThat(response.getCorrelationId()).isEqualTo(correlationId);
+                                assertThat(response.isValid()).isFalse();
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    assertThat(found).withFailMessage("Token validation response for invalid token with correlationId %s not found", correlationId).isTrue();
+                });
+
+        log.info("Successfully rejected invalid access token via Kafka with correlationId: {}", correlationId);
+    }
+
+    @Test
+    @DisplayName("Should validate refresh token successfully via Kafka")
+    void shouldValidateRefreshTokenSuccessfullyViaKafka() {
+        // Given - получаем валидный refresh token
+        var tokens = authService.authorizeByEmail(testEmail, testClient.getPassword());
+        String validRefreshToken = tokens.getSecond().getToken();
+        
+        String correlationId = UUID.randomUUID().toString();
+        ValidateTokenCommand command = ValidateTokenCommand.builder()
+                .correlationId(correlationId)
+                .sourceService("test-service")
+                .replyTopic(replyTopic)
+                .token(validRefreshToken)
+                .tokenType(ValidateTokenCommand.TokenType.REFRESH)
+                .build();
+
+        log.info("Sending ValidateTokenCommand for refresh token with correlationId: {}", correlationId);
+
+        // When
+        kafkaTemplate.send("auth.commands", correlationId, command);
+        kafkaTemplate.flush();
+
+        // Then
+        await().atMost(Duration.ofSeconds(30))
+                .pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> {
+                    ConsumerRecords<String, Object> records = responseConsumer.poll(Duration.ofMillis(2000));
+                    
+                    boolean found = false;
+                    for (ConsumerRecord<String, Object> record : records) {
+                        if (record.key().equals(correlationId) && record.value() instanceof TokenValidationResponse) {
+                            TokenValidationResponse response = (TokenValidationResponse) record.value();
+                            log.info("Found refresh token validation response: correlationId={}, isValid={}, clientUid={}",
+                                    response.getCorrelationId(), response.isValid(), response.getClientUid());
+
+                            assertThat(response.getCorrelationId()).isEqualTo(correlationId);
+                            assertThat(response.isSuccess()).isTrue();
+                            assertThat(response.isValid()).isTrue();
+                            assertThat(response.getClientUid()).isEqualTo(testClient.getUid());
+                            assertThat(response.getTokenType()).isEqualTo("REFRESH");
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    assertThat(found).withFailMessage("Refresh token validation response with correlationId %s not found", correlationId).isTrue();
+                });
+
+        log.info("Successfully validated refresh token via Kafka with correlationId: {}", correlationId);
+    }
+
+    @Test
+    @DisplayName("Should handle expired refresh token via Kafka")
+    void shouldHandleExpiredRefreshTokenViaKafka() {
+        // Given - создаем expired refresh token
+        RefreshTokenBLM expiredToken = AuthObjectMother.createExpiredRefreshTokenBLM();
+        String expiredTokenString = expiredToken.getToken();
+        
+        String correlationId = UUID.randomUUID().toString();
+        ValidateTokenCommand command = ValidateTokenCommand.builder()
+                .correlationId(correlationId)
+                .sourceService("test-service")
+                .replyTopic(replyTopic)
+                .token(expiredTokenString)
+                .tokenType(ValidateTokenCommand.TokenType.REFRESH)
+                .build();
+
+        log.info("Sending ValidateTokenCommand for expired refresh token with correlationId: {}", correlationId);
+
+        // When
+        kafkaTemplate.send("auth.commands", correlationId, command);
+        kafkaTemplate.flush();
+
+        // Then
+        await().atMost(Duration.ofSeconds(30))
+                .pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> {
+                    ConsumerRecords<String, Object> records = responseConsumer.poll(Duration.ofMillis(2000));
+                    
+                    boolean found = false;
+                    for (ConsumerRecord<String, Object> record : records) {
+                        if (record.key().equals(correlationId) && record.value() instanceof TokenValidationResponse) {
+                            TokenValidationResponse response = (TokenValidationResponse) record.value();
+                            log.info("Found expired token validation response: correlationId={}, success={}, isValid={}",
+                                    response.getCorrelationId(), response.isSuccess(), response.isValid());
+
+                            // Для expired token ожидаем либо ошибку, либо invalid результат
+                            if (!response.isSuccess() || (response.isSuccess() && !response.isValid())) {
+                                assertThat(response.getCorrelationId()).isEqualTo(correlationId);
+                                assertThat(response.isValid()).isFalse();
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    assertThat(found).withFailMessage("Expired token validation response with correlationId %s not found", correlationId).isTrue();
+                });
+
+        log.info("Successfully handled expired refresh token via Kafka with correlationId: {}", correlationId);
+    }
+
+    @Test
+    @DisplayName("Should handle multiple concurrent commands")
+    void shouldHandleMultipleConcurrentCommands() {
         // Given
         String correlationId1 = UUID.randomUUID().toString();
         String correlationId2 = UUID.randomUUID().toString();
+        String correlationId3 = UUID.randomUUID().toString();
 
-        HealthCheckCommand command1 = HealthCheckCommand.builder()
+        HealthCheckCommand healthCommand = HealthCheckCommand.builder()
                 .correlationId(correlationId1)
-                .sourceService("test-service")
+                .sourceService("concurrent-test")
                 .replyTopic(replyTopic)
                 .build();
 
-        HealthCheckCommand command2 = HealthCheckCommand.builder()
+        // Получаем валидный токен для теста
+        var tokens = authService.authorizeByEmail(testEmail, testClient.getPassword());
+        String validToken = tokens.getFirst().getToken();
+
+        ValidateTokenCommand tokenCommand1 = ValidateTokenCommand.builder()
                 .correlationId(correlationId2)
-                .sourceService("test-service")
+                .sourceService("concurrent-test")
                 .replyTopic(replyTopic)
+                .token(validToken)
+                .tokenType(ValidateTokenCommand.TokenType.ACCESS)
                 .build();
 
-        log.info("Sending multiple commands with correlationIds: {}, {} to replyTopic: {}",
-                correlationId1, correlationId2, replyTopic);
+        ValidateTokenCommand tokenCommand2 = ValidateTokenCommand.builder()
+                .correlationId(correlationId3)
+                .sourceService("concurrent-test")
+                .replyTopic(replyTopic)
+                .token("invalid.token")
+                .tokenType(ValidateTokenCommand.TokenType.ACCESS)
+                .build();
+
+        log.info("Sending multiple concurrent commands with correlationIds: {}, {}, {}",
+                correlationId1, correlationId2, correlationId3);
 
         // When
-        kafkaTemplate.send("auth.commands", correlationId1, command1);
-        kafkaTemplate.send("auth.commands", correlationId2, command2);
+        kafkaTemplate.send("auth.commands", correlationId1, healthCommand);
+        kafkaTemplate.send("auth.commands", correlationId2, tokenCommand1);
+        kafkaTemplate.send("auth.commands", correlationId3, tokenCommand2);
         kafkaTemplate.flush();
 
-        // Then - используем аккумулятивную проверку
-        Map<String, HealthCheckResponse> receivedResponses = new ConcurrentHashMap<>();
+        // Then
+        Map<String, Object> receivedResponses = new ConcurrentHashMap<>();
 
         await().atMost(Duration.ofSeconds(30))
-                .pollInterval(Duration.ofMillis(500))
+                .pollInterval(Duration.ofMillis(100))
                 .untilAsserted(() -> {
                     ConsumerRecords<String, Object> records = responseConsumer.poll(Duration.ofMillis(2000));
                     log.info("Polled {} records from topic: {}", records.count(), replyTopic);
 
                     for (ConsumerRecord<String, Object> record : records) {
-                        if (record.value() instanceof HealthCheckResponse) {
-                            HealthCheckResponse response = (HealthCheckResponse) record.value();
-                            receivedResponses.put(record.key(), response);
+                        if (record.value() instanceof HealthCheckResponse || record.value() instanceof TokenValidationResponse) {
+                            receivedResponses.put(record.key(), record.value());
                             log.info("Received response for correlationId: {}, total received: {}",
                                     record.key(), receivedResponses.size());
                         }
@@ -2321,92 +2547,83 @@ public class KafkaIntegrationTest extends BaseIntegrationTest {
                     }
 
                     // Проверяем аккумулятивно - получили ли мы ВСЕ ожидаемые сообщения
-                    assertThat(receivedResponses).hasSize(2);
-                    assertThat(receivedResponses).containsKeys(correlationId1, correlationId2);
+                    assertThat(receivedResponses).hasSize(3);
+                    assertThat(receivedResponses).containsKeys(correlationId1, correlationId2, correlationId3);
 
                     // Проверяем каждый ответ
-                    HealthCheckResponse response1 = receivedResponses.get(correlationId1);
-                    HealthCheckResponse response2 = receivedResponses.get(correlationId2);
+                    Object response1 = receivedResponses.get(correlationId1);
+                    Object response2 = receivedResponses.get(correlationId2);
+                    Object response3 = receivedResponses.get(correlationId3);
 
-                    assertThat(response1).isNotNull();
-                    assertThat(response1.isSuccess()).isTrue();
-                    assertThat(response1.getCorrelationId()).isEqualTo(correlationId1);
+                    assertThat(response1).isInstanceOf(HealthCheckResponse.class);
+                    HealthCheckResponse healthResponse = (HealthCheckResponse) response1;
+                    assertThat(healthResponse.isSuccess()).isTrue();
 
-                    assertThat(response2).isNotNull();
-                    assertThat(response2.isSuccess()).isTrue();
-                    assertThat(response2.getCorrelationId()).isEqualTo(correlationId2);
+                    assertThat(response2).isInstanceOf(TokenValidationResponse.class);
+                    TokenValidationResponse tokenResponse1 = (TokenValidationResponse) response2;
+                    assertThat(tokenResponse1.isSuccess()).isTrue();
+                    assertThat(tokenResponse1.isValid()).isTrue();
+
+                    assertThat(response3).isInstanceOf(TokenValidationResponse.class);
+                    TokenValidationResponse tokenResponse2 = (TokenValidationResponse) response3;
+                    // Для invalid token ожидаем либо ошибку, либо invalid результат
+                    assertThat(tokenResponse2.isValid()).isFalse();
                 });
 
-        log.info("Successfully handled multiple HealthCheckCommands. Total responses received: {}",
+        log.info("Successfully handled multiple concurrent commands. Total responses received: {}",
                 receivedResponses.size());
     }
 
     @Test
-    @DisplayName("Should handle commands sequentially")
-    void shouldHandleCommandsSequentially() {
-        // First command
-        String correlationId1 = UUID.randomUUID().toString();
-        HealthCheckCommand command1 = HealthCheckCommand.builder()
-                .correlationId(correlationId1)
-                .sourceService("sequential-test-1")
-                .replyTopic(replyTopic)
-                .build();
+    @DisplayName("Should handle malformed commands gracefully")
+    void shouldHandleMalformedCommandsGracefully() {
+        // Given - отправляем некорректное сообщение
+        String correlationId = UUID.randomUUID().toString();
+        
+        // Создаем объект с неправильной структурой
+        Map<String, Object> malformedCommand = new HashMap<>();
+        malformedCommand.put("type", "UNKNOWN_COMMAND");
+        malformedCommand.put("correlationId", correlationId);
+        malformedCommand.put("invalidField", "invalidValue");
 
-        log.info("Sending first command with correlationId: {}", correlationId1);
+        log.info("Sending malformed command with correlationId: {}", correlationId);
 
-        kafkaTemplate.send("auth.commands", correlationId1, command1);
+        // When
+        kafkaTemplate.send("auth.commands", correlationId, malformedCommand);
         kafkaTemplate.flush();
 
-        // Wait for first response
-        await().atMost(Duration.ofSeconds(15))
-                .pollInterval(Duration.ofMillis(500))
+        // Then - сервис должен обработать это без падения
+        // Мы не ожидаем ответа, но сервис не должен упасть
+        await().atMost(Duration.ofSeconds(10))
+                .pollDelay(Duration.ofSeconds(2))
                 .untilAsserted(() -> {
+                    // Просто проверяем что сервис жив, отправляя health check
+                    String healthCorrelationId = UUID.randomUUID().toString();
+                    HealthCheckCommand healthCommand = HealthCheckCommand.builder()
+                            .correlationId(healthCorrelationId)
+                            .sourceService("recovery-test")
+                            .replyTopic(replyTopic)
+                            .build();
+
+                    kafkaTemplate.send("auth.commands", healthCorrelationId, healthCommand);
+                    kafkaTemplate.flush();
+
                     ConsumerRecords<String, Object> records = responseConsumer.poll(Duration.ofMillis(2000));
+                    
                     boolean found = false;
                     for (ConsumerRecord<String, Object> record : records) {
-                        if (record.key().equals(correlationId1) && record.value() instanceof HealthCheckResponse) {
+                        if (record.key().equals(healthCorrelationId) && record.value() instanceof HealthCheckResponse) {
                             HealthCheckResponse response = (HealthCheckResponse) record.value();
                             assertThat(response.isSuccess()).isTrue();
                             found = true;
                             break;
                         }
                     }
-                    assertThat(found).isTrue();
+
+                    assertThat(found).withFailMessage("Service did not recover from malformed command").isTrue();
                 });
 
-        log.info("First command processed successfully");
-
-        // Second command
-        String correlationId2 = UUID.randomUUID().toString();
-        HealthCheckCommand command2 = HealthCheckCommand.builder()
-                .correlationId(correlationId2)
-                .sourceService("sequential-test-2")
-                .replyTopic(replyTopic)
-                .build();
-
-        log.info("Sending second command with correlationId: {}", correlationId2);
-
-        kafkaTemplate.send("auth.commands", correlationId2, command2);
-        kafkaTemplate.flush();
-
-        // Wait for second response
-        await().atMost(Duration.ofSeconds(15))
-                .pollInterval(Duration.ofMillis(500))
-                .untilAsserted(() -> {
-                    ConsumerRecords<String, Object> records = responseConsumer.poll(Duration.ofMillis(2000));
-                    boolean found = false;
-                    for (ConsumerRecord<String, Object> record : records) {
-                        if (record.key().equals(correlationId2) && record.value() instanceof HealthCheckResponse) {
-                            HealthCheckResponse response = (HealthCheckResponse) record.value();
-                            assertThat(response.isSuccess()).isTrue();
-                            found = true;
-                            break;
-                        }
-                    }
-                    assertThat(found).isTrue();
-                });
-
-        log.info("Second command processed successfully");
+        log.info("Service successfully handled malformed command without crashing");
     }
 }package com.service.auth.integration;
 

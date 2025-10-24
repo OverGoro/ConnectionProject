@@ -7,6 +7,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -26,7 +28,12 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TypedAuthKafkaClient {
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    @Autowired
+    private KafkaTemplate<String, Object> kafkaTemplate;
+
+    @Value("${app.kafka.topics.auth-commands:auth.commands}")
+    private String authCommandsTopic;
+
     
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
     
@@ -94,7 +101,7 @@ public class TypedAuthKafkaClient {
             }
         });
 
-        kafkaTemplate.send(AuthEventConstants.AUTH_COMMANDS_TOPIC, correlationId, command)
+        kafkaTemplate.send(authCommandsTopic, correlationId, command)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
                         future.completeExceptionally(ex);
@@ -102,7 +109,7 @@ public class TypedAuthKafkaClient {
                         log.error("Failed to send auth command: {}", ex.getMessage());
                     } else {
                         log.info("Auth command sent successfully: correlationId={}, topic={}", 
-                                correlationId, AuthEventConstants.AUTH_COMMANDS_TOPIC);
+                                correlationId, authCommandsTopic);
                     }
                 });
 
@@ -135,6 +142,7 @@ public class TypedAuthKafkaClient {
     
     // 👇 Геттер для получения уникального топика инстанса
     public String getInstanceReplyTopic() {
+        log.info("Got teply topic: " + instanceReplyTopic);
         return instanceReplyTopic;
     }
 }

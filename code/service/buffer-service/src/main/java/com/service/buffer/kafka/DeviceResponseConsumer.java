@@ -1,6 +1,7 @@
 package com.service.buffer.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -21,8 +22,10 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class DeviceResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
 
-    private final TypedDeviceKafkaClient deviceKafkaClient;
-    private final KafkaListenerEndpointRegistry registry;
+    @Autowired
+    private TypedDeviceKafkaClient deviceKafkaClient;
+    @Autowired
+    private KafkaListenerEndpointRegistry registry;
 
     @KafkaListener(id = "dynamicDeviceListener", 
                    topics = "#{@typedDeviceKafkaClient.getInstanceReplyTopic()}")

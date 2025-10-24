@@ -21,6 +21,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 import com.connection.device.model.DeviceDTO;
@@ -60,7 +62,14 @@ public abstract class BaseBufferIntegrationTest {
     @Qualifier("BufferJdbcTemplate")
     protected NamedParameterJdbcTemplate bufferJdbcTemplate;
 
-    protected final Map<String, String> testData = new ConcurrentHashMap();
+    @DynamicPropertySource
+    static void configureKafkaTopics(DynamicPropertyRegistry registry) {
+        registry.add("app.kafka.topics.auth-commands", TestTopicUtils::getTestAuthCommandsTopic);
+        registry.add("app.kafka.topics.connection-scheme-commands", TestTopicUtils::getTestConnectionSchemeCommandsTopic);
+        registry.add("app.kafka.topics.device-commands", TestTopicUtils::getTestDeviceCommandsTopic);
+    }
+
+    protected final Map<String, String> testData = new ConcurrentHashMap<>();
     protected UUID testClientUid;
 
     @BeforeEach
@@ -68,6 +77,9 @@ public abstract class BaseBufferIntegrationTest {
         checkConfig();
         testClientUid = UUID.randomUUID();
 
+        // Инициализируем testData перед использованием
+        testData.clear();
+        
         // Очищаем тестовые данные перед каждым тестом
         testDeviceResponder.clearTestData();
         testConnectionSchemeResponder.clearTestData();
@@ -260,5 +272,68 @@ public abstract class BaseBufferIntegrationTest {
 
     protected UUID getTestClientUid() {
         return testClientUid;
+    }
+
+    /**
+     * Генерирует уникальное имя темы для тестов
+     */
+    protected String generateUniqueTopic(String baseTopicName) {
+        return baseTopicName + ".test." + UUID.randomUUID().toString();
+    }
+
+    /**
+     * Получает уникальную тему для device commands в тестах
+     */
+    protected String getTestDeviceCommandsTopic() {
+        return environment.getProperty("app.kafka.topics.device-commands-test",
+                "device.commands.test." + UUID.randomUUID().toString());
+    }
+
+    /**
+     * Получает уникальную тему для connection scheme commands в тестах
+     */
+    protected String getTestConnectionSchemeCommandsTopic() {
+        return environment.getProperty("app.kafka.topics.connection-scheme-commands-test",
+                "scheme.commands.test." + UUID.randomUUID().toString());
+    }
+
+    /**
+     * Настраивает тестовые темы Kafka перед выполнением теста
+     */
+    protected void setupTestKafkaTopics() {
+        // Сохраняем оригинальные значения тем
+        testData.put("original.device-commands",
+                environment.getProperty("app.kafka.topics.device-commands"));
+        testData.put("original.connection-scheme-commands",
+                environment.getProperty("app.kafka.topics.connection-scheme-commands"));
+
+        // Генерируем уникальные темы для теста
+        String testDeviceTopic = getTestDeviceCommandsTopic();
+        String testSchemeTopic = getTestConnectionSchemeCommandsTopic();
+
+        // Устанавливаем системные свойства для переопределения тем в runtime
+        System.setProperty("app.kafka.topics.device-commands", testDeviceTopic);
+        System.setProperty("app.kafka.topics.connection-scheme-commands", testSchemeTopic);
+
+        log.info("✅ Test Kafka topics setup - Device: {}, Scheme: {}",
+                testDeviceTopic, testSchemeTopic);
+    }
+
+    /**
+     * Восстанавливает оригинальные темы Kafka после теста
+     */
+    protected void restoreOriginalKafkaTopics() {
+        // Восстанавливаем оригинальные значения
+        String originalDeviceTopic = testData.get("original.device-commands");
+        String originalSchemeTopic = testData.get("original.connection-scheme-commands");
+
+        if (originalDeviceTopic != null) {
+            System.setProperty("app.kafka.topics.device-commands", originalDeviceTopic);
+        }
+        if (originalSchemeTopic != null) {
+            System.setProperty("app.kafka.topics.connection-scheme-commands", originalSchemeTopic);
+        }
+
+        log.info("✅ Original Kafka topics restored");
     }
 }

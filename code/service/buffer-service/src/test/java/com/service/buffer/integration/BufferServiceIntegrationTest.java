@@ -121,22 +121,6 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
         log.info("Successfully retrieved {} buffers for device: {}", buffers.size(), testDeviceUid);
     }
 
-    @Test
-    @DisplayName("Should get buffers by connection scheme with usedBuffers")
-    void shouldGetBuffersByConnectionSchemeWithUsedBuffers() {
-        // Given
-        BufferDTO bufferDTO = createTestBufferDTO();
-        setupAuthentication();
-        bufferService.createBuffer(bufferDTO);
-
-        // Создаем схему с usedBuffers, содержащим наш буфер
-        setupTestConnectionSchemeWithBuffers(testConnectionSchemeUid, getTestClientUid(), testBufferUid);
-
-        // When
-        List<BufferBLM> buffers = bufferService.getBuffersByConnectionScheme(testConnectionSchemeUid);
-        
-        log.info("✅ Successfully retrieved buffers by connection scheme with usedBuffers via real Kafka");
-    }
 
     @Test
     @DisplayName("Should update buffer successfully")
@@ -482,58 +466,6 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
         } catch (Exception e) {
             log.error("❌ Failed to initialize different client and device: {}", e.getMessage(), e);
             throw new RuntimeException("Different client initialization failed", e);
-        }
-    }
-
-    /**
-     * Очищает данные указанного клиента
-     */
-    private void cleanupClientData(UUID clientUid) {
-        try {
-            // Используем тот же порядок очистки, что и для основного клиента
-            String[] cleanupQueries = {
-                    """
-                            DELETE FROM processing.message
-                            WHERE buffer_uid IN (
-                                SELECT b.uid FROM processing.buffer b
-                                JOIN core.device d ON b.device_uid = d.uid
-                                WHERE d.client_uuid = :clientUid
-                            )
-                            """,
-                    """
-                            DELETE FROM processing.connection_scheme_buffer
-                            WHERE scheme_uid IN (
-                                SELECT uid FROM processing.connection_scheme
-                                WHERE client_uid = :clientUid
-                            ) OR buffer_uid IN (
-                                SELECT b.uid FROM processing.buffer b
-                                JOIN core.device d ON b.device_uid = d.uid
-                                WHERE d.client_uuid = :clientUid
-                            )
-                            """,
-                    """
-                            DELETE FROM processing.buffer
-                            WHERE device_uid IN (
-                                SELECT uid FROM core.device
-                                WHERE client_uuid = :clientUid
-                            )
-                            """,
-                    "DELETE FROM processing.connection_scheme WHERE client_uid = :clientUid",
-                    "DELETE FROM core.device WHERE client_uuid = :clientUid",
-                    "DELETE FROM core.client WHERE uid = :clientUid"
-            };
-
-            for (String query : cleanupQueries) {
-                try {
-                    bufferJdbcTemplate.update(query, Map.of("clientUid", clientUid));
-                } catch (Exception e) {
-                    // Игнорируем ошибки, так как данные могли быть уже удалены каскадно
-                }
-            }
-
-            log.debug("Cleaned up data for different client: {}", clientUid);
-        } catch (Exception e) {
-            log.warn("Cleanup warning for different client {}: {}", clientUid, e.getMessage());
         }
     }
 

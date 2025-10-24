@@ -19,7 +19,7 @@ import com.connection.device.model.DeviceDTO;
 import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
 import com.connection.processing.buffer.model.BufferBLM;
-import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferBLM;
 import com.connection.processing.buffer.model.BufferDTO;
 import com.connection.processing.buffer.repository.BufferRepository;
 import com.connection.processing.buffer.validator.BufferValidator;
@@ -65,9 +65,7 @@ public class ApiBufferServiceImpl implements BufferService {
             throw new BufferAlreadyExistsException(
                     "Buffer with UID '" + bufferBLM.getUid() + "' already exists");
         }
-
-        BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
-        bufferRepository.add(bufferDALM);
+        bufferRepository.add(bufferBLM);
 
         log.info("Buffer created: {} for device: {}", bufferBLM.getUid(), bufferBLM.getDeviceUid());
         return bufferBLM;
@@ -76,13 +74,13 @@ public class ApiBufferServiceImpl implements BufferService {
     @Override
     public BufferBLM getBufferByUid(UUID bufferUid) {
         UUID clientUid = SecurityUtils.getCurrentClientUid();
-        BufferDALM bufferDALM = bufferRepository.findByUid(bufferUid);
+        BufferBLM bufferBLM = bufferRepository.findByUid(bufferUid);
 
-        if (!deviceKafkaClient.deviceExistsAndBelongsToClient(bufferDALM.getDeviceUid(), clientUid)) {
+        if (!deviceKafkaClient.deviceExistsAndBelongsToClient(bufferBLM.getDeviceUid(), clientUid)) {
             throw new SecurityException("Buffer doesn't exist or doesn't belong to the authenticated client");
         }
 
-        return bufferConverter.toBLM(bufferDALM);
+        return bufferBLM;
     }
 
     @Override
@@ -137,8 +135,8 @@ public class ApiBufferServiceImpl implements BufferService {
             throw new SecurityException("Device doesn't belong to the authenticated client");
         }
 
-        List<BufferDALM> bufferDALMs = bufferRepository.findByDeviceUid(deviceUid);
-        return bufferDALMs.stream().map(bufferConverter::toBLM).collect(Collectors.toList());
+        List<BufferBLM> bufferBLMs = bufferRepository.findByDeviceUid(deviceUid);
+        return bufferBLMs;
     }
 
     @Override
@@ -148,10 +146,8 @@ public class ApiBufferServiceImpl implements BufferService {
             throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
         }
 
-        List<BufferDALM> buffersDALM = bufferRepository.findByConnectionSchemeUid(connectionSchemeUid);
-        return buffersDALM.stream()
-                .map(bufferConverter::toBLM)
-                .collect(Collectors.toList());
+        List<BufferBLM> buffersBLM = bufferRepository.findByConnectionSchemeUid(connectionSchemeUid);
+        return buffersBLM;
     }
 
     @Override
@@ -159,7 +155,7 @@ public class ApiBufferServiceImpl implements BufferService {
         UUID clientUid = SecurityUtils.getCurrentClientUid();
         bufferValidator.validate(bufferDTO);
 
-        BufferDALM existingBuffer = bufferRepository.findByUid(bufferUid);
+        BufferBLM existingBuffer = bufferRepository.findByUid(bufferUid);
 
         if (!deviceKafkaClient.deviceExistsAndBelongsToClient(existingBuffer.getDeviceUid(), clientUid)) {
             throw new SecurityException("Buffer doesn't exist or doesn't belong to the authenticated client");
@@ -175,8 +171,7 @@ public class ApiBufferServiceImpl implements BufferService {
             throw new IllegalArgumentException("Cannot change buffer UID");
         }
 
-        BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
-        bufferRepository.update(bufferDALM);
+        bufferRepository.update(bufferBLM);
 
         log.info("Buffer updated: {} for device: {}", bufferUid, bufferBLM.getDeviceUid());
         return bufferBLM;
@@ -185,7 +180,7 @@ public class ApiBufferServiceImpl implements BufferService {
     @Override
     public void deleteBuffer(UUID bufferUid) {
         UUID clientUid = SecurityUtils.getCurrentClientUid();
-        BufferDALM existingBuffer = bufferRepository.findByUid(bufferUid);
+        BufferBLM existingBuffer = bufferRepository.findByUid(bufferUid);
 
         if (!deviceKafkaClient.deviceExistsAndBelongsToClient(existingBuffer.getDeviceUid(), clientUid)) {
             throw new SecurityException("Buffer doesn't exist or doesn't belong to the authenticated client");
@@ -203,7 +198,7 @@ public class ApiBufferServiceImpl implements BufferService {
         }
 
         try {
-            BufferDALM buffer = bufferRepository.findByUid(bufferUid);
+            BufferBLM buffer = bufferRepository.findByUid(bufferUid);
             return deviceKafkaClient.deviceExistsAndBelongsToClient(buffer.getDeviceUid(), clientUid);
         } catch (Exception e) {
             return false;
@@ -383,7 +378,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.atomikos.jdbc.AtomikosDataSourceBean;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Configuration
+@Slf4j
 public class BufferJDBCConfig {
     
     @Value("${app.datasource.buffer.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
@@ -403,6 +401,10 @@ public class BufferJDBCConfig {
 
     @Bean("BufferDataSource")
     DataSource bufferDataSource() {
+        log.info("url: " + jdbcUrl);
+        log.info("user: " + username);
+        log.info("password: " + password);
+
         AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
         dataSource.setUniqueResourceName(uniqueResourceName);
         dataSource.setXaDataSourceClassName(xaDataSourceClassName);
@@ -517,31 +519,41 @@ public class BufferKafkaConfig {
         configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-        
-        // Конфигурация для ErrorHandlingDeserializer
-        configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, org.apache.kafka.common.serialization.StringDeserializer.class);
-        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
-        
         // Конфигурация для JsonDeserializer
-        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "com.connection.auth.events.commands,com.connection.common.events,com.connection.buffer.events.commands,com.connection.auth.events.responses,com.connection.device.events.commands,com.connection.scheme.events.commands");
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES,
+                "com.connection.auth.events.commands," +
+                        "com.connection.auth.events.responses," +
+                        "com.connection.common.events," +
+                        "com.connection.buffer.events.commands," +
+                        "com.connection.buffer.events.responses," +
+                        "com.connection.device.events.commands," +
+                        "com.connection.device.events.responses," +
+                        "com.connection.scheme.events.commands," +
+                        "com.connection.scheme.events.responses");
+        // Конфигурация для ErrorHandlingDeserializer
+        configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS,
+                org.apache.kafka.common.serialization.StringDeserializer.class);
+        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
+
+
         configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
         configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
         configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");
-        
+
         return new DefaultKafkaConsumerFactory<>(configProps);
     }
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, Object> factory = 
-            new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
-        
+
         // Обработка ошибок десериализации - пропускаем некорректные сообщения
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(
                 (record, exception) -> {
                     org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("KafkaErrorHandler");
-                    logger.error("Skipping invalid message - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}, {}",
+                    logger.error(
+                            "Skipping invalid message - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}, {}",
                             record.topic(),
                             record.partition(),
                             record.offset(),
@@ -549,11 +561,10 @@ public class BufferKafkaConfig {
                             exception.getMessage(),
                             exception.toString());
                 },
-                new FixedBackOff(0L, 0L)
-        );
+                new FixedBackOff(0L, 0L));
 
         factory.setCommonErrorHandler(errorHandler);
-        
+
         return factory;
     }
 
@@ -562,7 +573,8 @@ public class BufferKafkaConfig {
     public ProducerFactory<String, Object> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.StringSerializer.class);
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                org.apache.kafka.common.serialization.StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
         return new DefaultKafkaProducerFactory<>(configProps);
@@ -881,14 +893,20 @@ public class BufferController {
             log.info("Getting all buffers for client with offset: {}, limit: {}", offset, limit);
             buffers = bufferService.getBuffersByClient(clientUid);
         }
-        
+        BuffersListResponse.PaginationInfo paginationInfo = 
+            new BuffersListResponse.PaginationInfo(
+                offset, 
+                limit, 
+                buffers.size(), 
+                (offset + limit) < buffers.size()
+            );
         // Применяем пагинацию
         List<BufferDTO> bufferDTOs = applyPagination(buffers, offset, limit)
                 .stream()
                 .map(bufferConverter::toDTO)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(new BuffersListResponse(bufferDTOs));
+        return ResponseEntity.ok(new BuffersListResponse(bufferDTOs, paginationInfo));
     }
     @PatchMapping("/buffers/{bufferUid}")
     public ResponseEntity<BufferResponse> partialUpdateBuffer(
@@ -900,6 +918,12 @@ public class BufferController {
         
         // Временная реализация - получаем текущий буфер и возвращаем его
         BufferBLM buffer = bufferService.getBufferByUid(bufferUid);
+        buffer.setMaxMessageSize(updateRequest.maxSize);
+        buffer.setMaxMessagesNumber(updateRequest.maxMessages);
+        
+        bufferValidator.validate(buffer);
+
+        bufferService.updateBuffer(bufferUid, bufferConverter.toDTO(buffer));
         
         return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
     }
@@ -1919,7 +1943,7 @@ import com.connection.device.model.DeviceDTO;
 import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
 import com.connection.processing.buffer.model.BufferBLM;
-import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferBLM;
 import com.connection.processing.buffer.model.BufferDTO;
 import com.connection.processing.buffer.repository.BufferRepository;
 import com.connection.processing.buffer.validator.BufferValidator;
@@ -1959,8 +1983,7 @@ public class KafkaBufferServiceImpl implements BufferService {
                     "Buffer with UID '" + bufferBLM.getUid() + "' already exists");
         }
 
-        BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
-        bufferRepository.add(bufferDALM);
+        bufferRepository.add(bufferBLM);
 
         log.info("Buffer created via Kafka: {} for device: {}", bufferBLM.getUid(), bufferBLM.getDeviceUid());
         return bufferBLM;
@@ -1968,8 +1991,8 @@ public class KafkaBufferServiceImpl implements BufferService {
 
     @Override
     public BufferBLM getBufferByUid(UUID bufferUid) {
-        BufferDALM bufferDALM = bufferRepository.findByUid(bufferUid);
-        return bufferConverter.toBLM(bufferDALM); // Без проверки безопасности
+        BufferBLM bufferBLM = bufferRepository.findByUid(bufferUid);
+        return (bufferBLM); // Без проверки безопасности
     }
 
     @Override
@@ -2001,16 +2024,14 @@ public class KafkaBufferServiceImpl implements BufferService {
 
     @Override
     public List<BufferBLM> getBuffersByDevice(UUID deviceUid) {
-        List<BufferDALM> bufferDALMs = bufferRepository.findByDeviceUid(deviceUid);
-        return bufferDALMs.stream().map(bufferConverter::toBLM).collect(Collectors.toList());
+        List<BufferBLM> bufferBLMs = bufferRepository.findByDeviceUid(deviceUid);
+        return bufferBLMs;
     }
 
     @Override
     public List<BufferBLM> getBuffersByConnectionScheme(UUID connectionSchemeUid) {
-        List<BufferDALM> buffersDALM = bufferRepository.findByConnectionSchemeUid(connectionSchemeUid);
-        return buffersDALM.stream()
-                .map(bufferConverter::toBLM)
-                .collect(Collectors.toList());
+        List<BufferBLM> buffersBLM = bufferRepository.findByConnectionSchemeUid(connectionSchemeUid);
+        return buffersBLM;
     }
 
     @Override
@@ -2024,8 +2045,7 @@ public class KafkaBufferServiceImpl implements BufferService {
             throw new IllegalArgumentException("Cannot change buffer UID");
         }
 
-        BufferDALM bufferDALM = bufferConverter.toDALM(bufferBLM);
-        bufferRepository.update(bufferDALM);
+        bufferRepository.update(bufferBLM);
 
         log.info("Buffer updated via Kafka: {} for device: {}", bufferUid, bufferBLM.getDeviceUid());
         return bufferBLM;
@@ -2186,6 +2206,468 @@ public class JwtKafkaAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             throw new SecurityException("Authentication failed: " + e.getMessage());
         }
+    }
+}package com.service.buffer.integration;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.test.context.ActiveProfiles;
+
+import com.connection.scheme.events.commands.GetConnectionSchemeByUidCommand;
+import com.connection.scheme.events.commands.GetConnectionSchemesByBufferUid;
+import com.connection.scheme.events.commands.GetConnectionSchemesByClientUid;
+import com.connection.scheme.events.commands.HealthCheckCommand;
+import com.connection.scheme.events.responses.GetConnectionSchemeByUidResponse;
+import com.connection.scheme.events.responses.GetConnectionSchemesByBufferResponse;
+import com.connection.scheme.events.responses.GetConnectionSchemesByClientResponse;
+import com.connection.scheme.events.responses.HealthCheckResponse;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+@ActiveProfiles("integrationtest")
+public class TestConnectionSchemeServiceResponder {
+    
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    
+    // Хранилище тестовых данных
+    private final Map<UUID, ConnectionSchemeDTO> testSchemes = new ConcurrentHashMap<>();
+    private final Map<UUID, List<ConnectionSchemeDTO>> clientSchemes = new ConcurrentHashMap<>();
+    private final Map<UUID, List<ConnectionSchemeDTO>> bufferSchemes = new ConcurrentHashMap<>();
+    
+    @KafkaListener(
+        topics = "${app.kafka.topics.connection-scheme-commands:scheme.commands}",
+        groupId = "test-connection-scheme-responder"
+    )
+    public void handleConnectionSchemeCommand(ConsumerRecord<String, Object> record) {
+        try {
+            Object command = record.value();
+            log.info("🧪 Test Connection Scheme Responder received command: {}", command.getClass().getSimpleName());
+            
+            if (command instanceof GetConnectionSchemeByUidCommand) {
+                handleGetConnectionSchemeByUid((GetConnectionSchemeByUidCommand) command);
+            } else if (command instanceof GetConnectionSchemesByClientUid) {
+                handleGetConnectionSchemesByClient((GetConnectionSchemesByClientUid) command);
+            } else if (command instanceof GetConnectionSchemesByBufferUid) {
+                handleGetConnectionSchemesByBuffer((GetConnectionSchemesByBufferUid) command);
+            } else if (command instanceof HealthCheckCommand) {
+                handleHealthCheck((HealthCheckCommand) command);
+            }
+            
+        } catch (Exception e) {
+            log.error("❌ Error in test connection scheme responder", e);
+        }
+    }
+    
+    private void handleGetConnectionSchemeByUid(GetConnectionSchemeByUidCommand command) {
+        try {
+            UUID schemeUid = command.getConnectionSchemeUid();
+            ConnectionSchemeDTO scheme = testSchemes.get(schemeUid);
+            
+            GetConnectionSchemeByUidResponse response;
+            if (scheme != null) {
+                response = GetConnectionSchemeByUidResponse.success(
+                    command.getCorrelationId(),
+                    scheme
+                );
+                log.info("✅ Test Responder: Connection Scheme {} found", schemeUid);
+            } else {
+                response = GetConnectionSchemeByUidResponse.error(
+                    command.getCorrelationId(),
+                    "Connection scheme not found in test data"
+                );
+                log.warn("⚠️ Test Responder: Connection Scheme {} not found", schemeUid);
+            }
+            
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            
+        } catch (Exception e) {
+            log.error("❌ Error handling GetConnectionSchemeByUid", e);
+        }
+    }
+    
+    private void handleGetConnectionSchemesByClient(GetConnectionSchemesByClientUid command) {
+        try {
+            UUID clientUid = command.getClientUid();
+            List<ConnectionSchemeDTO> schemes = clientSchemes.get(clientUid);
+            
+            GetConnectionSchemesByClientResponse response;
+            if (schemes != null && !schemes.isEmpty()) {
+                response = GetConnectionSchemesByClientResponse.valid(
+                    command.getCorrelationId(),
+                    schemes
+                );
+                log.info("✅ Test Responder: Found {} connection schemes for client {}", schemes.size(), clientUid);
+            } else {
+                response = GetConnectionSchemesByClientResponse.valid(
+                    command.getCorrelationId(),
+                    List.of()
+                );
+                log.info("ℹ️ Test Responder: No connection schemes found for client {}", clientUid);
+            }
+            
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            
+        } catch (Exception e) {
+            log.error("❌ Error handling GetConnectionSchemesByClient", e);
+        }
+    }
+    
+    private void handleGetConnectionSchemesByBuffer(GetConnectionSchemesByBufferUid command) {
+        try {
+            UUID bufferUid = command.getBufferUid();
+            List<ConnectionSchemeDTO> schemes = bufferSchemes.get(bufferUid);
+            
+            GetConnectionSchemesByBufferResponse response;
+            if (schemes != null && !schemes.isEmpty()) {
+                response = GetConnectionSchemesByBufferResponse.valid(
+                    command.getCorrelationId(),
+                    schemes
+                );
+                log.info("✅ Test Responder: Found {} connection schemes for buffer {}", schemes.size(), bufferUid);
+            } else {
+                response = GetConnectionSchemesByBufferResponse.valid(
+                    command.getCorrelationId(),
+                    List.of()
+                );
+                log.info("ℹ️ Test Responder: No connection schemes found for buffer {}", bufferUid);
+            }
+            
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            
+        } catch (Exception e) {
+            log.error("❌ Error handling GetConnectionSchemesByBuffer", e);
+        }
+    }
+    
+    private void handleHealthCheck(HealthCheckCommand command) {
+        try {
+            HealthCheckResponse response = HealthCheckResponse.success(
+                command.getCorrelationId(),
+                Map.of("status", "OK", "service", "test-connection-scheme-responder")
+            );
+            
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.info("✅ Test Responder: Health check responded");
+            
+        } catch (Exception e) {
+            log.error("❌ Error handling HealthCheck", e);
+        }
+    }
+    
+    // Методы для управления тестовыми данными
+    
+    public void addTestConnectionScheme(UUID schemeUid, UUID clientUid, List<UUID> usedBuffers) {
+        ConnectionSchemeDTO scheme = createTestConnectionSchemeDTO(schemeUid, clientUid, usedBuffers);
+        addTestConnectionScheme(scheme);
+    }
+    
+    public void addTestConnectionScheme(ConnectionSchemeDTO scheme) {
+        UUID schemeUid = UUID.fromString(scheme.getUid());
+        UUID clientUid = UUID.fromString(scheme.getClientUid());
+        
+        testSchemes.put(schemeUid, scheme);
+        
+        // Добавляем в список схем клиента
+        List<ConnectionSchemeDTO> clientSchemeList = clientSchemes.computeIfAbsent(
+            clientUid, k -> new ArrayList<>()
+        );
+        clientSchemeList.add(scheme);
+        
+        // Автоматически создаем связи с буферами из usedBuffers
+        if (scheme.getUsedBuffers() != null) {
+            for (UUID bufferUid : scheme.getUsedBuffers()) {
+                linkSchemeToBuffer(schemeUid, bufferUid);
+            }
+        }
+        
+        log.info("📝 Test Responder: Added connection scheme {} for client {} with {} used buffers", 
+                schemeUid, clientUid, 
+                scheme.getUsedBuffers() != null ? scheme.getUsedBuffers().size() : 0);
+    }
+    
+    public void linkSchemeToBuffer(UUID schemeUid, UUID bufferUid) {
+        ConnectionSchemeDTO scheme = testSchemes.get(schemeUid);
+        if (scheme != null) {
+            List<ConnectionSchemeDTO> bufferSchemeList = bufferSchemes.computeIfAbsent(
+                bufferUid, k -> new ArrayList<>()
+            );
+            if (!bufferSchemeList.contains(scheme)) {
+                bufferSchemeList.add(scheme);
+            }
+            log.info("🔗 Test Responder: Linked scheme {} to buffer {}", schemeUid, bufferUid);
+        } else {
+            log.warn("⚠️ Test Responder: Cannot link - scheme {} not found", schemeUid);
+        }
+    }
+    
+    public void removeTestConnectionScheme(UUID schemeUid) {
+        ConnectionSchemeDTO scheme = testSchemes.remove(schemeUid);
+        if (scheme != null) {
+            UUID clientUid = UUID.fromString(scheme.getClientUid());
+            
+            // Удаляем из списка клиента
+            List<ConnectionSchemeDTO> clientSchemesList = clientSchemes.get(clientUid);
+            if (clientSchemesList != null) {
+                clientSchemesList.removeIf(s -> s.getUid().equals(schemeUid.toString()));
+            }
+            
+            // Удаляем из всех связей с буферами
+            bufferSchemes.values().forEach(schemeList -> 
+                schemeList.removeIf(s -> s.getUid().equals(schemeUid.toString()))
+            );
+        }
+    }
+    
+    public void clearTestData() {
+        testSchemes.clear();
+        clientSchemes.clear();
+        bufferSchemes.clear();
+        log.info("🧹 Test Responder: All connection scheme test data cleared");
+    }
+    
+    public boolean hasConnectionScheme(UUID schemeUid) {
+        return testSchemes.containsKey(schemeUid);
+    }
+    
+    public boolean connectionSchemeBelongsToClient(UUID schemeUid, UUID clientUid) {
+        ConnectionSchemeDTO scheme = testSchemes.get(schemeUid);
+        return scheme != null && scheme.getClientUid().equals(clientUid.toString());
+    }
+    
+    private ConnectionSchemeDTO createTestConnectionSchemeDTO(UUID schemeUid, UUID clientUid, List<UUID> usedBuffers) {
+        return ConnectionSchemeDTO.builder()
+            .uid(schemeUid.toString())
+            .clientUid(clientUid.toString())
+            .usedBuffers(usedBuffers != null ? usedBuffers : new ArrayList<>())
+            .schemeJson("{\"test\": true, \"schemeType\": \"integration-test\", \"buffers\": " + 
+                       (usedBuffers != null ? usedBuffers.toString() : "[]") + "}")
+            .build();
+    }
+    
+    // Дополнительные методы для удобства
+    
+    public void addTestConnectionSchemeWithBuffers(UUID schemeUid, UUID clientUid, UUID... bufferUids) {
+        List<UUID> usedBuffers = bufferUids != null ? Arrays.asList(bufferUids) : new ArrayList<>();
+        addTestConnectionScheme(schemeUid, clientUid, usedBuffers);
+    }
+    
+    public void addBufferToScheme(UUID schemeUid, UUID bufferUid) {
+        ConnectionSchemeDTO scheme = testSchemes.get(schemeUid);
+        if (scheme != null) {
+            List<UUID> usedBuffers = scheme.getUsedBuffers();
+            if (usedBuffers == null) {
+                usedBuffers = new ArrayList<>();
+                scheme.setUsedBuffers(usedBuffers);
+            }
+            if (!usedBuffers.contains(bufferUid)) {
+                usedBuffers.add(bufferUid);
+            }
+            linkSchemeToBuffer(schemeUid, bufferUid);
+            log.info("➕ Test Responder: Added buffer {} to scheme {}", bufferUid, schemeUid);
+        }
+    }
+    
+    public void removeBufferFromScheme(UUID schemeUid, UUID bufferUid) {
+        ConnectionSchemeDTO scheme = testSchemes.get(schemeUid);
+        if (scheme != null && scheme.getUsedBuffers() != null) {
+            scheme.getUsedBuffers().remove(bufferUid);
+            
+            // Удаляем связь
+            List<ConnectionSchemeDTO> bufferSchemesList = bufferSchemes.get(bufferUid);
+            if (bufferSchemesList != null) {
+                bufferSchemesList.removeIf(s -> s.getUid().equals(schemeUid.toString()));
+            }
+            log.info("➖ Test Responder: Removed buffer {} from scheme {}", bufferUid, schemeUid);
+        }
+    }
+}package com.service.buffer.integration;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.test.context.ActiveProfiles;
+
+import com.connection.device.events.commands.GetDeviceByUidCommand;
+import com.connection.device.events.commands.GetDevicesByClientUid;
+import com.connection.device.events.commands.HealthCheckCommand;
+import com.connection.device.events.responses.GetDeviceByUidResponse;
+import com.connection.device.events.responses.GetDevicesByClientResponse;
+import com.connection.device.events.responses.HealthCheckResponse;
+import com.connection.device.model.DeviceDTO;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+@ActiveProfiles("integrationtest")
+public class TestDeviceServiceResponder {
+    
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    
+    // Хранилище тестовых данных
+    private final Map<UUID, DeviceDTO> testDevices = new ConcurrentHashMap<>();
+    private final Map<UUID, List<DeviceDTO>> clientDevices = new ConcurrentHashMap<>();
+    
+    @KafkaListener(
+        topics = "${app.kafka.topics.device-commands:device.commands}",
+        groupId = "test-device-responder"
+    )
+    public void handleDeviceCommand(ConsumerRecord<String, Object> record) {
+        try {
+            Object command = record.value();
+            log.info("🧪 Test Device Responder received command: {}", command.getClass().getSimpleName());
+            
+            if (command instanceof GetDeviceByUidCommand) {
+                handleGetDeviceByUid((GetDeviceByUidCommand) command);
+            } else if (command instanceof GetDevicesByClientUid) {
+                handleGetDevicesByClient((GetDevicesByClientUid) command);
+            } else if (command instanceof HealthCheckCommand) {
+                handleHealthCheck((HealthCheckCommand) command);
+            }
+            
+        } catch (Exception e) {
+            log.error("❌ Error in test device responder", e);
+        }
+    }
+    
+    private void handleGetDeviceByUid(GetDeviceByUidCommand command) {
+        try {
+            UUID deviceUid = command.getDeviceUid();
+            DeviceDTO device = testDevices.get(deviceUid);
+            
+            GetDeviceByUidResponse response;
+            if (device != null) {
+                response = GetDeviceByUidResponse.success(
+                    command.getCorrelationId(),
+                    device
+                );
+                log.info("✅ Test Responder: Device {} found", deviceUid);
+            } else {
+                response = GetDeviceByUidResponse.error(
+                    command.getCorrelationId(),
+                    "Device not found in test data"
+                );
+                log.warn("⚠️ Test Responder: Device {} not found", deviceUid);
+            }
+            
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            
+        } catch (Exception e) {
+            log.error("❌ Error handling GetDeviceByUid", e);
+        }
+    }
+    
+    private void handleGetDevicesByClient(GetDevicesByClientUid command) {
+        try {
+            UUID clientUid = command.getClientUid();
+            List<DeviceDTO> devices = clientDevices.get(clientUid);
+            
+            GetDevicesByClientResponse response;
+            if (devices != null && !devices.isEmpty()) {
+                response = GetDevicesByClientResponse.valid(
+                    command.getCorrelationId(),
+                    devices
+                );
+                log.info("✅ Test Responder: Found {} devices for client {}", devices.size(), clientUid);
+            } else {
+                response = GetDevicesByClientResponse.valid(
+                    command.getCorrelationId(),
+                    List.of()
+                );
+                log.info("ℹ️ Test Responder: No devices found for client {}", clientUid);
+            }
+            
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            
+        } catch (Exception e) {
+            log.error("❌ Error handling GetDevicesByClient", e);
+        }
+    }
+    
+    private void handleHealthCheck(HealthCheckCommand command) {
+        try {
+            HealthCheckResponse response = HealthCheckResponse.success(
+                command.getCorrelationId(),
+                Map.of("status", "OK", "service", "test-device-responder")
+            );
+            
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.info("✅ Test Responder: Health check responded");
+            
+        } catch (Exception e) {
+            log.error("❌ Error handling HealthCheck", e);
+        }
+    }
+    
+    // Методы для управления тестовыми данными
+    
+    public void addTestDevice(UUID deviceUid, UUID clientUid, String deviceName) {
+        DeviceDTO device = new DeviceDTO();
+        device.setUid(deviceUid.toString());
+        device.setClientUuid(clientUid.toString());
+        device.setDeviceName(deviceName);
+        device.setDeviceDescription("Test device for integration tests");
+        
+        testDevices.put(deviceUid, device);
+        
+        // Также добавляем в список устройств клиента
+        List<DeviceDTO> clientDeviceList = clientDevices.computeIfAbsent(
+            clientUid, k -> new java.util.ArrayList<>()
+        );
+        clientDeviceList.add(device);
+        
+        log.info("📝 Test Responder: Added test device {} for client {}", deviceUid, clientUid);
+    }
+    
+    public void addTestDevice(DeviceDTO device) {
+        UUID deviceUid = UUID.fromString(device.getUid());
+        UUID clientUid = UUID.fromString(device.getClientUuid());
+        
+        testDevices.put(deviceUid, device);
+        
+        List<DeviceDTO> clientDeviceList = clientDevices.computeIfAbsent(
+            clientUid, k -> new java.util.ArrayList<>()
+        );
+        clientDeviceList.add(device);
+    }
+    
+    public void removeTestDevice(UUID deviceUid) {
+        DeviceDTO device = testDevices.remove(deviceUid);
+        if (device != null) {
+            UUID clientUid = UUID.fromString(device.getClientUuid());
+            List<DeviceDTO> clientDevicesList = clientDevices.get(clientUid);
+            if (clientDevicesList != null) {
+                clientDevicesList.removeIf(d -> d.getUid().equals(deviceUid.toString()));
+            }
+        }
+    }
+    
+    public void clearTestData() {
+        testDevices.clear();
+        clientDevices.clear();
+        log.info("🧹 Test Responder: All test data cleared");
+    }
+    
+    public boolean hasDevice(UUID deviceUid) {
+        return testDevices.containsKey(deviceUid);
     }
 }package com.service.buffer.mother;
 

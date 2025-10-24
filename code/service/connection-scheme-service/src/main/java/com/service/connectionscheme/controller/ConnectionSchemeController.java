@@ -45,7 +45,7 @@ public class ConnectionSchemeController {
     @PostMapping("/schemes")
     public ResponseEntity<ConnectionSchemeResponse> createScheme(@RequestBody ConnectionSchemeDTO schemeDTO) {
         schemeValidator.validate(schemeDTO);
-        ConnectionSchemeBLM scheme = connectionSchemeService.createScheme(schemeDTO);
+        ConnectionSchemeBLM scheme = connectionSchemeService.createScheme(schemeConverter.toBLM(schemeDTO));
 
         return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
     }
@@ -93,7 +93,7 @@ public class ConnectionSchemeController {
             @RequestBody ConnectionSchemeDTO schemeDTO) {
         
         schemeValidator.validate(schemeDTO);
-        ConnectionSchemeBLM scheme = connectionSchemeService.updateScheme(schemeUid, schemeDTO);
+        ConnectionSchemeBLM scheme = connectionSchemeService.updateScheme(schemeUid, schemeConverter.toBLM(schemeDTO));
 
         return ResponseEntity.ok(new ConnectionSchemeResponse(scheme.getUid()));
     }

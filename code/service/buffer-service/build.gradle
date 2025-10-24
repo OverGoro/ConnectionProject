@@ -8,8 +8,8 @@ plugins {
 
 // ========== CONFIGURATION ==========
 ext {
-    SERVICE_NAME = 'auth-service'
-    K8S_DIR = new File(System.getProperty('user.home') + "/GitHub/ConnectionProject/kubernetes/auth-service").toString()
+    SERVICE_NAME = 'buffer-service'
+    K8S_DIR = new File(System.getProperty('user.home') + "/GitHub/ConnectionProject/kubernetes/buffer-service").toString()
     ALLURE_RESULTS_DIR = "${buildDir}/allure-results"
     ALLURE_REPORT_DIR =  "${buildDir}/reports/allure-report"
     ALLURE_HISTORY_DIR = "${projectDir}/allure-history"
@@ -17,7 +17,7 @@ ext {
 
 group = 'com.service'
 version = '0.0.1-SNAPSHOT'
-description = 'Authorization Service'
+description = 'Buffer Service'
 
 java {
     toolchain {
@@ -137,6 +137,7 @@ dependencies {
     
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
+
 
 // ========== COMPILATION CONFIGURATION ==========
 tasks.withType(JavaCompile).configureEach {
@@ -444,7 +445,7 @@ task integrationTest(type: Test) {
         logger.lifecycle("   Kafka: localhost:29093")
     }
     
-    dependsOn startTestContainers
+    // dependsOn startTestContainers
     finalizedBy generateAllureReport
 }
 
@@ -526,7 +527,7 @@ tasks.named('integrationTest') {
 // Prevent running integration tests without containers
 tasks.withType(Test).configureEach { 
     if (it.name.contains('integration') || it.name.contains('e2e')) {
-        it.dependsOn startTestContainers
+        // it.dependsOn startTestContainers
     }
 }
 

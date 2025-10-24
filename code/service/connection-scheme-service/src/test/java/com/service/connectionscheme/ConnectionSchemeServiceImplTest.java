@@ -9,7 +9,7 @@ import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.S
 import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createSchemeDTOWithDifferentClient;
 import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createSchemeDTOWithDifferentUid;
 import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createValidSchemeBLM;
-import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createValidSchemeDALM;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createValidSchemeBLM;
 import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createValidSchemeDTO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,7 +42,7 @@ import com.connection.auth.events.responses.HealthCheckResponse;
 import com.connection.scheme.converter.ConnectionSchemeConverter;
 import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
 import com.connection.scheme.model.ConnectionSchemeBLM;
-import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeBLM;
 import com.connection.scheme.model.ConnectionSchemeDTO;
 import com.connection.scheme.repository.ConnectionSchemeRepository;
 import com.connection.scheme.validator.ConnectionSchemeValidator;
@@ -85,56 +85,20 @@ class ApiConnectionSchemeServiceImplTest {
     @DisplayName("Create scheme - Positive")
     void shouldCreateSchemeWhenValidData() {
         // Arrange
-        ConnectionSchemeDTO schemeDTO = createValidSchemeDTO();
         ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
-        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
         
         setupAuthentication(CLIENT_UUID);
-        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
-        when(schemeConverter.toDALM(schemeBLM)).thenReturn(schemeDALM);
         when(schemeRepository.exists(SCHEME_UUID)).thenReturn(false);
 
         // Act
-        ConnectionSchemeBLM result = connectionSchemeService.createScheme(schemeDTO);
+        ConnectionSchemeBLM result = connectionSchemeService.createScheme(schemeBLM);
 
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(SCHEME_UUID);
         assertThat(result.getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3));
         assertThat(result.getBufferTransitions()).hasSize(2);
-        verify(schemeValidator).validate(schemeDTO);
-        verify(schemeRepository).add(schemeDALM);
-    }
-
-    @Test
-    @DisplayName("Create scheme - Negative: Client UID mismatch")
-    void shouldThrowExceptionWhenClientUidMismatch() {
-        // Arrange
-        UUID differentClientUuid = UUID.randomUUID();
-        ConnectionSchemeDTO schemeDTO = createSchemeDTOWithDifferentClient();
-        
-        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
-        bufferTransitions.put(BUFFER_UUID_1, Arrays.asList(BUFFER_UUID_2));
-        
-        ConnectionSchemeBLM schemeBLM = ConnectionSchemeBLM.builder()
-            .uid(SCHEME_UUID)
-            .clientUid(differentClientUuid) // different client
-            .schemeJson(SCHEME_JSON)
-            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
-            .bufferTransitions(bufferTransitions)
-            .build();
-
-        setupAuthentication(CLIENT_UUID);
-        
-        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
-
-        // Act & Assert
-        assertThatThrownBy(() -> connectionSchemeService.createScheme(schemeDTO))
-            .isInstanceOf(SecurityException.class)
-            .hasMessageContaining("Client UID from token doesn't match");
-
-        verify(schemeValidator).validate(schemeDTO);
-        verify(schemeRepository, never()).add(any());
+        verify(schemeRepository).add(schemeBLM);
     }
 
     @Test
@@ -145,15 +109,13 @@ class ApiConnectionSchemeServiceImplTest {
         ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
 
         setupAuthentication(CLIENT_UUID);
-        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
         
         when(schemeRepository.exists(SCHEME_UUID)).thenReturn(true);
 
         // Act & Assert
-        assertThatThrownBy(() -> connectionSchemeService.createScheme(schemeDTO))
+        assertThatThrownBy(() -> connectionSchemeService.createScheme(schemeBLM))
             .isInstanceOf(ConnectionSchemeAlreadyExistsException.class);
 
-        verify(schemeValidator).validate(schemeDTO);
         verify(schemeRepository, never()).add(any());
     }
 
@@ -161,12 +123,10 @@ class ApiConnectionSchemeServiceImplTest {
     @DisplayName("Get scheme by UID - Positive")
     void shouldGetSchemeWhenValidRequest() {
         // Arrange
-        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
-        ConnectionSchemeBLM expectedBLM = createValidSchemeBLM();
+        ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
 
         setupAuthentication(CLIENT_UUID);
-        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(schemeDALM);
-        when(schemeConverter.toBLM(schemeDALM)).thenReturn(expectedBLM);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(schemeBLM);
         
 
         // Act
@@ -185,7 +145,7 @@ class ApiConnectionSchemeServiceImplTest {
     void shouldThrowExceptionWhenSchemeNotBelongsToClient() {
         // Arrange
         UUID differentClientUuid = UUID.randomUUID();
-        ConnectionSchemeDALM schemeDALM = ConnectionSchemeDALM.builder()
+        ConnectionSchemeBLM schemeBLM = ConnectionSchemeBLM.builder()
             .uid(SCHEME_UUID)
             .clientUid(differentClientUuid) // different client
             .schemeJson(SCHEME_JSON)
@@ -193,7 +153,7 @@ class ApiConnectionSchemeServiceImplTest {
             .build();
 
         setupAuthentication(CLIENT_UUID);
-        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(schemeDALM);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn((schemeBLM));
         
 
         // Act & Assert
@@ -202,19 +162,17 @@ class ApiConnectionSchemeServiceImplTest {
             .hasMessageContaining("doesn't belong");
 
         verify(schemeRepository).findByUid(SCHEME_UUID);
-        verify(schemeConverter, never()).toBLM(any(ConnectionSchemeDALM.class));
     }
 
     @Test
     @DisplayName("Get schemes by client - Positive")
     void shouldGetSchemesByClientWhenValidRequest() {
         // Arrange
-        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
+        ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
         ConnectionSchemeBLM expectedBLM = createValidSchemeBLM();
-        List<ConnectionSchemeDALM> schemesDALM = Collections.singletonList(schemeDALM);
+        List<ConnectionSchemeBLM> schemesBLM = Collections.singletonList(schemeBLM);
 
-        when(schemeRepository.findByClientUid(CLIENT_UUID)).thenReturn(schemesDALM);
-        when(schemeConverter.toBLM(schemeDALM)).thenReturn(expectedBLM);
+        when(schemeRepository.findByClientUid(CLIENT_UUID)).thenReturn(schemesBLM);
 
         // Act
         List<ConnectionSchemeBLM> result = connectionSchemeService.getSchemesByClient(CLIENT_UUID);
@@ -231,26 +189,22 @@ class ApiConnectionSchemeServiceImplTest {
     @DisplayName("Update scheme - Positive")
     void shouldUpdateSchemeWhenValidData() {
         // Arrange
-        ConnectionSchemeDTO schemeDTO = createValidSchemeDTO();
         ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
-        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
-        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+        ConnectionSchemeBLM existingScheme = createValidSchemeBLM();
 
         setupAuthentication(CLIENT_UUID);
         when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
-        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
-        when(schemeConverter.toDALM(schemeBLM)).thenReturn(schemeDALM);
         
 
         // Act
-        ConnectionSchemeBLM result = connectionSchemeService.updateScheme(SCHEME_UUID, schemeDTO);
+        ConnectionSchemeBLM result = connectionSchemeService.updateScheme(SCHEME_UUID, schemeBLM);
 
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3));
         assertThat(result.getBufferTransitions()).hasSize(2);
-        verify(schemeValidator).validate(schemeDTO);
-        verify(schemeRepository).update(schemeDALM);
+        verify(schemeValidator).validate(schemeBLM);
+        verify(schemeRepository).update(schemeBLM);
     }
 
     @Test
@@ -270,19 +224,17 @@ class ApiConnectionSchemeServiceImplTest {
             .bufferTransitions(bufferTransitions)
             .build();
             
-        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+        ConnectionSchemeBLM existingScheme = createValidSchemeBLM();
 
         setupAuthentication(CLIENT_UUID);
         when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
-        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
         
 
         // Act & Assert
-        assertThatThrownBy(() -> connectionSchemeService.updateScheme(SCHEME_UUID, schemeDTO))
+        assertThatThrownBy(() -> connectionSchemeService.updateScheme(SCHEME_UUID, schemeBLM))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Cannot change scheme UID");
 
-        verify(schemeValidator).validate(schemeDTO);
         verify(schemeRepository, never()).update(any());
     }
 
@@ -290,7 +242,6 @@ class ApiConnectionSchemeServiceImplTest {
     @DisplayName("Update scheme - Negative: Client UID change attempt")
     void shouldThrowExceptionWhenTryingToChangeClientUid() {
         // Arrange
-        ConnectionSchemeDTO schemeDTO = createSchemeDTOWithDifferentClient();
         
         Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
         bufferTransitions.put(BUFFER_UUID_1, Arrays.asList(BUFFER_UUID_2));
@@ -303,19 +254,17 @@ class ApiConnectionSchemeServiceImplTest {
             .bufferTransitions(bufferTransitions)
             .build();
             
-        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+        ConnectionSchemeBLM existingScheme = createValidSchemeBLM();
 
         setupAuthentication(CLIENT_UUID);
         when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
-        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
         
 
         // Act & Assert
-        assertThatThrownBy(() -> connectionSchemeService.updateScheme(SCHEME_UUID, schemeDTO))
+        assertThatThrownBy(() -> connectionSchemeService.updateScheme(SCHEME_UUID, schemeBLM))
             .isInstanceOf(SecurityException.class)
             .hasMessageContaining("Client UID from token doesn't match");
 
-        verify(schemeValidator).validate(schemeDTO);
         verify(schemeRepository, never()).update(any());
     }
 
@@ -323,7 +272,7 @@ class ApiConnectionSchemeServiceImplTest {
     @DisplayName("Delete scheme - Positive")
     void shouldDeleteSchemeWhenValidRequest() {
         // Arrange
-        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+        ConnectionSchemeBLM existingScheme = createValidSchemeBLM();
 
         setupAuthentication(CLIENT_UUID);
         when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);

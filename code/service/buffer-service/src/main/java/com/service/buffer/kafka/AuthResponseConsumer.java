@@ -1,6 +1,7 @@
 package com.service.buffer.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -12,16 +13,15 @@ import com.connection.auth.events.responses.TokenValidationResponse;
 import com.connection.common.events.CommandResponse;
 import com.connection.auth.events.responses.HealthCheckResponse;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class AuthResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
-
-    private final TypedAuthKafkaClient authKafkaClient;
-    private final KafkaListenerEndpointRegistry registry;
+    @Autowired
+    private TypedAuthKafkaClient authKafkaClient;
+    @Autowired
+    private KafkaListenerEndpointRegistry registry;
 
     @KafkaListener(id = "dynamicAuthListener", topics = "#{@typedAuthKafkaClient.getInstanceReplyTopic()}")
     public void handleAuthResponse(ConsumerRecord<String, CommandResponse> record) {

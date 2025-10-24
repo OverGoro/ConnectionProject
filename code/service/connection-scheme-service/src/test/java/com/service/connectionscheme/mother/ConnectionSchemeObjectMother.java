@@ -243,4 +243,44 @@ public class ConnectionSchemeObjectMother {
             throw new RuntimeException("Failed to create ConnectionSchemeBLM with transitions", e);
         }
     }
+
+        public static ConnectionSchemeDTO createValidSchemeDTO(UUID schemeUid, UUID clientUid, List<UUID> bufferUids) {
+        if (bufferUids == null || bufferUids.isEmpty()) {
+            return ConnectionSchemeDTO.builder()
+                    .uid(schemeUid.toString())
+                    .clientUid(clientUid.toString())
+                    .schemeJson("{}")
+                    .usedBuffers(List.of())
+                    .build();
+        }
+
+        // Создаем простой JSON с transitions
+        StringBuilder jsonBuilder = new StringBuilder("{");
+        for (int i = 0; i < bufferUids.size(); i++) {
+            if (i > 0) {
+                jsonBuilder.append(",");
+            }
+            jsonBuilder.append("\"").append(bufferUids.get(i)).append("\":[]");
+        }
+        jsonBuilder.append("}");
+
+        return ConnectionSchemeDTO.builder()
+                .uid(schemeUid.toString())
+                .clientUid(clientUid.toString())
+                .schemeJson(jsonBuilder.toString())
+                .usedBuffers(bufferUids)
+                .build();
+    }
+
+    public static ConnectionSchemeDTO createSchemeWithTransitions(UUID schemeUid, UUID clientUid, 
+                                                                  UUID fromBuffer, UUID toBuffer) {
+        String schemeJson = "{\"" + fromBuffer + "\":[\"" + toBuffer + "\"]}";
+        
+        return ConnectionSchemeDTO.builder()
+                .uid(schemeUid.toString())
+                .clientUid(clientUid.toString())
+                .schemeJson(schemeJson)
+                .usedBuffers(Arrays.asList(fromBuffer, toBuffer))
+                .build();
+    }
 }
