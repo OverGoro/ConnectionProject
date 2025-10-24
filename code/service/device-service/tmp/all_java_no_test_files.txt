@@ -119,7 +119,6 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
@@ -392,6 +391,8 @@ public class DeviceUtilsConfig {
     }
 }package com.connection.device.config;
 
+import java.util.UUID;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.jta.JtaTransactionManager;
@@ -404,8 +405,14 @@ import jakarta.transaction.SystemException;
 public class TransactionConfig {
 
     @Bean
-    public UserTransactionManager userTransactionManager() throws SystemException{
+    public UserTransactionManager userTransactionManager() throws SystemException {
         UserTransactionManager manager = new UserTransactionManager();
+        setPropertyIfNotExists("com.atomikos.icatch.log_base_name",
+                "atomikos-tm-" + UUID.randomUUID().toString().substring(0, 8));
+        setPropertyIfNotExists("com.atomikos.icatch.log_base_dir", "./logs");
+        setPropertyIfNotExists("com.atomikos.icatch.tm_unique_name",
+                "tm-" + UUID.randomUUID().toString().substring(0, 8));
+
         manager.setTransactionTimeout(300);
         manager.setForceShutdown(true);
         return manager;
@@ -417,6 +424,21 @@ public class TransactionConfig {
         jtaTransactionManager.setTransactionManager(userTransactionManager());
         jtaTransactionManager.setUserTransaction(userTransactionManager());
         return jtaTransactionManager;
+    }
+
+    /**
+     * Устанавливает системное свойство только если оно еще не было установлено
+     * 
+     * @param key   ключ свойства
+     * @param value значение свойства
+     */
+    private void setPropertyIfNotExists(String key, String value) {
+        if (System.getProperty(key) == null) {
+            System.setProperty(key, value);
+            System.out.println("Set property: " + key + " = " + value);
+        } else {
+            System.out.println("Property already set: " + key + " = " + System.getProperty(key));
+        }
     }
 }package com.connection.device.config;
 
@@ -1089,7 +1111,6 @@ public class TypedAuthKafkaClient {
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
@@ -1098,11 +1119,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.connection.auth.events.responses.HealthCheckResponse;
 import com.connection.device.config.SecurityUtils;
-import com.connection.device.converter.DeviceConverter;
 import com.connection.device.exception.DeviceAlreadyExistsException;
 import com.connection.device.kafka.TypedAuthKafkaClient;
 import com.connection.device.model.DeviceBLM;
-import com.connection.device.model.DeviceDALM;
 import com.connection.device.repository.DeviceRepository;
 import com.connection.device.validator.DeviceValidator;
 
@@ -1119,7 +1138,6 @@ import lombok.extern.slf4j.Slf4j;
 public class DeviceServiceApiImpl implements DeviceService {
 
     private final DeviceRepository deviceRepository;
-    private final DeviceConverter deviceConverter;
     private final DeviceValidator deviceValidator;
     private final TypedAuthKafkaClient authKafkaClient;
 
@@ -1136,8 +1154,7 @@ public class DeviceServiceApiImpl implements DeviceService {
                     "Device with name '" + deviceBLM.getDeviceName() + "' already exists for this client");
         }
 
-        DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
-        deviceRepository.add(deviceDALM);
+        deviceRepository.add(deviceBLM);
 
         log.info("Device created: {} for client: {}", deviceBLM.getUid(), clientUid);
         return deviceBLM;
@@ -1145,13 +1162,13 @@ public class DeviceServiceApiImpl implements DeviceService {
 
     @Override
     public DeviceBLM getDevice(UUID deviceUid) {
-        DeviceDALM deviceDALM = deviceRepository.findByUid(deviceUid);
+        DeviceBLM deviceBLM = deviceRepository.findByUid(deviceUid);
         UUID clientUid = SecurityUtils.getCurrentClientUid();
-        if (!clientUid.equals(deviceDALM.getClientUuid())) {
+        if (!clientUid.equals(deviceBLM.getClientUuid())) {
             throw new SecurityException("Device doesn't belong to the authenticated client");
         }
 
-        return deviceConverter.toBLM(deviceDALM);
+        return (deviceBLM);
     }
 
     @Override
@@ -1161,17 +1178,15 @@ public class DeviceServiceApiImpl implements DeviceService {
             throw new SecurityException("Client uid is not authorized client uid");
         }
         
-        List<DeviceDALM> devicesDALM = deviceRepository.findByClientUuid(clientUid);
-        return devicesDALM.stream()
-                .map(deviceConverter::toBLM)
-                .collect(Collectors.toList());
+        List<DeviceBLM> devicesBLM = deviceRepository.findByClientUuid(clientUid);
+        return devicesBLM;
     }
 
     @Override
     public DeviceBLM updateDevice(DeviceBLM deviceBLM) {
         deviceValidator.validate(deviceBLM);
         UUID clientUid = SecurityUtils.getCurrentClientUid();
-        DeviceDALM existingDevice = deviceRepository.findByUid(deviceBLM.getUid());
+        DeviceBLM existingDevice = deviceRepository.findByUid(deviceBLM.getUid());
 
         if (!clientUid.equals(existingDevice.getClientUuid())) {
             throw new SecurityException("Device doesn't belong to the authenticated client");
@@ -1181,8 +1196,7 @@ public class DeviceServiceApiImpl implements DeviceService {
             throw new SecurityException("Client UID from token doesn't match device client UID");
         }
 
-        DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
-        deviceRepository.update(deviceDALM);
+        deviceRepository.update(deviceBLM);
 
         log.info("Device updated: {} for client: {}", deviceBLM.getUid(), clientUid);
         return deviceBLM;
@@ -1192,7 +1206,7 @@ public class DeviceServiceApiImpl implements DeviceService {
     public void deleteDevice(UUID deviceUid) {
         UUID clientUid = SecurityUtils.getCurrentClientUid();
         
-        DeviceDALM existingDevice = deviceRepository.findByUid(deviceUid);
+        DeviceBLM existingDevice = deviceRepository.findByUid(deviceUid);
         if (!clientUid.equals(existingDevice.getClientUuid())) {
             throw new SecurityException("Device doesn't belong to the authenticated client");
         }
@@ -1233,7 +1247,6 @@ public class DeviceServiceApiImpl implements DeviceService {
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
@@ -1241,10 +1254,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.connection.auth.events.responses.HealthCheckResponse;
-import com.connection.device.converter.DeviceConverter;
 import com.connection.device.kafka.TypedAuthKafkaClient;
 import com.connection.device.model.DeviceBLM;
-import com.connection.device.model.DeviceDALM;
 import com.connection.device.repository.DeviceRepository;
 import com.connection.device.validator.DeviceValidator;
 
@@ -1261,15 +1272,13 @@ import lombok.extern.slf4j.Slf4j;
 public class DeviceServiceKafkaImpl implements DeviceService {
 
     private final DeviceRepository deviceRepository;
-    private final DeviceConverter deviceConverter;
     private final DeviceValidator deviceValidator;
     private final TypedAuthKafkaClient authKafkaClient;
 
     @Override
     public DeviceBLM createDevice(DeviceBLM deviceBLM) {
         deviceValidator.validate(deviceBLM);
-        DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
-        deviceRepository.add(deviceDALM);
+        deviceRepository.add(deviceBLM);
 
         log.info("Kafka: Device created: {}", deviceBLM.getUid());
         return deviceBLM;
@@ -1277,25 +1286,22 @@ public class DeviceServiceKafkaImpl implements DeviceService {
 
     @Override
     public DeviceBLM getDevice(UUID deviceUid) {
-        DeviceDALM deviceDALM = deviceRepository.findByUid(deviceUid);
-        return deviceConverter.toBLM(deviceDALM);
+        DeviceBLM deviceBLM = deviceRepository.findByUid(deviceUid);
+        return (deviceBLM);
     }
 
     @Override
     public List<DeviceBLM> getDevicesByClient(UUID clientUid) {
-        List<DeviceDALM> devicesDALM = deviceRepository.findByClientUuid(clientUid);
-        return devicesDALM.stream()
-                .map(deviceConverter::toBLM)
-                .collect(Collectors.toList());
+        List<DeviceBLM> devicesBLM = deviceRepository.findByClientUuid(clientUid);
+        return devicesBLM;
     }
 
     @Override
     public DeviceBLM updateDevice(DeviceBLM deviceBLM) {
         deviceValidator.validate(deviceBLM);
-        DeviceDALM existingDevice = deviceRepository.findByUid(deviceBLM.getUid());
+        deviceRepository.findByUid(deviceBLM.getUid());
 
-        DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
-        deviceRepository.update(deviceDALM);
+        deviceRepository.update(deviceBLM);
 
         log.info("Kafka: Device updated: {}", deviceBLM.getUid());
         return deviceBLM;

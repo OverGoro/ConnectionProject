@@ -3,7 +3,6 @@ package com.connection.device;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
@@ -11,10 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.connection.auth.events.responses.HealthCheckResponse;
-import com.connection.device.converter.DeviceConverter;
 import com.connection.device.kafka.TypedAuthKafkaClient;
 import com.connection.device.model.DeviceBLM;
-import com.connection.device.model.DeviceDALM;
 import com.connection.device.repository.DeviceRepository;
 import com.connection.device.validator.DeviceValidator;
 
@@ -31,15 +28,13 @@ import lombok.extern.slf4j.Slf4j;
 public class DeviceServiceKafkaImpl implements DeviceService {
 
     private final DeviceRepository deviceRepository;
-    private final DeviceConverter deviceConverter;
     private final DeviceValidator deviceValidator;
     private final TypedAuthKafkaClient authKafkaClient;
 
     @Override
     public DeviceBLM createDevice(DeviceBLM deviceBLM) {
         deviceValidator.validate(deviceBLM);
-        DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
-        deviceRepository.add(deviceDALM);
+        deviceRepository.add(deviceBLM);
 
         log.info("Kafka: Device created: {}", deviceBLM.getUid());
         return deviceBLM;
@@ -47,25 +42,22 @@ public class DeviceServiceKafkaImpl implements DeviceService {
 
     @Override
     public DeviceBLM getDevice(UUID deviceUid) {
-        DeviceDALM deviceDALM = deviceRepository.findByUid(deviceUid);
-        return deviceConverter.toBLM(deviceDALM);
+        DeviceBLM deviceBLM = deviceRepository.findByUid(deviceUid);
+        return (deviceBLM);
     }
 
     @Override
     public List<DeviceBLM> getDevicesByClient(UUID clientUid) {
-        List<DeviceDALM> devicesDALM = deviceRepository.findByClientUuid(clientUid);
-        return devicesDALM.stream()
-                .map(deviceConverter::toBLM)
-                .collect(Collectors.toList());
+        List<DeviceBLM> devicesBLM = deviceRepository.findByClientUuid(clientUid);
+        return devicesBLM;
     }
 
     @Override
     public DeviceBLM updateDevice(DeviceBLM deviceBLM) {
         deviceValidator.validate(deviceBLM);
-        DeviceDALM existingDevice = deviceRepository.findByUid(deviceBLM.getUid());
+        deviceRepository.findByUid(deviceBLM.getUid());
 
-        DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
-        deviceRepository.update(deviceDALM);
+        deviceRepository.update(deviceBLM);
 
         log.info("Kafka: Device updated: {}", deviceBLM.getUid());
         return deviceBLM;

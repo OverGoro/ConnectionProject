@@ -22,12 +22,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 
-import com.connection.auth.events.AuthEventConstants;
-import com.connection.auth.events.commands.ExtractClientUidCommand;
-import com.connection.auth.events.commands.HealthCheckCommand;
 import com.connection.auth.events.commands.ValidateTokenCommand;
 import com.connection.auth.events.responses.ClientUidResponse;
-import com.connection.auth.events.responses.HealthCheckResponse;
 import com.connection.auth.events.responses.TokenValidationResponse;
 import com.connection.device.kafka.TypedAuthKafkaClient;
 
@@ -58,7 +54,6 @@ class TypedAuthKafkaClientTest {
     @DisplayName("Handle response - completes future for matching correlation ID")
     void shouldCompleteFutureWhenResponseReceived() throws Exception {
         // Arrange
-        String correlationId = "test-correlation-id";
         String token = "test-token";
         String sourceService = "device-service";
         
@@ -103,7 +98,6 @@ class TypedAuthKafkaClientTest {
     @DisplayName("Handle response - completes exceptionally for type mismatch")
     void shouldCompleteExceptionallyForTypeMismatch() {
         // Arrange
-        String correlationId = "test-correlation-id";
         String token = "test-token";
         String sourceService = "device-service";
         

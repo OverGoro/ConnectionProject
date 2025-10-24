@@ -3,7 +3,6 @@ package com.connection.device;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
@@ -12,11 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.connection.auth.events.responses.HealthCheckResponse;
 import com.connection.device.config.SecurityUtils;
-import com.connection.device.converter.DeviceConverter;
 import com.connection.device.exception.DeviceAlreadyExistsException;
 import com.connection.device.kafka.TypedAuthKafkaClient;
 import com.connection.device.model.DeviceBLM;
-import com.connection.device.model.DeviceDALM;
 import com.connection.device.repository.DeviceRepository;
 import com.connection.device.validator.DeviceValidator;
 
@@ -33,7 +30,6 @@ import lombok.extern.slf4j.Slf4j;
 public class DeviceServiceApiImpl implements DeviceService {
 
     private final DeviceRepository deviceRepository;
-    private final DeviceConverter deviceConverter;
     private final DeviceValidator deviceValidator;
     private final TypedAuthKafkaClient authKafkaClient;
 
@@ -50,8 +46,7 @@ public class DeviceServiceApiImpl implements DeviceService {
                     "Device with name '" + deviceBLM.getDeviceName() + "' already exists for this client");
         }
 
-        DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
-        deviceRepository.add(deviceDALM);
+        deviceRepository.add(deviceBLM);
 
         log.info("Device created: {} for client: {}", deviceBLM.getUid(), clientUid);
         return deviceBLM;
@@ -59,13 +54,13 @@ public class DeviceServiceApiImpl implements DeviceService {
 
     @Override
     public DeviceBLM getDevice(UUID deviceUid) {
-        DeviceDALM deviceDALM = deviceRepository.findByUid(deviceUid);
+        DeviceBLM deviceBLM = deviceRepository.findByUid(deviceUid);
         UUID clientUid = SecurityUtils.getCurrentClientUid();
-        if (!clientUid.equals(deviceDALM.getClientUuid())) {
+        if (!clientUid.equals(deviceBLM.getClientUuid())) {
             throw new SecurityException("Device doesn't belong to the authenticated client");
         }
 
-        return deviceConverter.toBLM(deviceDALM);
+        return (deviceBLM);
     }
 
     @Override
@@ -75,17 +70,15 @@ public class DeviceServiceApiImpl implements DeviceService {
             throw new SecurityException("Client uid is not authorized client uid");
         }
         
-        List<DeviceDALM> devicesDALM = deviceRepository.findByClientUuid(clientUid);
-        return devicesDALM.stream()
-                .map(deviceConverter::toBLM)
-                .collect(Collectors.toList());
+        List<DeviceBLM> devicesBLM = deviceRepository.findByClientUuid(clientUid);
+        return devicesBLM;
     }
 
     @Override
     public DeviceBLM updateDevice(DeviceBLM deviceBLM) {
         deviceValidator.validate(deviceBLM);
         UUID clientUid = SecurityUtils.getCurrentClientUid();
-        DeviceDALM existingDevice = deviceRepository.findByUid(deviceBLM.getUid());
+        DeviceBLM existingDevice = deviceRepository.findByUid(deviceBLM.getUid());
 
         if (!clientUid.equals(existingDevice.getClientUuid())) {
             throw new SecurityException("Device doesn't belong to the authenticated client");
@@ -95,8 +88,7 @@ public class DeviceServiceApiImpl implements DeviceService {
             throw new SecurityException("Client UID from token doesn't match device client UID");
         }
 
-        DeviceDALM deviceDALM = deviceConverter.toDALM(deviceBLM);
-        deviceRepository.update(deviceDALM);
+        deviceRepository.update(deviceBLM);
 
         log.info("Device updated: {} for client: {}", deviceBLM.getUid(), clientUid);
         return deviceBLM;
@@ -106,7 +98,7 @@ public class DeviceServiceApiImpl implements DeviceService {
     public void deleteDevice(UUID deviceUid) {
         UUID clientUid = SecurityUtils.getCurrentClientUid();
         
-        DeviceDALM existingDevice = deviceRepository.findByUid(deviceUid);
+        DeviceBLM existingDevice = deviceRepository.findByUid(deviceUid);
         if (!clientUid.equals(existingDevice.getClientUuid())) {
             throw new SecurityException("Device doesn't belong to the authenticated client");
         }

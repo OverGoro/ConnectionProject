@@ -3,7 +3,6 @@ package com.connection.device;
 import static com.connection.device.mother.DeviceObjectMother.CLIENT_UUID;
 import static com.connection.device.mother.DeviceObjectMother.DEVICE_UUID;
 import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBLM;
-import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDALM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,11 +28,10 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.connection.auth.events.responses.HealthCheckResponse;
-import com.connection.device.converter.DeviceConverter;
+
 import com.connection.device.exception.DeviceAlreadyExistsException;
 import com.connection.device.kafka.TypedAuthKafkaClient;
 import com.connection.device.model.DeviceBLM;
-import com.connection.device.model.DeviceDALM;
 import com.connection.device.repository.DeviceRepository;
 import com.connection.device.validator.DeviceValidator;
 
@@ -43,9 +41,6 @@ class DeviceServiceImplTest {
 
     @Mock
     private DeviceRepository deviceRepository;
-
-    @Mock
-    private DeviceConverter deviceConverter;
 
     @Mock
     private DeviceValidator deviceValidator;
@@ -75,10 +70,8 @@ class DeviceServiceImplTest {
     void shouldCreateDeviceWhenValidData() {
         // Arrange
         DeviceBLM deviceBLM = createValidDeviceBLM();
-        DeviceDALM deviceDALM = createValidDeviceDALM();
         
         setupAuthentication(CLIENT_UUID);
-        when(deviceConverter.toDALM(deviceBLM)).thenReturn(deviceDALM);
         when(deviceRepository.existsByClientAndName(CLIENT_UUID, "Test Device")).thenReturn(false);
 
         // Act
@@ -88,7 +81,7 @@ class DeviceServiceImplTest {
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(DEVICE_UUID);
         verify(deviceValidator).validate(deviceBLM);
-        verify(deviceRepository).add(deviceDALM);
+        verify(deviceRepository).add(deviceBLM);
     }
 
     @Test
@@ -134,12 +127,10 @@ class DeviceServiceImplTest {
     @DisplayName("Get device - Positive")
     void shouldGetDeviceWhenValidRequest() {
         // Arrange
-        DeviceDALM deviceDALM = createValidDeviceDALM();
-        DeviceBLM expectedBLM = createValidDeviceBLM();
+        DeviceBLM deviceBLM = createValidDeviceBLM();
 
         setupAuthentication(CLIENT_UUID);
-        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceDALM);
-        when(deviceConverter.toBLM(deviceDALM)).thenReturn(expectedBLM);
+        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceBLM);
 
         // Act
         DeviceBLM result = deviceService.getDevice(DEVICE_UUID);
@@ -155,14 +146,14 @@ class DeviceServiceImplTest {
     void shouldThrowExceptionWhenDeviceNotBelongsToClient() {
         // Arrange
         UUID differentClientUuid = UUID.randomUUID();
-        DeviceDALM deviceDALM = new DeviceDALM(
+        DeviceBLM deviceBLM = new DeviceBLM(
                 DEVICE_UUID,
                 differentClientUuid,
                 "Test Device",
                 "Test Description");
 
         setupAuthentication(CLIENT_UUID);
-        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceDALM);
+        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceBLM);
 
         // Act & Assert
         assertThatThrownBy(() -> deviceService.getDevice(DEVICE_UUID))
@@ -170,20 +161,17 @@ class DeviceServiceImplTest {
                 .hasMessageContaining("doesn't belong");
 
         verify(deviceRepository).findByUid(DEVICE_UUID);
-        verify(deviceConverter, never()).toBLM(any(DeviceDALM.class));
     }
 
     @Test
     @DisplayName("Get devices by client - Positive")
     void shouldGetDevicesByClientWhenValidRequest() {
         // Arrange
-        DeviceDALM deviceDALM = createValidDeviceDALM();
-        DeviceBLM expectedBLM = createValidDeviceBLM();
-        List<DeviceDALM> devicesDALM = Collections.singletonList(deviceDALM);
+        DeviceBLM deviceBLM = createValidDeviceBLM();
+        List<DeviceBLM> devicesBLM = Collections.singletonList(deviceBLM);
 
         setupAuthentication(CLIENT_UUID);
-        when(deviceRepository.findByClientUuid(CLIENT_UUID)).thenReturn(devicesDALM);
-        when(deviceConverter.toBLM(deviceDALM)).thenReturn(expectedBLM);
+        when(deviceRepository.findByClientUuid(CLIENT_UUID)).thenReturn(devicesBLM);
 
         // Act
         List<DeviceBLM> result = deviceService.getDevicesByClient(CLIENT_UUID);
@@ -199,12 +187,11 @@ class DeviceServiceImplTest {
     void shouldUpdateDeviceWhenValidData() {
         // Arrange
         DeviceBLM deviceBLM = createValidDeviceBLM();
-        DeviceDALM deviceDALM = createValidDeviceDALM();
-        DeviceDALM existingDevice = createValidDeviceDALM();
+        DeviceBLM existingDevice = createValidDeviceBLM();
 
         setupAuthentication(CLIENT_UUID);
         when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(existingDevice);
-        when(deviceConverter.toDALM(deviceBLM)).thenReturn(deviceDALM);
+
 
         // Act
         DeviceBLM result = deviceService.updateDevice(deviceBLM);
@@ -212,14 +199,14 @@ class DeviceServiceImplTest {
         // Assert
         assertThat(result).isNotNull();
         verify(deviceValidator).validate(deviceBLM);
-        verify(deviceRepository).update(deviceDALM);
+        verify(deviceRepository).update(deviceBLM);
     }
 
     @Test
     @DisplayName("Delete device - Positive")
     void shouldDeleteDeviceWhenValidRequest() {
         // Arrange
-        DeviceDALM existingDevice = createValidDeviceDALM();
+        DeviceBLM existingDevice = createValidDeviceBLM();
 
         setupAuthentication(CLIENT_UUID);
         when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(existingDevice);
