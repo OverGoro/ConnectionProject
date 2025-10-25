@@ -24,4 +24,3 @@ include 'service:device-auth-service'
 include 'service:device-service'
 include 'service:message-service'
 
-enableFeaturePreview('TYPESAFE_PROJECT_ACCESSORS')

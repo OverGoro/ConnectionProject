@@ -9,7 +9,8 @@ create table if not exists processing.buffer(
     uid uuid primary key, 
     device_uid uuid not null references core.device(uid) on delete cascade,
     max_messages_number integer not null CHECK (max_messages_number > 0),
-    max_message_size integer not null CHECK ( max_message_size > 0 )
+    max_message_size integer not null CHECK ( max_message_size > 0 ),
+    message_prototype varchar
 );
 
 

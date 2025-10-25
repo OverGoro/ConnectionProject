@@ -1,1 +1,1 @@
-{"name":"Gradle","type":"gradle","taskName":"test","buildName":"buffer-service","projectPath":":service:buffer-service","projectVersion":"0.0.1-SNAPSHOT"}
+{"name":"Gradle","type":"gradle","taskName":"integrationTest","buildName":"buffer-service","projectPath":":service:buffer-service","projectVersion":"0.0.1-SNAPSHOT"}
