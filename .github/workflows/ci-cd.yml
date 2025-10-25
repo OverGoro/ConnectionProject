@@ -230,8 +230,48 @@ jobs:
         sudo ln -sf /opt/allure-2.29.0/bin/allure /usr/bin/allure
         allure --version
     - name: Publish shared modules to local Maven
-      run: cd code && gradle publishAllShared
-    - name: Run testAll task
+      run: |
+        cd code
+        modules=(
+          "common-events:common-events"
+          "common-auth-events:common-auth-events"
+          "common-buffer-events:common-buffer-events"
+          "common-connection-scheme-events:common-connection-scheme-events"
+          "common-device-auth-events:common-device-auth-events"
+          "common-device-events:common-device-events"
+          "common-message-events:common-message-events"
+          "buffer-shared:buffer-shared"
+          "client-shared:client-shared"
+          "connection-scheme-shared:connection-scheme-shared"
+          "device-shared:device-shared"
+          "device-token-shared:device-token-shared"
+          "message-shared:message-shared"
+          "token-shared:token-shared"
+        )
+        
+        for module_pair in "${modules[@]}"; do
+          IFS=':' read -r path name <<< "$module_pair"
+          echo "📦 Publishing :shared:${path}"
+          gradle ":shared:${path}:publishToMavenLocal"
+          
+          # Проверяем что файл действительно появился
+          jar_path="$HOME/.m2/repository/com/connection/${name}/1.0.0/${name}-1.0.0.jar"
+          echo "⏳ Waiting for ${name} to be available..."
+          
+          attempts=0
+          while [ $attempts -lt 10 ]; do
+            if [ -f "$jar_path" ]; then
+              echo "✅ Verified: ${name} is available"
+              break
+            fi
+            sleep 2
+            attempts=$((attempts + 1))
+          done
+          
+          if [ ! -f "$jar_path" ]; then
+            echo "⚠️  Warning: ${name} jar not found after waiting"
+          fi
+        done    - name: Run testAll task
       run: cd code && gradle testAll
 
     - name: Generate Allure report
