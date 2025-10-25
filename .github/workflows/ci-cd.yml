@@ -31,7 +31,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 5432:5432
+          - 5434:5432
       
       zookeeper:
         image: confluentinc/cp-zookeeper:7.4.0
@@ -39,7 +39,7 @@ jobs:
           ZOOKEEPER_CLIENT_PORT: 2181
           ZOOKEEPER_TICK_TIME: 2000
         ports:
-          - 2181:2181
+          - 2182:2181
       
       kafka:
         image: confluentinc/cp-kafka:7.4.0
@@ -53,8 +53,8 @@ jobs:
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
           KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
         ports:
-          - 9092:9092
-          - 29092:29092
+          - 9093:9092
+          - 29093:29092
 
     steps:
     - name: Checkout code
@@ -210,7 +210,7 @@ jobs:
         PGPASSWORD: test_password
 
     - name: Make gradlew executable
-      run: chmod +x ./gradlew
+      run: chmod +x ./code/gradlew
 
     - name: Cache Gradle packages
       uses: actions/cache@v3
@@ -230,10 +230,10 @@ jobs:
         allure --version
 
     - name: Run testAll task
-      run: ./gradlew testAll
+      run: ./code/gradlew testAll
 
     - name: Generate Allure report
-      run: ./gradlew collectAllureResults generateCombinedAllureReport
+      run: ./code/gradlew collectAllureResults generateCombinedAllureReport
 
     - name: Create branch-specific index
       run: |
@@ -255,8 +255,8 @@ jobs:
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./build/reports/allure-report
-        destination_dir: ./allure/${{ github.ref_name }}
+        publish_dir: ./code/build/reports/allure-report
+        destination_dir: ./code/allure/${{ github.ref_name }}
         keep_files: true
         force_orphan: false
 
@@ -327,6 +327,6 @@ jobs:
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./build/reports/allure-report
-        destination_dir: ./allure
+        publish_dir: ./code/build/reports/allure-report
+        destination_dir: ./code/allure
         keep_files: true
