@@ -495,9 +495,7 @@ bootJar {
     finalizedBy copyJarToK8s
 }
 
-clean {
-    dependsOn cleanTestContainers
-}
+
 
 task deepClean {
     description = 'Complete clean including Allure history'
