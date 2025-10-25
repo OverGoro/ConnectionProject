@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -34,7 +35,32 @@ public class TypedBufferKafkaClient {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     
     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
-    
+    @Value("${app.kafka.topics.auth-commands:auth.commands}")
+    String authcommands;
+    @Value("${app.kafka.topics.auth-responses:auth.responses}")
+    String authresponses;
+    @Value("${app.kafka.topics.device-auth-commands:device.auth.commands}")
+    String deviceauthcommands;
+    @Value("${app.kafka.topics.device-auth-responses:device.auth.responses}")
+    String deviceauthresponses;
+    @Value("${app.kafka.topics.device-commands:device.commands}")
+    String devicecommands;
+    @Value("${app.kafka.topics.device-responses:device.responses}")
+    String deviceresponses;
+    @Value("${app.kafka.topics.connection-scheme-commands:connection-scheme.commands}")
+    String connectionschemecommands;
+    @Value("${app.kafka.topics.connection-scheme-responses:connection-scheme.responses}")
+    String connectionschemeresponses;
+    @Value("${app.kafka.topics.buffer-commands:buffer.commands}")
+    String buffercommands;
+    @Value("${app.kafka.topics.buffer-responses:buffer.responses}")
+    String bufferresponses;
+    @Value("${app.kafka.topics.message-commands:message.commands}")
+    String messagecommands;
+    @Value("${app.kafka.topics.message-responses:message.responses}")
+    String messageresponses;
+    @Value("${app.kafka.topics.message-events:message.events}")
+    String messageevents;
     // 👇 Уникальный топик для этого инстанса
     private final String instanceReplyTopic = "buffer.responses." + UUID.randomUUID().toString();
 
@@ -138,7 +164,7 @@ public class TypedBufferKafkaClient {
             }
         });
 
-        kafkaTemplate.send(BufferEventConstants.BUFFER_COMMANDS_TOPIC, correlationId, command)
+        kafkaTemplate.send(buffercommands, correlationId, command)
                 .whenComplete((result, ex) -> {
                     if (ex != null) {
                         future.completeExceptionally(ex);
@@ -146,7 +172,7 @@ public class TypedBufferKafkaClient {
                         log.error("Failed to send buffer command: {}", ex.getMessage());
                     } else {
                         log.info("Buffer command sent successfully: correlationId={}, topic={}", 
-                                correlationId, BufferEventConstants.BUFFER_COMMANDS_TOPIC);
+                                correlationId, buffercommands);
                     }
                 });
 

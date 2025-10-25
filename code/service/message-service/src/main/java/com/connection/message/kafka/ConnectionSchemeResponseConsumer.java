@@ -1,3 +1,4 @@
+// ConnectionSchemeResponseConsumer.java
 package com.connection.message.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import com.connection.common.events.CommandResponse;
 import com.connection.scheme.events.responses.GetConnectionSchemeByUidResponse;
+import com.connection.scheme.events.responses.GetConnectionSchemesByBufferResponse;
+import com.connection.scheme.events.responses.GetConnectionSchemesByClientResponse;
 import com.connection.scheme.events.responses.HealthCheckResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -36,11 +39,26 @@ public class ConnectionSchemeResponseConsumer implements ApplicationListener<App
             if (message instanceof GetConnectionSchemeByUidResponse) {
                 GetConnectionSchemeByUidResponse typedResponse = (GetConnectionSchemeByUidResponse) message;
                 connectionSchemeKafkaClient.handleResponse(correlationId, typedResponse);
+                log.info("Processed GetConnectionSchemeByUidResponse: success={}", typedResponse.isSuccess());
+            } else if (message instanceof GetConnectionSchemesByBufferResponse) {
+                GetConnectionSchemesByBufferResponse typedResponse = (GetConnectionSchemesByBufferResponse) message;
+                connectionSchemeKafkaClient.handleResponse(correlationId, typedResponse);
+                log.info("Processed GetConnectionSchemesByBufferResponse: success={}, schemesCount={}", 
+                        typedResponse.isSuccess(), 
+                        typedResponse.getConnectionSchemeDTOs() != null ? typedResponse.getConnectionSchemeDTOs().size() : 0);
+            } else if (message instanceof GetConnectionSchemesByClientResponse) {
+                GetConnectionSchemesByClientResponse typedResponse = (GetConnectionSchemesByClientResponse) message;
+                connectionSchemeKafkaClient.handleResponse(correlationId, typedResponse);
+                log.info("Processed GetConnectionSchemesByClientResponse: success={}, schemesCount={}", 
+                        typedResponse.isSuccess(), 
+                        typedResponse.getConnectionSchemeDTOs() != null ? typedResponse.getConnectionSchemeDTOs().size() : 0);
             } else if (message instanceof HealthCheckResponse) {
                 HealthCheckResponse typedResponse = (HealthCheckResponse) message;
                 connectionSchemeKafkaClient.handleResponse(correlationId, typedResponse);
+                log.info("Processed HealthCheckResponse: success={}", typedResponse.isSuccess());
             } else {
-                log.warn("Unknown connection scheme response type for correlationId: {}", correlationId);
+                log.warn("Unknown connection scheme response type for correlationId: {}, type: {}", 
+                        correlationId, message.getClass().getSimpleName());
             }
             
         } catch (Exception e) {

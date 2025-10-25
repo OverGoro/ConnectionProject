@@ -25,7 +25,6 @@ import com.connection.message.kafka.TypedConnectionSchemeKafkaClient;
 import com.connection.message.kafka.TypedDeviceAuthKafkaClient;
 import com.connection.message.kafka.TypedDeviceKafkaClient;
 import com.connection.message.model.MessageBLM;
-import com.connection.message.model.MessageDALM;
 import com.connection.message.repository.MessageRepository;
 import com.connection.message.validator.MessageValidator;
 import com.connection.processing.buffer.converter.BufferConverter;
@@ -71,8 +70,7 @@ public class MessageServiceImpl implements MessageService {
                 throw new SecurityException("Device doesn't have access to this buffer");
             }
 
-            MessageDALM messageDALM = messageConverter.toDALM(messageBLM);
-            messageRepository.add(messageDALM);
+            messageRepository.add(messageBLM);
             processMessageMovement(messageBLM);
         } else if (SecurityUtils.isClientAuthenticated()) {
             UUID currentClientUid = SecurityUtils.getCurrentClientUid();
@@ -83,8 +81,7 @@ public class MessageServiceImpl implements MessageService {
                 throw new SecurityException("Client doesn't have access to this buffer");
             }
 
-            MessageDALM messageDALM = messageConverter.toDALM(messageBLM);
-            messageRepository.add(messageDALM);
+            messageRepository.add(messageBLM);
             processMessageMovement(messageBLM);
         } else {
             throw new SecurityException("Cannot add messages without authorization");
@@ -95,15 +92,11 @@ public class MessageServiceImpl implements MessageService {
     public List<MessageBLM> getMessagesByBuffer(UUID bufferUuid, boolean deleteOnGet, int offset, int limit) {
         checkBufferAccess(bufferUuid);
 
-        List<MessageDALM> messageDALMs = messageRepository.findByBufferUid(bufferUuid);
-        messageDALMs = messageDALMs.stream()
+        List<MessageBLM> messageBLMs = messageRepository.findByBufferUid(bufferUuid);
+        messageBLMs = messageBLMs.stream()
                 .sorted((x, y) -> x.getCreatedAt().compareTo(y.getCreatedAt()))
                 .toList()
-                .subList(offset, Math.min(offset + limit, messageDALMs.size()));
-
-        List<MessageBLM> messageBLMs = messageDALMs.stream()
-                .map(messageConverter::toBLM)
-                .toList();
+                .subList(offset, Math.min(offset + limit, messageBLMs.size()));
 
         if (deleteOnGet)
             messageBLMs.forEach(this::deleteMessage);
@@ -285,7 +278,6 @@ public class MessageServiceImpl implements MessageService {
     private boolean isSchemeAccessibleToDevice(UUID schemeUuid, UUID deviceUid) {
         try {
             // Получаем буферы устройства и проверяем, связаны ли они с данной схемой
-            List<BufferBLM> deviceBuffers = getDeviceBuffers(deviceUid);
             List<ConnectionSchemeBLM> schemeBuffers = getBufferSchemesForDevice(schemeUuid, deviceUid);
             
             // Если у устройства есть буферы, связанные с этой схемой - доступ разрешен
@@ -348,14 +340,14 @@ public class MessageServiceImpl implements MessageService {
         List<UUID> targetBuffers = bufferTransitions.get(messageBLM.getBufferUid());
         if (targetBuffers != null) {
             for (UUID b : targetBuffers) {
-                MessageDALM messageDALM = MessageDALM.builder().bufferUid(b)
+                MessageBLM messageBLMn = MessageBLM.builder().bufferUid(b)
                         .content(messageBLM.getContent())
-                        .contentType("INCOMING") // Исправлена опечатка
+                        .contentType("INCOMING")
                         .createdAt(new Date())
                         .uid(UUID.randomUUID())
                         .build();
-                messageValidator.validate(messageDALM);
-                messageRepository.add(messageDALM);
+                messageValidator.validate(messageBLMn);
+                messageRepository.add(messageBLMn);
             }
         }
     }
