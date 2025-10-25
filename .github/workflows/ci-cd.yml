@@ -205,7 +205,7 @@ jobs:
         # Выполняем SQL файлы
         for sql_file in db/*.sql; do
           echo "Executing $sql_file"
-          psql -h localhost -U test_user -d test_db -f "$sql_file"
+          psql -h localhost -p 5434 -U test_user -d test_db -f "$sql_file"
         done
       env:
         PGPASSWORD: test_password
