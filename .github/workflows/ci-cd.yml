@@ -68,51 +68,53 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
-    - name: Analyze project structure
+    - name: Verify and Fix Gradle Wrapper
       run: |
-        echo "📁 Analyzing project structure..."
         cd code
         
-        echo "Root directory content:"
-        ls -la
+        echo "🔍 Checking Gradle Wrapper integrity..."
         
-        echo "Checking for Gradle Wrapper in root:"
-        if [ -f "gradlew" ]; then
-          echo "✅ Root gradlew found"
+        # Проверяем наличие всех необходимых файлов
+        if [ -f "gradlew" ] && [ -f "gradle/wrapper/gradle-wrapper.jar" ] && [ -f "gradle/wrapper/gradle-wrapper.properties" ]; then
+          echo "✅ Gradle Wrapper files are present"
           chmod +x gradlew
-          ./gradlew --version || echo "❌ Root gradlew failed"
+          
+          # Проверяем что wrapper работает
+          if ./gradlew --version > /dev/null 2>&1; then
+            echo "✅ Gradle Wrapper is functional"
+          else
+            echo "❌ Gradle Wrapper is not functional, recreating..."
+            rm -f gradlew gradlew.bat
+            rm -rf gradle/wrapper
+          fi
         else
-          echo "❌ No root gradlew found"
+          echo "❌ Gradle Wrapper files are missing or incomplete"
         fi
         
-        echo "Checking service directories:"
-        find . -name "gradlew" -type f | head -10
-        
-        echo "Checking shared directories:"
-        find ./shared -name "gradlew" -type f 2>/dev/null | head -10
-        
-        echo "Checking service directories:"
-        find ./service -name "gradlew" -type f 2>/dev/null | head -10
-
-    - name: Use root Gradle Wrapper or install Gradle
-      run: |
-        cd code
-        
-        # Пробуем использовать root gradlew если он есть
-        if [ -f "gradlew" ]; then
-          echo "🚀 Using root Gradle Wrapper"
-          chmod +x gradlew
-          ./gradlew --version
-        else
-          echo "📦 Installing Gradle system-wide"
+        # Если файлы отсутствуют или не работают, создаем их заново
+        if [ ! -f "gradlew" ] || [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+          echo "📦 Recreating Gradle Wrapper..."
+          
+          # Устанавливаем Gradle для создания wrapper
           sudo apt-get update
           sudo apt-get install -y gradle
-          gradle --version
           
-          # Создаем симлинк для единообразия
-          ln -s $(which gradle) ./gradlew
-          chmod +x ./gradlew
+          # Создаем wrapper
+          gradle wrapper --gradle-version 8.5 --distribution-type all
+          
+          # Проверяем создание
+          if [ -f "gradlew" ] && [ -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "✅ Gradle Wrapper recreated successfully"
+            chmod +x gradlew
+          else
+            echo "❌ Failed to recreate Gradle Wrapper"
+            exit 1
+          fi
         fi
+        
+        # Финальная проверка
+        echo "🎯 Final verification:"
+        ./gradlew --version
 
     - name: Wait for services to be ready
       run: |
@@ -274,60 +276,25 @@ jobs:
       run: |
         cd code
         echo "🏗️ Building shared modules..."
-        
-        # Сначала собираем shared модули в правильном порядке
-        SHARED_MODULES=(
-          "shared:common-events"
-          "shared:common-auth-events" 
-          "shared:common-buffer-events"
-          "shared:common-connection-scheme-events"
-          "shared:common-device-auth-events"
-          "shared:common-device-events"
-          "shared:common-message-events"
-          "shared:buffer-shared"
-          "shared:client-shared"
-          "shared:connection-scheme-shared"
-          "shared:device-shared"
-          "shared:device-token-shared"
-          "shared:message-shared"
-          "shared:token-shared"
-        )
-        
-        for module in "${SHARED_MODULES[@]}"; do
-          echo "📦 Building $module"
-          ./gradlew ":$module:build" -x test --no-daemon || echo "⚠️  Build failed for $module, but continuing..."
-        done
+        ./gradlew :shared:common-events:build :shared:common-auth-events:build :shared:common-buffer-events:build :shared:common-connection-scheme-events:build :shared:common-device-auth-events:build :shared:common-device-events:build :shared:common-message-events:build -x test --no-daemon --stacktrace
 
     - name: Publish shared modules
       run: |
         cd code
         echo "📤 Publishing shared modules..."
-        ./gradlew publishAllShared --no-daemon --stacktrace || ./gradlew :shared:common-events:publishToMavenLocal :shared:common-auth-events:publishToMavenLocal --no-daemon
+        ./gradlew publishAllShared --no-daemon --stacktrace
 
     - name: Build and test services
       run: |
         cd code
-        echo "🔨 Building service modules..."
-        
-        SERVICE_MODULES=(
-          "service:auth-service"
-          "service:buffer-service" 
-          "service:connection-scheme-service"
-          "service:device-auth-service"
-          "service:device-service"
-          "service:message-service"
-        )
-        
-        for service in "${SERVICE_MODULES[@]}"; do
-          echo "🏗️ Building $service"
-          ./gradlew ":$service:build" --no-daemon --stacktrace --continue || echo "⚠️  Build failed for $service, but continuing..."
-        done
+        echo "🔨 Building and testing service modules..."
+        ./gradlew build --no-daemon --stacktrace --continue
 
     - name: Run all tests
       run: |
         cd code
         echo "🧪 Running all tests..."
-        ./gradlew testAll --no-daemon --stacktrace --continue || echo "⚠️  Some tests failed, but continuing..."
+        ./gradlew testAll --no-daemon --stacktrace --continue
 
     - name: Generate Allure report
       run: |
