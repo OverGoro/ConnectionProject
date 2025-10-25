@@ -233,13 +233,6 @@ jobs:
       run: |
         cd code
         modules=(
-          "common-events:common-events"
-          "common-auth-events:common-auth-events"
-          "common-buffer-events:common-buffer-events"
-          "common-connection-scheme-events:common-connection-scheme-events"
-          "common-device-auth-events:common-device-auth-events"
-          "common-device-events:common-device-events"
-          "common-message-events:common-message-events"
           "buffer-shared:buffer-shared"
           "client-shared:client-shared"
           "connection-scheme-shared:connection-scheme-shared"
@@ -247,6 +240,13 @@ jobs:
           "device-token-shared:device-token-shared"
           "message-shared:message-shared"
           "token-shared:token-shared"
+          "common-events:common-events"
+          "common-auth-events:common-auth-events"
+          "common-buffer-events:common-buffer-events"
+          "common-connection-scheme-events:common-connection-scheme-events"
+          "common-device-auth-events:common-device-auth-events"
+          "common-device-events:common-device-events"
+          "common-message-events:common-message-events"
         )
         
         for module_pair in "${modules[@]}"; do
