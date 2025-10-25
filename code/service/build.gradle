@@ -1,0 +1,150 @@
+plugins {
+    id 'base'
+}
+
+// Задача для запуска всех тестов во всех подпроектах
+task testAll {
+    group = 'verification'
+    description = 'Runs tests in all subprojects'
+    
+    // Просто зависем от всех test задач
+    dependsOn {
+        subprojects.findAll { 
+            it.tasks.findByName('test') != null 
+        }.collect { 
+            it.tasks.test 
+        }
+    }
+}
+
+// Задача для агрегации результатов Allure из всех подпроектов
+task aggregateAllureResults(type: Copy) {
+    group = 'reporting'
+    description = 'Aggregates Allure results from all subprojects'
+
+    into "${buildDir}/allure-results"
+    
+    // Стратегия обработки дубликатов - перезаписываем файлы
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
+        subprojects.each { project ->
+        def allureResultsDir = "${project.buildDir}/allure-results"
+        if (file(allureResultsDir).exists()) {
+            from(allureResultsDir) {
+                include '**/*'
+            }
+        }
+    }
+
+    dependsOn testAll
+    
+    doFirst {
+        delete "${buildDir}/allure-results"
+        mkdir "${buildDir}/allure-results"
+    }
+}
+
+// Задача для генерации объединённого Allure отчёта
+task generateAllureReport(type: Exec) {
+    group = 'reporting'
+    description = 'Generates combined Allure report from all subprojects'
+
+    def resultsDir = file("${buildDir}/allure-results")
+    def reportDir = file("${buildDir}/allure-report")
+
+    commandLine 'allure', 'generate', resultsDir, '-o', reportDir, '--clean'
+
+    dependsOn aggregateAllureResults
+
+    doFirst {
+        println "Generating combined Allure report from all subprojects"
+    }
+
+    doLast {
+        println "Allure report generated at: file://${new File(reportDir.absolutePath + '/index.html')}"
+    }
+}
+
+// Задача для запуска allure serve с сырыми результатами
+task allureServe(type: Exec) {
+    group = 'reporting'
+    description = 'Starts Allure server with combined results from all subprojects'
+
+    def resultsDir = file("${buildDir}/allure-results")
+
+    commandLine 'allure', 'serve', resultsDir
+
+    dependsOn aggregateAllureResults
+
+    doFirst {
+        println "Starting Allure server with results from all subprojects"
+        println "Report will be available at http://localhost:port"
+    }
+}
+
+// Задача для запуска allure serve с сгенерированным отчётом
+task allureServeGenerated(type: Exec) {
+    group = 'reporting'
+    description = 'Starts Allure server with generated combined report'
+
+    def reportDir = file("${buildDir}/allure-report")
+
+    commandLine 'allure', 'serve', reportDir
+
+    dependsOn generateAllureReport
+
+    doFirst {
+        println "Starting Allure server with generated combined report"
+    }
+}
+
+// Задача для открытия отчёта в браузере (статический файл)
+task openAllureReport(type: Exec) {
+    group = 'reporting'
+    description = 'Opens the combined Allure report in browser'
+
+    def reportDir = "${buildDir}/allure-report/index.html"
+
+    commandLine 'open', reportDir
+
+    dependsOn generateAllureReport
+
+    onlyIf {
+        System.getProperty('os.name').toLowerCase().contains('mac')
+    }
+}
+
+// task copyAllJars {
+//     group = 'build'
+//     description = "Copy all service jars to deploy dir"
+    
+//     doFirst {
+//         println "Copying all jars"
+//     }
+    
+//     dependsOn subprojects.collect { it.tasks.findByName('copyJarTok8s') }.findAll { it != null }
+    
+//     doLast {
+//         println "All jars copied!"
+//     }
+// }
+
+// Основные задачи
+tasks.named('build') {
+    dependsOn testAll
+}
+
+tasks.named('check') {
+    dependsOn testAll
+}
+
+tasks.named('clean'){
+    dependsOn {
+        subprojects.findAll { 
+            it.tasks.findByName('clean') != null 
+        }.collect { 
+            it.tasks.clean 
+        }
+    }
+
+}

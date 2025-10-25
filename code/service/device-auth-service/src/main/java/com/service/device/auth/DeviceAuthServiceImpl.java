@@ -1,0 +1,228 @@
+// DeviceAuthServiceImpl.java
+package com.service.device.auth;
+
+import java.time.Duration;
+import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.data.util.Pair;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.auth.events.responses.HealthCheckResponse;
+
+
+import com.connection.device.token.generator.DeviceAccessTokenGenerator;
+import com.connection.device.token.generator.DeviceTokenGenerator;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.repository.DeviceAccessTokenRepository;
+import com.connection.device.token.repository.DeviceTokenRepository;
+import com.connection.device.token.validator.DeviceAccessTokenValidator;
+import com.connection.device.token.validator.DeviceTokenValidator;
+import com.service.device.auth.kafka.TypedAuthKafkaClient;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+        JpaRepositoriesAutoConfiguration.class
+})
+@EnableTransactionManagement
+public class DeviceAuthServiceImpl implements DeviceAuthService {
+
+    private final TypedAuthKafkaClient authKafkaClient;
+
+
+
+    private final DeviceTokenValidator deviceTokenValidator;
+    private final DeviceAccessTokenValidator deviceAccessTokenValidator;
+
+    private final DeviceTokenGenerator deviceTokenGenerator;
+    private final DeviceAccessTokenGenerator deviceAccessTokenGenerator;
+
+    private final DeviceTokenRepository deviceTokenRepository;
+    private final DeviceAccessTokenRepository deviceAccessTokenRepository;
+
+    private final Duration deviceTokenDuration;
+    private final Duration deviceAccessTokenDuration;
+
+    @Override
+    @Transactional
+    public DeviceTokenBLM createDeviceToken(UUID deviceUid) {
+        log.info("Creating device token for device: {}", deviceUid);
+
+        // Проверяем, нет ли уже активного токена
+        if (deviceTokenRepository.existsByDeviceUid(deviceUid)) {
+            throw new com.connection.device.token.exception.DeviceTokenAlreadyExistsException(
+                    "Device token already exists for device: " + deviceUid);
+        }
+
+        Date createdAt = new Date();
+        Date expiresAt = Date.from(createdAt.toInstant().plus(deviceTokenDuration));
+        UUID tokenUid = UUID.randomUUID();
+
+        // Генерируем токен
+        String tokenString = deviceTokenGenerator.generateDeviceToken(deviceUid, tokenUid, createdAt, expiresAt);
+        DeviceTokenBLM deviceTokenBLM = DeviceTokenBLM.builder()
+                .token(tokenString)
+                .uid(tokenUid)
+                .deviceUid(deviceUid)
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .build();
+
+        deviceTokenValidator.validate(deviceTokenBLM);
+
+        // Сохраняем в БД
+
+        deviceTokenRepository.add(deviceTokenBLM);
+
+        log.info("Device token created successfully for device: {}", deviceUid);
+        return deviceTokenBLM;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceTokenBLM getDeviceToken(UUID deviceUid) {
+        log.info("Getting device token for device: {}", deviceUid);
+
+        DeviceTokenBLM deviceTokenBLM = deviceTokenRepository.findByDeviceUid(deviceUid);
+
+        deviceTokenValidator.validate(deviceTokenBLM);
+        return deviceTokenBLM;
+    }
+
+    @Override
+    @Transactional
+    public void revokeDeviceToken(UUID deviceUid) {
+        log.info("Revoking device token for device: {}", deviceUid);
+
+        DeviceTokenBLM deviceTokenBLM = deviceTokenRepository.findByDeviceUid(deviceUid);
+        deviceTokenRepository.revokeByDeviceUid(deviceUid);
+
+        // Каскадно отзываем все access tokens
+        deviceAccessTokenRepository.revokeByDeviceTokenUid(deviceTokenBLM.getUid());
+
+        log.info("Device token revoked successfully for device: {}", deviceUid);
+    }
+
+    @Override
+    public void validateDeviceToken(DeviceTokenBLM deviceToken) {
+        log.info("Validating device token for device: {}", deviceToken.getDeviceUid());
+        deviceTokenValidator.validate(deviceToken);
+    }
+
+    @Override
+    @Transactional
+    public Pair<DeviceAccessTokenBLM, DeviceTokenBLM> createDeviceAccessToken(DeviceTokenBLM deviceToken) {
+        log.info("Creating device access token for device token: {}", deviceToken.getUid());
+
+        deviceTokenValidator.validate(deviceToken);
+
+        // Проверяем, нет ли активного access token
+        if (deviceAccessTokenRepository.hasDeviceAccessToken(deviceToken.getUid())) {
+            throw new com.connection.device.token.exception.DeviceAccessTokenExistsException(
+                    "Active device access token already exists for device token: " + deviceToken.getUid());
+        }
+
+        Date createdAt = new Date();
+        Date expiresAt = Date.from(createdAt.toInstant().plus(deviceAccessTokenDuration));
+        UUID accessTokenUid = UUID.randomUUID();
+
+        // Генерируем access token
+        String accessTokenString = deviceAccessTokenGenerator.generateDeviceAccessToken(
+                deviceToken.getUid(), createdAt, expiresAt);
+
+        DeviceAccessTokenBLM deviceAccessTokenBLM = DeviceAccessTokenBLM.builder()
+                .token(accessTokenString)
+                .uid(accessTokenUid)
+                .deviceTokenUid(deviceToken.getUid())
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .build();
+
+        deviceAccessTokenValidator.validate(deviceAccessTokenBLM);
+
+        // Сохраняем в БД
+
+        deviceAccessTokenRepository.add(deviceAccessTokenBLM);
+
+        log.info("Device access token created successfully for device token: {}", deviceToken.getUid());
+        return Pair.of(deviceAccessTokenBLM, deviceToken);
+    }
+
+    @Override
+    @Transactional
+    public DeviceAccessTokenBLM refreshDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+        log.info("Refreshing device access token: {}", deviceAccessToken.getUid());
+
+        deviceAccessTokenValidator.validate(deviceAccessToken);
+
+        // Отзываем старый токен
+        // DeviceAccessTokenBLM oldAccessTokenBLM =
+
+        deviceAccessTokenRepository.revoke(deviceAccessToken.getUid());
+
+        Date createdAt = new Date();
+        Date expiresAt = Date.from(createdAt.toInstant().plus(deviceAccessTokenDuration));
+        UUID newAccessTokenUid = UUID.randomUUID();
+
+        // Генерируем новый access token
+        String newAccessTokenString = deviceAccessTokenGenerator.generateDeviceAccessToken(
+                deviceAccessToken.getDeviceTokenUid(), createdAt, expiresAt);
+
+        DeviceAccessTokenBLM newDeviceAccessTokenBLM = DeviceAccessTokenBLM.builder()
+                .token(newAccessTokenString)
+                .uid(newAccessTokenUid)
+                .deviceTokenUid(deviceAccessToken.getDeviceTokenUid())
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .build();
+
+        deviceAccessTokenValidator.validate(newDeviceAccessTokenBLM);
+
+        // Сохраняем новый токен
+
+        deviceAccessTokenRepository.add(newDeviceAccessTokenBLM);
+
+        log.info("Device access token refreshed successfully");
+        return newDeviceAccessTokenBLM;
+    }
+
+    @Override
+    public void validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+        log.info("Validating device access token: {}", deviceAccessToken.getUid());
+        // Только JWT валидация, без проверки в БД
+        deviceAccessTokenValidator.validate(deviceAccessToken);
+    }
+
+    @Override
+    public Map<String, Object> getHealthStatus() {
+        try {
+            HealthCheckResponse authHealth = authKafkaClient.healthCheck("device-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "device-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+        } catch (Exception e) {
+            log.error("Kafka Client: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "device-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "error", e.getMessage());
+        }
+    }
+}

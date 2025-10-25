@@ -1,0 +1,318 @@
+name: Java CI/CD with Allure Reports
+
+on:
+  push:
+    branches: [ main, master, develop, feature/*, release/* ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+env:
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: 5432
+  POSTGRES_DB: test_db
+  POSTGRES_USER: test_user
+  POSTGRES_PASSWORD: test_password
+
+jobs:
+  test-and-deploy:
+    name: Run Tests and Deploy Allure Reports
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      zookeeper:
+        image: confluentinc/cp-zookeeper:7.4.0
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+          ZOOKEEPER_TICK_TIME: 2000
+        ports:
+          - 2181:2181
+      
+      kafka:
+        image: confluentinc/cp-kafka:7.4.0
+        depends_on:
+          - zookeeper
+        env:
+          KAFKA_BROKER_ID: 1
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+          KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+        ports:
+          - 9092:9092
+          - 29092:29092
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Setup PostgreSQL schema
+      run: |
+        # Создаем директорию для SQL файлов
+        mkdir -p db
+        
+        # Создаем scheme-init.sql
+        cat > db/scheme-init.sql << 'EOF'
+        create schema if not exists core;
+        create schema if not exists access;
+        create schema if not exists transaction;
+        create schema if not exists processing;
+        EOF
+        
+        # Создаем core-init.sql
+        cat > db/core-init.sql << 'EOF'
+        create table if not exists core.client(
+          uid uuid primary key,
+          email varchar not null unique,
+          birth_date date,
+          username varchar not null unique,
+          password varchar not null
+        );
+
+        create table if not exists core.device(
+          uid uuid primary key, 
+          client_uuid uuid not null references core.client(uid),
+          device_name varchar(100) not null, 
+          device_description varchar(500) not null
+        );
+
+        create table if not exists core.tariff(
+          uid uuid primary key, 
+          tariff_name varchar(100) not null, 
+          amount NUMERIC(20, 8) NOT NULL,
+          currency_code CHAR(3) NOT NULL
+        );
+        EOF
+        
+        # Создаем token-init.sql
+        cat > db/token-init.sql << 'EOF'
+        create  table if not exists access.refresh_token (
+          uid uuid primary key,
+          client_id uuid not null references core.client(uid) on delete cascade,
+          token varchar(512) not null unique,
+          
+          created_at TIMESTAMP WITH TIME zone not null,
+          expires_at TIMESTAMP WITH TIME zone not null,
+          
+          CONSTRAINT chk_refresh_token_expiry CHECK (expires_at > created_at)
+        );
+
+        create table if not exists access.device_token(
+          uid uuid primary key, 
+          device_uid uuid not null references core.device(uid) on delete cascade,
+          token varchar(512) not null unique,	
+          created_at TIMESTAMP WITH TIME zone not null,
+          expires_at TIMESTAMP WITH TIME zone not null
+        );
+
+        create table if not exists access.device_access_token(
+          uid uuid primary key,
+          device_token_uid uuid not null references access.device_token(uid) on delete cascade,
+          token varchar(512) not null unique,	
+          created_at TIMESTAMP WITH TIME zone not null,
+          expires_at TIMESTAMP WITH TIME zone not null
+        );
+        EOF
+        
+        # Создаем transaction-init.sql
+        cat > db/transaction-init.sql << 'EOF'
+        create table if not exists transaction.client_transaction(
+          uid uuid primary key, 
+          client_uid uuid not null references core.client(uid),
+          transaction_date TIMESTAMP WITH TIME zone not null,
+          amount NUMERIC(20, 8) NOT NULL,
+          currency_code CHAR(3) NOT NULL,
+          description varchar
+        );
+
+        create table if not exists transaction.tariff_transaction(
+          uid uuid primary key, 
+          tariff_uid uuid not null references core.tariff(uid) on delete cascade,
+          transaction_uid uuid not null references transaction.client_transaction(uid) on delete cascade,
+          transaction_date TIMESTAMP WITH TIME zone not null,
+          expires_at TIMESTAMP WITH TIME zone not null
+        );
+        EOF
+        
+        # Создаем connection-init.sql
+        cat > db/connection-init.sql << 'EOF'
+        create table if not exists processing.connection_scheme(
+          uid uuid primary key, 
+          client_uid uuid not null references core.client(uid) on delete cascade,
+          scheme_json jsonb not null
+        );
+
+        create table if not exists processing.buffer(
+          uid uuid primary key, 
+          device_uid uuid not null references core.device(uid) on delete cascade,
+          max_messages_number integer not null CHECK (max_messages_number > 0),
+          max_message_size integer not null CHECK ( max_message_size > 0 ),
+          message_prototype varchar
+        );
+
+        create table if not exists processing.connection_scheme_buffer(
+          uid uuid primary key,
+          scheme_uid uuid not null references processing.connection_scheme(uid) on delete cascade,
+          buffer_uid uuid not null references processing.buffer(uid) on delete cascade
+        );
+
+        create table if not exists processing.message(
+          uid uuid primary key, 
+          buffer_uid uuid not null references processing.buffer(uid) on delete cascade,
+          content jsonb not null, 
+          content_type varchar not null, -- incomming/outcomming
+          created_at TIMESTAMP WITH TIME zone not null
+        );
+        EOF
+        
+        # Выполняем SQL файлы
+        for sql_file in db/*.sql; do
+          echo "Executing $sql_file"
+          psql -h localhost -U test_user -d test_db -f "$sql_file"
+        done
+      env:
+        PGPASSWORD: test_password
+
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Install Allure
+      run: |
+        sudo wget https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
+        sudo tar -zxvf allure-2.29.0.tgz -C /opt/
+        sudo ln -s /opt/allure-2.29.0/bin/allure /usr/bin/allure
+        allure --version
+
+    - name: Run testAll task
+      run: ./gradlew testAll
+
+    - name: Generate Allure report
+      run: ./gradlew collectAllureResults generateCombinedAllureReport
+
+    - name: Create branch-specific index
+      run: |
+        BRANCH_NAME="${{ github.ref_name }}"
+        cat > build/reports/allure-report/branch-index.html << EOF
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Allure Report - $BRANCH_NAME</title>
+            <meta http-equiv="refresh" content="0;url=index.html">
+        </head>
+        <body>
+            <p>Redirecting to <a href="index.html">Allure Report for $BRANCH_NAME</a></p>
+        </body>
+        </html>
+        EOF
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./build/reports/allure-report
+        destination_dir: ./allure/${{ github.ref_name }}
+        keep_files: true
+        force_orphan: false
+
+    - name: Update main index page
+      if: github.ref_name == 'main' || github.ref_name == 'master'
+      run: |
+        # Создаем главную индексную страницу со списком всех веток
+        cat > build/reports/allure-report/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Allure Test Reports - Connection Project</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+                h1 { color: #333; border-bottom: 2px solid #0366d6; padding-bottom: 10px; }
+                .container { max-width: 800px; margin: 0 auto; }
+                .branch-list { list-style: none; padding: 0; }
+                .branch-item { 
+                    padding: 15px; 
+                    margin: 10px 0; 
+                    border-left: 5px solid #0366d6; 
+                    background: #f6f8fa; 
+                    border-radius: 4px;
+                }
+                .branch-link { 
+                    color: #0366d6; 
+                    text-decoration: none; 
+                    font-weight: bold;
+                    font-size: 16px;
+                }
+                .branch-link:hover { text-decoration: underline; }
+                .branch-desc { color: #666; margin-top: 5px; font-size: 14px; }
+                .main-branch { border-left-color: #28a745; background: #f0fff4; }
+                .develop-branch { border-left-color: #6f42c1; background: #f8f9fa; }
+                .feature-branch { border-left-color: #ffd33d; background: #fffdef; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>📊 Allure Test Reports</h1>
+                <p>Available test reports for different branches:</p>
+                
+                <ul class="branch-list">
+                    <li class="branch-item main-branch">
+                        <a class="branch-link" href="/allure/main/">🚀 Main Branch</a>
+                        <div class="branch-desc">Latest stable version - production ready</div>
+                    </li>
+                    <li class="branch-item develop-branch">
+                        <a class="branch-link" href="/allure/develop/">🔧 Develop Branch</a>
+                        <div class="branch-desc">Active development and integration tests</div>
+                    </li>
+                    <!-- Other branches will appear automatically as they are generated -->
+                </ul>
+                
+                <p><em>📝 Reports are generated automatically after each push to any branch.</em></p>
+                <p><em>🕐 Last updated: <span id="date"></span></em></p>
+            </div>
+            
+            <script>
+                document.getElementById('date').textContent = new Date().toLocaleString();
+            </script>
+        </body>
+        </html>
+        EOF
+
+    - name: Deploy main index
+      if: github.ref_name == 'main' || github.ref_name == 'master'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./build/reports/allure-report
+        destination_dir: ./allure
+        keep_files: true

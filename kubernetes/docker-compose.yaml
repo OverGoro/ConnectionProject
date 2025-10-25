@@ -1,0 +1,187 @@
+version: '3.8'
+
+services:
+  # Zookeeper (требуется для Kafka)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - app-network
+
+  # Kafka Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      
+      # Основные изменения для внешнего подключения:
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    
+      
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - app-network
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_CLIENT_URL: jdbc:postgresql://postgres:5432/test_db
+      SPRING_DATASOURCE_REFRESH_TOKEN_URL: jdbc:postgresql://postgres:5432/test_db
+    depends_on:
+      - kafka
+    networks:
+      - app-network
+
+  buffer-service:
+    build:
+      context: ./buffer-service
+      dockerfile: Dockerfile
+    container_name: buffer-service
+    ports:
+      - "8082:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
+    depends_on:
+      - kafka
+      - auth-service
+    networks:
+      - app-network
+
+  connectionscheme-service:
+    build:
+      context: ./connectionscheme-service
+      dockerfile: Dockerfile
+    container_name: connectionscheme-service
+    ports:
+      - "8083:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
+      AUTH_SERVICE_URL: http://auth-service:8080/api/auth-service
+      CONNECTION_SCHEME_SERVICE_URL: http://connection-scheme-service:8080/api/connection-scheme-service
+    depends_on:
+      - kafka
+      - auth-service
+    networks:
+      - app-network
+  device-auth-service:
+    build:
+      context: ./device-auth-service
+      dockerfile: Dockerfile
+    container_name: device-auth-service
+    ports:
+      - "8084:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
+      AUTH_SERVICE_URL: http://auth-service:8080/api/auth-service
+      CONNECTION_SCHEME_SERVICE_URL: http://connection-scheme-service:8080/api/connection-scheme-service
+    depends_on:
+      - kafka
+      - auth-service
+    networks:
+      - app-network
+
+  device-service:
+    build:
+      context: ./device-service
+      dockerfile: Dockerfile
+    container_name: device-service
+    ports:
+      - "8085:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
+      AUTH_SERVICE_URL: http://auth-service:8080/api/auth-service
+      CONNECTION_SCHEME_SERVICE_URL: http://connection-scheme-service:8080/api/connection-scheme-service
+    depends_on:
+      - kafka
+      - auth-service
+    networks:
+      - app-network
+      
+  message-service:
+    build:
+      context: ./message-service
+      dockerfile: Dockerfile
+    container_name: message-service
+    ports:
+      - "8086:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
+    depends_on:
+      - kafka
+      - auth-service
+      - buffer-service
+      - connectionscheme-service
+      - device-auth-service
+      - device-service
+    networks:
+      - app-network
+  
+
+  # Kafka UI (опционально - для мониторинга)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    depends_on:
+      - kafka
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres
+    container_name: postgres
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/scheme-init.sql:/docker-entrypoint-initdb.d/01-scheme-init.sql
+      - ./db/core-init.sql:/docker-entrypoint-initdb.d/02-core-init.sql
+      - ./db/token-init.sql:/docker-entrypoint-initdb.d/03-token-init.sql
+      - ./db/transaction-init.sql:/docker-entrypoint-initdb.d/04-transaction-init.sql
+      - ./db/connection-init.sql:/docker-entrypoint-initdb.d/05-connection-init.sql
+    environment:
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_USER: test_user
+      POSTGRES_DB: test_db
+    ports:
+      - "5433:5432"
+    command: postgres -c max_prepared_transactions=100
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+volumes:
+  postgres_data:

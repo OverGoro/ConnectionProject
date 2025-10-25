@@ -1,0 +1,1675 @@
+// DeviceAccessTokenUtilsConfig.java
+package com.service.device.auth.config;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.connection.device.token.converter.DeviceAccessTokenConverter;
+import com.connection.device.token.generator.DeviceAccessTokenGenerator;
+import com.connection.device.token.validator.DeviceAccessTokenValidator;
+
+@Configuration
+public class DeviceAccessTokenUtilsConfig {
+
+    @Bean
+    DeviceAccessTokenValidator deviceAccessTokenValidator() {
+        return new DeviceAccessTokenValidator();
+    }
+
+    @Bean
+    DeviceAccessTokenGenerator deviceAccessTokenGenerator(
+            SecretKey jwtSecretKey,
+            @Qualifier("appName") String appNameString,
+            @Qualifier("jwtSubject") String subjectString) {
+        return new DeviceAccessTokenGenerator(jwtSecretKey, appNameString, subjectString);
+    }
+
+    @Bean
+    DeviceAccessTokenConverter deviceAccessTokenConverter(DeviceAccessTokenGenerator deviceAccessTokenGenerator) {
+        return new DeviceAccessTokenConverter(deviceAccessTokenGenerator);
+    }
+}package com.service.device.auth.config;
+
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@SecurityScheme(
+    name = "bearerAuth",
+    type = SecuritySchemeType.HTTP,
+    bearerFormat = "JWT",
+    scheme = "bearer"
+)
+public class SwaggerConfig {
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Device Auth Service API")
+                        .version("1.0")
+                        .description("API для авторизации устройств"))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
+                .components(new Components()
+                        .addSecuritySchemes("bearerAuth", 
+                            new io.swagger.v3.oas.models.security.SecurityScheme()
+                                .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")));
+    }
+}// DatabaseConfig.java
+package com.service.device.auth.config;
+
+import java.util.Properties;
+
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.atomikos.jdbc.AtomikosDataSourceBean;
+
+@Configuration
+public class DatabaseConfig {
+    
+    // Device Token DataSource
+    @Value("${app.datasource.device-token.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    private String deviceTokenXaDataSourceClassName;
+
+    @Value("${app.datasource.device-token.xa-properties.url}")
+    private String deviceTokenJdbcUrl;
+
+    @Value("${app.datasource.device-token.xa-properties.user}")
+    private String deviceTokenUsername;
+
+    @Value("${app.datasource.device-token.xa-properties.password}")
+    private String deviceTokenPassword;
+
+    @Value("${app.datasource.device-token.unique-resource-name:deviceTokenXADataSource}")
+    private String deviceTokenUniqueResourceName;
+
+    // Device Access Token DataSource
+    @Value("${app.datasource.device-access-token.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    private String deviceAccessTokenXaDataSourceClassName;
+
+    @Value("${app.datasource.device-access-token.xa-properties.url}")
+    private String deviceAccessTokenJdbcUrl;
+
+    @Value("${app.datasource.device-access-token.xa-properties.user}")
+    private String deviceAccessTokenUsername;
+
+    @Value("${app.datasource.device-access-token.xa-properties.password}")
+    private String deviceAccessTokenPassword;
+
+    @Value("${app.datasource.device-access-token.unique-resource-name:deviceAccessTokenXADataSource}")
+    private String deviceAccessTokenUniqueResourceName;
+
+    @Bean("deviceTokenDataSource")
+    DataSource deviceTokenDataSource() {
+        return createDataSource(
+            deviceTokenUniqueResourceName,
+            deviceTokenXaDataSourceClassName,
+            deviceTokenJdbcUrl,
+            deviceTokenUsername,
+            deviceTokenPassword
+        );
+    }
+
+    @Bean("deviceAccessTokenDataSource")
+    DataSource deviceAccessTokenDataSource() {
+        return createDataSource(
+            deviceAccessTokenUniqueResourceName,
+            deviceAccessTokenXaDataSourceClassName,
+            deviceAccessTokenJdbcUrl,
+            deviceAccessTokenUsername,
+            deviceAccessTokenPassword
+        );
+    }
+
+    @Bean("deviceTokenJdbcTemplate")
+    NamedParameterJdbcTemplate deviceTokenJdbcTemplate(
+            @Qualifier("deviceTokenDataSource") DataSource dataSource) {
+        return new NamedParameterJdbcTemplate(dataSource);
+    }
+
+    @Bean("deviceAccessTokenJdbcTemplate")
+    NamedParameterJdbcTemplate deviceAccessTokenJdbcTemplate(
+            @Qualifier("deviceAccessTokenDataSource") DataSource dataSource) {
+        return new NamedParameterJdbcTemplate(dataSource);
+    }
+
+    private DataSource createDataSource(String uniqueResourceName, String xaDataSourceClassName, 
+                                      String url, String username, String password) {
+        AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
+        dataSource.setUniqueResourceName(uniqueResourceName);
+        dataSource.setXaDataSourceClassName(xaDataSourceClassName);
+
+        Properties xaProperties = new Properties();
+        xaProperties.setProperty("url", url);
+        xaProperties.setProperty("user", username);
+        xaProperties.setProperty("password", password);
+
+        dataSource.setXaProperties(xaProperties);
+        dataSource.setPoolSize(5);
+        dataSource.setMaxPoolSize(10);
+        dataSource.setTestQuery("SELECT 1");
+
+        return dataSource;
+    }
+}// RepositoryConfig.java
+package com.service.device.auth.config;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.device.token.repository.DeviceTokenRepository;
+import com.connection.device.token.repository.DeviceTokenRepositorySQLImpl;
+import com.connection.device.token.generator.DeviceAccessTokenGenerator;
+import com.connection.device.token.generator.DeviceTokenGenerator;
+import com.connection.device.token.repository.DeviceAccessTokenRepository;
+import com.connection.device.token.repository.DeviceAccessTokenRepositorySQLImpl;
+
+@Configuration
+public class RepositoryConfig {
+    
+    @Autowired
+    DeviceTokenGenerator generator;
+    @Autowired
+    DeviceAccessTokenGenerator accessGenerator;
+
+
+    @Bean
+    DeviceTokenRepository deviceTokenRepository(
+            @Qualifier("deviceTokenJdbcTemplate") NamedParameterJdbcTemplate template) {
+        return new DeviceTokenRepositorySQLImpl(template, generator);
+    }
+    
+    @Bean
+    DeviceAccessTokenRepository deviceAccessTokenRepository(
+            @Qualifier("deviceAccessTokenJdbcTemplate") NamedParameterJdbcTemplate template,
+            DeviceTokenRepository deviceTokenRepository) {
+        return new DeviceAccessTokenRepositorySQLImpl(template,accessGenerator);
+    }
+}// JwtConfig.java
+package com.service.device.auth.config;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.MacAlgorithm;
+
+@Configuration
+public class JwtConfig {
+    @Value("${DEVICE_JWT_KEY:${app.jwt.device.key:deviceJwtSecretKeyForAuthService123}}")
+    private String jwtSecretString;
+
+    @Value("DeviceToken")
+    private String jwtSubjectString;
+
+    @Value("${DEVICE_ACCESS_TOKEN_EXPIRATION:${app.jwt.device.access-token.expiration:3600}}")
+    private long deviceAccessTokenExpiration;
+    
+    @Value("${DEVICE_TOKEN_EXPIRATION:${app.jwt.device.token.expiration:2592000}}") // 30 дней
+    private long deviceTokenExpiration;
+
+    private final MacAlgorithm jwtAlgorithmMacAlgorithm = Jwts.SIG.HS256;
+
+    @Bean
+    SecretKey jwtSecretKey() {
+        return createSecretKeyFromString(jwtSecretString, jwtAlgorithmMacAlgorithm);
+    }
+
+    @Bean
+    String jwtSubject(){
+        return jwtSubjectString;
+    }
+
+    @Bean
+    Duration deviceAccessTokenDuration(){
+        return Duration.ofSeconds(deviceAccessTokenExpiration);
+    }
+
+    @Bean
+    Duration deviceTokenDuration(){
+        return Duration.ofSeconds(deviceTokenExpiration);
+    }
+    
+    @Bean
+    MacAlgorithm jwtAlgorithm(){
+        return jwtAlgorithmMacAlgorithm;
+    }
+
+    private SecretKey createSecretKeyFromString(String secretString, MacAlgorithm algorithm) {
+        byte[] keyBytes = secretString.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+}// DeviceTokenUtilsConfig.java
+package com.service.device.auth.config;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.connection.device.token.converter.DeviceTokenConverter;
+import com.connection.device.token.generator.DeviceTokenGenerator;
+import com.connection.device.token.validator.DeviceTokenValidator;
+
+@Configuration
+public class DeviceTokenUtilsConfig {
+
+    @Bean
+    DeviceTokenValidator deviceTokenValidator(){
+        return new DeviceTokenValidator();
+    }
+
+    @Bean
+    DeviceTokenGenerator deviceTokenGenerator(
+            SecretKey jwtSecretKey,
+            @Qualifier("appName") String appNameString,
+            @Qualifier("jwtSubject") String subjectString) {
+        return new DeviceTokenGenerator(jwtSecretKey, appNameString, subjectString);
+    }
+
+    @Bean
+    DeviceTokenConverter deviceTokenConverter(DeviceTokenGenerator deviceTokenGenerator) {
+        return new DeviceTokenConverter(deviceTokenGenerator);
+    }
+}// KafkaConfig.java
+package com.service.device.auth.config;
+
+import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.util.backoff.FixedBackOff;
+
+import com.connection.device.auth.events.DeviceAuthEventConstants;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Configuration
+public class KafkaConfig {
+
+    @Value("${spring.kafka.bootstrap-servers:kafka:9092}")
+    private String bootstrapServers;
+
+    @Bean
+    public NewTopic deviceAuthCommandsTopic() {
+        return TopicBuilder.name(DeviceAuthEventConstants.DEVICE_AUTH_COMMANDS_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic deviceAuthResponsesTopic() {
+        return TopicBuilder.name(DeviceAuthEventConstants.DEVICE_AUTH_RESPONSES_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic deviceAuthEventsTopic() {
+        return TopicBuilder.name(DeviceAuthEventConstants.DEVICE_AUTH_EVENTS_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic deviceTokenEventsTopic() {
+        return TopicBuilder.name(DeviceAuthEventConstants.DEVICE_TOKEN_EVENTS_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public ConsumerFactory<String, Object> consumerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "device-auth-service-group");
+        configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+        configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+
+        configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS,
+                org.apache.kafka.common.serialization.StringDeserializer.class);
+        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
+
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES,
+                "com.connection.device.auth.events.commands,com.connection.common.events");
+        configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
+        configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
+        configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");
+
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+
+        return new DefaultKafkaConsumerFactory<>(configProps);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(
+                (record, exception) -> {
+                    org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("DeviceAuthKafkaErrorHandler");
+                    logger.error("Skipping invalid device auth message - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}",
+                            record.topic(), record.partition(), record.offset(), record.key(), exception.getMessage());
+                },
+                new FixedBackOff(0L, 0L)
+        );
+
+        factory.setCommonErrorHandler(errorHandler);
+        return factory;
+    }
+
+    @Bean
+    public ProducerFactory<String, Object> producerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                org.apache.kafka.common.serialization.StringSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
+        return new DefaultKafkaProducerFactory<>(configProps);
+    }
+
+    @Bean
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
+    }
+}package com.service.device.auth.config;
+
+import java.util.UUID;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.jta.JtaTransactionManager;
+
+import com.atomikos.icatch.jta.UserTransactionManager;
+
+import jakarta.transaction.SystemException;
+
+@Configuration
+public class TransactionConfig {
+
+    @Bean
+    public UserTransactionManager userTransactionManager() throws SystemException{
+        UserTransactionManager manager = new UserTransactionManager();
+        setPropertyIfNotExists("com.atomikos.icatch.log_base_name", "atomikos-tm-" + UUID.randomUUID().toString().substring(0, 8));
+        setPropertyIfNotExists("com.atomikos.icatch.log_base_dir", "./logs");
+        setPropertyIfNotExists("com.atomikos.icatch.tm_unique_name", "tm-" + UUID.randomUUID().toString().substring(0, 8));
+
+        manager.setTransactionTimeout(300);
+        manager.setForceShutdown(true);
+        return manager;
+    }
+
+    @Bean(name = "atomicosTransactionManager")
+    public JtaTransactionManager jtaTransactionManager() throws SystemException {
+        JtaTransactionManager jtaTransactionManager = new JtaTransactionManager();
+        jtaTransactionManager.setTransactionManager(userTransactionManager());
+        jtaTransactionManager.setUserTransaction(userTransactionManager());
+        return jtaTransactionManager;
+    }
+    /**
+     * Устанавливает системное свойство только если оно еще не было установлено
+     * @param key ключ свойства
+     * @param value значение свойства
+     */
+    private void setPropertyIfNotExists(String key, String value) {
+        if (System.getProperty(key) == null) {
+            System.setProperty(key, value);
+            System.out.println("Set property: " + key + " = " + value);
+        } else {
+            System.out.println("Property already set: " + key + " = " + System.getProperty(key));
+        }
+    }
+
+}// ApplicationConfig.java
+package com.service.device.auth.config;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class ApplicationConfig {
+    @Value("${spring.application.name:device-auth-service}")
+    private String appNameString;
+
+    @Bean
+    String appName(){
+        return appNameString;
+    }
+}// DeviceAuthService.java
+package com.service.device.auth;
+
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.data.util.Pair;
+
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+
+public interface DeviceAuthService {
+    // Device Token operations
+    DeviceTokenBLM createDeviceToken(UUID deviceUid);
+    DeviceTokenBLM getDeviceToken(UUID deviceUid);
+    void revokeDeviceToken(UUID deviceUid);
+    void validateDeviceToken(DeviceTokenBLM deviceToken);
+    
+    // Device Access Token operations
+    Pair<DeviceAccessTokenBLM, DeviceTokenBLM> createDeviceAccessToken(DeviceTokenBLM deviceToken);
+    DeviceAccessTokenBLM refreshDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken);
+    void validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken);
+        
+    
+    Map<String, Object> getHealthStatus();
+
+
+}package com.service.device.auth.controller;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+
+import java.util.Map;
+
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(com.connection.device.exception.DeviceAlreadyExistsException.class)
+    public ResponseEntity<?> handleDeviceAlreadyExistsException(
+            com.connection.device.exception.DeviceAlreadyExistsException e) {
+        log.warn("Device registration failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "device_already_exist",
+                "An device with such uid already exists"));
+    }
+
+    @ExceptionHandler(com.connection.device.exception.DeviceNotFoundException.class)
+    public ResponseEntity<?> handleDeviceNotFoundException(com.connection.device.exception.DeviceNotFoundException e) {
+        log.warn("Device not found: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(
+                "device_not_found",
+                "User not found"));
+    }
+
+    @ExceptionHandler(com.connection.device.exception.DeviceValidateException.class)
+    public ResponseEntity<?> handleDeviceValidateException(com.connection.device.exception.DeviceValidateException e) {
+        log.warn("Device validation failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "validation_failed",
+                e.getMessage() != null ? e.getMessage() : "Invalid device data"));
+    }
+
+
+
+
+    @ExceptionHandler(com.connection.device.token.exception.DeviceTokenAlreadyExistsException.class)
+    public ResponseEntity<?> handeleDeviceTokenException(com.connection.device.token.exception.DeviceTokenAlreadyExistsException e){
+        log.warn("Device token adding failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "device_token_already_exist",
+                "Token for this device already exists"));
+
+    }
+
+    @ExceptionHandler(com.connection.device.token.exception.DeviceTokenNotFoundException.class)
+    public ResponseEntity<?> handeleDeviceTokenException(com.connection.device.token.exception.DeviceTokenNotFoundException e){
+        log.warn("Device token getting failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(
+                "device_token_not_found",
+                "No such token exist"));
+    }
+
+    @ExceptionHandler(com.connection.device.token.exception.DeviceTokenValidateException.class)
+    public ResponseEntity<?> handeleDeviceTokenException(com.connection.device.token.exception.DeviceTokenValidateException e){
+        log.warn("Device token getting failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "device_token_invalid",
+                "Invalid token"));
+    }
+
+
+
+
+
+    @ExceptionHandler(com.connection.device.token.exception.DeviceAccessTokenExistsException.class)
+    public ResponseEntity<?> handeleDeviceTokenException(com.connection.device.token.exception.DeviceAccessTokenExistsException e){
+        log.warn("Device access token adding failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "device_access_token_already_exist",
+                "Access token for this device already exists"));
+
+    }
+
+    @ExceptionHandler(com.connection.device.token.exception.DeviceAccessTokenNotFoundException.class)
+    public ResponseEntity<?> handeleDeviceTokenException(com.connection.device.token.exception.DeviceAccessTokenNotFoundException e){
+        log.warn("Device access token getting failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(
+                "device_access_token_not_found",
+                "No such access token exist"));
+    }
+
+    @ExceptionHandler(com.connection.device.token.exception.DeviceAccessTokenValidateException.class)
+    public ResponseEntity<?> handeleDeviceTokenException(com.connection.device.token.exception.DeviceAccessTokenValidateException e){
+        log.warn("Device token getting failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "device_access_token_invalid",
+                "Invalid access token"));
+    }
+    
+    @ExceptionHandler(io.jsonwebtoken.JwtException.class)
+    public ResponseEntity<?> handeleJwtException(io.jsonwebtoken.JwtException e){
+        log.warn("JWT token invalid: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(
+                "jwt_token_invalid",
+                "Invalid jwt token"));
+    }
+
+    @ExceptionHandler(exception = IllegalArgumentException.class)
+    public ResponseEntity<?> handeleJwtException(IllegalArgumentException e){
+        log.warn("JWT token invalid: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "illegal_argument",
+                "Illegal argument"));
+    }
+
+
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handleGenericException(Exception e) {
+        log.error("Unexpected error occurred: {}", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "error", "Internal server error",
+                "message", "An unexpected error occurred"));
+    }
+}package com.service.device.auth.controller;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+public class ErrorResponse {
+    private final String error;
+    private final String message;
+}
+
+package com.service.device.auth.controller;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.util.Pair;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.device.token.converter.DeviceAccessTokenConverter;
+import com.connection.device.token.converter.DeviceTokenConverter;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenDTO;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceTokenDTO;
+import com.connection.device.token.util.TokenUtils;
+import com.service.device.auth.DeviceAuthService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/")
+public class DeviceAuthController {
+
+    private final DeviceAuthService deviceAuthService;
+    private final DeviceTokenConverter deviceTokenConverter;
+    private final DeviceAccessTokenConverter deviceAccessTokenConverter;
+
+    @PostMapping("/device-token")
+    public ResponseEntity<DeviceTokenResponse> createDeviceToken(@RequestBody CreateDeviceTokenRequest request) {
+        log.info("Creating device token for device: {}", request.deviceUid());
+
+        DeviceTokenBLM deviceToken = deviceAuthService.createDeviceToken(request.deviceUid());
+
+        return ResponseEntity.ok(new DeviceTokenResponse(
+                deviceToken.getToken(),
+                deviceToken.getExpiresAt(),
+                deviceToken.getDeviceUid()));
+    }
+
+    @GetMapping("/device-token")
+    public ResponseEntity<DeviceTokenResponse> getDeviceToken(
+            @RequestParam(required = false) UUID deviceUid) {
+
+        DeviceTokenBLM deviceToken;
+
+        if (deviceUid != null) {
+            log.info("Getting device token for device: {}", deviceUid);
+            deviceToken = deviceAuthService.getDeviceToken(deviceUid);
+        } else {
+            log.warn("No valid parameters provided for getting device token");
+            return ResponseEntity.badRequest().build();
+        }
+
+        return ResponseEntity.ok(new DeviceTokenResponse(
+                deviceToken.getToken(),
+                deviceToken.getExpiresAt(),
+                deviceToken.getDeviceUid()));
+    }
+
+    @DeleteMapping("/device-token")
+    public ResponseEntity<Void> revokeDeviceToken(
+            @RequestParam(required = false) List<UUID> deviceUids) {
+
+        if (deviceUids != null && !deviceUids.isEmpty()) {
+            // Массовое удаление токенов по deviceUids
+            log.info("Revoking device tokens for devices: {}", deviceUids);
+            for (UUID uid : deviceUids) {
+                deviceAuthService.revokeDeviceToken(uid);
+            }
+        } else {
+            log.warn("No valid parameters provided for revoking device token");
+            return ResponseEntity.badRequest().build();
+        }
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/access-token")
+    public ResponseEntity<DeviceAccessTokenResponse> createDeviceAccessToken(
+            @RequestBody DeviceTokenDTO deviceTokenDTO) {
+        log.info("Creating device access token");
+
+        DeviceTokenBLM deviceToken = deviceTokenConverter.toBLM(deviceTokenDTO);
+
+        log.info(deviceToken.getToken() + " \n" +
+                deviceToken.getCreatedAt() + " \n" +
+                deviceToken.getDeviceUid() + " \n" +
+                deviceToken.getExpiresAt() + " \n" +
+                deviceToken.getUid());
+
+        Pair<DeviceAccessTokenBLM, DeviceTokenBLM> result = deviceAuthService.createDeviceAccessToken(deviceToken);
+
+        return ResponseEntity.ok(new DeviceAccessTokenResponse(
+                result.getFirst().getToken(),
+                result.getFirst().getExpiresAt(),
+                result.getSecond().getDeviceUid()));
+    }
+
+    @PostMapping("/access-token/refresh")
+    public ResponseEntity<DeviceAccessTokenResponse> refreshDeviceAccessToken(
+            @RequestBody DeviceAccessTokenDTO deviceAccessTokenDTO) {
+        log.info("Refreshing device access token");
+
+        DeviceAccessTokenBLM deviceAccessToken = deviceAccessTokenConverter.toBLM(deviceAccessTokenDTO);
+        DeviceAccessTokenBLM newAccessToken = deviceAuthService.refreshDeviceAccessToken(deviceAccessToken);
+
+        return ResponseEntity.ok(new DeviceAccessTokenResponse(
+                newAccessToken.getToken(),
+                newAccessToken.getExpiresAt(),
+                TokenUtils.extractDeviceUidFromDeviceToken(newAccessToken.getToken())));
+    }
+
+    @PostMapping("/validate")
+    public ResponseEntity<ValidationResponse> validateToken(
+            @RequestParam(required = false) String deviceToken,
+            @RequestParam(required = false) String accessToken) {
+
+        if (deviceToken != null) {
+            log.info("Validating device token");
+            DeviceTokenDTO deviceTokenDTO = new DeviceTokenDTO(deviceToken);
+            DeviceTokenBLM deviceTokenBLM = deviceTokenConverter.toBLM(deviceTokenDTO);
+            deviceAuthService.validateDeviceToken(deviceTokenBLM);
+            return ResponseEntity.ok(new ValidationResponse("DEVICE_TOKEN_VALID"));
+        } else if (accessToken != null) {
+            log.info("Validating device access token");
+            log.info(accessToken);
+            DeviceAccessTokenDTO accessTokenDTO = new DeviceAccessTokenDTO(accessToken);
+            log.info(accessTokenDTO.getToken());
+
+            DeviceAccessTokenBLM accessTokenBLM = deviceAccessTokenConverter.toBLM(accessTokenDTO);
+            log.info(accessTokenBLM.getToken().toString() + " " +
+                    accessTokenBLM.getCreatedAt().toString() + " " +
+                    accessTokenBLM.getExpiresAt().toString() + " " +
+                    accessTokenBLM.getDeviceTokenUid().toString() + " " +
+                    accessTokenBLM.getUid());
+
+            deviceAuthService.validateDeviceAccessToken(accessTokenBLM);
+
+            return ResponseEntity.ok(new ValidationResponse("ACCESS_TOKEN_VALID"));
+        } else {
+            log.warn("No valid parameters provided for token validation");
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<HealthResponse> healthCheck() {
+        log.info("Health check: status: OK, service: device-service, timestamp: {}",
+                System.currentTimeMillis());
+
+        return ResponseEntity.ok().body(new HealthResponse(deviceAuthService.getHealthStatus().toString()));
+    }
+
+    // DTO классы
+    public record CreateDeviceTokenRequest(UUID deviceUid) {
+    }
+
+    public record DeviceTokenResponse(String token, Object expiresAt, UUID deviceUid) {
+    }
+
+    public record DeviceAccessTokenResponse(String token, Object expiresAt, UUID deviceUid) {
+    }
+
+    public record ValidationResponse(String status) {
+    }
+
+    public record HealthResponse(String message) {
+    }
+}package com.service.device.auth.kafka;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+import org.springframework.kafka.listener.MessageListenerContainer;
+import org.springframework.stereotype.Component;
+
+import com.connection.auth.events.responses.TokenValidationResponse;
+import com.connection.common.events.CommandResponse;
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class AuthResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
+
+    private final TypedAuthKafkaClient authKafkaClient;
+    private final KafkaListenerEndpointRegistry registry;
+
+    @KafkaListener(id = "dynamicAuthListener", topics = "#{@typedAuthKafkaClient.getInstanceReplyTopic()}")
+    public void handleAuthResponse(ConsumerRecord<String, CommandResponse> record) {
+        try {
+            CommandResponse message = record.value();
+            String correlationId = record.key();
+            
+            log.info("Received auth response from instance topic: correlationId={}, topic={}", 
+                    correlationId, record.topic());
+                
+            if (message instanceof TokenValidationResponse) {
+                TokenValidationResponse typedResponse = (TokenValidationResponse) message;
+                authKafkaClient.handleResponse(correlationId, typedResponse);
+            } else if (message instanceof ClientUidResponse) {
+                ClientUidResponse typedResponse = (ClientUidResponse) message;
+                authKafkaClient.handleResponse(correlationId, typedResponse);
+            } else if (message instanceof HealthCheckResponse) {
+                HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+                authKafkaClient.handleResponse(correlationId, typedResponse);
+            } else {
+                log.warn("Unknown response type for correlationId: {}", correlationId);
+            }
+            
+        } catch (Exception e) {
+            log.error("Error processing auth response: correlationId={}", record.key(), e);
+        }
+    }
+
+    @Override
+    public void onApplicationEvent(ApplicationReadyEvent event) {
+        try {
+            MessageListenerContainer container = registry.getListenerContainer("dynamicAuthListener");
+            if (container != null && !container.isRunning()) {
+                container.start();
+                log.info("Dynamic auth response listener started for topic: {}", 
+                        authKafkaClient.getInstanceReplyTopic());
+            }
+        } catch (Exception e) {
+            log.error("Failed to start dynamic auth listener", e);
+        }
+    }
+}package com.service.device.auth.kafka;
+
+import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+
+import com.connection.auth.events.AuthEventConstants;
+import com.connection.auth.events.AuthEventUtils;
+import com.connection.auth.events.commands.ExtractClientUidCommand;
+import com.connection.auth.events.commands.HealthCheckCommand;
+import com.connection.auth.events.commands.ValidateTokenCommand;
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.auth.events.responses.TokenValidationResponse;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class TypedAuthKafkaClient {
+
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    
+    private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+    
+    // 👇 Уникальный топик для этого инстанса
+    private final String instanceReplyTopic = "auth.responses." + UUID.randomUUID().toString();
+
+    private static class PendingRequest<T> {
+        final CompletableFuture<T> future;
+        final Class<T> responseType;
+
+        PendingRequest(CompletableFuture<T> future, Class<T> responseType) {
+            this.future = future;
+            this.responseType = responseType;
+        }
+    }
+
+    public CompletableFuture<TokenValidationResponse> validateToken(String token, String sourceService) {
+        return sendRequest(
+            ValidateTokenCommand.builder()
+                .token(token)
+                .tokenType(ValidateTokenCommand.TokenType.ACCESS)
+                .sourceService(sourceService)
+                .replyTopic(instanceReplyTopic) // 👈 Уникальный топик инстанса
+                .correlationId(AuthEventUtils.generateCorrelationId())
+                .build(),
+            TokenValidationResponse.class
+        );
+    }
+
+    public CompletableFuture<ClientUidResponse> getClientUid(String token, String sourceService) {
+        return sendRequest(
+            ExtractClientUidCommand.builder()
+                .token(token)
+                .tokenType(ExtractClientUidCommand.TokenType.ACCESS)
+                .sourceService(sourceService)
+                .replyTopic(instanceReplyTopic) // 👈 Уникальный топик инстанса
+                .correlationId(AuthEventUtils.generateCorrelationId())
+                .build(),
+            ClientUidResponse.class
+        );
+    }
+
+    public CompletableFuture<HealthCheckResponse> healthCheck(String sourceService) {
+        return sendRequest(
+            HealthCheckCommand.builder()
+                .eventId(UUID.randomUUID().toString())
+                .sourceService(sourceService)
+                .timestamp(new Date().toInstant())
+                .replyTopic(instanceReplyTopic) // 👈 Уникальный топик инстанса
+                .correlationId(AuthEventUtils.generateCorrelationId())
+                .commandType(AuthEventConstants.COMMAND_HEALTH_CHECK)
+                .build(),
+            HealthCheckResponse.class
+        );
+    }
+
+    private <T> CompletableFuture<T> sendRequest(Object command, Class<T> responseType) {
+        String correlationId;
+        
+        if (command instanceof ValidateTokenCommand) {
+            correlationId = ((ValidateTokenCommand) command).getCorrelationId();
+        } else if (command instanceof ExtractClientUidCommand) {
+            correlationId = ((ExtractClientUidCommand) command).getCorrelationId();
+        } else if (command instanceof HealthCheckCommand) {
+            correlationId = ((HealthCheckCommand) command).getCorrelationId();
+        } else {
+            throw new IllegalArgumentException("Unsupported command type: " + command.getClass());
+        }
+
+        CompletableFuture<T> future = new CompletableFuture<>();
+        pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
+
+        // 👇 Добавляем таймаут 30 секунд
+        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, ex) -> {
+            if (ex != null) {
+                pendingRequests.remove(correlationId);
+                log.warn("Auth request timeout or error for correlationId: {}", correlationId);
+            }
+        });
+
+        kafkaTemplate.send(AuthEventConstants.AUTH_COMMANDS_TOPIC, correlationId, command)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        future.completeExceptionally(ex);
+                        pendingRequests.remove(correlationId);
+                        log.error("Failed to send auth command: {}", ex.getMessage());
+                    } else {
+                        log.info("Auth command sent successfully: correlationId={}, topic={}", 
+                                correlationId, AuthEventConstants.AUTH_COMMANDS_TOPIC);
+                    }
+                });
+
+        return future;
+    }
+
+    @SuppressWarnings("unchecked")
+    public void handleResponse(String correlationId, Object response) {
+        PendingRequest<?> pendingRequest = pendingRequests.remove(correlationId);
+        if (pendingRequest != null) {
+            try {
+                if (pendingRequest.responseType.isInstance(response)) {
+                    CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
+                    future.complete(response);
+                    log.info("Auth response handled successfully: correlationId={}", correlationId);
+                } else {
+                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
+                            correlationId, pendingRequest.responseType, response.getClass());
+                    pendingRequest.future.completeExceptionally(
+                        new ClassCastException("Type mismatch in auth response")
+                    );
+                }
+            } catch (Exception e) {
+                pendingRequest.future.completeExceptionally(e);
+            }
+        } else {
+            log.warn("Received auth response for unknown correlationId: {}", correlationId);
+        }
+    }
+    
+    // 👇 Геттер для получения уникального топика инстанса
+    public String getInstanceReplyTopic() {
+        return instanceReplyTopic;
+    }
+}// DeviceAuthCommandConsumer.java
+package com.service.device.auth.kafka;
+
+import java.util.UUID;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+
+import com.connection.device.auth.events.commands.ExtractDeviceUidCommand;
+import com.connection.device.auth.events.commands.HealthCheckCommand;
+import com.connection.device.auth.events.commands.ValidateTokenCommand;
+import com.connection.device.auth.events.domain.TokenValidatedEvent;
+import com.connection.device.auth.events.responses.DeviceUidResponse;
+import com.connection.device.auth.events.responses.HealthCheckResponse;
+import com.connection.device.auth.events.responses.TokenValidationResponse;
+import com.connection.common.events.Command;
+import com.connection.device.token.converter.DeviceAccessTokenConverter;
+import com.connection.device.token.converter.DeviceTokenConverter;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.util.TokenUtils;
+import com.service.device.auth.DeviceAuthService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class DeviceAuthCommandConsumer {
+
+    private final DeviceAuthService deviceAuthService;
+    private final DeviceTokenConverter deviceTokenConverter;
+    private final DeviceAccessTokenConverter deviceAccessTokenConverter;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    @KafkaListener(topics = "${app.kafka.topics.device-auth-commands:device.auth.commands}")
+    public void handleDeviceAuthCommand(ConsumerRecord<String, Command> record) {
+        try {
+            Command command = record.value();
+            String key = record.key();
+
+            if (command instanceof ValidateTokenCommand) {
+                ValidateTokenCommand validateCommand = (ValidateTokenCommand) command;
+                handleValidateTokenCommand(validateCommand, key);
+            } else if (command instanceof ExtractDeviceUidCommand) {
+                ExtractDeviceUidCommand extractCommand = (ExtractDeviceUidCommand) command;
+                handleExtractDeviceUidCommand(extractCommand, key);
+            } else if (command instanceof HealthCheckCommand) {
+                HealthCheckCommand healthCommand = (HealthCheckCommand) command;
+                handleHealthCheckCommand(healthCommand, key);
+            } else {
+                log.warn("Unknown device auth command type: {}", command.getClass().getCanonicalName());
+            }
+
+        } catch (Exception e) {
+            log.error("Error processing device auth command: key={}", record.key(), e);
+        }
+    }
+
+    private void handleValidateTokenCommand(ValidateTokenCommand command, String key) {
+        try {
+            UUID deviceUid = null;
+            boolean isValid = false;
+            String tokenType = command.getTokenType().name();
+
+            if (command.getTokenType() == ValidateTokenCommand.TokenType.ACCESS) {
+                // Валидация device access token (только JWT)
+                DeviceAccessTokenBLM tokenBLM = deviceAccessTokenConverter.toBLM(
+                    new com.connection.device.token.model.DeviceAccessTokenDTO(command.getToken()));
+                deviceAuthService.validateDeviceAccessToken(tokenBLM);
+                deviceUid = TokenUtils.extractDeviceUidFromDeviceToken(tokenBLM.getToken());
+                isValid = true;
+            } else {
+                // Валидация device token (полная валидация)
+                DeviceTokenBLM tokenBLM = deviceTokenConverter.toBLM(
+                    new com.connection.device.token.model.DeviceTokenDTO(command.getToken()));
+                deviceAuthService.validateDeviceToken(tokenBLM);
+                deviceUid = tokenBLM.getDeviceUid();
+                isValid = true;
+            }
+
+            // Отправка события валидации
+            TokenValidatedEvent event = new TokenValidatedEvent(deviceUid, isValid, tokenType);
+            kafkaTemplate.send("device.auth.events", event);
+
+            // Отправка ответа
+            TokenValidationResponse response = TokenValidationResponse.valid(
+                command.getCorrelationId(), deviceUid, tokenType);
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+
+            log.info("Device token validation successful: deviceUid={}, type={}", deviceUid, tokenType);
+
+        } catch (Exception e) {
+            TokenValidationResponse response = TokenValidationResponse.error(
+                command.getCorrelationId(), e.getMessage());
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.error("Device token validation failed: {}", e.getMessage());
+        }
+    }
+
+    private void handleExtractDeviceUidCommand(ExtractDeviceUidCommand command, String key) {
+        try {
+            UUID deviceUid = null;
+            String tokenType = command.getTokenType().name();
+
+            if (command.getTokenType() == ExtractDeviceUidCommand.TokenType.ACCESS) {
+                DeviceAccessTokenBLM tokenBLM = deviceAccessTokenConverter.toBLM(
+                    new com.connection.device.token.model.DeviceAccessTokenDTO(command.getToken()));
+                deviceAuthService.validateDeviceAccessToken(tokenBLM);
+                deviceUid = TokenUtils.extractDeviceUidFromDeviceToken(tokenBLM.getToken());
+            } else {
+                DeviceTokenBLM tokenBLM = deviceTokenConverter.toBLM(
+                    new com.connection.device.token.model.DeviceTokenDTO(command.getToken()));
+                deviceAuthService.validateDeviceToken(tokenBLM);
+                deviceUid = tokenBLM.getDeviceUid();
+            }
+
+            DeviceUidResponse response = DeviceUidResponse.success(
+                command.getCorrelationId(), deviceUid, tokenType);
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+
+            log.info("Device UID extracted: {}, type={}", deviceUid, tokenType);
+
+        } catch (Exception e) {
+            DeviceUidResponse response = DeviceUidResponse.error(
+                command.getCorrelationId(), e.getMessage());
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.error("Device UID extraction failed: {}", e.getMessage());
+        }
+    }
+
+    private void handleHealthCheckCommand(HealthCheckCommand command, String key) {
+        try {
+            java.util.Map<String, Object> healthStatus = java.util.Map.of(
+                "status", "OK",
+                "service", "device-auth-service",
+                "timestamp", System.currentTimeMillis());
+
+            HealthCheckResponse response = HealthCheckResponse.success(
+                command.getCorrelationId(), healthStatus);
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.info("Device auth health check completed successfully");
+
+        } catch (Exception e) {
+            HealthCheckResponse response = HealthCheckResponse.error(
+                command.getCorrelationId(), e.getMessage());
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.error("Device auth health check failed: {}", e.getMessage());
+        }
+    }
+}// DeviceAuthServiceImpl.java
+package com.service.device.auth;
+
+import java.time.Duration;
+import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.data.util.Pair;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.auth.events.responses.HealthCheckResponse;
+
+
+import com.connection.device.token.generator.DeviceAccessTokenGenerator;
+import com.connection.device.token.generator.DeviceTokenGenerator;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.repository.DeviceAccessTokenRepository;
+import com.connection.device.token.repository.DeviceTokenRepository;
+import com.connection.device.token.validator.DeviceAccessTokenValidator;
+import com.connection.device.token.validator.DeviceTokenValidator;
+import com.service.device.auth.kafka.TypedAuthKafkaClient;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+        JpaRepositoriesAutoConfiguration.class
+})
+@EnableTransactionManagement
+public class DeviceAuthServiceImpl implements DeviceAuthService {
+
+    private final TypedAuthKafkaClient authKafkaClient;
+
+
+
+    private final DeviceTokenValidator deviceTokenValidator;
+    private final DeviceAccessTokenValidator deviceAccessTokenValidator;
+
+    private final DeviceTokenGenerator deviceTokenGenerator;
+    private final DeviceAccessTokenGenerator deviceAccessTokenGenerator;
+
+    private final DeviceTokenRepository deviceTokenRepository;
+    private final DeviceAccessTokenRepository deviceAccessTokenRepository;
+
+    private final Duration deviceTokenDuration;
+    private final Duration deviceAccessTokenDuration;
+
+    @Override
+    @Transactional
+    public DeviceTokenBLM createDeviceToken(UUID deviceUid) {
+        log.info("Creating device token for device: {}", deviceUid);
+
+        // Проверяем, нет ли уже активного токена
+        if (deviceTokenRepository.existsByDeviceUid(deviceUid)) {
+            throw new com.connection.device.token.exception.DeviceTokenAlreadyExistsException(
+                    "Device token already exists for device: " + deviceUid);
+        }
+
+        Date createdAt = new Date();
+        Date expiresAt = Date.from(createdAt.toInstant().plus(deviceTokenDuration));
+        UUID tokenUid = UUID.randomUUID();
+
+        // Генерируем токен
+        String tokenString = deviceTokenGenerator.generateDeviceToken(deviceUid, tokenUid, createdAt, expiresAt);
+        DeviceTokenBLM deviceTokenBLM = DeviceTokenBLM.builder()
+                .token(tokenString)
+                .uid(tokenUid)
+                .deviceUid(deviceUid)
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .build();
+
+        deviceTokenValidator.validate(deviceTokenBLM);
+
+        // Сохраняем в БД
+
+        deviceTokenRepository.add(deviceTokenBLM);
+
+        log.info("Device token created successfully for device: {}", deviceUid);
+        return deviceTokenBLM;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeviceTokenBLM getDeviceToken(UUID deviceUid) {
+        log.info("Getting device token for device: {}", deviceUid);
+
+        DeviceTokenBLM deviceTokenBLM = deviceTokenRepository.findByDeviceUid(deviceUid);
+
+        deviceTokenValidator.validate(deviceTokenBLM);
+        return deviceTokenBLM;
+    }
+
+    @Override
+    @Transactional
+    public void revokeDeviceToken(UUID deviceUid) {
+        log.info("Revoking device token for device: {}", deviceUid);
+
+        DeviceTokenBLM deviceTokenBLM = deviceTokenRepository.findByDeviceUid(deviceUid);
+        deviceTokenRepository.revokeByDeviceUid(deviceUid);
+
+        // Каскадно отзываем все access tokens
+        deviceAccessTokenRepository.revokeByDeviceTokenUid(deviceTokenBLM.getUid());
+
+        log.info("Device token revoked successfully for device: {}", deviceUid);
+    }
+
+    @Override
+    public void validateDeviceToken(DeviceTokenBLM deviceToken) {
+        log.info("Validating device token for device: {}", deviceToken.getDeviceUid());
+        deviceTokenValidator.validate(deviceToken);
+    }
+
+    @Override
+    @Transactional
+    public Pair<DeviceAccessTokenBLM, DeviceTokenBLM> createDeviceAccessToken(DeviceTokenBLM deviceToken) {
+        log.info("Creating device access token for device token: {}", deviceToken.getUid());
+
+        deviceTokenValidator.validate(deviceToken);
+
+        // Проверяем, нет ли активного access token
+        if (deviceAccessTokenRepository.hasDeviceAccessToken(deviceToken.getUid())) {
+            throw new com.connection.device.token.exception.DeviceAccessTokenExistsException(
+                    "Active device access token already exists for device token: " + deviceToken.getUid());
+        }
+
+        Date createdAt = new Date();
+        Date expiresAt = Date.from(createdAt.toInstant().plus(deviceAccessTokenDuration));
+        UUID accessTokenUid = UUID.randomUUID();
+
+        // Генерируем access token
+        String accessTokenString = deviceAccessTokenGenerator.generateDeviceAccessToken(
+                deviceToken.getUid(), createdAt, expiresAt);
+
+        DeviceAccessTokenBLM deviceAccessTokenBLM = DeviceAccessTokenBLM.builder()
+                .token(accessTokenString)
+                .uid(accessTokenUid)
+                .deviceTokenUid(deviceToken.getUid())
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .build();
+
+        deviceAccessTokenValidator.validate(deviceAccessTokenBLM);
+
+        // Сохраняем в БД
+
+        deviceAccessTokenRepository.add(deviceAccessTokenBLM);
+
+        log.info("Device access token created successfully for device token: {}", deviceToken.getUid());
+        return Pair.of(deviceAccessTokenBLM, deviceToken);
+    }
+
+    @Override
+    @Transactional
+    public DeviceAccessTokenBLM refreshDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+        log.info("Refreshing device access token: {}", deviceAccessToken.getUid());
+
+        deviceAccessTokenValidator.validate(deviceAccessToken);
+
+        // Отзываем старый токен
+        // DeviceAccessTokenBLM oldAccessTokenBLM =
+
+        deviceAccessTokenRepository.revoke(deviceAccessToken.getUid());
+
+        Date createdAt = new Date();
+        Date expiresAt = Date.from(createdAt.toInstant().plus(deviceAccessTokenDuration));
+        UUID newAccessTokenUid = UUID.randomUUID();
+
+        // Генерируем новый access token
+        String newAccessTokenString = deviceAccessTokenGenerator.generateDeviceAccessToken(
+                deviceAccessToken.getDeviceTokenUid(), createdAt, expiresAt);
+
+        DeviceAccessTokenBLM newDeviceAccessTokenBLM = DeviceAccessTokenBLM.builder()
+                .token(newAccessTokenString)
+                .uid(newAccessTokenUid)
+                .deviceTokenUid(deviceAccessToken.getDeviceTokenUid())
+                .createdAt(createdAt)
+                .expiresAt(expiresAt)
+                .build();
+
+        deviceAccessTokenValidator.validate(newDeviceAccessTokenBLM);
+
+        // Сохраняем новый токен
+
+        deviceAccessTokenRepository.add(newDeviceAccessTokenBLM);
+
+        log.info("Device access token refreshed successfully");
+        return newDeviceAccessTokenBLM;
+    }
+
+    @Override
+    public void validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+        log.info("Validating device access token: {}", deviceAccessToken.getUid());
+        // Только JWT валидация, без проверки в БД
+        deviceAccessTokenValidator.validate(deviceAccessToken);
+    }
+
+    @Override
+    public Map<String, Object> getHealthStatus() {
+        try {
+            HealthCheckResponse authHealth = authKafkaClient.healthCheck("device-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "device-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+        } catch (Exception e) {
+            log.error("Kafka Client: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "device-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "error", e.getMessage());
+        }
+    }
+}// JwtKafkaAuthenticationFilter.java
+package com.service.device.auth.security;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import com.connection.auth.events.responses.TokenValidationResponse;
+import com.service.device.auth.kafka.TypedAuthKafkaClient;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class JwtKafkaAuthenticationFilter extends OncePerRequestFilter {
+
+    private final TypedAuthKafkaClient authKafkaClient;
+    private static final String AUTH_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
+
+        String authHeader = request.getHeader(AUTH_HEADER);
+
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String jwtToken = authHeader.substring(BEARER_PREFIX.length());
+
+        try {
+            authenticateWithToken(jwtToken, request);
+        } catch (Exception e) {
+            log.error("Authentication failed for token: {}", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        filterChain.doFilter(request, response);
+    }
+
+    private void authenticateWithToken(String token, HttpServletRequest request) {
+        try {
+            String cleanToken = token.trim();
+            cleanToken = cleanToken.replace("Bearer ", "");
+
+            log.info("Validating token: {}...", cleanToken.substring(0, Math.min(cleanToken.length(), 10)) + "...");
+
+            CompletableFuture<TokenValidationResponse> validationFuture = authKafkaClient.validateToken(cleanToken,
+                    "buffer-service");
+
+            TokenValidationResponse validationResponse = validationFuture
+                    .get(10, TimeUnit.SECONDS);
+
+            if (!validationResponse.isValid()) {
+                throw new SecurityException("Token validation failed: " + validationResponse.getError());
+            }
+
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    validationResponse.getClientUid(),
+                    null,
+                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            log.info("Successfully authenticated client: {}", validationResponse.getClientUid());
+
+        } catch (java.util.concurrent.TimeoutException e) {
+            throw new SecurityException("Token validation timeout");
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new SecurityException("Token validation error: " + e.getCause().getMessage());
+        } catch (Exception e) {
+            throw new SecurityException("Authentication failed: " + e.getMessage());
+        }
+    }
+}package com.service.device.auth.security;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+
+import lombok.RequiredArgsConstructor;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final JwtKafkaAuthenticationFilter jwtKafkaAuthenticationFilter;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .csrf(csrf -> csrf.disable()) // Отключаем CSRF для API
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/swagger-ui.html").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/api-docs/**").permitAll()
+                        .requestMatchers("/webjars/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/v1/device-token").authenticated()
+                        .requestMatchers("/api/v1/device-token/**").authenticated()
+                        .requestMatchers("/api/v1/**").permitAll()
+                        .anyRequest().denyAll()
+                )
+                .addFilterBefore(jwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+}// DeviceAuthServiceApplication.java
+package com.service.device.auth;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+
+@SpringBootApplication(exclude = {
+    DataSourceAutoConfiguration.class,
+    DataSourceTransactionManagerAutoConfiguration.class, 
+    HibernateJpaAutoConfiguration.class,
+    JdbcTemplateAutoConfiguration.class
+})
+public class DeviceAuthServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(DeviceAuthServiceApplication.class, args);
+    }
+}package com.service.device.auth.mother;
+
+import java.util.Date;
+import java.util.UUID;
+
+import com.connection.device.model.DeviceDALM;
+import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenDALM;
+import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceTokenDALM;
+
+public class DeviceTokenObjectMother {
+
+    public static final UUID DEVICE_UID = UUID.fromString("333e4567-e89b-12d3-a456-426614174003");
+    public static final UUID DEVICE_TOKEN_UID = UUID.fromString("443e4567-e89b-12d3-a456-426614174004");
+    public static final UUID DEVICE_ACCESS_TOKEN_UID = UUID.fromString("553e4567-e89b-12d3-a456-426614174005");
+    public static final String VALID_DEVICE_TOKEN_STRING = "valid.device.token.string";
+    public static final String VALID_DEVICE_ACCESS_TOKEN_STRING = "valid.device.access.token.string";
+
+    public static DeviceDALM createValidDeviceDALM() {
+        return DeviceDALM.builder()
+            .uid(DEVICE_UID)
+            .clientUuid(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"))
+            .deviceName("Test Device")
+            .deviceDescription("Test Description")
+            .build();
+    }
+
+    public static DeviceTokenBLM createValidDeviceTokenBLM() {
+        Date createdAt = new Date();
+        Date expiresAt = new Date(createdAt.getTime() + 86400000); // 24 hours
+        
+        return DeviceTokenBLM.builder()
+            .token(VALID_DEVICE_TOKEN_STRING)
+            .uid(DEVICE_TOKEN_UID)
+            .deviceUid(DEVICE_UID)
+            .createdAt(createdAt)
+            .expiresAt(expiresAt)
+            .build();
+    }
+
+    public static DeviceTokenDALM createValidDeviceTokenDALM() {
+        Date createdAt = new Date();
+        Date expiresAt = new Date(createdAt.getTime() + 86400000); // 24 hours
+        
+        return DeviceTokenDALM.builder()
+            .uid(DEVICE_TOKEN_UID)
+            .deviceUid(DEVICE_UID)
+            .token(VALID_DEVICE_TOKEN_STRING)
+            .createdAt(createdAt)
+            .expiresAt(expiresAt)
+            .build();
+    }
+
+    public static DeviceAccessTokenBLM createValidDeviceAccessTokenBLM() {
+        Date createdAt = new Date();
+        Date expiresAt = new Date(createdAt.getTime() + 3600000); // 1 hour
+        
+        return DeviceAccessTokenBLM.builder()
+            .token(VALID_DEVICE_ACCESS_TOKEN_STRING)
+            .uid(DEVICE_ACCESS_TOKEN_UID)
+            .deviceTokenUid(DEVICE_TOKEN_UID)
+            .createdAt(createdAt)
+            .expiresAt(expiresAt)
+            .build();
+    }
+
+    public static DeviceAccessTokenDALM createValidDeviceAccessTokenDALM() {
+        Date createdAt = new Date();
+        Date expiresAt = new Date(createdAt.getTime() + 3600000); // 1 hour
+        
+        return DeviceAccessTokenDALM.builder()
+            .uid(DEVICE_ACCESS_TOKEN_UID)
+            .deviceTokenUid(DEVICE_TOKEN_UID)
+            .token(VALID_DEVICE_ACCESS_TOKEN_STRING)
+            .createdAt(createdAt)
+            .expiresAt(expiresAt)
+            .build();
+    }
+
+    public static DeviceAccessTokenBLM createExpiredDeviceAccessTokenBLM() {
+        Date createdAt = new Date(System.currentTimeMillis() - 7200000); // 2 hours ago
+        Date expiresAt = new Date(createdAt.getTime() + 3600000); // 1 hour, already expired
+        
+        return DeviceAccessTokenBLM.builder()
+            .token("expired.device.access.token")
+            .uid(DEVICE_ACCESS_TOKEN_UID)
+            .deviceTokenUid(DEVICE_TOKEN_UID)
+            .createdAt(createdAt)
+            .expiresAt(expiresAt)
+            .build();
+    }
+}

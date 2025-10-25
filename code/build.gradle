@@ -1,0 +1,243 @@
+plugins {
+    id 'java'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'io.qameta.allure' version '3.0.0'
+    id 'maven-publish'
+    id 'com.dorongold.task-tree' version '2.1.1'
+}
+
+// ========== КОНФИГУРАЦИЯ ПРОЕКТА ==========
+allprojects {
+    group = 'com.connection'
+    version = '1.0.0'
+    
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'maven-publish'
+    
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+    
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+    
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+    
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:3.5.5"
+        }
+    }
+}
+
+// ========== КОНФИГУРАЦИЯ ДЛЯ ПОДПРОЕКТОВ ==========
+subprojects {
+    // Общие зависимости для всех модулей
+    dependencies {
+        compileOnly 'org.projectlombok:lombok:1.18.38'
+        annotationProcessor 'org.projectlombok:lombok:1.18.38'
+        
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+        testImplementation 'org.mockito:mockito-core:5.18.0'
+        testImplementation 'org.mockito:mockito-junit-jupiter:5.18.0'
+        testImplementation 'org.assertj:assertj-core:3.27.3'
+        testImplementation 'io.qameta.allure:allure-junit5:2.29.1'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+    
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs += ['-parameters']
+        options.encoding = 'UTF-8'
+    }
+    
+    test {
+        useJUnitPlatform()
+        testLogging {
+            events "passed", "skipped", "failed"
+            exceptionFormat "full"
+        }
+    }
+}
+
+// ========== КОНФИГУРАЦИЯ ALLURE ДЛЯ ВСЕГО ПРОЕКТА ==========
+ext {
+    ALLURE_RESULTS_DIR = "${buildDir}/allure-results"
+    ALLURE_REPORT_DIR = "${buildDir}/reports/allure-report"
+    ALLURE_HISTORY_DIR = "${projectDir}/allure-history"  // Теперь в корне проекта для сохранения между сборками
+}
+
+allure {
+    version = "2.29.0"
+    adapter {
+        frameworks {
+            junit5 {
+                enabled = true
+            }
+        }
+    }
+}
+
+// ========== ЗАДАЧИ ДЛЯ ВСЕГО ПРОЕКТА ==========
+
+// Сборка всех модулей
+task buildAll {
+    description = 'Build all modules'
+    group = 'Build'
+    dependsOn subprojects.build
+}
+
+// Тестирование всех модулей
+task testAll {
+    description = 'Run tests in all modules'
+    group = 'Verification'
+}
+
+// Динамически добавляем зависимости после оценки всех проектов
+gradle.projectsEvaluated {
+    subprojects { project ->
+        def allTestsTask = project.tasks.findByName('allTests')
+        if (allTestsTask) {
+            testAll.dependsOn allTestsTask
+            logger.lifecycle("✅ Adding allTests dependency from: ${project.name}")
+        } else {
+            logger.lifecycle("❌ No allTests task found in: ${project.name}")
+        }
+    }
+}
+
+// Очистка всех модулей
+task cleanAll {
+    description = 'Clean all modules'
+    group = 'Build'
+    dependsOn subprojects.clean
+}
+
+// Сборка отчетов Allure из всех модулей
+task collectAllureResults {
+    description = 'Collect Allure results from all modules'
+    group = 'Reporting'
+    
+    doFirst {
+        file(ALLURE_RESULTS_DIR).deleteDir()
+        file(ALLURE_RESULTS_DIR).mkdirs()
+        
+        // Сначала копируем историю из предыдущего отчета
+        def previousHistoryDir = file("${ALLURE_HISTORY_DIR}")
+        def resultsHistoryDir = file("${ALLURE_RESULTS_DIR}/history")
+        
+        if (previousHistoryDir.exists()) {
+            logger.lifecycle("📋 Copying history from previous reports")
+            copy {
+                from previousHistoryDir
+                into resultsHistoryDir
+            }
+        }
+        
+        // Затем копируем результаты из всех подпроектов
+        subprojects.each { subproject ->
+            def subprojectResults = "${subproject.buildDir}/allure-results"
+            def subprojectDir = file(subprojectResults)
+            
+            if (subprojectDir.exists()) {
+                logger.lifecycle("📁 Copying results from: ${subproject.name}")
+                copy {
+                    from subprojectDir
+                    into ALLURE_RESULTS_DIR
+                    // Исключаем только временные файлы
+                    exclude '*.tmp', '*.lock'
+                    // Не перезаписываем историю, если она уже есть
+                    duplicatesStrategy = 'exclude'
+                }
+            } else {
+                logger.lifecycle("⚠️ No allure results found in: ${subproject.name}")
+            }
+        }
+        
+        logger.lifecycle("📊 Collected results from ${subprojects.count { file("${it.buildDir}/allure-results").exists() }} modules")
+    }
+}
+
+task generateCombinedAllureReport(type: Exec) {
+    description = 'Generate combined Allure report from all modules'
+    group = 'Reporting'
+    
+    dependsOn collectAllureResults
+    
+    doFirst {
+        logger.lifecycle("📊 Generating combined Allure report...")
+        file(ALLURE_REPORT_DIR).mkdirs()
+    }
+    
+    commandLine 'allure', 'generate', "${ALLURE_RESULTS_DIR}", '-o', "${ALLURE_REPORT_DIR}", '--clean'
+    
+    doLast {
+        def reportFile = file("${ALLURE_REPORT_DIR}/index.html")
+        if (reportFile.exists()) {
+            logger.lifecycle("✅ Combined Allure report generated at: ${ALLURE_REPORT_DIR}")
+            logger.lifecycle("   Open: file://${reportFile.absolutePath}")
+            
+            // Сохраняем историю для следующего запуска
+            def reportHistoryDir = file("${ALLURE_REPORT_DIR}/history")
+            if (reportHistoryDir.exists()) {
+                copy {
+                    from reportHistoryDir
+                    into ALLURE_HISTORY_DIR
+                }
+                logger.lifecycle("💾 History saved for next run")
+            }
+        }
+    }
+}
+
+task serveCombinedAllureReport(type: Exec) {
+    description = 'Serve combined Allure report'
+    group = 'Reporting'
+    
+    dependsOn generateCombinedAllureReport
+    
+    commandLine 'allure', 'serve', "${ALLURE_RESULTS_DIR}"
+}
+
+// Просмотр отчета без перегенерации
+task serveExistingAllureReport(type: Exec) {
+    description = 'Serve existing Allure report'
+    group = 'Reporting'
+    
+    commandLine 'allure', 'serve', "${ALLURE_REPORT_DIR}"
+}
+
+// Очистка истории Allure
+task cleanAllureHistory {
+    description = 'Clean Allure history'
+    group = 'Build'
+    doFirst {
+        file(ALLURE_HISTORY_DIR).deleteDir()
+        logger.lifecycle("🧹 Cleaned Allure history")
+    }
+}
+
+// Полная очистка включая историю
+task cleanAllWithHistory {
+    description = 'Clean all modules and Allure history'
+    group = 'Build'
+    dependsOn cleanAll, cleanAllureHistory
+}
+
+// Публикация всех shared модулей
+task publishAllShared {
+    description = 'Publish all shared modules to local Maven'
+    group = 'Publishing'
+    dependsOn subprojects.findAll { it.path.contains('shared') && it.tasks.findByName('publish') }.publish
+}
+
+// ========== ЗАДАЧИ ПО УМОЛЧАНИЮ ==========
+defaultTasks 'buildAll'

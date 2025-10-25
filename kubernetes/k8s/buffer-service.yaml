@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: buffer-service-config
+data:
+  application.properties: |
+    spring.application.name=buffer-service
+    server.port=8080
+    
+    spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+    
+    springdoc.swagger-ui.enabled=true
+    springdoc.api-docs.enabled=true
+    springdoc.swagger-ui.path=/swagger-ui.html
+    springdoc.api-docs.path=/api-docs
+    springdoc.show-actuator=true
+    springdoc.paths-to-match=/api/**
+    
+    # Buffer DataSource XA Configuration
+    app.datasource.buffer.xa-data-source-class-name=org.postgresql.xa.PGXADataSource
+    app.datasource.buffer.xa-properties.url=jdbc:postgresql://postgres:5432/test_db
+    app.datasource.buffer.xa-properties.user=test_user
+    app.datasource.buffer.xa-properties.password=test_password
+    app.datasource.buffer.unique-resource-name=bufferXADataSource
+    app.datasource.buffer.pool-size=5
+    
+    # External Services
+    auth.service.url=http://auth-service:8080/api/auth-service
+    connection.scheme.service.url=http://connection-scheme-service:8080/api/connection-scheme-service
+    
+    # Kafka Configuration
+    spring.kafka.bootstrap-servers=kafka:9092
+    spring.kafka.consumer.group-id=buffer-service-group
+    spring.kafka.consumer.auto-offset-reset=earliest
+    spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+    spring.kafka.consumer.value-deserializer=org.springframework.kafka.support.serializer.JsonDeserializer
+    spring.kafka.consumer.properties.spring.json.value.default.type=com.connection.common.events.Command
+    spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
+    spring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JsonSerializer
+    
+    app.kafka.topics.auth-commands=auth.commands
+    app.kafka.topics.auth-responses=auth.responses
+    app.kafka.topics.auth-events=auth.events
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: buffer-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: buffer-service
+  template:
+    metadata:
+      labels:
+        app: buffer-service
+    spec:
+      containers:
+      - name: buffer-service
+        image: buffer-service:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_CONFIG_LOCATION
+          value: /app/config/application.properties
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+        - name: logs-volume
+          mountPath: /app/logs
+      volumes:
+      - name: config-volume
+        configMap:
+          name: buffer-service-config
+      - name: logs-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: buffer-service
+spec:
+  selector:
+    app: buffer-service
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP

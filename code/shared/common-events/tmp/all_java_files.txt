@@ -1,0 +1,173 @@
+package com.connection.common.events;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class CommandResponse extends BaseEvent {
+    private boolean success;
+    private Object data;
+    private String error;
+    
+    public static CommandResponse success(String correlationId, Object data) {
+        return CommandResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .data(data)
+                .timestamp(Instant.now())
+                .build();
+    }
+    
+    public static CommandResponse error(String correlationId, String error) {
+        return CommandResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(Instant.now())
+                .build();
+    }
+}package com.connection.common.events;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public abstract class Command extends BaseEvent {
+    protected String replyTopic;
+    protected String commandType;
+    
+    protected Command(String commandType, String sourceService, String replyTopic) {
+        super(commandType, sourceService);
+        this.commandType = commandType;
+        this.replyTopic = replyTopic;
+    }
+}package com.connection.common.events;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Data
+@SuperBuilder
+@AllArgsConstructor
+@NoArgsConstructor
+public abstract class BaseEvent {
+    protected String eventId;
+    protected String eventType;
+    protected String sourceService;
+    protected Instant timestamp;
+    protected String correlationId;
+    
+    protected BaseEvent(String eventType, String sourceService) {
+        this.eventId = UUID.randomUUID().toString();
+        this.eventType = eventType;
+        this.sourceService = sourceService;
+        this.timestamp = Instant.now();
+        this.correlationId = UUID.randomUUID().toString();
+    }
+}package com.connection.common.events;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class CommandResponse extends BaseEvent {
+    private boolean success;
+    private Object data;
+    private String error;
+    
+    public static CommandResponse success(String correlationId, Object data) {
+        return CommandResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .data(data)
+                .timestamp(Instant.now())
+                .build();
+    }
+    
+    public static CommandResponse error(String correlationId, String error) {
+        return CommandResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(Instant.now())
+                .build();
+    }
+}package com.connection.common.events;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public abstract class Command extends BaseEvent {
+    protected String replyTopic;
+    protected String commandType;
+    
+    protected Command(String commandType, String sourceService, String replyTopic) {
+        super(commandType, sourceService);
+        this.commandType = commandType;
+        this.replyTopic = replyTopic;
+    }
+}package com.connection.common.events;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Data
+@SuperBuilder
+@AllArgsConstructor
+@NoArgsConstructor
+public abstract class BaseEvent {
+    protected String eventId;
+    protected String eventType;
+    protected String sourceService;
+    protected Instant timestamp;
+    protected String correlationId;
+    
+    protected BaseEvent(String eventType, String sourceService) {
+        this.eventId = UUID.randomUUID().toString();
+        this.eventType = eventType;
+        this.sourceService = sourceService;
+        this.timestamp = Instant.now();
+        this.correlationId = UUID.randomUUID().toString();
+    }
+}

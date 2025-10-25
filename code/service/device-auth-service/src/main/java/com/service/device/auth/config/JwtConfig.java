@@ -1,0 +1,62 @@
+// JwtConfig.java
+package com.service.device.auth.config;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.MacAlgorithm;
+
+@Configuration
+public class JwtConfig {
+    @Value("${DEVICE_JWT_KEY:${app.jwt.device.key:deviceJwtSecretKeyForAuthService123}}")
+    private String jwtSecretString;
+
+    @Value("DeviceToken")
+    private String jwtSubjectString;
+
+    @Value("${DEVICE_ACCESS_TOKEN_EXPIRATION:${app.jwt.device.access-token.expiration:3600}}")
+    private long deviceAccessTokenExpiration;
+    
+    @Value("${DEVICE_TOKEN_EXPIRATION:${app.jwt.device.token.expiration:2592000}}") // 30 дней
+    private long deviceTokenExpiration;
+
+    private final MacAlgorithm jwtAlgorithmMacAlgorithm = Jwts.SIG.HS256;
+
+    @Bean
+    SecretKey jwtSecretKey() {
+        return createSecretKeyFromString(jwtSecretString, jwtAlgorithmMacAlgorithm);
+    }
+
+    @Bean
+    String jwtSubject(){
+        return jwtSubjectString;
+    }
+
+    @Bean
+    Duration deviceAccessTokenDuration(){
+        return Duration.ofSeconds(deviceAccessTokenExpiration);
+    }
+
+    @Bean
+    Duration deviceTokenDuration(){
+        return Duration.ofSeconds(deviceTokenExpiration);
+    }
+    
+    @Bean
+    MacAlgorithm jwtAlgorithm(){
+        return jwtAlgorithmMacAlgorithm;
+    }
+
+    private SecretKey createSecretKeyFromString(String secretString, MacAlgorithm algorithm) {
+        byte[] keyBytes = secretString.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+}

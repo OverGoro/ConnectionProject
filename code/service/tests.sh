@@ -1,0 +1,1 @@
+mkdir -p tmp && touch tmp/all_test_files.txt && echo  > tmp/all_java_files.txt && find -wholename '*/src/test/*.java' -exec cat {} + > tmp/all_test_files.txt && cp src/test/resources/*.properties tmp/ && cp build.gradle tmp/

@@ -1,0 +1,204 @@
+-- core.client определение
+
+-- Drop table
+
+-- DROP TABLE core.client;
+
+CREATE TABLE core.client (
+	uid uuid NOT NULL,
+	email varchar NOT NULL,
+	birth_date date NULL,
+	username varchar NOT NULL,
+	"password" varchar NOT NULL,
+	CONSTRAINT client_email_key UNIQUE (email),
+	CONSTRAINT client_pkey PRIMARY KEY (uid),
+	CONSTRAINT client_username_key UNIQUE (username)
+);
+
+
+-- core.tariff определение
+
+-- Drop table
+
+-- DROP TABLE core.tariff;
+
+CREATE TABLE core.tariff (
+	uid uuid NOT NULL,
+	tariff_name varchar(100) NOT NULL,
+	amount numeric(20, 8) NOT NULL,
+	currency_code bpchar(3) NOT NULL,
+	CONSTRAINT tariff_pkey PRIMARY KEY (uid)
+);
+
+
+-- "access".refresh_token определение
+
+-- Drop table
+
+-- DROP TABLE "access".refresh_token;
+
+CREATE TABLE "access".refresh_token (
+	uid uuid NOT NULL,
+	client_id uuid NOT NULL,
+	"token" varchar(512) NOT NULL,
+	created_at timestamptz NOT NULL,
+	expires_at timestamptz NOT NULL,
+	CONSTRAINT chk_refresh_token_expiry CHECK ((expires_at > created_at)),
+	CONSTRAINT refresh_token_pkey PRIMARY KEY (uid),
+	CONSTRAINT refresh_token_token_key UNIQUE (token),
+	CONSTRAINT refresh_token_client_id_fkey FOREIGN KEY (client_id) REFERENCES core.client(uid) ON DELETE CASCADE
+);
+
+
+-- core.device определение
+
+-- Drop table
+
+-- DROP TABLE core.device;
+
+CREATE TABLE core.device (
+	uid uuid NOT NULL,
+	client_uuid uuid NOT NULL,
+	device_name varchar(100) NOT NULL,
+	device_description varchar(500) NOT NULL,
+	CONSTRAINT device_pkey PRIMARY KEY (uid),
+	CONSTRAINT device_client_uuid_fkey FOREIGN KEY (client_uuid) REFERENCES core.client(uid)
+);
+
+
+-- processing.buffer определение
+
+-- Drop table
+
+-- DROP TABLE processing.buffer;
+
+CREATE TABLE processing.buffer (
+	uid uuid NOT NULL,
+	device_uid uuid NOT NULL,
+	max_messages_number int4 NOT NULL,
+	max_message_size int4 NOT NULL,
+	CONSTRAINT buffer_max_message_size_check CHECK ((max_message_size > 0)),
+	CONSTRAINT buffer_max_messages_number_check CHECK ((max_messages_number > 0)),
+	CONSTRAINT buffer_pkey PRIMARY KEY (uid),
+	CONSTRAINT buffer_device_uid_fkey FOREIGN KEY (device_uid) REFERENCES core.device(uid) ON DELETE CASCADE
+);
+
+
+-- processing.connection_scheme определение
+
+-- Drop table
+
+-- DROP TABLE processing.connection_scheme;
+
+CREATE TABLE processing.connection_scheme (
+	uid uuid NOT NULL,
+	client_uid uuid NOT NULL,
+	scheme_json jsonb NOT NULL,
+	CONSTRAINT connection_scheme_pkey PRIMARY KEY (uid),
+	CONSTRAINT connection_scheme_client_uid_fkey FOREIGN KEY (client_uid) REFERENCES core.client(uid) ON DELETE CASCADE
+);
+
+
+-- processing.connection_scheme_buffer определение
+
+-- Drop table
+
+-- DROP TABLE processing.connection_scheme_buffer;
+
+CREATE TABLE processing.connection_scheme_buffer (
+	uid uuid NOT NULL,
+	scheme_uid uuid NOT NULL,
+	buffer_uid uuid NOT NULL,
+	CONSTRAINT connection_scheme_buffer_pkey PRIMARY KEY (uid),
+	CONSTRAINT connection_scheme_buffer_buffer_uid_fkey FOREIGN KEY (buffer_uid) REFERENCES processing.buffer(uid) ON DELETE CASCADE,
+	CONSTRAINT connection_scheme_buffer_scheme_uid_fkey FOREIGN KEY (scheme_uid) REFERENCES processing.connection_scheme(uid) ON DELETE CASCADE
+);
+
+
+-- processing.message определение
+
+-- Drop table
+
+-- DROP TABLE processing.message;
+
+CREATE TABLE processing.message (
+	uid uuid NOT NULL,
+	buffer_uid uuid NOT NULL,
+	"content" jsonb NOT NULL,
+	content_type varchar NOT NULL,
+	created_at timestamptz NOT NULL,
+	CONSTRAINT message_pkey PRIMARY KEY (uid),
+	CONSTRAINT message_buffer_uid_fkey FOREIGN KEY (buffer_uid) REFERENCES processing.buffer(uid) ON DELETE CASCADE
+);
+
+
+-- "transaction".client_transaction определение
+
+-- Drop table
+
+-- DROP TABLE "transaction".client_transaction;
+
+CREATE TABLE "transaction".client_transaction (
+	uid uuid NOT NULL,
+	client_uid uuid NOT NULL,
+	transaction_date timestamptz NOT NULL,
+	amount numeric(20, 8) NOT NULL,
+	currency_code bpchar(3) NOT NULL,
+	description varchar NULL,
+	CONSTRAINT client_transaction_pkey PRIMARY KEY (uid),
+	CONSTRAINT client_transaction_client_uid_fkey FOREIGN KEY (client_uid) REFERENCES core.client(uid)
+);
+
+
+-- "transaction".tariff_transaction определение
+
+-- Drop table
+
+-- DROP TABLE "transaction".tariff_transaction;
+
+CREATE TABLE "transaction".tariff_transaction (
+	uid uuid NOT NULL,
+	tariff_uid uuid NOT NULL,
+	transaction_uid uuid NOT NULL,
+	transaction_date timestamptz NOT NULL,
+	expires_at timestamptz NOT NULL,
+	CONSTRAINT tariff_transaction_pkey PRIMARY KEY (uid),
+	CONSTRAINT tariff_transaction_tariff_uid_fkey FOREIGN KEY (tariff_uid) REFERENCES core.tariff(uid) ON DELETE CASCADE,
+	CONSTRAINT tariff_transaction_transaction_uid_fkey FOREIGN KEY (transaction_uid) REFERENCES "transaction".client_transaction(uid) ON DELETE CASCADE
+);
+
+
+-- "access".device_token определение
+
+-- Drop table
+
+-- DROP TABLE "access".device_token;
+
+CREATE TABLE "access".device_token (
+	uid uuid NOT NULL,
+	device_uid uuid NOT NULL,
+	"token" varchar(512) NOT NULL,
+	created_at timestamptz NOT NULL,
+	expires_at timestamptz NOT NULL,
+	CONSTRAINT device_token_pkey PRIMARY KEY (uid),
+	CONSTRAINT device_token_token_key UNIQUE (token),
+	CONSTRAINT device_token_device_uid_fkey FOREIGN KEY (device_uid) REFERENCES core.device(uid) ON DELETE CASCADE
+);
+
+
+-- "access".device_access_token определение
+
+-- Drop table
+
+-- DROP TABLE "access".device_access_token;
+
+CREATE TABLE "access".device_access_token (
+	uid uuid NOT NULL,
+	device_token_uid uuid NOT NULL,
+	"token" varchar(512) NOT NULL,
+	created_at timestamptz NOT NULL,
+	expires_at timestamptz NOT NULL,
+	CONSTRAINT device_access_token_pkey PRIMARY KEY (uid),
+	CONSTRAINT device_access_token_token_key UNIQUE (token),
+	CONSTRAINT device_access_token_device_token_uid_fkey FOREIGN KEY (device_token_uid) REFERENCES "access".device_token(uid) ON DELETE CASCADE
+);

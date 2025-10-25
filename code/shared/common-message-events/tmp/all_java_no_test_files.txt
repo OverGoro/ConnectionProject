@@ -1,0 +1,882 @@
+package com.connection.auth.events.domain;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+import java.util.UUID;
+
+import com.connection.common.events.BaseEvent;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class UserCreatedEvent extends BaseEvent {
+    private UUID clientUid;
+    private String email;
+    private String username;
+    
+    public UserCreatedEvent(UUID clientUid, String email, String username) {
+        super("USER_CREATED", "auth-service");
+        this.clientUid = clientUid;
+        this.email = email;
+        this.username = username;
+    }
+}package com.connection.auth.events.domain;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+import java.util.UUID;
+
+import com.connection.common.events.BaseEvent;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class TokenValidatedEvent extends BaseEvent {
+    private UUID clientUid;
+    private boolean isValid;
+    private String tokenType;
+    
+    public TokenValidatedEvent(UUID clientUid, boolean isValid, String tokenType) {
+        super("TOKEN_VALIDATED", "auth-service");
+        this.clientUid = clientUid;
+        this.isValid = isValid;
+        this.tokenType = tokenType;
+    }
+}package com.connection.auth.events.commands;
+
+import com.connection.common.events.Command;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class HealthCheckCommand extends Command {
+    
+    public HealthCheckCommand() {
+        super("HEALTH_CHECK", "unknown", "auth.responses");
+    }
+    
+    public HealthCheckCommand(String sourceService) {
+        super("HEALTH_CHECK", sourceService, "auth.responses");
+    }
+}package com.connection.auth.events.commands;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+import com.connection.common.events.Command;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class ValidateTokenCommand extends Command {
+    private final String token;
+    private final TokenType tokenType;
+    
+    public ValidateTokenCommand() {
+        super("VALIDATE_TOKEN", "unknown", "auth.responses");
+        this.token = "unknown";
+        this.tokenType = TokenType.UNKNOWN;
+    }
+    
+    public ValidateTokenCommand(String token, String sourceService) {
+        super("VALIDATE_TOKEN", sourceService, "auth.responses");
+        this.token = token;
+        this.tokenType = TokenType.ACCESS;
+    }
+    
+    public ValidateTokenCommand(String token, TokenType tokenType, String sourceService) {
+        super("VALIDATE_TOKEN", sourceService, "auth.responses");
+        this.token = token;
+        this.tokenType = tokenType;
+    }
+    
+    public enum TokenType {
+        ACCESS, REFRESH, UNKNOWN
+    }
+}package com.connection.auth.events.commands;
+
+import com.connection.common.events.Command;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class ExtractClientUidCommand extends Command {
+    private String token;
+    private TokenType tokenType;
+    
+    public ExtractClientUidCommand() {
+        super("EXTRACT_CLIENT_UID", "unknown", "auth.responses");
+        this.token = "unknown";
+        this.tokenType = TokenType.UNKNOWN;
+    }
+    
+    public ExtractClientUidCommand(String token, String sourceService) {
+        super("EXTRACT_CLIENT_UID", sourceService, "auth.responses");
+        this.token = token;
+        this.tokenType = TokenType.ACCESS;
+    }
+    
+    public ExtractClientUidCommand(String token, TokenType tokenType, String sourceService) {
+        super("EXTRACT_CLIENT_UID", sourceService, "auth.responses");
+        this.token = token;
+        this.tokenType = tokenType;
+    }
+    
+    public enum TokenType {
+        ACCESS, REFRESH, UNKNOWN
+    }
+}package com.connection.auth.events.exceptions;
+
+public class TokenValidationException extends AuthEventException {
+    
+    public TokenValidationException(String message) {
+        super(message);
+    }
+    
+    public TokenValidationException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}package com.connection.auth.events.exceptions;
+
+public class AuthEventException extends RuntimeException {
+    
+    public AuthEventException(String message) {
+        super(message);
+    }
+    
+    public AuthEventException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}package com.connection.auth.events;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
+public class AuthEventUtils {
+    private static final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule());
+    
+    public static String toJson(Object event) {
+        try {
+            return objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize auth event", e);
+        }
+    }
+    
+    public static <T> T fromJson(String json, Class<T> clazz) {
+        try {
+            return objectMapper.readValue(json, clazz);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to deserialize auth event", e);
+        }
+    }
+    
+    public static String generateCorrelationId() {
+        return java.util.UUID.randomUUID().toString();
+    }
+}package com.connection.auth.events.responses;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.common.events.CommandResponse;
+
+@Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class HealthCheckResponse extends CommandResponse {
+    private Map<String, Object> healthStatus;
+    
+    public static HealthCheckResponse success(String correlationId, Map<String, Object> healthStatus) {
+        return HealthCheckResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .healthStatus(healthStatus)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static HealthCheckResponse error(String correlationId, String error) {
+        return HealthCheckResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+}package com.connection.auth.events.responses;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+import java.util.UUID;
+
+import com.connection.common.events.CommandResponse;
+
+@Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class ClientUidResponse extends CommandResponse {
+    private UUID clientUid;
+    private String tokenType;
+    
+    public static ClientUidResponse success(String correlationId, UUID clientUid, String tokenType) {
+        return ClientUidResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .clientUid(clientUid)
+                .tokenType(tokenType)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static ClientUidResponse error(String correlationId, String error) {
+        return ClientUidResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+}package com.connection.auth.events.responses;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+import java.util.UUID;
+
+import com.connection.common.events.CommandResponse;
+
+@Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class TokenValidationResponse extends CommandResponse {
+    private boolean isValid;
+    private UUID clientUid;
+    private String tokenType;
+    private String errorDetails;
+    
+    public static TokenValidationResponse valid(String correlationId, UUID clientUid, String tokenType) {
+        return TokenValidationResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .isValid(true)
+                .clientUid(clientUid)
+                .tokenType(tokenType)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static TokenValidationResponse invalid(String correlationId, String error, String tokenType) {
+        return TokenValidationResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .isValid(false)
+                .tokenType(tokenType)
+                .errorDetails(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static TokenValidationResponse error(String correlationId, String error) {
+        return TokenValidationResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .isValid(false)
+                .error(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+}package com.connection.auth.events;
+
+public class AuthEventConstants {
+    
+    // Kafka Topics
+    public static final String AUTH_COMMANDS_TOPIC = "auth.commands";
+    public static final String AUTH_RESPONSES_TOPIC = "auth.responses";
+    public static final String AUTH_EVENTS_TOPIC = "auth.events";
+    public static final String USER_EVENTS_TOPIC = "user.events";
+    
+    // Command Types
+    public static final String COMMAND_VALIDATE_TOKEN = "VALIDATE_TOKEN";
+    public static final String COMMAND_EXTRACT_CLIENT_UID = "EXTRACT_CLIENT_UID";
+    public static final String COMMAND_HEALTH_CHECK = "HEALTH_CHECK";
+    
+    // Event Types
+    public static final String EVENT_USER_CREATED = "USER_CREATED";
+    public static final String EVENT_TOKEN_VALIDATED = "TOKEN_VALIDATED";
+    
+    // Token Types
+    public static final String TOKEN_TYPE_ACCESS = "ACCESS";
+    public static final String TOKEN_TYPE_REFRESH = "REFRESH";
+    
+    private AuthEventConstants() {
+        // utility class
+    }
+}// MessageEventConstants.java
+package com.connection.message.events;
+
+public class MessageEventConstants {
+    
+    // Kafka Topics
+    public static final String MESSAGE_COMMANDS_TOPIC = "message.commands";
+    public static final String MESSAGE_RESPONSES_TOPIC = "message.responses";
+    public static final String MESSAGE_EVENTS_TOPIC = "message.events";
+    
+    // Command Types
+    public static final String COMMAND_ADD_MESSAGE = "ADD_MESSAGE";
+    public static final String COMMAND_GET_MESSAGE = "GET_MESSAGE";
+    public static final String COMMAND_GET_MESSAGES_BY_BUFFER = "GET_MESSAGES_BY_BUFFER";
+    public static final String COMMAND_ROUTE_MESSAGE = "ROUTE_MESSAGE";
+    public static final String COMMAND_HEALTH_CHECK = "HEALTH_CHECK";
+    
+    // Event Types
+    public static final String EVENT_MESSAGE_CREATED = "MESSAGE_CREATED";
+    public static final String EVENT_MESSAGE_ROUTED = "MESSAGE_ROUTED";
+    public static final String EVENT_MESSAGE_PROCESSED = "MESSAGE_PROCESSED";
+    
+    private MessageEventConstants() {
+        // utility class
+    }
+}// MessageCreatedEvent.java
+package com.connection.message.events.domain;
+
+import java.util.UUID;
+
+import com.connection.common.events.BaseEvent;
+import com.connection.message.events.MessageEventConstants;
+import com.connection.message.model.MessageDirection;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class MessageCreatedEvent extends BaseEvent {
+    private UUID messageUid;
+    private UUID bufferUid;
+    private MessageDirection direction;
+    private UUID clientUid;
+    
+    public MessageCreatedEvent(UUID messageUid, UUID bufferUid, MessageDirection direction, UUID clientUid) {
+        super(MessageEventConstants.EVENT_MESSAGE_CREATED, "message-service");
+        this.messageUid = messageUid;
+        this.bufferUid = bufferUid;
+        this.direction = direction;
+        this.clientUid = clientUid;
+    }
+}// MessageProcessedEvent.java
+package com.connection.message.events.domain;
+
+import java.util.UUID;
+
+import com.connection.common.events.BaseEvent;
+import com.connection.message.events.MessageEventConstants;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class MessageProcessedEvent extends BaseEvent {
+    private UUID messageUid;
+    private UUID bufferUid;
+    private String status;
+    private UUID clientUid;
+    
+    public MessageProcessedEvent(UUID messageUid, UUID bufferUid, String status, UUID clientUid) {
+        super(MessageEventConstants.EVENT_MESSAGE_PROCESSED, "message-service");
+        this.messageUid = messageUid;
+        this.bufferUid = bufferUid;
+        this.status = status;
+        this.clientUid = clientUid;
+    }
+}// MessageRoutedEvent.java
+package com.connection.message.events.domain;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.connection.common.events.BaseEvent;
+import com.connection.message.events.MessageEventConstants;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class MessageRoutedEvent extends BaseEvent {
+    private UUID sourceMessageUid;
+    private UUID sourceBufferUid;
+    private List<UUID> targetBufferUids;
+    private List<UUID> createdMessageUids;
+    private UUID clientUid;
+    
+    public MessageRoutedEvent(UUID sourceMessageUid, UUID sourceBufferUid, 
+                            List<UUID> targetBufferUids, List<UUID> createdMessageUids, UUID clientUid) {
+        super(MessageEventConstants.EVENT_MESSAGE_ROUTED, "message-service");
+        this.sourceMessageUid = sourceMessageUid;
+        this.sourceBufferUid = sourceBufferUid;
+        this.targetBufferUids = targetBufferUids;
+        this.createdMessageUids = createdMessageUids;
+        this.clientUid = clientUid;
+    }
+}// AddMessageCommand.java
+package com.connection.message.events.commands;
+
+import java.util.Date;
+import java.util.UUID;
+
+import com.connection.common.events.Command;
+import com.connection.message.events.MessageEventConstants;
+import com.connection.message.model.MessageDirection;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class AddMessageCommand extends Command {
+    private UUID messageUid;
+    private UUID bufferUid;
+    private String content;
+    private String contentType;
+    private Date createdAt;
+    private MessageDirection direction;
+    private UUID clientUid;
+    
+    public AddMessageCommand() {
+        super(MessageEventConstants.COMMAND_ADD_MESSAGE, "unknown", MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
+    }
+    
+    public AddMessageCommand(UUID bufferUid, String content, String contentType, 
+                           MessageDirection direction, UUID clientUid, String sourceService) {
+        super(MessageEventConstants.COMMAND_ADD_MESSAGE, sourceService, MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
+        this.messageUid = UUID.randomUUID();
+        this.bufferUid = bufferUid;
+        this.content = content;
+        this.contentType = contentType;
+        this.createdAt = new Date();
+        this.direction = direction;
+        this.clientUid = clientUid;
+    }
+}// HealthCheckCommand.java
+package com.connection.message.events.commands;
+
+import com.connection.common.events.Command;
+import com.connection.message.events.MessageEventConstants;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class HealthCheckCommand extends Command {
+    
+    public HealthCheckCommand() {
+        super(MessageEventConstants.COMMAND_HEALTH_CHECK, "unknown", MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
+    }
+    
+    public HealthCheckCommand(String sourceService) {
+        super(MessageEventConstants.COMMAND_HEALTH_CHECK, sourceService, MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
+    }
+}// GetMessagesByBufferCommand.java
+package com.connection.message.events.commands;
+
+import java.util.UUID;
+
+import com.connection.common.events.Command;
+import com.connection.message.events.MessageEventConstants;
+import com.connection.message.model.MessageDirection;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class GetMessagesByBufferCommand extends Command {
+    private UUID bufferUid;
+    private UUID clientUid;
+    private MessageDirection direction;
+    
+    public GetMessagesByBufferCommand() {
+        super(MessageEventConstants.COMMAND_GET_MESSAGES_BY_BUFFER, "unknown", MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
+    }
+    
+    public GetMessagesByBufferCommand(UUID bufferUid, UUID clientUid, MessageDirection direction, String sourceService) {
+        super(MessageEventConstants.COMMAND_GET_MESSAGES_BY_BUFFER, sourceService, MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
+        this.bufferUid = bufferUid;
+        this.clientUid = clientUid;
+        this.direction = direction;
+    }
+}// RouteMessageCommand.java
+package com.connection.message.events.commands;
+
+import java.util.UUID;
+
+import com.connection.common.events.Command;
+import com.connection.message.events.MessageEventConstants;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class RouteMessageCommand extends Command {
+    private UUID messageUid;
+    private UUID clientUid;
+    
+    public RouteMessageCommand() {
+        super(MessageEventConstants.COMMAND_ROUTE_MESSAGE, "unknown", MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
+    }
+    
+    public RouteMessageCommand(UUID messageUid, UUID clientUid, String sourceService) {
+        super(MessageEventConstants.COMMAND_ROUTE_MESSAGE, sourceService, MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
+        this.messageUid = messageUid;
+        this.clientUid = clientUid;
+    }
+}// GetMessageCommand.java
+package com.connection.message.events.commands;
+
+import java.util.UUID;
+
+import com.connection.common.events.Command;
+import com.connection.message.events.MessageEventConstants;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class GetMessageCommand extends Command {
+    private UUID messageUid;
+    private UUID clientUid;
+    
+    public GetMessageCommand() {
+        super(MessageEventConstants.COMMAND_GET_MESSAGE, "unknown", MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
+    }
+    
+    public GetMessageCommand(UUID messageUid, UUID clientUid, String sourceService) {
+        super(MessageEventConstants.COMMAND_GET_MESSAGE, sourceService, MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
+        this.messageUid = messageUid;
+        this.clientUid = clientUid;
+    }
+}// MessageRoutingException.java
+package com.connection.message.events.exceptions;
+
+public class MessageRoutingException extends MessageEventException {
+    
+    public MessageRoutingException(String message) {
+        super(message);
+    }
+    
+    public MessageRoutingException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}// MessageEventException.java
+package com.connection.message.events.exceptions;
+
+public class MessageEventException extends RuntimeException {
+    
+    public MessageEventException(String message) {
+        super(message);
+    }
+    
+    public MessageEventException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}// MessageEventUtils.java
+package com.connection.message.events;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
+public class MessageEventUtils {
+    private static final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule());
+    
+    public static String toJson(Object event) {
+        try {
+            return objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize message event", e);
+        }
+    }
+    
+    public static <T> T fromJson(String json, Class<T> clazz) {
+        try {
+            return objectMapper.readValue(json, clazz);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to deserialize message event", e);
+        }
+    }
+    
+    public static String generateCorrelationId() {
+        return java.util.UUID.randomUUID().toString();
+    }
+}// AddMessageResponse.java
+package com.connection.message.events.responses;
+
+import java.util.UUID;
+
+import com.connection.common.events.CommandResponse;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class AddMessageResponse extends CommandResponse {
+    private UUID messageUid;
+    
+    public static AddMessageResponse success(String correlationId, UUID messageUid) {
+        return AddMessageResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .messageUid(messageUid)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static AddMessageResponse error(String correlationId, String error) {
+        return AddMessageResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+}// HealthCheckResponse.java
+package com.connection.message.events.responses;
+
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.common.events.CommandResponse;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class HealthCheckResponse extends CommandResponse {
+    private Map<String, Object> healthStatus;
+    
+    public static HealthCheckResponse success(String correlationId, Map<String, Object> healthStatus) {
+        return HealthCheckResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .healthStatus(healthStatus)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static HealthCheckResponse error(String correlationId, String error) {
+        return HealthCheckResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+}// GetMessageResponse.java
+package com.connection.message.events.responses;
+
+import java.util.UUID;
+
+import com.connection.common.events.CommandResponse;
+import com.connection.message.model.MessageDTO;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class GetMessageResponse extends CommandResponse {
+    private MessageDTO message;
+    
+    public static GetMessageResponse success(String correlationId, MessageDTO message) {
+        return GetMessageResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .message(message)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static GetMessageResponse error(String correlationId, String error) {
+        return GetMessageResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+}// GetMessagesByBufferResponse.java
+package com.connection.message.events.responses;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.connection.common.events.CommandResponse;
+import com.connection.message.model.MessageDTO;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class GetMessagesByBufferResponse extends CommandResponse {
+    private List<MessageDTO> messages;
+    
+    public static GetMessagesByBufferResponse success(String correlationId, List<MessageDTO> messages) {
+        return GetMessagesByBufferResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .messages(messages)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static GetMessagesByBufferResponse error(String correlationId, String error) {
+        return GetMessagesByBufferResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+}// RouteMessageResponse.java
+package com.connection.message.events.responses;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.connection.common.events.CommandResponse;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class RouteMessageResponse extends CommandResponse {
+    private List<UUID> routedMessageUids;
+    
+    public static RouteMessageResponse success(String correlationId, List<UUID> routedMessageUids) {
+        return RouteMessageResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .routedMessageUids(routedMessageUids)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static RouteMessageResponse error(String correlationId, String error) {
+        return RouteMessageResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+}

@@ -1,0 +1,63 @@
+// BufferJDBCConfig.java
+package com.service.buffer.config;
+
+import java.util.Properties;
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.atomikos.jdbc.AtomikosDataSourceBean;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Configuration
+@Slf4j
+public class BufferJDBCConfig {
+    
+    @Value("${app.datasource.buffer.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    private String xaDataSourceClassName;
+
+    @Value("${app.datasource.buffer.xa-properties.url}")
+    private String jdbcUrl;
+
+    @Value("${app.datasource.buffer.xa-properties.user}")
+    private String username;
+
+    @Value("${app.datasource.buffer.xa-properties.password}")
+    private String password;
+
+    @Value("${app.datasource.buffer.unique-resource-name:bufferXADataSource}")
+    private String uniqueResourceName;
+
+    @Bean("BufferDataSource")
+    DataSource bufferDataSource() {
+        log.info("url: " + jdbcUrl);
+        log.info("user: " + username);
+        log.info("password: " + password);
+
+        AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
+        dataSource.setUniqueResourceName(uniqueResourceName);
+        dataSource.setXaDataSourceClassName(xaDataSourceClassName);
+        
+        Properties xaProperties = new Properties();
+        xaProperties.setProperty("url", jdbcUrl);
+        xaProperties.setProperty("user", username);
+        xaProperties.setProperty("password", password);
+
+        dataSource.setXaProperties(xaProperties);
+        dataSource.setPoolSize(5);
+        dataSource.setTestQuery("SELECT 1");
+
+        return dataSource;
+    }
+
+    @Bean("BufferJdbcTemplate")
+    NamedParameterJdbcTemplate bufferNamedParameterJdbcTemplate(
+            @Qualifier("BufferDataSource") DataSource bufferDataSource) {
+        return new NamedParameterJdbcTemplate(bufferDataSource);
+    }
+}

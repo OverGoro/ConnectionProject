@@ -1,0 +1,151 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.5'
+	id 'io.spring.dependency-management' version '1.1.7'
+	id 'io.qameta.allure' version '2.11.2'
+}
+
+group = 'com.service.connectionscheme'
+version = '0.0.1-SNAPSHOT'
+description = 'connectionscheme managment service'
+
+import java.nio.file.Paths
+def service_name = 'connectionscheme-service'
+def k8sDir = Paths.get(System.getProperty('user.home'), "GitHub", "ConnectionProject", "kubernetes", "connectionscheme-service").toString()
+
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+	mavenLocal()
+}
+
+dependencies {
+	
+	implementation 'org.springframework.boot:spring-boot-starter'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+	implementation 'org.springframework.data:spring-data-commons'
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	implementation'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign:4.3.0'
+	implementation 'org.springframework.security:spring-security-config:6.5.3'
+	implementation 'org.springframework.security:spring-security-web:6.5.3'
+    implementation 'org.springframework.kafka:spring-kafka:3.3.10'
+
+
+	implementation 'com.atomikos:transactions-spring-boot3-starter:6.0.0'
+	
+	runtimeOnly 'org.postgresql:postgresql'
+
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
+
+	
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	compileOnly 'org.projectlombok:lombok:1.18.38'
+	annotationProcessor 'org.projectlombok:lombok:1.18.38'
+
+	implementation 'com.connection:token-shared:1.0.0'
+	compileOnly 'com.connection:token-shared:1.0.0'
+	
+	implementation 'com.connection:connection-scheme-shared:1.0.0'
+	compileOnly 'com.connection:connection-scheme-shared:1.0.0'
+
+    implementation 'com.connection:common-events:1.0.0'
+    implementation 'com.connection:common-auth-events:1.0.0'    
+    implementation 'com.connection:common-events:1.0.0'
+    implementation 'com.connection:common-connection-scheme-events:1.0.0'
+
+	// Тестовые зависимости
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
+    testImplementation 'org.mockito:mockito-core:5.18.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.18.0'
+    testImplementation 'org.assertj:assertj-core:3.27.3'
+    testImplementation 'io.qameta.allure:allure-junit5:2.29.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ['-parameters']
+}
+
+compileJava {
+    options.compilerArgs += ['-parameters']
+}
+
+compileTestJava {
+    options.compilerArgs += ['-parameters']
+}
+// Конфигурация Allure
+allure {
+    version = '2.35.1'
+    useJUnit5 {
+        version = '2.29.1'
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    systemProperty 'junit.jupiter.execution.order.random.seed', '42'
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
+    systemProperty 'allure.results.directory', 'build/allure-results'
+    
+    // Для оффлайн тестирования
+    systemProperty 'offline.mode', 'false'
+}
+
+// Задача для запуска тестов в оффлайн режиме
+task offlineTest(type: Test) {
+    useJUnitPlatform()
+    systemProperty 'offline.mode', 'true'
+}
+
+
+task copyJarToK8s(type: Copy) {
+    dependsOn bootJar
+    
+    // Создаем директорию, если она не существует
+    doFirst {
+        file(k8sDir).mkdirs()
+        println "📁 Целевая директория: $k8sDir"
+        println "📦 Исходный JAR: ${bootJar.archiveFile.get()}"
+    }
+    
+    from bootJar.archiveFile.get()
+    into k8sDir
+    
+    rename { String fileName ->
+        "${service_name}.jar"
+    }
+    
+    doLast {
+        println "JAR файл скопирован в: $k8sDir"
+        println "Файл: ${service_name}.jar"
+        
+        def targetFile = file("$k8sDir/${service_name}.jar")
+        if (targetFile.exists()) {
+            println "Размер скопированного файла: ${targetFile.length() / 1024 / 1024} MB"
+        } else {
+            println "Ошибка: файл не был скопирован!"
+        }
+    }
+}
+
+
+bootJar.finalizedBy copyJarToK8s

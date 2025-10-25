@@ -1,0 +1,444 @@
+plugins {
+    id 'java'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'io.qameta.allure' version '3.0.0'
+    id 'com.avast.gradle.docker-compose' version '0.17.6'
+    id 'maven-publish'
+}
+
+
+group = 'com.connection'
+version = '1.0.0'
+description = 'buffer-shared'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+
+// ========== CONFIGURATION ==========
+ext {
+    SERVICE_NAME = 'buffer-shared'
+    ALLURE_RESULTS_DIR = "${buildDir}/allure-results"
+    ALLURE_REPORT_DIR =  "${buildDir}/reports/allure-report"
+    ALLURE_HISTORY_DIR = "${projectDir}/allure-history"
+}
+
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+    
+    // Конфигурация для интеграционных тестов
+    integrationTestImplementation {
+        extendsFrom testImplementation
+    }
+    integrationTestRuntimeOnly {
+        extendsFrom testRuntimeOnly
+    }
+}
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    implementation 'com.connection:common-events:1.0.0'
+    implementation 'com.connection:device-shared:1.0.0'
+    annotationProcessor 'com.connection:common-events:1.0.0'
+    
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.4'
+    compileOnly 'org.projectlombok:lombok:1.18.38'
+    annotationProcessor 'org.projectlombok:lombok:1.18.38'
+}
+
+// ========== COMPILATION CONFIGURATION ==========
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ['-parameters']
+    options.encoding = 'UTF-8'
+}
+
+// ========== DOCKER COMPOSE CONFIGURATION ==========
+dockerCompose {
+    useComposeFiles = ['src/test/resources/docker-compose.yaml']
+    projectName = "${SERVICE_NAME}-test"
+    stopContainers = true
+    removeContainers = true
+    removeImages = com.avast.gradle.dockercompose.RemoveImages.Local
+    removeVolumes = true
+    environment.put 'COMPOSE_PROJECT_NAME', "${SERVICE_NAME}-test"
+}
+
+// ========== ALLURE TASKS ==========
+task generateAllureReport(type: Exec) {
+    description = 'Generate Allure report from results with history'
+    group = 'Reporting'
+    
+    // Копируем историю из предыдущего отчета перед генерацией нового
+    doFirst {
+        logger.lifecycle("📊 Generating Allure report with history...")
+        logger.lifecycle("   Results: ${ALLURE_RESULTS_DIR}")
+        logger.lifecycle("   Report: ${ALLURE_REPORT_DIR}")
+        logger.lifecycle("   History: ${ALLURE_HISTORY_DIR}")
+        
+        // Создаем директории если их нет
+        file(ALLURE_HISTORY_DIR).mkdirs()
+        file("${ALLURE_HISTORY_DIR}/history").mkdirs()
+        file(ALLURE_RESULTS_DIR).mkdirs()
+        
+        // Копируем историю из предыдущего отчета в результаты текущего запуска
+        def historySource = file("${ALLURE_HISTORY_DIR}/history")
+        def historyTarget = file("${ALLURE_RESULTS_DIR}/history")
+        
+        if (historySource.exists()) {
+            logger.lifecycle("   Copying history from previous report...")
+            copy {
+                from historySource
+                into historyTarget
+            }
+        }
+    }
+    
+    commandLine 'allure', 'generate', "${ALLURE_RESULTS_DIR}", '-o', "${ALLURE_REPORT_DIR}", '--clean'
+    
+    doLast {
+        def reportFile = file("${ALLURE_REPORT_DIR}/index.html")
+        if (reportFile.exists()) {
+            logger.lifecycle("✅ Allure report generated at: ${ALLURE_REPORT_DIR}")
+            
+            // Сохраняем историю для следующего запуска
+            def historySource = file("${ALLURE_REPORT_DIR}/history")
+            def historyTarget = file("${ALLURE_HISTORY_DIR}/history")
+            
+            if (historySource.exists()) {
+                logger.lifecycle("   Copying history from previous report...")
+                copy {
+                    from historySource
+                    into historyTarget
+                }
+            }
+            
+            logger.lifecycle("   Open: file://${reportFile.absolutePath}")
+        } else {
+            logger.lifecycle("⚠️  Allure report generation completed but index.html not found")
+        }
+    }
+}
+
+task openAllureReport(type: Exec) {
+    description = 'Open Allure report in default browser'
+    group = 'Reporting'
+    
+    commandLine 'open', "${ALLURE_REPORT_DIR}/index.html"
+    
+    dependsOn generateAllureReport
+    
+    doFirst {
+        logger.lifecycle("🌐 Opening Allure report in browser...")
+    }
+}
+
+task serveAllureReport(type: Exec) {
+    description = 'Serve Allure report with built-in server and history'
+    group = 'Reporting'
+
+    commandLine 'allure', 'serve', "${ALLURE_RESULTS_DIR}"
+    
+    dependsOn generateAllureReport
+    
+    doFirst {
+        logger.lifecycle("🚀 Starting Allure server with history...")
+    }
+}
+
+task cleanAllureResults(type: Delete) {
+    description = 'Clean Allure results directory'
+    group = 'Reporting'
+    delete ALLURE_RESULTS_DIR
+    
+    doLast {
+        logger.lifecycle("🧹 Cleaned Allure results: ${ALLURE_RESULTS_DIR}")
+    }
+}
+
+task cleanAllureReport(type: Delete) {
+    description = 'Clean Allure report directory'
+    group = 'Reporting'
+    delete ALLURE_REPORT_DIR
+    
+    doLast {
+        logger.lifecycle("🧹 Cleaned Allure report: ${ALLURE_REPORT_DIR}")
+    }
+}
+
+task cleanAllureHistory(type: Delete) {
+    description = 'Clean Allure history directory'
+    group = 'Reporting'
+    delete ALLURE_HISTORY_DIR
+    
+    doLast {
+        logger.lifecycle("🧹 Cleaned Allure history: ${ALLURE_HISTORY_DIR}")
+    }
+}
+
+task showAllureResults {
+    description = 'Show Allure results structure'
+    group = 'Reporting'
+    
+    doLast {
+        def resultsDir = file(ALLURE_RESULTS_DIR)
+        logger.lifecycle("📁 Allure Results Directory: ${resultsDir.absolutePath}")
+        
+        if (resultsDir.exists()) {
+            def files = resultsDir.listFiles()
+            if (files) {
+                logger.lifecycle("📊 Found ${files.size()} result files:")
+                files.each { file ->
+                    logger.lifecycle("   📄 ${file.name} (${file.length()} bytes)")
+                }
+            } else {
+                logger.lifecycle("❌ No result files found in Allure results directory")
+            }
+        } else {
+            logger.lifecycle("❌ Allure results directory does not exist")
+        }
+        
+        // Показываем историю
+        def historyDir = file(ALLURE_HISTORY_DIR)
+        if (historyDir.exists()) {
+            def historyFiles = historyDir.listFiles()
+            if (historyFiles) {
+                logger.lifecycle("📈 Allure History: ${historyFiles.size()} history entries")
+            } else {
+                logger.lifecycle("📈 No history found")
+            }
+        }
+    }
+}
+
+task updateAllureHistory {
+    description = 'Update Allure history from current report'
+    group = 'Reporting'
+    
+    doLast {
+        def historySource = file("${ALLURE_REPORT_DIR}/history")
+        def historyTarget = file(ALLURE_HISTORY_DIR)
+        
+        if (historySource.exists()) {
+            copy {
+                from historySource
+                into historyTarget
+            }
+            logger.lifecycle("✅ Allure history updated from current report")
+        } else {
+            logger.lifecycle("⚠️  No history found in current report")
+        }
+    }
+}
+
+// ========== DOCKER MANAGEMENT TASKS ==========
+task startTestContainers {
+    description = 'Start test containers for integration tests'
+    group = 'Docker'
+    
+    doFirst {
+        logger.lifecycle("🚀 Starting test containers...")
+    }
+    
+    doLast {
+        exec {
+            commandLine 'docker-compose', '-f', 'src/test/resources/docker-compose.yaml', 
+                       '-p', "${SERVICE_NAME}-test", 'up', '-d'
+        }
+        logger.lifecycle("✅ Test containers started")
+        logger.lifecycle("   PostgreSQL: localhost:5434")
+        logger.lifecycle("   Kafka: localhost:29093")
+        
+        // Wait for containers to be ready
+        sleep(10_000)
+        logger.lifecycle("⏳ Containers are ready")
+    }
+}
+
+task stopTestContainers {
+    description = 'Stop test containers'
+    group = 'Docker'
+    
+    doFirst {
+        logger.lifecycle("🛑 Stopping test containers...")
+    }
+    
+    doLast {
+        exec {
+            commandLine 'docker-compose', '-f', 'src/test/resources/docker-compose.yaml', 
+                       '-p', "${SERVICE_NAME}-test", 'down'
+        }
+        logger.lifecycle("✅ Test containers stopped")
+    }
+}
+
+task cleanTestContainers {
+    description = 'Stop and remove test containers with volumes'
+    group = 'Docker'
+    
+    doLast {
+        logger.lifecycle("🧹 Cleaning test containers...")
+        exec {
+            commandLine 'docker-compose', '-f', 'src/test/resources/docker-compose.yaml', 
+                       '-p', "${SERVICE_NAME}-test", 'down', '-v', '--rmi', 'local'
+        }
+        logger.lifecycle("✅ Test containers and volumes cleaned")
+    }
+}
+
+// ========== TEST CONFIGURATION ==========
+// Общая конфигурация для всех типов тестов
+def configureTestTask = { Test task, String taskName ->
+    task.useJUnitPlatform()
+    
+    // Настройки для Allure
+    task.systemProperty 'allure.results.directory', "${ALLURE_RESULTS_DIR}"
+    task.systemProperty 'allure.junit5.listeners', 'io.qameta.allure.junit5.AllureJunit5'
+    
+    // Параллельное выполнение
+    task.systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
+    task.systemProperty 'junit.jupiter.execution.parallel.mode.default', 'concurrent'
+    task.systemProperty 'junit.jupiter.execution.parallel.config.strategy', 'dynamic'
+    task.systemProperty 'junit.jupiter.execution.parallel.config.dynamic.factor', '1.0'
+    
+
+    task.reports.html.required = false
+    task.reports.junitXml.required = false
+
+    task.testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = false
+    }
+
+    // Стандартные пути для отчетов
+    task.reports {
+        html.outputLocation = null
+        junitXml.outputLocation = null
+    }
+    
+    // Отключаем кэширование
+    task.outputs.upToDateWhen { false }
+}
+
+// Unit tests
+test {
+    description = 'Run unit tests'
+    group = 'Verification'
+    
+    configureTestTask(delegate, 'test')
+    exclude '**/*IntegrationTest.*', '**/*E2ETest.*'
+    
+    systemProperty 'junit.jupiter.execution.order.random.seed', '42'
+    systemProperty 'offline.mode', 'false'
+    
+    // Всегда очищаем результаты перед тестами, но сохраняем историю
+    dependsOn cleanAllureResults
+    finalizedBy generateAllureReport
+}
+
+// Integration tests
+task integrationTest(type: Test) {
+    description = 'Run integration tests with Testcontainers'
+    group = 'Verification'
+    
+    configureTestTask(delegate, 'integrationTest')
+    include '**/*IntegrationTest.*'
+    
+    systemProperty 'spring.profiles.active', 'integrationtest'
+    
+    doFirst {
+        logger.lifecycle("🔧 Running integration tests")
+        logger.lifecycle("   Database: localhost:5434/test_db")
+        logger.lifecycle("   Kafka: localhost:29093")
+    }
+    
+    finalizedBy generateAllureReport
+}
+
+// All tests sequence
+task allTests {
+    description = 'Run all tests in sequence: unit → integration → e2e'
+    group = 'Verification'
+    dependsOn test, integrationTest
+    tasks.findByName('integrationTest')?.mustRunAfter('test')
+    finalizedBy generateAllureReport
+}
+
+// Offline tests
+task offlineTest(type: Test) {
+    description = 'Run tests in offline mode'
+    group = 'Verification'
+    
+    configureTestTask(delegate, 'offlineTest')
+    systemProperty 'offline.mode', 'true'
+    finalizedBy generateAllureReport
+}
+
+// ========== CLEANUP TASKS ==========
+task cleanTestResults(type: Delete) {
+    description = 'Clean old test results'
+    group = 'Build'
+    delete layout.buildDirectory.dir("test-results")
+    delete layout.buildDirectory.dir("reports/tests")
+}
+
+
+
+task deepClean {
+    description = 'Complete clean including Allure history'
+    group = 'Build'
+    dependsOn clean, cleanAllureResults, cleanAllureReport, cleanAllureHistory
+}
+
+// ========== TASK RELATIONS ==========
+tasks.named('integrationTest') { 
+    mustRunAfter test 
+}
+
+
+// Prevent running integration tests without containers
+tasks.withType(Test).configureEach { 
+}
+
+
+// ========== DEFAULT TASKS ==========
+defaultTasks 'build'
+
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            // Добавляем информацию о pom для лучшей совместимости
+            pom {
+                name = 'buffer Shared Module'
+                description = 'Shared components for buffer services'
+                url = 'http://www.example.com'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        mavenLocal()
+    }
+}

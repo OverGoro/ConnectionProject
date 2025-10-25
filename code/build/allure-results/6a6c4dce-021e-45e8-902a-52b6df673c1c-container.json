@@ -1,0 +1,1 @@
+{"uuid":"6a6c4dce-021e-45e8-902a-52b6df673c1c","name":"Validate valid ClientDALM - Positive","children":["bd0a892c-2567-42f0-abd2-c7cefa52dd82"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363720406,"stop":1761363720406}],"afters":[],"start":1761363720404,"stop":1761363720407}

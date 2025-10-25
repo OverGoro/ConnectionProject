@@ -1,0 +1,1 @@
+{"uuid":"7113b86f-1bb4-4eb5-bf21-b0560a6cc321","name":"Add buffers to device - Positive","children":["42dcfa28-b6d7-423a-af87-f21031ab67c8"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758888596643,"stop":1758888596644}],"afters":[],"start":1758888596636,"stop":1758888596652}

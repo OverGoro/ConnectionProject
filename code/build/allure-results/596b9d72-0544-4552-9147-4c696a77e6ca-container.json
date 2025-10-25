@@ -1,0 +1,1 @@
+{"uuid":"596b9d72-0544-4552-9147-4c696a77e6ca","name":"Check has device access token - Positive","children":["bc65615b-af95-4081-af47-fe3c3d0d257e"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363744201,"stop":1761363744203}],"afters":[],"start":1761363744198,"stop":1761363744206}

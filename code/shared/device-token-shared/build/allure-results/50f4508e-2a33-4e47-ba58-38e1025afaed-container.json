@@ -1,0 +1,1 @@
+{"uuid":"50f4508e-2a33-4e47-ba58-38e1025afaed","name":"Generate device access token - Positive","children":["6ee1f97a-b92e-4e39-965c-72bb9ffe4c1e"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363743240,"stop":1761363743240}],"afters":[],"start":1761363743239,"stop":1761363743241}

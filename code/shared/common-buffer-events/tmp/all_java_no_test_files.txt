@@ -1,0 +1,340 @@
+package com.connection.buffer.events.domain;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+import java.util.UUID;
+
+import com.connection.buffer.events.BufferEventConstants;
+import com.connection.common.events.BaseEvent;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class BufferCreatedEvent extends BaseEvent {
+    private UUID bufferUid;
+    
+    public BufferCreatedEvent(UUID bufferUid) {
+        super(BufferEventConstants.EVENT_BUFFER_CREATED, "buffer-service");
+        this.bufferUid = bufferUid;
+    }
+}package com.connection.buffer.events.commands;
+
+import com.connection.buffer.events.BufferEventConstants;
+import com.connection.common.events.Command;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class HealthCheckCommand extends Command {
+    
+    public HealthCheckCommand() {
+        super(BufferEventConstants.COMMAND_HEALTH_CHECK, "unknown", BufferEventConstants.BUFFER_COMMANDS_TOPIC);
+    }
+    
+    public HealthCheckCommand(String sourceService) {
+        super(BufferEventConstants.COMMAND_HEALTH_CHECK, sourceService, BufferEventConstants.BUFFER_COMMANDS_TOPIC);
+    }
+}package com.connection.buffer.events.commands;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+import java.util.UUID;
+
+import com.connection.buffer.events.BufferEventConstants;
+import com.connection.common.events.Command;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class GetBuffersByDeviceUid extends Command {
+    private final UUID clientUid;
+    private final UUID deviceUid;
+    
+    public GetBuffersByDeviceUid() {
+        super(BufferEventConstants.COMMAND_GET_BUFFERS_BY_CLIENT_UID, "unknown", BufferEventConstants.BUFFER_COMMANDS_TOPIC);
+        this.deviceUid = null;
+        this.clientUid = null;
+    }
+    
+    public GetBuffersByDeviceUid(UUID clientUid, UUID deviceUid, String sourceService) {
+        super(BufferEventConstants.COMMAND_GET_BUFFERS_BY_CLIENT_UID, sourceService, BufferEventConstants.BUFFER_COMMANDS_TOPIC);
+        this.deviceUid = deviceUid;
+        this.clientUid = clientUid;
+    }
+}package com.connection.buffer.events.commands;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+
+import java.util.UUID;
+
+import com.connection.buffer.events.BufferEventConstants;
+import com.connection.common.events.Command;
+
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class GetBuffersByClientUid extends Command {
+     private final UUID clientUid;
+    
+    public GetBuffersByClientUid() {
+        super(BufferEventConstants.COMMAND_GET_BUFFERS_BY_CLIENT_UID, "unknown", BufferEventConstants.BUFFER_COMMANDS_TOPIC);
+        this.clientUid = null;
+    }
+    
+    public GetBuffersByClientUid(UUID deviceUid, String sourceService) {
+        super(BufferEventConstants.COMMAND_GET_BUFFERS_BY_CLIENT_UID, sourceService, BufferEventConstants.BUFFER_COMMANDS_TOPIC);
+        this.clientUid = deviceUid;
+    }
+}package com.connection.buffer.events.commands;
+
+import java.util.UUID;
+
+import com.connection.buffer.events.BufferEventConstants;
+import com.connection.common.events.Command;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
+@Data
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class GetBufferByUidCommand extends Command {
+    private final UUID bufferUid;
+    private final UUID clientUid;
+    
+    public GetBufferByUidCommand() {
+        super(BufferEventConstants.COMMAND_GET_BUFFER_BY_UID, "unknown", BufferEventConstants.BUFFER_COMMANDS_TOPIC);
+        this.bufferUid = null;
+        this.clientUid = null;
+    }
+    
+    public GetBufferByUidCommand(UUID clientUid, UUID bufferUid, String sourceService) {
+        super(BufferEventConstants.COMMAND_GET_BUFFER_BY_UID, sourceService, BufferEventConstants.COMMAND_GET_BUFFER_BY_UID);
+        this.bufferUid = bufferUid;
+        this.clientUid = clientUid;
+    }
+}package com.connection.buffer.events;
+
+public class BufferEventConstants {
+    
+    // Kafka Topics
+    public static final String BUFFER_COMMANDS_TOPIC = "buffer.commands";
+    public static final String BUFFER_RESPONSES_TOPIC = "buffer.responses";
+    public static final String BUFFER_EVENTS_TOPIC = "buffer.events";
+    
+    // Command Types
+    public static final String COMMAND_GET_BUFFER_BY_UID = "GET_BUFFER_BY_UID";
+    public static final String COMMAND_GET_BUFFERS_BY_CLIENT_UID = "GET_BUFFERS_BY_CLIENT_UID";
+    public static final String COMMAND_GET_BUFFERS_BY_DEVICE_UID = "GET_BUFFERS_BY_DEVICE_UID";
+    public static final String COMMAND_HEALTH_CHECK = "HEALTH_CHECK";
+    
+    // Event Types
+    public static final String EVENT_BUFFER_CREATED = "BUFFER_CREATED";
+    
+    private BufferEventConstants() {
+        
+    }
+}package com.connection.buffer.events.responses;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.common.events.CommandResponse;
+
+@Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class HealthCheckResponse extends CommandResponse {
+    private Map<String, Object> healthStatus;
+    
+    public static HealthCheckResponse success(String correlationId, Map<String, Object> healthStatus) {
+        return HealthCheckResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .healthStatus(healthStatus)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static HealthCheckResponse error(String correlationId, String error) {
+        return HealthCheckResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+}package com.connection.buffer.events.responses;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.connection.common.events.CommandResponse;
+import com.connection.processing.buffer.model.BufferDTO;
+
+@Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class GetBuffersByClientResponse extends CommandResponse {
+    private List<BufferDTO> bufferDTOs;
+    
+    public static GetBuffersByClientResponse valid(String correlationId, List<BufferDTO> bufferDTOs) {
+        return GetBuffersByClientResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .bufferDTOs(bufferDTOs)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static GetBuffersByClientResponse error(String correlationId, String error) {
+        return GetBuffersByClientResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+}package com.connection.buffer.events.responses;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+import java.util.UUID;
+
+import com.connection.common.events.CommandResponse;
+import com.connection.processing.buffer.model.BufferDTO;
+
+@Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class GetBufferByUidResponse extends CommandResponse {
+    private BufferDTO bufferDTO;
+    
+    public static GetBufferByUidResponse success(String correlationId, BufferDTO bufferDTO) {
+        return GetBufferByUidResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .bufferDTO(bufferDTO)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static GetBufferByUidResponse error(String correlationId, String error) {
+        return GetBufferByUidResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+}package com.connection.buffer.events.responses;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+import java.util.List;
+import java.util.UUID;
+
+import com.connection.common.events.CommandResponse;
+import com.connection.processing.buffer.model.BufferDTO;
+
+@Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class GetBuffersByDeviceResponse extends CommandResponse {
+    private List<BufferDTO> bufferDTOs;
+    
+    public static GetBuffersByDeviceResponse valid(String correlationId, List<BufferDTO> bufferDTOs) {
+        return GetBuffersByDeviceResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(true)
+                .bufferDTOs(bufferDTOs)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+    
+    public static GetBuffersByDeviceResponse error(String correlationId, String error) {
+        return GetBuffersByDeviceResponse.builder()
+                .eventId(UUID.randomUUID().toString())
+                .correlationId(correlationId)
+                .success(false)
+                .error(error)
+                .timestamp(java.time.Instant.now())
+                .build();
+    }
+}package com.connection.buffer.events;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
+public class DeviceEventUtils {
+    private static final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule());
+    
+    public static String toJson(Object event) {
+        try {
+            return objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize auth event", e);
+        }
+    }
+    
+    public static <T> T fromJson(String json, Class<T> clazz) {
+        try {
+            return objectMapper.readValue(json, clazz);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to deserialize auth event", e);
+        }
+    }
+    
+    public static String generateCorrelationId() {
+        return java.util.UUID.randomUUID().toString();
+    }
+}

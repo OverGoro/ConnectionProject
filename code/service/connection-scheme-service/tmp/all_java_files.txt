@@ -1,0 +1,1682 @@
+// ConnectionSchemeServiceApplication.java
+package com.service.connectionscheme;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ConnectionSchemeServiceApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ConnectionSchemeServiceApplication.class, args);
+    }
+}// ConnectionSchemeUtilsConfig.java
+package com.service.connectionscheme.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.connection.scheme.converter.ConnectionSchemeConverter;
+import com.connection.scheme.validator.ConnectionSchemeValidator;
+
+@Configuration
+public class ConnectionSchemeUtilsConfig {
+    @Bean("ConnectionSchemeConverter")
+    ConnectionSchemeConverter connectionSchemeConverter(){
+        return new ConnectionSchemeConverter();
+    }
+
+    @Bean("ConnectionSchemeValidator")
+    ConnectionSchemeValidator connectionSchemeValidator(){
+        return new ConnectionSchemeValidator();
+    }
+}// ConnectionSchemeRepositoryConfig.java
+package com.service.connectionscheme.config;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.scheme.repository.ConnectionSchemeRepository;
+import com.connection.scheme.repository.ConnectionSchemeRepositorySQLImpl;
+
+@Configuration
+public class ConnectionSchemeRepositoryConfig {
+    @Bean("ConnectionSchemeRepository")
+    ConnectionSchemeRepository connectionSchemeRepository(@Qualifier("ConnectionSchemeJdbcTemplate") NamedParameterJdbcTemplate template){
+        return new ConnectionSchemeRepositorySQLImpl(template);
+    }
+}package com.service.connectionscheme.config;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+
+import java.util.UUID;
+
+@Component
+public class SecurityUtils {
+
+    public static UUID getCurrentClientUid() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new SecurityException("User not authenticated");
+        }
+
+        Object principal = authentication.getPrincipal();
+        
+        if (principal instanceof UUID) {
+            return (UUID) principal;
+        } else if (principal instanceof String) {
+            try {
+                return UUID.fromString((String) principal);
+            } catch (IllegalArgumentException e) {
+                throw new SecurityException("Invalid client UID format in principal");
+            }
+        } else {
+            throw new SecurityException("Unexpected principal type: " + principal.getClass());
+        }
+    }
+
+    public static String getCurrentClientUidAsString() {
+        return getCurrentClientUid().toString();
+    }
+}package com.service.connectionscheme.config;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.util.backoff.FixedBackOff;
+
+import com.connection.auth.events.AuthEventConstants;
+import com.connection.scheme.events.ConnectionSchemeEventConstants;
+
+@Configuration
+public class ConnectionSchemeKafkaConfig {
+    @Value("${spring.kafka.bootstrap-servers:localhost:29092}")
+    private String bootstrapServers;
+
+    @Bean
+    public NewTopic authResponsesTopic() {
+        return TopicBuilder.name(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    // Конфигурация топиков для connection-scheme-service
+    @Bean
+    public NewTopic connectionSchemeCommandsTopic() {
+        return TopicBuilder.name(ConnectionSchemeEventConstants.CONNECTION_SCHEME_COMMANDS_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic connectionSchemeResponsesTopic() {
+        return TopicBuilder.name(ConnectionSchemeEventConstants.CONNECTION_SCHEME_RESPONSES_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic connectionSchemeEventsTopic() {
+        return TopicBuilder.name(ConnectionSchemeEventConstants.CONNECTION_SCHEME_EVENTS_TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    // Конфигурация для Consumer с обработкой ошибок десериализации
+    @Bean
+    public ConsumerFactory<String, Object> consumerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "connection-scheme-service-group");
+        configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        
+        // Конфигурация для ErrorHandlingDeserializer
+        configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, org.apache.kafka.common.serialization.StringDeserializer.class);
+        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
+        
+        // Конфигурация для JsonDeserializer
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "com.connection.auth.events.commands,com.connection.common.events,com.connection.device.events.commands,com.connection.auth.events.responses");
+        configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
+        configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
+        configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");
+        
+        return new DefaultKafkaConsumerFactory<>(configProps);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory = 
+            new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        
+        // Обработка ошибок десериализации - пропускаем некорректные сообщения
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(
+                (record, exception) -> {
+                    org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("KafkaErrorHandler");
+                    logger.error("Skipping invalid message - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}",
+                            record.topic(),
+                            record.partition(),
+                            record.offset(),
+                            record.key(),
+                            exception.getMessage());
+                },
+                new FixedBackOff(0L, 0L)
+        );
+
+        factory.setCommonErrorHandler(errorHandler);
+        
+        return factory;
+    }
+
+    // Конфигурация для Producer
+    @Bean
+    public ProducerFactory<String, Object> producerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.StringSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
+        return new DefaultKafkaProducerFactory<>(configProps);
+    }
+
+    @Bean
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
+    }
+}// ConnectionSchemeJDBCConfig.java
+package com.service.connectionscheme.config;
+
+import java.util.Properties;
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.atomikos.jdbc.AtomikosDataSourceBean;
+
+@Configuration
+public class ConnectionSchemeJDBCConfig {
+    
+    @Value("${app.datasource.connection-scheme.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    private String xaDataSourceClassName;
+
+    @Value("${app.datasource.connection-scheme.xa-properties.url}")
+    private String jdbcUrl;
+
+    @Value("${app.datasource.connection-scheme.xa-properties.user}")
+    private String username;
+
+    @Value("${app.datasource.connection-scheme.xa-properties.password}")
+    private String password;
+
+    @Value("${app.datasource.connection-scheme.unique-resource-name:connectionSchemeXADataSource}")
+    private String uniqueResourceName;
+
+    @Bean("ConnectionSchemeDataSource")
+    DataSource connectionSchemeDataSource() {
+        AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
+        dataSource.setUniqueResourceName(uniqueResourceName);
+        dataSource.setXaDataSourceClassName(xaDataSourceClassName);
+        
+        Properties xaProperties = new Properties();
+        xaProperties.setProperty("url", jdbcUrl);
+        xaProperties.setProperty("user", username);
+        xaProperties.setProperty("password", password);
+
+        dataSource.setXaProperties(xaProperties);
+        dataSource.setPoolSize(5);
+        dataSource.setTestQuery("SELECT 1");
+
+        return dataSource;
+    }
+
+    @Bean("ConnectionSchemeJdbcTemplate")
+    NamedParameterJdbcTemplate connectionSchemeNamedParameterJdbcTemplate(
+            @Qualifier("ConnectionSchemeDataSource") DataSource connectionSchemeDataSource) {
+        return new NamedParameterJdbcTemplate(connectionSchemeDataSource);
+    }
+}package com.service.connectionscheme.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.jta.JtaTransactionManager;
+
+import com.atomikos.icatch.jta.UserTransactionManager;
+
+import jakarta.transaction.SystemException;
+
+@Configuration
+public class TransactionConfig {
+
+    @Bean
+    public UserTransactionManager userTransactionManager() throws SystemException{
+        UserTransactionManager manager = new UserTransactionManager();
+        manager.setTransactionTimeout(300);
+        manager.setForceShutdown(true);
+        return manager;
+    }
+
+    @Bean(name = "atomicosTransactionManager")
+    public JtaTransactionManager jtaTransactionManager() throws SystemException {
+        JtaTransactionManager jtaTransactionManager = new JtaTransactionManager();
+        jtaTransactionManager.setTransactionManager(userTransactionManager());
+        jtaTransactionManager.setUserTransaction(userTransactionManager());
+        return jtaTransactionManager;
+    }
+}package com.service.connectionscheme.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
+import com.service.connectionscheme.client.JwtKafkaAuthenticationFilter;
+
+import lombok.RequiredArgsConstructor;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final TypedAuthKafkaClient authKafkaClient;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/swagger-ui.html").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/api-docs/**").permitAll()
+                        .requestMatchers("/webjars/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/connection-scheme-service/**").authenticated()
+                        .requestMatchers("/api/connection-scheme-service/health").permitAll()
+                        .anyRequest().denyAll()
+                )
+                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+
+    @Bean
+    public JwtKafkaAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtKafkaAuthenticationFilter(authKafkaClient);
+    }
+}package com.service.connectionscheme;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.scheme.converter.ConnectionSchemeConverter;
+import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+import com.connection.scheme.repository.ConnectionSchemeRepository;
+import com.connection.scheme.validator.ConnectionSchemeValidator;
+import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+        JpaRepositoriesAutoConfiguration.class
+})
+@Transactional("atomicosTransactionManager")
+public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
+
+    private final ConnectionSchemeRepository schemeRepository;
+    private final ConnectionSchemeConverter schemeConverter;
+    private final ConnectionSchemeValidator schemeValidator;
+    private final TypedAuthKafkaClient authKafkaClient;
+
+    @Override
+    public ConnectionSchemeBLM createScheme(UUID clientUid, ConnectionSchemeDTO schemeDTO) {
+        schemeValidator.validate(schemeDTO);
+        ConnectionSchemeBLM schemeBLM = schemeConverter.toBLM(schemeDTO);
+
+        if (!clientUid.equals(schemeBLM.getClientUid())) {
+            throw new SecurityException("Client UID from token doesn't match scheme client UID");
+        }
+
+        if (schemeRepository.exists(schemeBLM.getUid())) {
+            throw new ConnectionSchemeAlreadyExistsException(
+                    "Scheme with UID '" + schemeBLM.getUid() + "' already exists");
+        }
+
+        ConnectionSchemeDALM schemeDALM = schemeConverter.toDALM(schemeBLM);
+        schemeRepository.add(schemeDALM);
+
+        log.info("Connection scheme created: {} for client: {}", schemeBLM.getUid(), clientUid);
+        return schemeBLM;
+    }
+
+    @Override
+    public ConnectionSchemeBLM getSchemeByUid(UUID clientUid, UUID schemeUid) {
+        ConnectionSchemeDALM schemeDALM = schemeRepository.findByUid(schemeUid);
+
+        if (!clientUid.equals(schemeDALM.getClientUid())) {
+            throw new SecurityException("Scheme doesn't belong to the authenticated client");
+        }
+
+        return schemeConverter.toBLM(schemeDALM);
+    }
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUid) {
+        List<ConnectionSchemeDALM> schemesDALM = schemeRepository.findByClientUid(clientUid);
+        return schemesDALM.stream()
+                .map(schemeConverter::toBLM)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ConnectionSchemeBLM updateScheme(UUID clientUid, UUID schemeUid, ConnectionSchemeDTO schemeDTO) {
+        ConnectionSchemeDALM existingScheme = schemeRepository.findByUid(schemeUid);
+        if (!clientUid.equals(existingScheme.getClientUid())) {
+            throw new SecurityException("Scheme doesn't belong to the authenticated client");
+        }
+
+        schemeValidator.validate(schemeDTO);
+        ConnectionSchemeBLM schemeBLM = schemeConverter.toBLM(schemeDTO);
+
+        // Проверяем, что клиент из токена совпадает с клиентом схемы
+        if (!clientUid.equals(schemeBLM.getClientUid())) {
+            throw new SecurityException("Client UID from token doesn't match scheme client UID");
+        }
+
+        // Проверяем, что UID не изменяется
+        if (!schemeUid.equals(schemeBLM.getUid())) {
+            throw new IllegalArgumentException("Cannot change scheme UID");
+        }
+
+        ConnectionSchemeDALM schemeDALM = schemeConverter.toDALM(schemeBLM);
+        schemeRepository.update(schemeDALM);
+
+        log.info("Connection scheme updated: {} for client: {}", schemeUid, clientUid);
+        return schemeBLM;
+    }
+
+    @Override
+    public void deleteScheme(UUID clientUid, UUID schemeUid) {
+        ConnectionSchemeDALM existingScheme = schemeRepository.findByUid(schemeUid);
+        if (!clientUid.equals(existingScheme.getClientUid())) {
+            throw new SecurityException("Scheme doesn't belong to the authenticated client");
+        }
+
+        schemeRepository.delete(schemeUid);
+        log.info("Connection scheme deleted: {} for client: {}", schemeUid, clientUid);
+    }
+
+    @Override
+    public boolean schemeExists(UUID clientUid, UUID schemeUid) {
+        return schemeRepository.exists(schemeUid);
+    }
+
+    @Override
+    public Map<String, Object> getHealthStatus() {
+        try {
+            var authHealth = authKafkaClient.healthCheck("connection-scheme-service")
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+            return Map.of(
+                    "status", "OK",
+                    "service", "connection-scheme-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+        } catch (Exception e) {
+            log.error("Kafka Client: ", e);
+            return Map.of(
+                    "status", "DEGRADED",
+                    "service", "connection-scheme-service",
+                    "timestamp", System.currentTimeMillis(),
+                    "auth-service", "UNAVAILABLE",
+                    "error", e.getMessage());
+        }
+    }
+}package com.service.connectionscheme.kafka;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Component;
+
+import com.connection.auth.events.responses.TokenValidationResponse;
+import com.connection.common.events.CommandResponse;
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class AuthResponseConsumer {
+
+    private final TypedAuthKafkaClient authKafkaClient;
+
+    @KafkaListener(topics = "${app.kafka.topics.auth-responses:auth.responses}")
+    public void handleAuthResponse(ConsumerRecord<String, CommandResponse> record) {
+        try {
+            CommandResponse message = record.value();
+            String correlationId = record.key();
+            
+            log.info("Received auth response: correlationId={}", correlationId);
+                
+            if (message instanceof TokenValidationResponse) {
+                TokenValidationResponse typedResponse = (TokenValidationResponse) message;
+                authKafkaClient.handleResponse(correlationId, typedResponse);
+            } else if (message instanceof ClientUidResponse) {
+                ClientUidResponse typedResponse = (ClientUidResponse) message;
+                authKafkaClient.handleResponse(correlationId, typedResponse);
+            } else if (message instanceof HealthCheckResponse) {
+                HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+                authKafkaClient.handleResponse(correlationId, typedResponse);
+            } else {
+                log.warn("Unknown response type for correlationId: {}", correlationId);
+            }
+            
+        } catch (Exception e) {
+            log.error("Error processing auth response: correlationId={}", record.key(), e);
+        }
+    }
+}package com.service.connectionscheme.kafka;
+
+import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+
+import com.connection.auth.events.AuthEventConstants;
+import com.connection.auth.events.AuthEventUtils;
+import com.connection.auth.events.commands.ExtractClientUidCommand;
+import com.connection.auth.events.commands.HealthCheckCommand;
+import com.connection.auth.events.commands.ValidateTokenCommand;
+import com.connection.auth.events.responses.ClientUidResponse;
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.auth.events.responses.TokenValidationResponse;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class TypedAuthKafkaClient {
+
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    
+    private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+
+    private static class PendingRequest<T> {
+        final CompletableFuture<T> future;
+        final Class<T> responseType;
+
+        PendingRequest(CompletableFuture<T> future, Class<T> responseType) {
+            this.future = future;
+            this.responseType = responseType;
+        }
+    }
+
+    public CompletableFuture<TokenValidationResponse> validateToken(String token, String sourceService) {
+        return sendRequest(
+            ValidateTokenCommand.builder()
+                .token(token)
+                .tokenType(ValidateTokenCommand.TokenType.ACCESS)
+                .sourceService(sourceService)
+                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .correlationId(AuthEventUtils.generateCorrelationId())
+                .build(),
+            TokenValidationResponse.class
+        );
+    }
+
+    public CompletableFuture<ClientUidResponse> getClientUid(String token, String sourceService) {
+        return sendRequest(
+            ExtractClientUidCommand.builder()
+                .token(token)
+                .tokenType(ExtractClientUidCommand.TokenType.ACCESS)
+                .sourceService(sourceService)
+                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .correlationId(AuthEventUtils.generateCorrelationId())
+                .build(),
+            ClientUidResponse.class
+        );
+    }
+
+    public CompletableFuture<HealthCheckResponse> healthCheck(String sourceService) {
+        return sendRequest(
+            HealthCheckCommand.builder()
+                .eventId(UUID.randomUUID().toString())
+                .sourceService(sourceService)
+                .timestamp(new Date().toInstant())
+                .replyTopic(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+                .correlationId(AuthEventUtils.generateCorrelationId())
+                .commandType(AuthEventConstants.COMMAND_HEALTH_CHECK)
+                .build(),
+            HealthCheckResponse.class
+        );
+    }
+
+    private <T> CompletableFuture<T> sendRequest(Object command, Class<T> responseType) {
+        String correlationId;
+        
+        if (command instanceof ValidateTokenCommand) {
+            correlationId = ((ValidateTokenCommand) command).getCorrelationId();
+        } else if (command instanceof ExtractClientUidCommand) {
+            correlationId = ((ExtractClientUidCommand) command).getCorrelationId();
+        } else if (command instanceof HealthCheckCommand) {
+            correlationId = ((HealthCheckCommand) command).getCorrelationId();
+        } else {
+            throw new IllegalArgumentException("Unsupported command type: " + command.getClass());
+        }
+
+        CompletableFuture<T> future = new CompletableFuture<>();
+        pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
+
+        kafkaTemplate.send(AuthEventConstants.AUTH_COMMANDS_TOPIC, correlationId, command)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        future.completeExceptionally(ex);
+                        pendingRequests.remove(correlationId);
+                        log.error("Failed to send command: {}", ex.getMessage());
+                    }
+                });
+
+        return future;
+    }
+
+    @SuppressWarnings("unchecked")
+    public void handleResponse(String correlationId, Object response) {
+        PendingRequest<?> pendingRequest = pendingRequests.remove(correlationId);
+        if (pendingRequest != null) {
+            try {
+                if (pendingRequest.responseType.isInstance(response)) {
+                    CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
+                    future.complete(response);
+                } else {
+                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}", 
+                            correlationId, pendingRequest.responseType, response.getClass());
+                    pendingRequest.future.completeExceptionally(
+                        new ClassCastException("Type mismatch in response")
+                    );
+                }
+            } catch (Exception e) {
+                pendingRequest.future.completeExceptionally(e);
+            }
+        } else {
+            log.warn("Received response for unknown correlationId: {}", correlationId);
+        }
+    }
+}package com.service.connectionscheme.kafka;
+
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+
+import com.connection.scheme.events.commands.GetConnectionSchemeByUidCommand;
+import com.connection.scheme.events.commands.GetConnectionSchemesByClientUid;
+import com.connection.scheme.events.commands.HealthCheckCommand;
+import com.connection.scheme.events.responses.GetConnectionSchemeByUidResponse;
+import com.connection.scheme.events.responses.GetConnectionSchemesByClientResponse;
+import com.connection.scheme.events.responses.HealthCheckResponse;
+import com.connection.common.events.Command;
+import com.service.connectionscheme.ConnectionSchemeService;
+import com.connection.scheme.converter.ConnectionSchemeConverter;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ConnectionSchemeCommandConsumer {
+
+    private final ConnectionSchemeService connectionSchemeService;
+    private final ConnectionSchemeConverter connectionSchemeConverter;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    @KafkaListener(topics = "${app.kafka.topics.connection-scheme-commands:connection-scheme.commands}")
+    public void handleConnectionSchemeCommand(ConsumerRecord<String, Command> record) {
+        try {
+            Command command = record.value();
+            String key = record.key();
+
+            log.info("Received connection scheme command: {} with key: {}", command.getClass().getSimpleName(), key);
+
+            if (command instanceof GetConnectionSchemeByUidCommand) {
+                GetConnectionSchemeByUidCommand getSchemeCommand = (GetConnectionSchemeByUidCommand) command;
+                handleGetConnectionSchemeByUidCommand(getSchemeCommand, key);
+            } else if (command instanceof GetConnectionSchemesByClientUid) {
+                GetConnectionSchemesByClientUid getSchemesCommand = (GetConnectionSchemesByClientUid) command;
+                handleGetConnectionSchemesByClientCommand(getSchemesCommand, key);
+            } else if (command instanceof HealthCheckCommand) {
+                HealthCheckCommand healthCommand = (HealthCheckCommand) command;
+                handleHealthCheckCommand(healthCommand, key);
+            } else {
+                log.warn("Unknown connection scheme command type: {}", command.getClass().getCanonicalName());
+            }
+
+        } catch (Exception e) {
+            log.error("Error processing connection scheme command: key={}", record.key(), e);
+        }
+    }
+
+    private void handleGetConnectionSchemeByUidCommand(GetConnectionSchemeByUidCommand command, String key) {
+        try {
+            log.info("Processing GetConnectionSchemeByUidCommand for scheme UID: {}", command.getConnectionSchemeUid());
+
+            ConnectionSchemeBLM schemeBLM = connectionSchemeService.getSchemeByUid(command.getClientUid(), command.getConnectionSchemeUid());
+            ConnectionSchemeDTO schemeDTO = connectionSchemeConverter.toDTO(schemeBLM);
+
+            GetConnectionSchemeByUidResponse response = GetConnectionSchemeByUidResponse.success(
+                    command.getCorrelationId(),
+                    schemeDTO);
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+            log.info("Successfully processed GetConnectionSchemeByUidCommand for scheme: {}", command.getConnectionSchemeUid());
+
+        } catch (Exception e) {
+            log.error("Error processing GetConnectionSchemeByUidCommand for scheme UID: {}", command.getConnectionSchemeUid(), e);
+
+            GetConnectionSchemeByUidResponse response = GetConnectionSchemeByUidResponse.error(
+                    command.getCorrelationId(),
+                    e.getMessage());
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+        }
+    }
+
+    private void handleGetConnectionSchemesByClientCommand(GetConnectionSchemesByClientUid command, String key) {
+        try {
+            log.info("Processing GetConnectionSchemesByClientCommand for client UID: {}", command.getClientUid());
+
+            List<ConnectionSchemeBLM> schemesBLM = connectionSchemeService.getSchemesByClient(command.getClientUid());
+            List<ConnectionSchemeDTO> schemeDTOs = schemesBLM.stream()
+                    .map(connectionSchemeConverter::toDTO)
+                    .collect(Collectors.toList());
+
+            GetConnectionSchemesByClientResponse response = GetConnectionSchemesByClientResponse.valid(
+                    command.getCorrelationId(),
+                    schemeDTOs);
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+
+            log.info("Successfully processed GetConnectionSchemesByClientCommand for client: {}, found {} schemes",
+                    command.getClientUid(), schemeDTOs.size());
+
+        } catch (Exception e) {
+            log.error("Error processing GetConnectionSchemesByClientCommand for client UID: {}", command.getClientUid(), e);
+
+            GetConnectionSchemesByClientResponse response = GetConnectionSchemesByClientResponse.error(
+                    command.getCorrelationId(),
+                    e.getMessage());
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+        }
+    }
+
+    private void handleHealthCheckCommand(HealthCheckCommand command, String key) {
+        try {
+            log.info("Processing HealthCheckCommand");
+
+            var healthStatus = connectionSchemeService.getHealthStatus();
+
+            HealthCheckResponse response = HealthCheckResponse.success(
+                    command.getCorrelationId(),
+                    healthStatus);
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+
+            log.info("Successfully processed HealthCheckCommand");
+
+        } catch (Exception e) {
+            log.error("Error processing HealthCheckCommand", e);
+
+            HealthCheckResponse response = HealthCheckResponse.error(
+                    command.getCorrelationId(),
+                    e.getMessage());
+
+            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+        }
+    }
+}package com.service.connectionscheme.client;
+
+import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import com.connection.auth.events.responses.TokenValidationResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class JwtKafkaAuthenticationFilter extends OncePerRequestFilter {
+
+    private final TypedAuthKafkaClient authKafkaClient;
+    private static final String AUTH_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
+
+        String authHeader = request.getHeader(AUTH_HEADER);
+
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String jwtToken = authHeader.substring(BEARER_PREFIX.length());
+
+        try {
+            authenticateWithToken(jwtToken, request);
+        } catch (Exception e) {
+            log.error("Authentication failed for token: {}", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        filterChain.doFilter(request, response);
+    }
+
+    private void authenticateWithToken(String token, HttpServletRequest request) {
+        try {
+            String cleanToken = token.trim();
+            cleanToken = cleanToken.replace("Bearer ", "");
+
+            log.info("Validating token: {}...", cleanToken);
+
+            CompletableFuture<TokenValidationResponse> validationFuture = authKafkaClient.validateToken(cleanToken,
+                    "connection-scheme-service");
+
+            TokenValidationResponse validationResponse = validationFuture
+                    .get(10, TimeUnit.SECONDS);
+
+            if (!validationResponse.isValid()) {
+                throw new SecurityException("Token validation failed: " + validationResponse.getError());
+            }
+
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    validationResponse.getClientUid(),
+                    null,
+                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            log.info("Successfully authenticated client: {}", validationResponse.getClientUid());
+
+        } catch (java.util.concurrent.TimeoutException e) {
+            throw new SecurityException("Token validation timeout");
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new SecurityException("Token validation error: " + e.getCause().getMessage());
+        } catch (Exception e) {
+            throw new SecurityException("Authentication failed: " + e.getMessage());
+        }
+    }
+}// ConnectionSchemeService.java
+package com.service.connectionscheme;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+public interface ConnectionSchemeService {
+    ConnectionSchemeBLM createScheme(UUID clientUuid, ConnectionSchemeDTO schemeDTO);
+    ConnectionSchemeBLM getSchemeByUid(UUID clientUuid, UUID schemeUid);
+    List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUuid);
+    ConnectionSchemeBLM updateScheme(UUID clientUuid, UUID schemeUid, ConnectionSchemeDTO schemeDTO);
+    void deleteScheme(UUID clientUuid, UUID schemeUid);
+    boolean schemeExists(UUID clientUuid, UUID schemeUid);
+    Map<String, Object> getHealthStatus();
+}// ConnectionSchemeController.java
+package com.service.connectionscheme;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+import com.service.connectionscheme.config.SecurityUtils;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/connection-scheme-service")
+public class ConnectionSchemeController {
+    
+    private final ConnectionSchemeService connectionSchemeService;
+
+    @PostMapping("/schemes")
+    public ResponseEntity<ConnectionSchemeBLM> createScheme(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestBody ConnectionSchemeDTO schemeDTO) {
+        
+        log.info("Creating connection scheme for client");
+
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        
+        ConnectionSchemeBLM scheme = connectionSchemeService.createScheme(clientUid, schemeDTO);
+        return ResponseEntity.ok(scheme);
+    }
+
+    @GetMapping("/schemes/{schemeUid}")
+    public ResponseEntity<ConnectionSchemeBLM> getScheme(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable UUID schemeUid) {
+        
+        
+        log.info("Getting connection scheme: {}", schemeUid);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        
+        ConnectionSchemeBLM scheme = connectionSchemeService.getSchemeByUid(clientUid, schemeUid);
+        return ResponseEntity.ok(scheme);
+    }
+
+    @GetMapping("/schemes")
+    public ResponseEntity<List<ConnectionSchemeBLM>> getSchemesByClient(
+            @RequestHeader("Authorization") String authorizationHeader) {
+        
+        
+        log.info("Getting all connection schemes for client");
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        
+        List<ConnectionSchemeBLM> schemes = connectionSchemeService.getSchemesByClient(clientUid);
+        return ResponseEntity.ok(schemes);
+    }
+
+    @PutMapping("/schemes/{schemeUid}")
+    public ResponseEntity<ConnectionSchemeBLM> updateScheme(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable UUID schemeUid,
+            @RequestBody ConnectionSchemeDTO schemeDTO) {
+        
+        
+        log.info("Updating connection scheme: {}", schemeUid);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        
+        ConnectionSchemeBLM scheme = connectionSchemeService.updateScheme(clientUid, schemeUid, schemeDTO);
+        return ResponseEntity.ok(scheme);
+    }
+
+    @DeleteMapping("/schemes/{schemeUid}")
+    public ResponseEntity<Void> deleteScheme(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable UUID schemeUid) {
+        
+        
+        log.info("Deleting connection scheme: {}", schemeUid);
+        UUID clientUid = SecurityUtils.getCurrentClientUid();
+        
+        connectionSchemeService.deleteScheme(clientUid, schemeUid);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/health")
+    public ResponseEntity<?> healthCheck() {
+        log.info("Health check: status: OK, service: connection-scheme-service, timestamp: {}", 
+                System.currentTimeMillis());
+                
+        return ResponseEntity.ok().body(connectionSchemeService.getHealthStatus());
+    }
+
+}package com.service.connectionscheme;
+
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.BUFFER_UUID_1;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.BUFFER_UUID_2;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.BUFFER_UUID_3;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.CLIENT_UUID;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.SCHEME_JSON;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.SCHEME_UUID;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createSchemeDTOWithDifferentClient;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createSchemeDTOWithDifferentUid;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createValidSchemeBLM;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createValidSchemeDALM;
+import static com.service.connectionscheme.mother.ConnectionSchemeObjectMother.createValidSchemeDTO;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.connection.auth.events.responses.HealthCheckResponse;
+import com.connection.scheme.converter.ConnectionSchemeConverter;
+import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+import com.connection.scheme.repository.ConnectionSchemeRepository;
+import com.connection.scheme.validator.ConnectionSchemeValidator;
+import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("Connection Scheme Service Implementation Tests - Kafka Version")
+class ConnectionSchemeServiceImplTest {
+
+    @Mock
+    private ConnectionSchemeRepository schemeRepository;
+
+    @Mock
+    private ConnectionSchemeConverter schemeConverter;
+
+    @Mock
+    private ConnectionSchemeValidator schemeValidator;
+
+    @Mock
+    private TypedAuthKafkaClient authKafkaClient;
+
+    @Mock
+    private SecurityContext securityContext;
+
+    @InjectMocks
+    private ConnectionSchemeServiceImpl connectionSchemeService;
+
+    @BeforeEach
+    void setUp() {
+        SecurityContextHolder.setContext(securityContext);
+    }
+
+    private void setupAuthentication(UUID clientUid) {
+        UsernamePasswordAuthenticationToken authentication = 
+            new UsernamePasswordAuthenticationToken(clientUid, null, Collections.emptyList());
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+    }
+
+    @Test
+    @DisplayName("Create scheme - Positive")
+    void shouldCreateSchemeWhenValidData() {
+        // Arrange
+        ConnectionSchemeDTO schemeDTO = createValidSchemeDTO();
+        ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
+        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
+        
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+        when(schemeConverter.toDALM(schemeBLM)).thenReturn(schemeDALM);
+        when(schemeRepository.exists(SCHEME_UUID)).thenReturn(false);
+
+        // Act
+        ConnectionSchemeBLM result = connectionSchemeService.createScheme(CLIENT_UUID, schemeDTO);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(SCHEME_UUID);
+        assertThat(result.getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3));
+        assertThat(result.getBufferTransitions()).hasSize(2);
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository).add(schemeDALM);
+    }
+
+    @Test
+    @DisplayName("Create scheme - Negative: Client UID mismatch")
+    void shouldThrowExceptionWhenClientUidMismatch() {
+        // Arrange
+        UUID differentClientUuid = UUID.randomUUID();
+        ConnectionSchemeDTO schemeDTO = createSchemeDTOWithDifferentClient();
+        
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UUID_1, Arrays.asList(BUFFER_UUID_2));
+        
+        ConnectionSchemeBLM schemeBLM = ConnectionSchemeBLM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(differentClientUuid) // different client
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
+            .bufferTransitions(bufferTransitions)
+            .build();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+
+        // Act & Assert
+        assertThatThrownBy(() -> connectionSchemeService.createScheme(CLIENT_UUID, schemeDTO))
+            .isInstanceOf(SecurityException.class)
+            .hasMessageContaining("Client UID from token doesn't match");
+
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Create scheme - Negative: Scheme already exists")
+    void shouldThrowExceptionWhenSchemeAlreadyExists() {
+        // Arrange
+        ConnectionSchemeDTO schemeDTO = createValidSchemeDTO();
+        ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+        when(schemeRepository.exists(SCHEME_UUID)).thenReturn(true);
+
+        // Act & Assert
+        assertThatThrownBy(() -> connectionSchemeService.createScheme(CLIENT_UUID, schemeDTO))
+            .isInstanceOf(ConnectionSchemeAlreadyExistsException.class);
+
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository, never()).add(any());
+    }
+
+    @Test
+    @DisplayName("Get scheme by UID - Positive")
+    void shouldGetSchemeWhenValidRequest() {
+        // Arrange
+        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
+        ConnectionSchemeBLM expectedBLM = createValidSchemeBLM();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(schemeDALM);
+        when(schemeConverter.toBLM(schemeDALM)).thenReturn(expectedBLM);
+
+        // Act
+        ConnectionSchemeBLM result = connectionSchemeService.getSchemeByUid(CLIENT_UUID, SCHEME_UUID);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getUid()).isEqualTo(SCHEME_UUID);
+        assertThat(result.getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3));
+        assertThat(result.getBufferTransitions()).hasSize(2);
+        verify(schemeRepository).findByUid(SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Get scheme by UID - Negative: Scheme doesn't belong to client")
+    void shouldThrowExceptionWhenSchemeNotBelongsToClient() {
+        // Arrange
+        UUID differentClientUuid = UUID.randomUUID();
+        ConnectionSchemeDALM schemeDALM = ConnectionSchemeDALM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(differentClientUuid) // different client
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
+            .build();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(schemeDALM);
+
+        // Act & Assert
+        assertThatThrownBy(() -> connectionSchemeService.getSchemeByUid(CLIENT_UUID, SCHEME_UUID))
+            .isInstanceOf(SecurityException.class)
+            .hasMessageContaining("doesn't belong");
+
+        verify(schemeRepository).findByUid(SCHEME_UUID);
+        verify(schemeConverter, never()).toBLM(any(ConnectionSchemeDALM.class));
+    }
+
+    @Test
+    @DisplayName("Get schemes by client - Positive")
+    void shouldGetSchemesByClientWhenValidRequest() {
+        // Arrange
+        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
+        ConnectionSchemeBLM expectedBLM = createValidSchemeBLM();
+        List<ConnectionSchemeDALM> schemesDALM = Collections.singletonList(schemeDALM);
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByClientUid(CLIENT_UUID)).thenReturn(schemesDALM);
+        when(schemeConverter.toBLM(schemeDALM)).thenReturn(expectedBLM);
+
+        // Act
+        List<ConnectionSchemeBLM> result = connectionSchemeService.getSchemesByClient(CLIENT_UUID);
+
+        // Assert
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getUid()).isEqualTo(SCHEME_UUID);
+        assertThat(result.get(0).getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3));
+        assertThat(result.get(0).getBufferTransitions()).hasSize(2);
+        verify(schemeRepository).findByClientUid(CLIENT_UUID);
+    }
+
+    @Test
+    @DisplayName("Update scheme - Positive")
+    void shouldUpdateSchemeWhenValidData() {
+        // Arrange
+        ConnectionSchemeDTO schemeDTO = createValidSchemeDTO();
+        ConnectionSchemeBLM schemeBLM = createValidSchemeBLM();
+        ConnectionSchemeDALM schemeDALM = createValidSchemeDALM();
+        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+        when(schemeConverter.toDALM(schemeBLM)).thenReturn(schemeDALM);
+
+        // Act
+        ConnectionSchemeBLM result = connectionSchemeService.updateScheme(CLIENT_UUID, SCHEME_UUID, schemeDTO);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getUsedBuffers()).isEqualTo(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3));
+        assertThat(result.getBufferTransitions()).hasSize(2);
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository).update(schemeDALM);
+    }
+
+    @Test
+    @DisplayName("Update scheme - Negative: UID change attempt")
+    void shouldThrowExceptionWhenTryingToChangeUid() {
+        // Arrange
+        ConnectionSchemeDTO schemeDTO = createSchemeDTOWithDifferentUid();
+        
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UUID_1, Arrays.asList(BUFFER_UUID_2));
+        
+        ConnectionSchemeBLM schemeBLM = ConnectionSchemeBLM.builder()
+            .uid(UUID.randomUUID()) // different UID
+            .clientUid(CLIENT_UUID)
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
+            .bufferTransitions(bufferTransitions)
+            .build();
+            
+        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+
+        // Act & Assert
+        assertThatThrownBy(() -> connectionSchemeService.updateScheme(CLIENT_UUID, SCHEME_UUID, schemeDTO))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Cannot change scheme UID");
+
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository, never()).update(any());
+    }
+
+    @Test
+    @DisplayName("Update scheme - Negative: Client UID change attempt")
+    void shouldThrowExceptionWhenTryingToChangeClientUid() {
+        // Arrange
+        ConnectionSchemeDTO schemeDTO = createSchemeDTOWithDifferentClient();
+        
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UUID_1, Arrays.asList(BUFFER_UUID_2));
+        
+        ConnectionSchemeBLM schemeBLM = ConnectionSchemeBLM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(UUID.randomUUID()) // different client UID
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2))
+            .bufferTransitions(bufferTransitions)
+            .build();
+            
+        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
+        when(schemeConverter.toBLM(schemeDTO)).thenReturn(schemeBLM);
+
+        // Act & Assert
+        assertThatThrownBy(() -> connectionSchemeService.updateScheme(CLIENT_UUID, SCHEME_UUID, schemeDTO))
+            .isInstanceOf(SecurityException.class)
+            .hasMessageContaining("Client UID from token doesn't match");
+
+        verify(schemeValidator).validate(schemeDTO);
+        verify(schemeRepository, never()).update(any());
+    }
+
+    @Test
+    @DisplayName("Delete scheme - Positive")
+    void shouldDeleteSchemeWhenValidRequest() {
+        // Arrange
+        ConnectionSchemeDALM existingScheme = createValidSchemeDALM();
+
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.findByUid(SCHEME_UUID)).thenReturn(existingScheme);
+
+        // Act
+        connectionSchemeService.deleteScheme(CLIENT_UUID, SCHEME_UUID);
+
+        // Assert
+        verify(schemeRepository).delete(SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Scheme exists - Positive")
+    void shouldReturnTrueWhenSchemeExists() {
+        // Arrange
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.exists(SCHEME_UUID)).thenReturn(true);
+
+        // Act
+        boolean result = connectionSchemeService.schemeExists(CLIENT_UUID, SCHEME_UUID);
+
+        // Assert
+        assertThat(result).isTrue();
+        verify(schemeRepository).exists(SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Scheme exists - Negative: Scheme not found")
+    void shouldReturnFalseWhenSchemeNotExists() {
+        // Arrange
+        // setupAuthentication(CLIENT_UUID);
+        when(schemeRepository.exists(SCHEME_UUID)).thenReturn(false);
+
+        // Act
+        boolean result = connectionSchemeService.schemeExists(CLIENT_UUID, SCHEME_UUID);
+
+        // Assert
+        assertThat(result).isFalse();
+        verify(schemeRepository).exists(SCHEME_UUID);
+    }
+
+    @Test
+    @DisplayName("Health check - Positive")
+    void shouldReturnHealthStatus() throws Exception {
+        // Arrange
+        Map<String, Object> authHealth = Map.of("status", "OK");
+        HealthCheckResponse healthResponse = HealthCheckResponse.success("correlation-id", authHealth);
+        
+        when(authKafkaClient.healthCheck("connection-scheme-service"))
+            .thenReturn(CompletableFuture.completedFuture(healthResponse));
+
+        // Act
+        Map<String, Object> result = connectionSchemeService.getHealthStatus();
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("OK");
+        assertThat(result.get("service")).isEqualTo("connection-scheme-service");
+        assertThat(result.get("auth-service")).isEqualTo(authHealth);
+        verify(authKafkaClient).healthCheck("connection-scheme-service");
+    }
+
+    @Test
+    @DisplayName("Health check - Negative: Auth service timeout")
+    void shouldHandleAuthServiceTimeoutInHealthCheck() throws Exception {
+        // Arrange
+        CompletableFuture<HealthCheckResponse> timeoutFuture = new CompletableFuture<>();
+        timeoutFuture.completeExceptionally(new java.util.concurrent.TimeoutException("Timeout"));
+        
+        when(authKafkaClient.healthCheck("connection-scheme-service"))
+            .thenReturn(timeoutFuture);
+
+        // Act
+        Map<String, Object> result = connectionSchemeService.getHealthStatus();
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("DEGRADED");
+        assertThat(result.get("auth-service")).isEqualTo("UNAVAILABLE");
+        verify(authKafkaClient).healthCheck("connection-scheme-service");
+    }
+
+    @Test
+    @DisplayName("Health check - Negative: Auth service error")
+    void shouldHandleAuthServiceErrorInHealthCheck() throws Exception {
+        // Arrange
+        HealthCheckResponse errorResponse = HealthCheckResponse.error("correlation-id", "Service unavailable");
+        
+        when(authKafkaClient.healthCheck("connection-scheme-service"))
+            .thenReturn(CompletableFuture.completedFuture(errorResponse));
+
+        // Act
+        Map<String, Object> result = connectionSchemeService.getHealthStatus();
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.get("status")).isEqualTo("OK");
+        assertThat(result.get("auth-service")).isEqualTo("UNAVAILABLE");
+        verify(authKafkaClient).healthCheck("connection-scheme-service");
+    }
+}package com.service.connectionscheme.mother;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeDTO;
+
+public class ConnectionSchemeObjectMother {
+
+    public static final UUID CLIENT_UUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    public static final UUID SCHEME_UUID = UUID.fromString("323e4567-e89b-12d3-a456-426614174003");
+    public static final UUID BUFFER_UUID_1 = UUID.fromString("423e4567-e89b-12d3-a456-426614174004");
+    public static final UUID BUFFER_UUID_2 = UUID.fromString("523e4567-e89b-12d3-a456-426614174005");
+    public static final UUID BUFFER_UUID_3 = UUID.fromString("623e4567-e89b-12d3-a456-426614174006");
+    
+    public static final String VALID_TOKEN = "valid-token-123";
+    public static final String INVALID_TOKEN = "invalid-token-456";
+    
+    // ИСПРАВЛЕНО: scheme_json содержит только transitions (без usedBuffers)
+    public static final String SCHEME_JSON = "{" +
+        "\"" + BUFFER_UUID_1 + "\":[\"" + BUFFER_UUID_2 + "\"]," +
+        "\"" + BUFFER_UUID_2 + "\":[\"" + BUFFER_UUID_3 + "\"]" +
+    "}";
+
+    // ИСПРАВЛЕНО: Пустой JSON для transitions
+    public static final String EMPTY_TRANSITIONS_JSON = "{}";
+
+    public static ConnectionSchemeDTO createValidSchemeDTO() {
+        return ConnectionSchemeDTO.builder()
+            .uid(SCHEME_UUID.toString())
+            .clientUid(CLIENT_UUID.toString())
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3)) // Все буферы из transitions
+            .build();
+    }
+
+    public static ConnectionSchemeDTO createInvalidSchemeDTO() {
+        return ConnectionSchemeDTO.builder()
+            .uid("invalid-uuid")
+            .clientUid("invalid-client-uuid")
+            .schemeJson("") // empty json
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2)) // Добавлен usedBuffers
+            .build();
+    }
+
+    public static ConnectionSchemeDTO createInvalidJsonStructureSchemeDTO() {
+        return ConnectionSchemeDTO.builder()
+            .uid(SCHEME_UUID.toString())
+            .clientUid(CLIENT_UUID.toString())
+            .schemeJson("{\"invalid\": \"structure\"}") // missing required fields
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1)) // Добавлен usedBuffers
+            .build();
+    }
+
+    public static ConnectionSchemeBLM createValidSchemeBLM() {
+        Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
+        bufferTransitions.put(BUFFER_UUID_1, Arrays.asList(BUFFER_UUID_2));
+        bufferTransitions.put(BUFFER_UUID_2, Arrays.asList(BUFFER_UUID_3));
+        
+        return ConnectionSchemeBLM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(CLIENT_UUID)
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3)) // Все буферы из transitions
+            .bufferTransitions(bufferTransitions)
+            .build();
+    }
+
+    public static ConnectionSchemeBLM createSchemeBLMWithEmptyTransitions() {
+        return ConnectionSchemeBLM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(CLIENT_UUID)
+            .schemeJson(EMPTY_TRANSITIONS_JSON) // Пустые transitions
+            .usedBuffers(Arrays.asList()) // Нет used buffers при пустых transitions
+            .bufferTransitions(new HashMap<>())
+            .build();
+    }
+
+    public static ConnectionSchemeDALM createValidSchemeDALM() {
+        return ConnectionSchemeDALM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(CLIENT_UUID)
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3)) // Все буферы из transitions
+            .build();
+    }
+
+    public static ConnectionSchemeDALM createSchemeDALMWithUsedBuffers(List<UUID> usedBuffers) {
+        return ConnectionSchemeDALM.builder()
+            .uid(SCHEME_UUID)
+            .clientUid(CLIENT_UUID)
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(usedBuffers)
+            .build();
+    }
+
+    public static ConnectionSchemeDTO createSchemeDTOWithDifferentClient() {
+        return ConnectionSchemeDTO.builder()
+            .uid(SCHEME_UUID.toString())
+            .clientUid(UUID.randomUUID().toString()) // different client
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3)) // Добавлен usedBuffers
+            .build();
+    }
+
+    public static ConnectionSchemeDTO createSchemeDTOWithDifferentUid() {
+        return ConnectionSchemeDTO.builder()
+            .uid(UUID.randomUUID().toString()) // different UID
+            .clientUid(CLIENT_UUID.toString())
+            .schemeJson(SCHEME_JSON)
+            .usedBuffers(Arrays.asList(BUFFER_UUID_1, BUFFER_UUID_2, BUFFER_UUID_3)) // Добавлен usedBuffers
+            .build();
+    }
+
+    public static ConnectionSchemeDTO createSchemeDTOWithNullFields() {
+        return ConnectionSchemeDTO.builder()
+            .uid(null)
+            .clientUid(null)
+            .schemeJson(null)
+            .usedBuffers(null) // Добавлен usedBuffers
+            .build();
+    }
+
+    public static ConnectionSchemeBLM createSchemeBLMWithNullFields() {
+        return ConnectionSchemeBLM.builder()
+            .uid(null)
+            .clientUid(null)
+            .schemeJson(null)
+            .usedBuffers(null)
+            .bufferTransitions(null)
+            .build();
+    }
+
+    public static ConnectionSchemeDALM createSchemeDALMWithNullFields() {
+        return ConnectionSchemeDALM.builder()
+            .uid(null)
+            .clientUid(null)
+            .schemeJson(null)
+            .usedBuffers(null)
+            .build();
+    }
+
+    // ИСПРАВЛЕНО: scheme_json содержит только transitions (без usedBuffers)
+    public static ConnectionSchemeDTO createSchemeDTOForBufferTest(UUID bufferUid) {
+        String bufferSpecificJson = "{" +
+            "\"" + bufferUid + "\": []" + // Только transitions с пустым списком
+        "}";
+        
+        return ConnectionSchemeDTO.builder()
+            .uid(UUID.randomUUID().toString())
+            .clientUid(CLIENT_UUID.toString())
+            .schemeJson(bufferSpecificJson)
+            .usedBuffers(Arrays.asList(bufferUid)) // Только указанный буфер
+            .build();
+    }
+
+    // ДОБАВЛЕНО: Метод для создания схемы с пустыми transitions
+    public static ConnectionSchemeDTO createSchemeDTOWithEmptyTransitions() {
+        return ConnectionSchemeDTO.builder()
+            .uid(SCHEME_UUID.toString())
+            .clientUid(CLIENT_UUID.toString())
+            .schemeJson(EMPTY_TRANSITIONS_JSON) // Пустые transitions
+            .usedBuffers(Arrays.asList()) // Нет used buffers при пустых transitions
+            .build();
+    }
+
+    // ДОБАВЛЕНО: Метод для создания схемы с конкретными transitions
+    public static ConnectionSchemeDALM createSchemeDALMWithTransitions(Map<UUID, List<UUID>> transitions) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            String schemeJson = objectMapper.writeValueAsString(transitions);
+            
+            // Вычисляем usedBuffers из transitions
+            List<UUID> usedBuffers = transitions.entrySet().stream()
+                    .flatMap(entry -> {
+                        java.util.stream.Stream<UUID> keyStream = java.util.stream.Stream.of(entry.getKey());
+                        java.util.stream.Stream<UUID> valueStream = entry.getValue().stream();
+                        return java.util.stream.Stream.concat(keyStream, valueStream);
+                    })
+                    .distinct()
+                    .collect(java.util.stream.Collectors.toList());
+            
+            return ConnectionSchemeDALM.builder()
+                    .uid(UUID.randomUUID())
+                    .clientUid(CLIENT_UUID)
+                    .schemeJson(schemeJson)
+                    .usedBuffers(usedBuffers)
+                    .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create ConnectionSchemeDALM with transitions", e);
+        }
+    }
+
+    // ДОБАВЛЕНО: Метод для создания схемы без usedBuffers
+    public static ConnectionSchemeDALM createSchemeDALMWithoutUsedBuffers() {
+        return ConnectionSchemeDALM.builder()
+                .uid(UUID.randomUUID())
+                .clientUid(CLIENT_UUID)
+                .schemeJson(SCHEME_JSON)
+                .usedBuffers(null)
+                .build();
+    }
+
+    // ДОБАВЛЕНО: Метод для создания схемы с пустыми usedBuffers
+    public static ConnectionSchemeDALM createSchemeDALMWithEmptyUsedBuffers() {
+        return ConnectionSchemeDALM.builder()
+                .uid(UUID.randomUUID())
+                .clientUid(CLIENT_UUID)
+                .schemeJson(SCHEME_JSON)
+                .usedBuffers(Arrays.asList())
+                .build();
+    }
+
+    // ДОБАВЛЕНО: Метод для создания BLM с конкретными transitions
+    public static ConnectionSchemeBLM createSchemeBLMWithTransitions(Map<UUID, List<UUID>> transitions) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            String schemeJson = objectMapper.writeValueAsString(transitions);
+            
+            // Вычисляем usedBuffers из transitions
+            List<UUID> usedBuffers = transitions.entrySet().stream()
+                    .flatMap(entry -> {
+                        java.util.stream.Stream<UUID> keyStream = java.util.stream.Stream.of(entry.getKey());
+                        java.util.stream.Stream<UUID> valueStream = entry.getValue().stream();
+                        return java.util.stream.Stream.concat(keyStream, valueStream);
+                    })
+                    .distinct()
+                    .collect(java.util.stream.Collectors.toList());
+            
+            return ConnectionSchemeBLM.builder()
+                    .uid(UUID.randomUUID())
+                    .clientUid(CLIENT_UUID)
+                    .schemeJson(schemeJson)
+                    .usedBuffers(usedBuffers)
+                    .bufferTransitions(transitions)
+                    .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create ConnectionSchemeBLM with transitions", e);
+        }
+    }
+}
