@@ -1,1 +1,0 @@
-{"uuid":"ab8c995e-7cd2-4a9c-8799-5884ff5bd8c1","name":"Validate MessageDTO with future date - Negative","children":["cbbe615a-0a6d-468d-8bae-bf8cc8a2fdc1"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761361333628,"stop":1761361333628}],"afters":[],"start":1761361333627,"stop":1761361333629}

@@ -1,1 +1,0 @@
-{"uuid":"dd40d02d-ff6c-460c-830d-df95f4cb36ba","name":"Buffer exists - Negative: Buffer not found","children":["c04f85a4-2ac1-4fbd-b30c-f5486603895c"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761361187257,"stop":1761361187267}],"afters":[],"start":1761361185713,"stop":1761361188504}

@@ -1,1 +1,0 @@
-{"uuid":"8b5e470d-99bc-4812-9e35-d5e58ab8f3c6","name":"Validate valid ClientDTO - Positive","children":["da08f8d3-c577-45b5-9464-b3ce948049a6"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761361301869,"stop":1761361301870}],"afters":[],"start":1761361301867,"stop":1761361301871}

@@ -72,7 +72,7 @@ subprojects {
 ext {
     ALLURE_RESULTS_DIR = "${buildDir}/allure-results"
     ALLURE_REPORT_DIR = "${buildDir}/reports/allure-report"
-    ALLURE_HISTORY_DIR = "${projectDir}/allure-history"
+    ALLURE_HISTORY_DIR = "${projectDir}/allure-history"  // Теперь в корне проекта для сохранения между сборками
 }
 
 allure {
@@ -127,9 +127,22 @@ task collectAllureResults {
     group = 'Reporting'
     
     doFirst {
+        file(ALLURE_RESULTS_DIR).deleteDir()
         file(ALLURE_RESULTS_DIR).mkdirs()
         
-        // Копируем результаты из всех подпроектов
+        // Сначала копируем историю из предыдущего отчета
+        def previousHistoryDir = file("${ALLURE_HISTORY_DIR}")
+        def resultsHistoryDir = file("${ALLURE_RESULTS_DIR}/history")
+        
+        if (previousHistoryDir.exists()) {
+            logger.lifecycle("📋 Copying history from previous reports")
+            copy {
+                from previousHistoryDir
+                into resultsHistoryDir
+            }
+        }
+        
+        // Затем копируем результаты из всех подпроектов
         subprojects.each { subproject ->
             def subprojectResults = "${subproject.buildDir}/allure-results"
             def subprojectDir = file(subprojectResults)
@@ -139,9 +152,17 @@ task collectAllureResults {
                 copy {
                     from subprojectDir
                     into ALLURE_RESULTS_DIR
+                    // Исключаем только временные файлы
+                    exclude '*.tmp', '*.lock'
+                    // Не перезаписываем историю, если она уже есть
+                    duplicatesStrategy = 'exclude'
                 }
+            } else {
+                logger.lifecycle("⚠️ No allure results found in: ${subproject.name}")
             }
         }
+        
+        logger.lifecycle("📊 Collected results from ${subprojects.count { file("${it.buildDir}/allure-results").exists() }} modules")
     }
 }
 
@@ -163,6 +184,16 @@ task generateCombinedAllureReport(type: Exec) {
         if (reportFile.exists()) {
             logger.lifecycle("✅ Combined Allure report generated at: ${ALLURE_REPORT_DIR}")
             logger.lifecycle("   Open: file://${reportFile.absolutePath}")
+            
+            // Сохраняем историю для следующего запуска
+            def reportHistoryDir = file("${ALLURE_REPORT_DIR}/history")
+            if (reportHistoryDir.exists()) {
+                copy {
+                    from reportHistoryDir
+                    into ALLURE_HISTORY_DIR
+                }
+                logger.lifecycle("💾 History saved for next run")
+            }
         }
     }
 }
@@ -174,6 +205,31 @@ task serveCombinedAllureReport(type: Exec) {
     dependsOn generateCombinedAllureReport
     
     commandLine 'allure', 'serve', "${ALLURE_RESULTS_DIR}"
+}
+
+// Просмотр отчета без перегенерации
+task serveExistingAllureReport(type: Exec) {
+    description = 'Serve existing Allure report'
+    group = 'Reporting'
+    
+    commandLine 'allure', 'serve', "${ALLURE_REPORT_DIR}"
+}
+
+// Очистка истории Allure
+task cleanAllureHistory {
+    description = 'Clean Allure history'
+    group = 'Build'
+    doFirst {
+        file(ALLURE_HISTORY_DIR).deleteDir()
+        logger.lifecycle("🧹 Cleaned Allure history")
+    }
+}
+
+// Полная очистка включая историю
+task cleanAllWithHistory {
+    description = 'Clean all modules and Allure history'
+    group = 'Build'
+    dependsOn cleanAll, cleanAllureHistory
 }
 
 // Публикация всех shared модулей

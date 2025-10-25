@@ -1,1 +1,0 @@
-{"uuid":"b2016da4-9f6f-4bb0-8429-9c5eb6672efe","name":"Get buffers by connection scheme - Positive","children":["f46a4b9d-7f35-463f-b932-579b763c377f"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761361187257,"stop":1761361187267}],"afters":[],"start":1761361185611,"stop":1761361188503}

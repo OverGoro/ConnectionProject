@@ -1,1 +1,0 @@
-{"uuid":"6adc4cee-d945-4e80-8701-f3d92b402e79","name":"Health check - Negative: Auth service timeout","children":["92167ecf-ce4d-45f1-b718-dd987db01d2b"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761361221750,"stop":1761361221757}],"afters":[],"start":1761361219863,"stop":1761361222375}

@@ -1,0 +1,1 @@
+{"uuid":"b73d7c0e-1dfa-4fec-8b36-0d887c78a56d","name":"Validate ClientDTO with future birth date - Negative","children":["ff420a25-56e9-49d8-beb3-c7fd73d8a15f"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363720370,"stop":1761363720370}],"afters":[],"start":1761363720368,"stop":1761363720372}

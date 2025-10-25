@@ -1,0 +1,1 @@
+{"uuid":"bb9f443b-15a6-44b2-9b79-db22a6678789","name":"Validate null MessageBLM - Negative","children":["e5ec6082-d6ae-4e60-b82f-9e3f8821c62a"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363748112,"stop":1761363748112}],"afters":[],"start":1761363748110,"stop":1761363748113}
