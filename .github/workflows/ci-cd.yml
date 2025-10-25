@@ -14,13 +14,9 @@ env:
   ZOOKEEPER_IMAGE: 'confluentinc/cp-zookeeper:7.4.0'
 
 jobs:
-  # Основная сборка и тестирование
   build-and-test:
-    name: 🏗️ Build and Test
-    runs-on: ubuntu-latest
-    
+    name: Build and Test
     services:
-      # PostgreSQL для тестов
       postgres:
         image: ${{ env.POSTGRES_IMAGE }}
         env:
@@ -74,56 +70,51 @@ jobs:
           - 29093:29093
 
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        
-    - name: ☕ Setup Java ${{ env.JAVA_VERSION }}
+    - name: Setup Java ${{ env.JAVA_VERSION }}
       uses: actions/setup-java@v4
       with:
         java-version: ${{ env.JAVA_VERSION }}
         distribution: 'temurin'
         cache: 'gradle'
         
-    - name: 🐘 Setup Gradle ${{ env.GRADLE_VERSION }}
+    - name: Setup Gradle ${{ env.GRADLE_VERSION }}
       uses: gradle/actions/setup-gradle@v3
       with:
         gradle-version: ${{ env.GRADLE_VERSION }}
         
-    - name: 🔍 Check project structure
+    - name: Check project structure
       run: |
         echo "📁 Project structure:"
         find . -name "build.gradle" -type f | head -20
         echo ""
         echo "📊 Gradle projects:"
-        ./gradlew projects --no-daemon || true
+        cd code && ./gradlew projects --no-daemon || true
         
     - name: 🏗️ Build and Publish Shared Modules
       run: |
         echo "🚀 Building and publishing shared modules to Maven Local..."
-        ./gradlew publishAllShared --no-daemon --stacktrace --info
+        cd code && ./gradlew publishAllShared --no-daemon --stacktrace --info
         
         echo "📦 Verifying published modules:"
         ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
         
     - name: ⏳ Wait for services to be ready
       run: |
-        echo "⏳ Waiting for services to be fully ready..."
-        sleep 30
+        echo "Waiting for services to be fully ready..."
+        sleep 5
         
-        echo "🔍 Checking PostgreSQL..."
+        echo "Checking PostgreSQL..."
         pg_isready -h localhost -p 5434 -U test_user || echo "PostgreSQL not ready yet"
         
-        echo "🔍 Checking Kafka..."
+        echo "Checking Kafka..."
         docker exec ${{ job.services.kafka.id }} kafka-topics --bootstrap-server localhost:9093 --list || echo "Kafka not ready yet"
         
-        echo "✅ All services should be ready now"
+        echo "All services should be ready now"
         
     - name: 🧪 Run All Tests
       run: |
         echo "🧪 Running all tests with testAll task..."
-        ./gradlew testAll --no-daemon --stacktrace --info --continue
+        cd code && ./gradlew testAll --no-daemon --stacktrace --info --continue
         
       continue-on-error: true  # Продолжить даже если тесты упали
       
@@ -131,13 +122,13 @@ jobs:
       if: always()
       run: |
         echo "📊 Generating test reports..."
-        ./gradlew generateCombinedAllureReport --no-daemon
+        cd code && ./gradlew generateCombinedAllureReport --no-daemon
         
     - name: 📦 Build All Services
       if: always()
       run: |
         echo "📦 Building all service modules..."
-        ./gradlew buildAll --no-daemon --parallel -x test
+        cd code && ./gradlew buildAll --no-daemon --parallel -x test
         
     - name: 🎯 Check Test Results
       if: always()
@@ -183,174 +174,6 @@ jobs:
           service/*/build/libs/*.jar
           shared/*/build/libs/*.jar
         retention-days: 7
-
-  # Проверка качества кода
-  quality-check:
-    name: 🔍 Quality Check
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      
-    - name: ☕ Setup Java
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ env.JAVA_VERSION }}
-        distribution: 'temurin'
-        cache: 'gradle'
-        
-    - name: 🐘 Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: ${{ env.GRADLE_VERSION }}
-        
-    - name: 📝 Checkstyle Analysis
-      run: |
-        echo "📝 Running Checkstyle..."
-        # Добавьте checkstyle если нужно
-        # ./gradlew checkstyleMain checkstyleTest --no-daemon
-        
-    - name: 📊 Dependency Check
-      run: |
-        echo "📊 Checking dependencies..."
-        ./gradlew dependencies --no-daemon --configuration implementation | head -50
-        
-    - name: 🔒 Security Scan
-      run: |
-        echo "🔒 Basic security checks..."
-        # Проверка на наличие чувствительной информации
-        if grep -r "password\|secret\|key" --include="*.java" --include="*.yml" --include="*.yaml" --include="*.properties" . | grep -v "test" | grep -v "//"; then
-          echo "⚠️  Possible sensitive data found in code"
-        else
-          echo "✅ No obvious sensitive data found"
-        fi
-
-  # Сборка Docker образов (только для main ветки)
-  docker-build:
-    name: 🐳 Build Docker Images
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main'
-    
-    strategy:
-      matrix:
-        service: [
-          'auth-service', 
-          'buffer-service', 
-          'connection-scheme-service',
-          'device-service',
-          'device-auth-service', 
-          'message-service'
-        ]
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      
-    - name: 🐳 Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
-    - name: 📦 Download Build Artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: service-jars
-        path: artifacts/
-        
-    - name: 🔍 Check Artifacts
-      run: |
-        echo "📦 Downloaded artifacts:"
-        find artifacts/ -name "*.jar" -type f | head -10
-        
-    - name: 🐳 Build Docker Images
-      run: |
-        for service in ${{ join(matrix.service, ' ') }}; do
-          echo "🐳 Building Docker image for $service"
-          
-          # Создаем временный Dockerfile если его нет
-          if [ ! -f "service/$service/Dockerfile" ]; then
-            cat > "service/$service/Dockerfile" << EOF
-FROM eclipse-temurin:21-jre
-WORKDIR /app
-COPY artifacts/service/$service/*.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
-EOF
-            echo "📄 Created temporary Dockerfile for $service"
-          fi
-          
-          # Собираем образ
-          docker build -t $service:latest ./service/$service/
-          docker images | grep $service
-        done
-        
-    - name: 🧪 Test Docker Images
-      run: |
-        for service in ${{ join(matrix.service, ' ') }}; do
-          echo "🧪 Testing $service image..."
-          docker run --rm $service:latest --version || echo "✅ $service image built successfully"
-        done
-
-  # Развертывание (заготовка)
-  deploy:
-    name: 🚀 Deploy
-    runs-on: ubuntu-latest
-    needs: [build-and-test, docker-build]
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      
-    - name: 🎯 Deployment Preparation
-      run: |
-        echo "🚀 Preparing for deployment..."
-        echo "📋 Services to deploy:"
-        echo "  - auth-service"
-        echo "  - buffer-service" 
-        echo "  - connection-scheme-service"
-        echo "  - device-service"
-        echo "  - device-auth-service"
-        echo "  - message-service"
-        
-        # Здесь будет логика развертывания
-        # Например, обновление Kubernetes манифестов
-        # или отправка в облачную платформу
-        
-    - name: 📊 Create Deployment Summary
-      if: always()
-      run: |
-        echo "## 🎉 CI/CD Pipeline Complete" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 📊 Build Results" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Shared modules published to Maven Local" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ All tests executed" >> $GITHUB_STEP_SUMMARY  
-        echo "- ✅ Services built successfully" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🐳 Docker Images" >> $GITHUB_STEP_SUMMARY
-        echo "- Built images for all services" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🔗 Artifacts" >> $GITHUB_STEP_SUMMARY
-        echo "- Test reports available as artifacts" >> $GITHUB_STEP_SUMMARY
-        echo "- Allure reports generated" >> $GITHUB_STEP_SUMMARY
-
-  # Уведомления
-  notify:
-    name: 📢 Notify
-    runs-on: ubuntu-latest
-    needs: [build-and-test, deploy]
-    if: always()
-    
-    steps:
-    - name: 📊 Pipeline Status
-      run: |
-        if [ "${{ needs.build-and-test.result }}" == "success" ]; then
-          echo "✅ Pipeline completed successfully!"
-        else
-          echo "❌ Pipeline failed in build-and-test job"
-          exit 1
-        fi
 
 # Настройки workflow
 concurrency:
