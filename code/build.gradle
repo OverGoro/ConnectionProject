@@ -237,76 +237,57 @@ task cleanAllWithHistory {
 }
 
 // Публикация всех shared модулей
-// Публикация всех shared модулей БЕЗ тестов
+// Публикация всех shared модулей БЕЗ тестов - ПРОСТОЙ ВАРИАНТ
 task publishAllShared {
-    description = 'Publish all shared modules to local Maven without running tests in correct order'
+    description = 'Publish all shared modules to local Maven without running tests'
     group = 'Publishing'
     
     doFirst {
         logger.lifecycle("🚀 Publishing shared modules in correct order...")
+        // Отключаем тесты для всех shared модулей
+        subprojects.findAll { it.path.contains('shared') }.each { project ->
+            project.tasks.withType(Test).configureEach { enabled = false }
+        }
     }
 }
 
-// Определяем правильный порядок публикации shared модулей
+// Определяем правильный порядок публикации
 def sharedPublishOrder = [
-    ':shared:buffer-shared',
-    ':shared:client-shared',
-    ':shared:connection-scheme-shared',
-    ':shared:device-shared',
-    ':shared:device-token-shared',
-    ':shared:message-shared',
-    ':shared:token-shared',
-    ':shared:common-events',
-    ':shared:common-auth-events',
-    ':shared:common-buffer-events',
-    ':shared:common-connection-scheme-events', 
-    ':shared:common-device-auth-events',
-    ':shared:common-device-events',
-    ':shared:common-message-events'
+    ':shared:common-events:publishToMavenLocal',
+    ':shared:common-auth-events:publishToMavenLocal',
+    ':shared:common-buffer-events:publishToMavenLocal',
+    ':shared:common-connection-scheme-events:publishToMavenLocal', 
+    ':shared:common-device-auth-events:publishToMavenLocal',
+    ':shared:common-device-events:publishToMavenLocal',
+    ':shared:common-message-events:publishToMavenLocal',
+    ':shared:buffer-shared:publishToMavenLocal',
+    ':shared:client-shared:publishToMavenLocal',
+    ':shared:connection-scheme-shared:publishToMavenLocal',
+    ':shared:device-shared:publishToMavenLocal',
+    ':shared:device-token-shared:publishToMavenLocal',
+    ':shared:message-shared:publishToMavenLocal',
+    ':shared:token-shared:publishToMavenLocal'
 ]
 
-// Создаем задачи публикации для каждого shared модуля в правильном порядке
-def sharedPublishTasks = []
-
-sharedPublishOrder.each { projectPath ->
-    def project = findProject(projectPath)
-    if (project && project.path.contains('shared')) {
-        // Создаем задачу публикации без тестов для этого проекта
-        def publishNoTestsTask = project.tasks.register("publishNoTests", Task) {
-            description = "Publish ${project.name} without tests"
-            group = 'Publishing'
-            
-            // Зависимости от задач публикации
-            dependsOn project.tasks.withType(AbstractPublishToMaven)
-            
-            doFirst {
-                logger.lifecycle("📦 Publishing: ${project.name} (tests disabled)")
-                // Отключаем тесты для этой публикации
-                project.tasks.withType(Test).configureEach { 
-                    enabled = false 
-                }
-            }
-            
-            doLast {
-                logger.lifecycle("✅ Published: ${project.name}")
-            }
+// Добавляем зависимости в правильном порядке
+def previousTask = null
+sharedPublishOrder.each { taskPath ->
+    def task = tasks.findByPath(taskPath)
+    if (task) {
+        publishAllShared.dependsOn task
+        if (previousTask != null) {
+            task.mustRunAfter previousTask
         }
-        
-        sharedPublishTasks << publishNoTestsTask
-        publishAllShared.dependsOn publishNoTestsTask
-    }
-}
-
-// Устанавливаем порядок выполнения между задачами
-for (int i = 1; i < sharedPublishTasks.size(); i++) {
-    sharedPublishTasks[i].configure {
-        mustRunAfter sharedPublishTasks[i-1]
+        previousTask = task
     }
 }
 
 publishAllShared.doLast {
-    logger.lifecycle("🎉 All ${sharedPublishTasks.size()} shared modules published to Maven Local!")
-    logger.lifecycle("📍 Repository: ${System.getProperty('user.home')}/.m2/repository")
+    logger.lifecycle("🎉 All shared modules published to Maven Local!")
+    // Включаем тесты обратно
+    subprojects.findAll { it.path.contains('shared') }.each { project ->
+        project.tasks.withType(Test).configureEach { enabled = true }
+    }
 }
 
 // ========== ЗАДАЧИ ПО УМОЛЧАНИЮ ==========
