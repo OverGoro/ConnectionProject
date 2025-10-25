@@ -230,9 +230,9 @@ jobs:
         sudo ln -sf /opt/allure-2.29.0/bin/allure /usr/bin/allure
         allure --version
     - name: Publish shared modules to local Maven
-      run: cd code && gradle && ./gradlew publishAllShared
+      run: cd code && gradle publishAllShared
     - name: Run testAll task
-      run: cd code && gradle && ./gradlew testAll
+      run: cd code && gradle testAll
 
     - name: Generate Allure report
       run: cd code && gradle && ./gradlew collectAllureResults generateCombinedAllureReport
