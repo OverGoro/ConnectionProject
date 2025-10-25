@@ -43,8 +43,6 @@ jobs:
       
       kafka:
         image: confluentinc/cp-kafka:7.4.0
-        depends_on:
-          - zookeeper
         env:
           KAFKA_BROKER_ID: 1
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -67,6 +65,11 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin'
+
+    - name: Wait for services to be ready
+      run: |
+        echo "Waiting for services to start..."
+        sleep 30
 
     - name: Setup PostgreSQL schema
       run: |
@@ -187,6 +190,17 @@ jobs:
         );
         EOF
         
+        # Ждем пока PostgreSQL будет готов принимать соединения
+        echo "Waiting for PostgreSQL to be ready..."
+        for i in {1..30}; do
+          if pg_isready -h localhost -p 5432 -U test_user -d test_db; then
+            echo "PostgreSQL is ready!"
+            break
+          fi
+          echo "Waiting for PostgreSQL... attempt $i"
+          sleep 2
+        done
+        
         # Выполняем SQL файлы
         for sql_file in db/*.sql; do
           echo "Executing $sql_file"
@@ -210,9 +224,9 @@ jobs:
 
     - name: Install Allure
       run: |
-        sudo wget https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
+        sudo wget -q https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
         sudo tar -zxvf allure-2.29.0.tgz -C /opt/
-        sudo ln -s /opt/allure-2.29.0/bin/allure /usr/bin/allure
+        sudo ln -sf /opt/allure-2.29.0/bin/allure /usr/bin/allure
         allure --version
 
     - name: Run testAll task
