@@ -54,16 +54,6 @@ subprojects {
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     }
     
-    // ОТКЛЮЧАЕМ ЗАПУСК ТЕСТОВ ПРИ ПУБЛИКАЦИИ
-    tasks.withType(AbstractPublishToMaven) {
-        dependsOn.removeAll { it instanceof TaskProvider && it.name == 'test' }
-    }
-    
-    // Альтернативный способ: отключаем зависимость между assemble и test
-    tasks.named('assemble') {
-        dependsOn.removeAll { it.name == 'test' }
-    }
-    
     tasks.withType(JavaCompile).configureEach {
         options.compilerArgs += ['-parameters']
         options.encoding = 'UTF-8'
