@@ -15,7 +15,6 @@ include 'shared:common-device-auth-events'
 include 'shared:common-device-events'
 include 'shared:common-message-events'
 include 'shared:client-shared'
-include 'shared:common-swagger'
 
 // Включаем все service модули
 include 'service:auth-service'
