@@ -193,7 +193,7 @@ jobs:
         # Ждем пока PostgreSQL будет готов принимать соединения
         echo "Waiting for PostgreSQL to be ready..."
         for i in {1..30}; do
-          if pg_isready -h localhost -p 5432 -U test_user -d test_db; then
+          if pg_isready -h localhost -p 5434 -U test_user -d test_db; then
             echo "PostgreSQL is ready!"
             break
           fi
