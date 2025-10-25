@@ -1,181 +1,181 @@
 name: Java CI/CD Pipeline
 
-on:
-  push:
-    branches: [ main, develop, feature/* ]
-  pull_request:
-    branches: [ main, develop ]
-
-env:
-  JAVA_VERSION: '21'
-  GRADLE_VERSION: '8.7'
-  POSTGRES_IMAGE: 'postgres:15'
-  KAFKA_IMAGE: 'confluentinc/cp-kafka:7.4.0'
-  ZOOKEEPER_IMAGE: 'confluentinc/cp-zookeeper:7.4.0'
-
-jobs:
-  build-and-test:
-    name: Build and Test
-    services:
-      postgres:
-        image: ${{ env.POSTGRES_IMAGE }}
-        env:
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_USER: test_user
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5434:5432
+  on:
+    push:
+      branches: [ main, develop, feature/* ]
+    pull_request:
+      branches: [ main, develop ]
+  
+  env:
+    JAVA_VERSION: '21'
+    GRADLE_VERSION: '8.7'
+    POSTGRES_IMAGE: 'postgres:15'
+    KAFKA_IMAGE: 'confluentinc/cp-kafka:7.4.0'
+    ZOOKEEPER_IMAGE: 'confluentinc/cp-zookeeper:7.4.0'
+  
+  jobs:
+    build-and-test:
+      name: Build and Test
+      services:
+        postgres:
+          image: ${{ env.POSTGRES_IMAGE }}
+          env:
+            POSTGRES_PASSWORD: test_password
+            POSTGRES_USER: test_user
+            POSTGRES_DB: test_db
+          options: >-
+            --health-cmd pg_isready
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
+          ports:
+            - 5434:5432
+            
+        # Zookeeper для Kafka
+        zookeeper:
+          image: ${{ env.ZOOKEEPER_IMAGE }}
+          env:
+            ZOOKEEPER_CLIENT_PORT: 2181
+            ZOOKEEPER_TICK_TIME: 2000
+          options: >-
+            --health-cmd "echo 'ruok' | nc localhost 2181"
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 3
+          ports:
+            - 2182:2181
+            
+        # Kafka Broker
+        kafka:
+          image: ${{ env.KAFKA_IMAGE }}
+          depends_on:
+            zookeeper:
+              condition: service_healthy
+          env:
+            KAFKA_BROKER_ID: 1
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+            KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29093
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9093,PLAINTEXT_HOST://localhost:29093
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+            KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+          options: >-
+            --health-cmd "kafka-topics --bootstrap-server localhost:9093 --list"
+            --health-interval 20s
+            --health-timeout 10s
+            --health-retries 5
+          ports:
+            - 9093:9093
+            - 29093:29093
+  
+      steps:
+      - name: Setup Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
           
-      # Zookeeper для Kafka
-      zookeeper:
-        image: ${{ env.ZOOKEEPER_IMAGE }}
-        env:
-          ZOOKEEPER_CLIENT_PORT: 2181
-          ZOOKEEPER_TICK_TIME: 2000
-        options: >-
-          --health-cmd "echo 'ruok' | nc localhost 2181"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 3
-        ports:
-          - 2182:2181
+      - name: Setup Gradle ${{ env.GRADLE_VERSION }}
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
           
-      # Kafka Broker
-      kafka:
-        image: ${{ env.KAFKA_IMAGE }}
-        depends_on:
-          zookeeper:
-            condition: service_healthy
-        env:
-          KAFKA_BROKER_ID: 1
-          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-          KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29093
-          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9093,PLAINTEXT_HOST://localhost:29093
-          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-          KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-          KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-        options: >-
-          --health-cmd "kafka-topics --bootstrap-server localhost:9093 --list"
-          --health-interval 20s
-          --health-timeout 10s
-          --health-retries 5
-        ports:
-          - 9093:9093
-          - 29093:29093
-
-    steps:
-    - name: Setup Java ${{ env.JAVA_VERSION }}
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ env.JAVA_VERSION }}
-        distribution: 'temurin'
-        cache: 'gradle'
+      - name: Check project structure
+        run: |
+          echo "📁 Project structure:"
+          find . -name "build.gradle" -type f | head -20
+          echo ""
+          echo "📊 Gradle projects:"
+          cd code && ./gradlew projects --no-daemon || true
+          
+      - name: 🏗️ Build and Publish Shared Modules
+        run: |
+          echo "🚀 Building and publishing shared modules to Maven Local..."
+          cd code && ./gradlew publishAllShared --no-daemon --stacktrace --info
+          
+          echo "📦 Verifying published modules:"
+          ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
+          
+      - name: ⏳ Wait for services to be ready
+        run: |
+          echo "Waiting for services to be fully ready..."
+          sleep 5
+          
+          echo "Checking PostgreSQL..."
+          pg_isready -h localhost -p 5434 -U test_user || echo "PostgreSQL not ready yet"
+          
+          echo "Checking Kafka..."
+          docker exec ${{ job.services.kafka.id }} kafka-topics --bootstrap-server localhost:9093 --list || echo "Kafka not ready yet"
+          
+          echo "All services should be ready now"
+          
+      - name: 🧪 Run All Tests
+        run: |
+          echo "🧪 Running all tests with testAll task..."
+          cd code && ./gradlew testAll --no-daemon --stacktrace --info --continue
+          
+        continue-on-error: true  # Продолжить даже если тесты упали
         
-    - name: Setup Gradle ${{ env.GRADLE_VERSION }}
-      uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: ${{ env.GRADLE_VERSION }}
-        
-    - name: Check project structure
-      run: |
-        echo "📁 Project structure:"
-        find . -name "build.gradle" -type f | head -20
-        echo ""
-        echo "📊 Gradle projects:"
-        cd code && ./gradlew projects --no-daemon || true
-        
-    - name: 🏗️ Build and Publish Shared Modules
-      run: |
-        echo "🚀 Building and publishing shared modules to Maven Local..."
-        cd code && ./gradlew publishAllShared --no-daemon --stacktrace --info
-        
-        echo "📦 Verifying published modules:"
-        ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
-        
-    - name: ⏳ Wait for services to be ready
-      run: |
-        echo "Waiting for services to be fully ready..."
-        sleep 5
-        
-        echo "Checking PostgreSQL..."
-        pg_isready -h localhost -p 5434 -U test_user || echo "PostgreSQL not ready yet"
-        
-        echo "Checking Kafka..."
-        docker exec ${{ job.services.kafka.id }} kafka-topics --bootstrap-server localhost:9093 --list || echo "Kafka not ready yet"
-        
-        echo "All services should be ready now"
-        
-    - name: 🧪 Run All Tests
-      run: |
-        echo "🧪 Running all tests with testAll task..."
-        cd code && ./gradlew testAll --no-daemon --stacktrace --info --continue
-        
-      continue-on-error: true  # Продолжить даже если тесты упали
-      
-    - name: 📊 Generate Test Reports
-      if: always()
-      run: |
-        echo "📊 Generating test reports..."
-        cd code && ./gradlew generateCombinedAllureReport --no-daemon
-        
-    - name: 📦 Build All Services
-      if: always()
-      run: |
-        echo "📦 Building all service modules..."
-        cd code && ./gradlew buildAll --no-daemon --parallel -x test
-        
-    - name: 🎯 Check Test Results
-      if: always()
-      run: |
-        echo "🎯 Test Results Summary:"
-        find . -name "TEST-*.xml" -path "*/build/test-results/*" | head -5 | while read file; do
-          echo "📄 Test file: $file"
-          if command -v xmllint >/dev/null 2>&1; then
-            failures=$(xmllint --xpath 'string(//testsuite/@failures)' "$file" 2>/dev/null || echo "N/A")
-            errors=$(xmllint --xpath 'string(//testsuite/@errors)' "$file" 2>/dev/null || echo "N/A")
-            tests=$(xmllint --xpath 'string(//testsuite/@tests)' "$file" 2>/dev/null || echo "N/A")
-            echo "   Tests: $tests, Failures: $failures, Errors: $errors"
-          fi
-        done
-        
-    - name: 💾 Upload Test Results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results
-        path: |
-          **/build/test-results/
-          **/build/reports/
-          **/allure-history/
-        retention-days: 30
-        
-    - name: 📈 Upload Allure Report
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: allure-report
-        path: |
-          build/reports/allure-report/
-          build/allure-results/
-        retention-days: 30
-        
-    - name: 📋 Upload Build Artifacts
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: service-jars
-        path: |
-          service/*/build/libs/*.jar
-          shared/*/build/libs/*.jar
-        retention-days: 7
-
-# Настройки workflow
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+      - name: 📊 Generate Test Reports
+        if: always()
+        run: |
+          echo "📊 Generating test reports..."
+          cd code && ./gradlew generateCombinedAllureReport --no-daemon
+          
+      - name: 📦 Build All Services
+        if: always()
+        run: |
+          echo "📦 Building all service modules..."
+          cd code && ./gradlew buildAll --no-daemon --parallel -x test
+          
+      - name: 🎯 Check Test Results
+        if: always()
+        run: |
+          echo "🎯 Test Results Summary:"
+          find . -name "TEST-*.xml" -path "*/build/test-results/*" | head -5 | while read file; do
+            echo "📄 Test file: $file"
+            if command -v xmllint >/dev/null 2>&1; then
+              failures=$(xmllint --xpath 'string(//testsuite/@failures)' "$file" 2>/dev/null || echo "N/A")
+              errors=$(xmllint --xpath 'string(//testsuite/@errors)' "$file" 2>/dev/null || echo "N/A")
+              tests=$(xmllint --xpath 'string(//testsuite/@tests)' "$file" 2>/dev/null || echo "N/A")
+              echo "   Tests: $tests, Failures: $failures, Errors: $errors"
+            fi
+          done
+          
+      - name: 💾 Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/build/test-results/
+            **/build/reports/
+            **/allure-history/
+          retention-days: 30
+          
+      - name: 📈 Upload Allure Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: |
+            build/reports/allure-report/
+            build/allure-results/
+          retention-days: 30
+          
+      - name: 📋 Upload Build Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-jars
+          path: |
+            service/*/build/libs/*.jar
+            shared/*/build/libs/*.jar
+          retention-days: 7
+  
+  # Настройки workflow
+  concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
