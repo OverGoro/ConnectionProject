@@ -229,7 +229,8 @@ jobs:
         sudo tar -zxvf allure-2.29.0.tgz -C /opt/
         sudo ln -sf /opt/allure-2.29.0/bin/allure /usr/bin/allure
         allure --version
-
+    - name: Publish shared modules to local Maven
+      run: cd code && gradle && ./gradlew publishAllShared
     - name: Run testAll task
       run: cd code && gradle && ./gradlew testAll
 
