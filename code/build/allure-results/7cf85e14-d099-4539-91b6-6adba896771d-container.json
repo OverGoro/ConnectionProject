@@ -1,0 +1,1 @@
+{"uuid":"7cf85e14-d099-4539-91b6-6adba896771d","name":"Find client by email - Positive","children":["1e7d2424-7848-44a7-9c7c-ff03235f3c97"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761361302926,"stop":1761361302927}],"afters":[],"start":1761361302923,"stop":1761361302930}

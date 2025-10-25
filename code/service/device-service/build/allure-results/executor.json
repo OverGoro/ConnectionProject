@@ -1,1 +1,1 @@
-{"name":"Gradle","type":"gradle","taskName":"integrationTest","buildName":"device-service","projectPath":":","projectVersion":"0.0.1-SNAPSHOT"}
+{"name":"Gradle","type":"gradle","taskName":"integrationTest","buildName":"device-service","projectPath":":service:device-service","projectVersion":"0.0.1-SNAPSHOT"}

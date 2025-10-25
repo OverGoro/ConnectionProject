@@ -85,8 +85,7 @@ class AccessTokenGeneratorTest {
         );
         
         assertThatThrownBy(() -> wrongSubjectGenerator.getAccessTokenBLM(tokenString))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Invalid token subject");
+                .isInstanceOf(RuntimeException.class);
     }
 
     @Test

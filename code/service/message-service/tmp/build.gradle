@@ -142,7 +142,7 @@ dockerCompose {
     projectName = "${SERVICE_NAME}-test"
     stopContainers = true
     removeContainers = true
-    removeImages = 'Local'
+    removeImages = com.avast.gradle.dockercompose.RemoveImages.Local
     removeVolumes = true
     environment.put 'COMPOSE_PROJECT_NAME', "${SERVICE_NAME}-test"
 }

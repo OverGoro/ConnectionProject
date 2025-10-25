@@ -1,1 +1,0 @@
-{"uuid":"b2ddc251-a451-4f8f-92ac-6143adfffedd","name":"Find device by UID - Positive","children":["5035aee1-961e-4a40-9bb5-57ba5e916f5a"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1760917730119,"stop":1760917730120}],"afters":[],"start":1760917730118,"stop":1760917730121}

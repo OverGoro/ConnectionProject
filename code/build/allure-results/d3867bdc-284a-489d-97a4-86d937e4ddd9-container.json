@@ -1,0 +1,1 @@
+{"uuid":"d3867bdc-284a-489d-97a4-86d937e4ddd9","name":"Get device token - Positive","children":["bdbe2704-8bef-40fe-a104-3e87530d7f8e"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761361242535,"stop":1761361242538}],"afters":[],"start":1761361241148,"stop":1761361243090}

@@ -1,1 +1,0 @@
-{"uuid":"95da3352-0120-4a08-9d90-aa2c73709012","name":"Validate valid MessageBLM - Positive","children":["b09f26a0-a82b-4454-85c2-fb7784799020"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1760921598058,"stop":1760921598058}],"afters":[],"start":1760921598057,"stop":1760921598058}

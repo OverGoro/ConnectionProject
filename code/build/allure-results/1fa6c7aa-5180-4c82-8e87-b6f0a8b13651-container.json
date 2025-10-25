@@ -1,0 +1,1 @@
+{"uuid":"1fa6c7aa-5180-4c82-8e87-b6f0a8b13651","name":"Find client by UID - Positive","children":["d5eb7a5a-1f8f-4072-ba2d-eeb3714984bd"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761361302919,"stop":1761361302920}],"afters":[],"start":1761361302917,"stop":1761361302922}

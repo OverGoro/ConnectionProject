@@ -138,7 +138,7 @@ dockerCompose {
     projectName = "${SERVICE_NAME}-test"
     stopContainers = true
     removeContainers = true
-    removeImages = 'Local'
+    removeImages = com.avast.gradle.dockercompose.RemoveImages.Local
     removeVolumes = true
     environment.put 'COMPOSE_PROJECT_NAME', "${SERVICE_NAME}-test"
 }
@@ -432,7 +432,6 @@ task integrationTest(type: Test) {
         logger.lifecycle("   Kafka: localhost:29093")
     }
     
-    dependsOn startTestContainers
     finalizedBy generateAllureReport
 }
 
@@ -510,11 +509,7 @@ tasks.named('integrationTest') {
 
 
 // Prevent running integration tests without containers
-tasks.withType(Test).configureEach { 
-    if (it.name.contains('integration') || it.name.contains('e2e')) {
-        it.dependsOn startTestContainers
-    }
-}
+
 
 
 // ========== DEFAULT TASKS ==========

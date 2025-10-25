@@ -1,1 +1,0 @@
-{"uuid":"a5d52151-2ab2-47f6-8ed5-9e7f86c934f4","name":"Device exists - Positive","children":["55e73d3b-449c-4073-9b40-77ecd0be2a80"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761346800497,"stop":1761346800540}],"afters":[],"start":1761346794672,"stop":1761346801617}

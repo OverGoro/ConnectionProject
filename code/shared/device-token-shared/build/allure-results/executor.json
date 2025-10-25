@@ -1,1 +1,1 @@
-{"name":"Gradle","type":"gradle","taskName":"test","buildName":"device-token-shared","projectPath":":","projectVersion":"1.0.0"}
+{"name":"Gradle","type":"gradle","taskName":"test","buildName":"device-token-shared","projectPath":":shared:device-token-shared","projectVersion":"1.0.0"}

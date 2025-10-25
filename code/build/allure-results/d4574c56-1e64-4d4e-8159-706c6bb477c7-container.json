@@ -1,0 +1,1 @@
+{"uuid":"d4574c56-1e64-4d4e-8159-706c6bb477c7","name":"Validate BufferDTO with zero max messages - Negative","children":["58adb9eb-6d41-46a3-998b-d7a6545d4f44"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761361296285,"stop":1761361296285}],"afters":[],"start":1761361296283,"stop":1761361296287}

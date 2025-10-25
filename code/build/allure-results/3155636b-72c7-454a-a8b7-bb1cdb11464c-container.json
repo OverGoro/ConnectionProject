@@ -1,0 +1,1 @@
+{"uuid":"3155636b-72c7-454a-a8b7-bb1cdb11464c","name":"Validate ConnectionSchemeDTO with invalid UID - Negative","children":["a0548747-d9ee-43e1-bf00-dbe020e00ea6"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761361316685,"stop":1761361316685}],"afters":[],"start":1761361316684,"stop":1761361316686}

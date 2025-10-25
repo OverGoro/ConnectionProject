@@ -1,20 +1,28 @@
-rootProject.name = 'multi-project-tests'
+rootProject.name = 'connection-project'
 
-include ':service:auth-service'
-include ':service:buffer-service'
-include ':service:connection-scheme-service'
-include ':service:device-service'
+// Включаем все shared модули
+include 'shared:buffer-shared'
+include 'shared:connection-scheme-shared'
+include 'shared:device-shared'
+include 'shared:device-token-shared'
+include 'shared:message-shared'
+include 'shared:token-shared'
+include 'shared:common-events'
+include 'shared:common-auth-events'
+include 'shared:common-buffer-events'
+include 'shared:common-connection-scheme-events'
+include 'shared:common-device-auth-events'
+include 'shared:common-device-events'
+include 'shared:common-message-events'
+include 'shared:client-shared'
+include 'shared:common-swagger'
 
-include ':shared:buffer-shared'
-include ':shared:client-shared'
-include ':shared:connection-scheme-shared'
-include ':shared:device-shared'
-include ':shared:token-shared'
+// Включаем все service модули
+include 'service:auth-service'
+include 'service:buffer-service'
+include 'service:connection-scheme-service'
+include 'service:device-auth-service'
+include 'service:device-service'
+include 'service:message-service'
 
-include ':shared-common-events'
-include ':shared-common-auth-events'
-include ':shared-common-buffer-events'
-include ':shared-common-connection-scheme-events'
-include ':shared-common-device-events'
-
-
+enableFeaturePreview('TYPESAFE_PROJECT_ACCESSORS')

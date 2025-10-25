@@ -1,1 +1,0 @@
-{"uuid":"f0a01449-c65a-4fce-92fa-629cb9685bb7","name":"Send request - handles Kafka send failure","children":["0b0f173b-1496-4788-b1ea-2908eaaae6da"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761346794151,"stop":1761346794157}],"afters":[],"start":1761346790305,"stop":1761346797945}

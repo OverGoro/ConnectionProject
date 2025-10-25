@@ -83,7 +83,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
         validator.validate(scheme);
         
         if (exists(scheme.getUid())) {
-            throw new ConnectionSchemeAlreadyExistsException("Scheme with UID " + scheme.getUid() + " already exists");
+            throw new ConnectionSchemeAlreadyExistsException(scheme.getUid().toString());
         }
 
         try {
@@ -115,7 +115,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
         validator.validate(scheme);
         
         if (!exists(scheme.getUid())) {
-            throw new ConnectionSchemeNotFoundException("Scheme with UID " + scheme.getUid() + " not found");
+            throw new ConnectionSchemeNotFoundException(scheme.getUid().toString());
         }
 
         try {
