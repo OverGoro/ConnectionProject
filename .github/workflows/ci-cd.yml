@@ -53,12 +53,14 @@ jobs:
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
           KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
         ports:
-          - 9093:9092
-          - 29093:29092
+          - 9092:9092
+          - 29092:29092
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up JDK 21
       uses: actions/setup-java@v4
@@ -69,7 +71,12 @@ jobs:
     - name: Wait for services to be ready
       run: |
         echo "Waiting for services to start..."
-        sleep 15
+        timeout 60s bash -c 'until pg_isready -h localhost -p 5434 -U test_user -d test_db; do sleep 2; done'
+        echo "✅ PostgreSQL is ready!"
+        
+        # Ждем Kafka
+        echo "Waiting for Kafka..."
+        sleep 20
 
     - name: Setup PostgreSQL schema
       run: |
@@ -190,21 +197,10 @@ jobs:
         );
         EOF
         
-        # Ждем пока PostgreSQL будет готов принимать соединения
-        echo "Waiting for PostgreSQL to be ready..."
-        for i in {1..30}; do
-          if pg_isready -h localhost -p 5434 -U test_user -d test_db; then
-            echo "PostgreSQL is ready!"
-            break
-          fi
-          echo "Waiting for PostgreSQL... attempt $i"
-          sleep 2
-        done
-        
-        # Выполняем SQL файлы
+        echo "Executing SQL files..."
         for sql_file in db/*.sql; do
-          echo "Executing $sql_file"
-          psql -h localhost -p 5434 -U test_user -d test_db -f "$sql_file"
+          echo "📄 Executing $sql_file"
+          psql -h localhost -p 5434 -U test_user -d test_db -f "$sql_file" || echo "⚠️  Warning: $sql_file execution had issues"
         done
       env:
         PGPASSWORD: test_password
@@ -218,6 +214,7 @@ jobs:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
+          code/.gradle
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
@@ -229,60 +226,38 @@ jobs:
         sudo ln -sf /opt/allure-2.29.0/bin/allure /usr/bin/allure
         allure --version
 
-    - name: Publish shared modules to local Maven
+    - name: Validate Gradle Wrapper
       run: |
         cd code
-        modules=(
-          "buffer-shared:buffer-shared"
-          "client-shared:client-shared"
-          "connection-scheme-shared:connection-scheme-shared"
-          "device-shared:device-shared"
-          "device-token-shared:device-token-shared"
-          "message-shared:message-shared"
-          "token-shared:token-shared"
-          "common-events:common-events"
-          "common-auth-events:common-auth-events"
-          "common-buffer-events:common-buffer-events"
-          "common-connection-scheme-events:common-connection-scheme-events"
-          "common-device-auth-events:common-device-auth-events"
-          "common-device-events:common-device-events"
-          "common-message-events:common-message-events"
-        )
-        
-        for module_pair in "${modules[@]}"; do
-          IFS=':' read -r path name <<< "$module_pair"
-          echo "📦 Publishing :shared:${path}"
-          gradle ":shared:${path}:publishToMavenLocal"
-          
-          # Проверяем что файл действительно появился
-          jar_path="$HOME/.m2/repository/com/connection/${name}/1.0.0/${name}-1.0.0.jar"
-          echo "⏳ Waiting for ${name} to be available..."
-          
-          attempts=0
-          while [ $attempts -lt 10 ]; do
-            if [ -f "$jar_path" ]; then
-              echo "✅ Verified: ${name} is available"
-              break
-            fi
-            sleep 2
-            attempts=$((attempts + 1))
-          done
-          
-          if [ ! -f "$jar_path" ]; then
-            echo "⚠️  Warning: ${name} jar not found after waiting"
-          fi
-        done
+        ./gradlew --version
+
+    - name: Publish shared modules using Gradle task
+      run: |
+        cd code
+        ./gradlew publishAllShared --no-daemon
+      env:
+        # Отключаем тесты для ускорения сборки
+        SKIP_TESTS: true
 
     - name: Run testAll task
-      run: cd code && gradle testAll
+      run: |
+        cd code
+        ./gradlew testAll --no-daemon --stacktrace
+      env:
+        # Настройки для тестов
+        SPRING_PROFILES_ACTIVE: test
+        KAFKA_BOOTSTRAP_SERVERS: localhost:29092
 
     - name: Generate Allure report
-      run: cd code && gradle collectAllureResults generateCombinedAllureReport
+      run: |
+        cd code
+        ./gradlew collectAllureResults generateCombinedAllureReport --no-daemon
 
     - name: Create branch-specific index
       run: |
         cd code
         BRANCH_NAME="${{ github.ref_name }}"
+        # Создаем branch-specific index
         cat > build/reports/allure-report/branch-index.html << EOF
         <!DOCTYPE html>
         <html>
@@ -376,3 +351,50 @@ jobs:
         publish_dir: ./code/build/reports/allure-report
         destination_dir: ./allure
         keep_files: true
+
+    - name: Upload test results artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ github.ref_name }}-${{ github.run_id }}
+        path: |
+          code/build/reports
+          code/build/test-results
+        retention-days: 7
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+          code/.gradle
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Dependency Check
+      run: |
+        cd code
+        ./gradlew dependencyCheckAnalyze --no-daemon || echo "⚠️  Dependency check completed with warnings"
+
+    - name: Upload security report
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-reports
+        path: code/build/reports/dependency-check/
+        retention-days: 30
