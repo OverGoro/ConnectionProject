@@ -231,10 +231,10 @@ jobs:
         allure --version
 
     - name: Run testAll task
-      run: cd code && ./gradlew testAll
+      run: cd code && gradle && ./gradlew testAll
 
     - name: Generate Allure report
-      run: cd code && ./gradlew collectAllureResults generateCombinedAllureReport
+      run: cd code && gradle && ./gradlew collectAllureResults generateCombinedAllureReport
 
     - name: Create branch-specific index
       run: |
