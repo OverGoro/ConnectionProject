@@ -40,7 +40,7 @@ jobs:
           ZOOKEEPER_CLIENT_PORT: 2181
           ZOOKEEPER_TICK_TIME: 2000
         ports:
-          - 2182:2181
+          - 2181:2181
       
       kafka:
         image: confluentinc/cp-kafka:7.4.0
@@ -231,10 +231,10 @@ jobs:
         allure --version
 
     - name: Run testAll task
-      run: cd code && gradle testAll
+      run: cd code && ./gradlew testAll
 
     - name: Generate Allure report
-      run: cd code && gradle collectAllureResults generateCombinedAllureReport
+      run: cd code && ./gradlew collectAllureResults generateCombinedAllureReport
 
     - name: Create branch-specific index
       run: |
