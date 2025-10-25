@@ -239,22 +239,74 @@ task cleanAllWithHistory {
 // Публикация всех shared модулей
 // Публикация всех shared модулей БЕЗ тестов
 task publishAllShared {
-    description = 'Publish all shared modules to local Maven without running tests'
+    description = 'Publish all shared modules to local Maven without running tests in correct order'
     group = 'Publishing'
     
-    dependsOn subprojects.findAll { 
-        it.path.contains('shared') 
-    }.collect { project ->
-        // Для каждого shared модуля создаем задачу публикации без зависимостей от тестов
-        project.tasks.register("publishNoTests", Task) {
+    doFirst {
+        logger.lifecycle("🚀 Publishing shared modules in correct order...")
+    }
+}
+
+// Определяем правильный порядок публикации shared модулей
+def sharedPublishOrder = [
+    ':shared:buffer-shared',
+    ':shared:client-shared',
+    ':shared:connection-scheme-shared',
+    ':shared:device-shared',
+    ':shared:device-token-shared',
+    ':shared:message-shared',
+    ':shared:token-shared',
+    ':shared:common-events',
+    ':shared:common-auth-events',
+    ':shared:common-buffer-events',
+    ':shared:common-connection-scheme-events', 
+    ':shared:common-device-auth-events',
+    ':shared:common-device-events',
+    ':shared:common-message-events'
+]
+
+// Создаем задачи публикации для каждого shared модуля в правильном порядке
+def sharedPublishTasks = []
+
+sharedPublishOrder.each { projectPath ->
+    def project = findProject(projectPath)
+    if (project && project.path.contains('shared')) {
+        // Создаем задачу публикации без тестов для этого проекта
+        def publishNoTestsTask = project.tasks.register("publishNoTests", Task) {
+            description = "Publish ${project.name} without tests"
+            group = 'Publishing'
+            
+            // Зависимости от задач публикации
             dependsOn project.tasks.withType(AbstractPublishToMaven)
+            
             doFirst {
-                // Временно отключаем тесты
-                project.tasks.withType(Test).configureEach { enabled = false }
+                logger.lifecycle("📦 Publishing: ${project.name} (tests disabled)")
+                // Отключаем тесты для этой публикации
+                project.tasks.withType(Test).configureEach { 
+                    enabled = false 
+                }
+            }
+            
+            doLast {
+                logger.lifecycle("✅ Published: ${project.name}")
             }
         }
-        project.tasks.named("publishNoTests")
+        
+        sharedPublishTasks << publishNoTestsTask
+        publishAllShared.dependsOn publishNoTestsTask
     }
+}
+
+// Устанавливаем порядок выполнения между задачами
+for (int i = 1; i < sharedPublishTasks.size(); i++) {
+    sharedPublishTasks[i].configure {
+        mustRunAfter sharedPublishTasks[i-1]
+    }
+}
+
+publishAllShared.doLast {
+    logger.lifecycle("🎉 All ${sharedPublishTasks.size()} shared modules published to Maven Local!")
+    logger.lifecycle("📍 Repository: ${System.getProperty('user.home')}/.m2/repository")
 }
 
 // ========== ЗАДАЧИ ПО УМОЛЧАНИЮ ==========
