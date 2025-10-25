@@ -13,7 +13,6 @@ env:
   POSTGRES_USER: test_user
   POSTGRES_PASSWORD: test_password
 
-
 jobs:
   test-and-deploy:
     name: Run Tests and Deploy Allure Reports
@@ -229,6 +228,7 @@ jobs:
         sudo tar -zxvf allure-2.29.0.tgz -C /opt/
         sudo ln -sf /opt/allure-2.29.0/bin/allure /usr/bin/allure
         allure --version
+
     - name: Publish shared modules to local Maven
       run: |
         cd code
@@ -252,7 +252,7 @@ jobs:
         for module_pair in "${modules[@]}"; do
           IFS=':' read -r path name <<< "$module_pair"
           echo "📦 Publishing :shared:${path}"
-          gradle ":shared:${path}:publishToMavenLocal"
+          ./gradlew ":shared:${path}:publishToMavenLocal"
           
           # Проверяем что файл действительно появился
           jar_path="$HOME/.m2/repository/com/connection/${name}/1.0.0/${name}-1.0.0.jar"
@@ -271,14 +271,17 @@ jobs:
           if [ ! -f "$jar_path" ]; then
             echo "⚠️  Warning: ${name} jar not found after waiting"
           fi
-        done    - name: Run testAll task
-      run: cd code && gradle testAll
+        done
+
+    - name: Run testAll task
+      run: cd code && ./gradlew testAll
 
     - name: Generate Allure report
-      run: cd code && gradle && ./gradlew collectAllureResults generateCombinedAllureReport
+      run: cd code && ./gradlew collectAllureResults generateCombinedAllureReport
 
     - name: Create branch-specific index
       run: |
+        cd code
         BRANCH_NAME="${{ github.ref_name }}"
         cat > build/reports/allure-report/branch-index.html << EOF
         <!DOCTYPE html>
@@ -298,13 +301,14 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./code/build/reports/allure-report
-        destination_dir: ./code/allure/${{ github.ref_name }}
+        destination_dir: ./allure/${{ github.ref_name }}
         keep_files: true
         force_orphan: false
 
     - name: Update main index page
       if: github.ref_name == 'main' || github.ref_name == 'master'
       run: |
+        cd code
         # Создаем главную индексную страницу со списком всех веток
         cat > build/reports/allure-report/index.html << 'EOF'
         <!DOCTYPE html>
@@ -370,5 +374,5 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./code/build/reports/allure-report
-        destination_dir: ./code/allure
+        destination_dir: ./allure
         keep_files: true
