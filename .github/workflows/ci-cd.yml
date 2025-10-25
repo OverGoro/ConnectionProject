@@ -13,6 +13,7 @@ env:
   POSTGRES_USER: test_user
   POSTGRES_PASSWORD: test_password
 
+
 jobs:
   test-and-deploy:
     name: Run Tests and Deploy Allure Reports
