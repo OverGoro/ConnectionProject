@@ -9,7 +9,7 @@ plugins {
 
 group = 'com.connection'
 version = '1.0.0'
-description = 'buffer-shared'
+description = 'message-shared'
 
 java {
     toolchain {
@@ -20,7 +20,7 @@ java {
 
 // ========== CONFIGURATION ==========
 ext {
-    SERVICE_NAME = 'buffer-shared'
+    SERVICE_NAME = 'message-shared'
     ALLURE_RESULTS_DIR = "${buildDir}/allure-results"
     ALLURE_REPORT_DIR =  "${buildDir}/reports/allure-report"
     ALLURE_HISTORY_DIR = "${projectDir}/allure-history"

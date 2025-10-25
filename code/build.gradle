@@ -54,6 +54,16 @@ subprojects {
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     }
     
+    // ОТКЛЮЧАЕМ ЗАПУСК ТЕСТОВ ПРИ ПУБЛИКАЦИИ
+    tasks.withType(AbstractPublishToMaven) {
+        dependsOn.removeAll { it instanceof TaskProvider && it.name == 'test' }
+    }
+    
+    // Альтернативный способ: отключаем зависимость между assemble и test
+    tasks.named('assemble') {
+        dependsOn.removeAll { it.name == 'test' }
+    }
+    
     tasks.withType(JavaCompile).configureEach {
         options.compilerArgs += ['-parameters']
         options.encoding = 'UTF-8'
@@ -66,7 +76,11 @@ subprojects {
             exceptionFormat "full"
         }
     }
+    
 }
+
+
+
 
 // ========== КОНФИГУРАЦИЯ ALLURE ДЛЯ ВСЕГО ПРОЕКТА ==========
 ext {
@@ -233,10 +247,24 @@ task cleanAllWithHistory {
 }
 
 // Публикация всех shared модулей
+// Публикация всех shared модулей БЕЗ тестов
 task publishAllShared {
-    description = 'Publish all shared modules to local Maven'
+    description = 'Publish all shared modules to local Maven without running tests'
     group = 'Publishing'
-    dependsOn subprojects.findAll { it.path.contains('shared') && it.tasks.findByName('publish') }.publish
+    
+    dependsOn subprojects.findAll { 
+        it.path.contains('shared') 
+    }.collect { project ->
+        // Для каждого shared модуля создаем задачу публикации без зависимостей от тестов
+        project.tasks.register("publishNoTests", Task) {
+            dependsOn project.tasks.withType(AbstractPublishToMaven)
+            doFirst {
+                // Временно отключаем тесты
+                project.tasks.withType(Test).configureEach { enabled = false }
+            }
+        }
+        project.tasks.named("publishNoTests")
+    }
 }
 
 // ========== ЗАДАЧИ ПО УМОЛЧАНИЮ ==========

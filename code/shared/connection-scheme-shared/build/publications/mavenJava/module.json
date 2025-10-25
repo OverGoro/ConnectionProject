@@ -1,0 +1,83 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.connection",
+    "module": "connection-scheme-shared",
+    "version": "1.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.13"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "connection-scheme-shared-1.0.0.jar",
+          "url": "connection-scheme-shared-1.0.0.jar",
+          "size": 23634,
+          "sha512": "8e6128b43b1b92a107282348c451da28e8fcb49fe09b9e2faafca395d12d3d651b96a6220932e978a2066ac68d4b1846f4f15563800abe27d153f80cffb25584",
+          "sha256": "9d8c2cb1fad4ec99b866305287e5a6cb76ba9ef285e4f0324f44b0b5ab1a1e32",
+          "sha1": "5468035c3ff5b11b9d14b3e63819ba347a2338a1",
+          "md5": "d4bcfc0a6ab7d69ee453a82ba42e4b83"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-data-jpa",
+          "version": {
+            "requires": "3.5.3"
+          }
+        },
+        {
+          "group": "com.fasterxml.jackson.core",
+          "module": "jackson-core",
+          "version": {
+            "requires": "2.18.4"
+          }
+        },
+        {
+          "group": "com.fasterxml.jackson.core",
+          "module": "jackson-databind",
+          "version": {
+            "requires": "2.18.4"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "connection-scheme-shared-1.0.0.jar",
+          "url": "connection-scheme-shared-1.0.0.jar",
+          "size": 23634,
+          "sha512": "8e6128b43b1b92a107282348c451da28e8fcb49fe09b9e2faafca395d12d3d651b96a6220932e978a2066ac68d4b1846f4f15563800abe27d153f80cffb25584",
+          "sha256": "9d8c2cb1fad4ec99b866305287e5a6cb76ba9ef285e4f0324f44b0b5ab1a1e32",
+          "sha1": "5468035c3ff5b11b9d14b3e63819ba347a2338a1",
+          "md5": "d4bcfc0a6ab7d69ee453a82ba42e4b83"
+        }
+      ]
+    }
+  ]
+}

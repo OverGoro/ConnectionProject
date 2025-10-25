@@ -11,12 +11,6 @@ group = 'com.connection'
 version = '1.0.0'
 description = 'buffer-shared'
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
 
 // ========== CONFIGURATION ==========
 ext {
