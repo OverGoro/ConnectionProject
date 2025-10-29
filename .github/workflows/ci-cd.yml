@@ -57,7 +57,7 @@ jobs:
         echo "📊 Gradle projects:"
         # Проверяем существует ли папка code и gradlew
         if [ -d "code" ] && [ -f "code/gradlew" ]; then
-          cd code && ./gradlew projects || true
+          cd code && gradle projects || true
         else
           echo "❌ Папка 'code' не найдена или gradlew отсутствует"
           echo "📂 Текущая структура каталогов:"
@@ -68,7 +68,7 @@ jobs:
       run: |
         echo "🚀 Building and publishing shared modules to Maven Local..."
         if [ -d "code" ] && [ -f "code/gradlew" ]; then
-          cd code && ./gradlew publishAllShared --stacktrace --info
+          cd code && gradle publishAllShared --stacktrace --info
           
           echo "📦 Verifying published modules:"
           ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
@@ -92,7 +92,7 @@ jobs:
       run: |
         echo "🧪 Running all tests with testAll task..."
         if [ -d "code" ] && [ -f "code/gradlew" ]; then
-          cd code && ./gradlew allTest --continue
+          cd code && gradle allTest --continue
         else
           echo "❌ Cannot run tests - 'code' directory or gradlew not found"
           exit 1
@@ -105,7 +105,7 @@ jobs:
       run: |
         echo "📊 Generating test reports..."
         if [ -d "code" ] && [ -f "code/gradlew" ]; then
-          cd code && ./gradlew generateCombinedAllureReport --no-daemon
+          cd code && gradle generateCombinedAllureReport --no-daemon
         else
           echo "❌ Cannot generate reports - 'code' directory or gradlew not found"
         fi
