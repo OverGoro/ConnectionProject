@@ -1,1 +1,0 @@
-{"total":2,"items":[{"uid":"0c43a8807f12c02d55459b51bb263feb","name":"Message Service Integration Tests","statistic":{"failed":0,"broken":0,"skipped":0,"passed":12,"unknown":0,"total":12}},{"uid":"c72857147b44599a0fd665d9f5b1f56c","name":"com.connection.message.MessageServiceImplTest","statistic":{"failed":0,"broken":0,"skipped":0,"passed":10,"unknown":0,"total":10}}]}

@@ -13,7 +13,7 @@ plugins {
 // ========== CONFIGURATION ==========
 ext {
     SERVICE_NAME = 'message-service'
-    K8S_DIR = new File(System.getProperty('user.home') + "/GitHub/ConnectionProject/kubernetes/buffer-service").toString()
+    K8S_DIR = new File(System.getProperty('user.home') + "/GitHub/ConnectionProject/kubernetes/message-service").toString()
     ALLURE_RESULTS_DIR = "${buildDir}/allure-results"
     ALLURE_REPORT_DIR =  "${buildDir}/reports/allure-report"
     ALLURE_HISTORY_DIR = "${projectDir}/allure-history"
@@ -104,8 +104,8 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok:1.18.38'
 	testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
 
-    implementation 'com.connection:client-shared:1.0.0'
     implementation 'com.connection:buffer-shared:1.0.0'
+    implementation 'com.connection:client-shared:1.0.0'
 	implementation 'com.connection:connection-scheme-shared:1.0.0'
     implementation 'com.connection:device-shared:1.0.0'
     implementation 'com.connection:device-token-shared:1.0.0'
@@ -118,7 +118,6 @@ dependencies {
 	implementation 'com.connection:connection-scheme-service:1.0.0'
     implementation 'com.connection:device-service:1.0.0'
     implementation 'com.connection:device-auth-service:1.0.0'
-    implementation 'com.connection:message-service:1.0.0'
 
 
 	// Тестовые зависимости
@@ -502,6 +501,7 @@ bootJar {
 }
 
 
+
 task deepClean {
     description = 'Complete clean including Allure history'
     group = 'Build'
@@ -545,9 +545,4 @@ publishing {
     repositories {
         mavenLocal()
     }
-}
-
-// Полностью отключаем задачу jar
-tasks.named('jar') {
-    enabled = false
 }
