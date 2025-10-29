@@ -52,7 +52,7 @@ jobs:
           echo "📁 Creating wrapper in: $(pwd)"
           
           # Создаем Gradle Wrapper
-          gradle wrapper --gradle-version=${{ env.GRADLE_VERSION }}
+          gradle wrapper
           chmod +x gradlew
           
           # Возвращаемся обратно
