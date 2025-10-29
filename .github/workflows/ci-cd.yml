@@ -32,7 +32,7 @@ jobs:
         uses: actions/setup-java@v5.0.0
         with:
           # The Java version to set up. Takes a whole or semver Java version. See examples of supported syntax in README file
-          java-version: $ {{ env.JAVA_VERSION }}
+          java-version: '21'
           distribution: 'adopt'          
     
       - name: Checkout code
