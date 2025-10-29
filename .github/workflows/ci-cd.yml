@@ -28,24 +28,38 @@ jobs:
         ports:
           - 5434:5432
     steps:
-    # Ключевой шаг: получение кода из репозитория
     - name: 📥 Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
         
-    # - name: Setup Java ${{ env.JAVA_VERSION }}
-    #   uses: actions/setup-java@v4
-    #   with:
-    #     java-version: ${{ env.JAVA_VERSION }}
-    #     distribution: 'temurin'
-    #     cache: 'gradle'
+    - name: 🏗️ Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: 'gradle'  # Включаем кеш Gradle
         
-    # - name: Setup Gradle ${{ env.GRADLE_VERSION }}
-    #   uses: gradle/actions/setup-gradle@v3
-    #   with:
-    #     gradle-version: ${{ env.GRADLE_VERSION }}
-    
+    - name: 🔧 Make gradlew executable
+      run: |
+        if [ -f "code/gradlew" ]; then
+          chmod +x code/gradlew
+          echo "✅ gradlew made executable"
+        else
+          echo "❌ gradlew not found in code directory"
+          find . -name "gradlew" | head -5
+        fi
+        
+    - name: 📦 Setup Gradle caching
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
     - name: Check project structure
       run: |
         echo "📁 Project structure:"
@@ -55,9 +69,10 @@ jobs:
         find . -name "build.gradle" -o -name "build.gradle.kts" -o -name "gradlew" | head -20
         echo ""
         echo "📊 Gradle projects:"
-        # Проверяем существует ли папка code и gradlew
         if [ -d "code" ] && [ -f "code/gradlew" ]; then
-          cd code && gradle projects || true
+          cd code && ./gradlew --version || true
+          echo ""
+          ./gradlew projects --console=plain -q || true
         else
           echo "❌ Папка 'code' не найдена или gradlew отсутствует"
           echo "📂 Текущая структура каталогов:"
@@ -68,7 +83,7 @@ jobs:
       run: |
         echo "🚀 Building and publishing shared modules to Maven Local..."
         if [ -d "code" ] && [ -f "code/gradlew" ]; then
-          cd code && gradle publishAllShared --stacktrace --info
+          cd code && ./gradlew publishAllShared --stacktrace --info --build-cache
           
           echo "📦 Verifying published modules:"
           ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
@@ -83,7 +98,6 @@ jobs:
         sleep 10
         
         echo "Checking PostgreSQL..."
-        # Используем правильные параметры для проверки
         pg_isready -h localhost -p 5434 || echo "PostgreSQL not ready yet"
         
         echo "All services should be ready now"
@@ -92,20 +106,20 @@ jobs:
       run: |
         echo "🧪 Running all tests with testAll task..."
         if [ -d "code" ] && [ -f "code/gradlew" ]; then
-          cd code && gradle allTest --continue
+          cd code && ./gradlew allTest --continue --build-cache
         else
           echo "❌ Cannot run tests - 'code' directory or gradlew not found"
           exit 1
         fi
         
-      continue-on-error: true  # Продолжить даже если тесты упали
-      
+      continue-on-error: true
+        
     - name: 📊 Generate Test Reports
       if: always()
       run: |
         echo "📊 Generating test reports..."
         if [ -d "code" ] && [ -f "code/gradlew" ]; then
-          cd code && gradle generateCombinedAllureReport --no-daemon
+          cd code && ./gradlew generateCombinedAllureReport --no-daemon --build-cache
         else
           echo "❌ Cannot generate reports - 'code' directory or gradlew not found"
         fi
@@ -118,7 +132,6 @@ jobs:
         path: |
           **/build/test-results/
           **/build/reports/
-          **/allure-history/
         retention-days: 30
         
     - name: 📈 Upload Allure Report
@@ -141,7 +154,6 @@ jobs:
           **/shared/*/build/libs/*.jar
         retention-days: 7
 
-# Настройки workflow
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
