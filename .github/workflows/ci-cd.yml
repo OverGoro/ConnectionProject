@@ -15,7 +15,7 @@ jobs:
     name: Build and Test
     services:
       postgres:
-        image: ${{ env.POSTGRES_IMAGE }}
+        image: postgres:15
         env:
           POSTGRES_PASSWORD: test_password
           POSTGRES_USER: test_user
