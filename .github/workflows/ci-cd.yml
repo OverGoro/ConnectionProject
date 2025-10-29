@@ -86,7 +86,7 @@ jobs:
         run: |
           echo "🚀 Building and publishing shared modules to Maven Local..."
           if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew publishAllShared
+            cd code && ./gradlew publishAllShared --no-parallel --continue
             
             echo "📦 Verifying published modules:"
             ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
