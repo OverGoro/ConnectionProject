@@ -1,0 +1,1 @@
+{"uuid":"52ee5f94-b13f-45ad-a3db-ee4c14d0ddd1","name":"Validate BufferDTO with null device UID - Negative","children":["879a9534-21fc-42c9-a468-ea5dc807f492"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761769751184,"stop":1761769751184}],"afters":[],"start":1761769751182,"stop":1761769751184}
