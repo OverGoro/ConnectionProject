@@ -39,10 +39,11 @@ jobs:
     #   uses: gradle/actions/setup-gradle@v3
     #   with:
     #     gradle-version: ${{ env.GRADLE_VERSION }}
-        
+    
     - name: Check project structure
       run: |
         echo "📁 Project structure:"
+        tree
         find . -name "build.gradle" -type f | head -20
         echo ""
         echo "📊 Gradle projects:"
