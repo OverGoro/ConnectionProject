@@ -28,147 +28,141 @@ jobs:
         ports:
           - 5434:5432
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Setup Java JDK
+        uses: actions/setup-java@v5.0.0
+        with:
+          # The Java version to set up. Takes a whole or semver Java version. See examples of supported syntax in README file
+          java-version: $ {{ env.JAVA_VERSION }}
+          distribution: 'adopt'          
+    
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
         
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ env.JAVA_VERSION }}
-        distribution: 'temurin'
-        cache: 'gradle'
-        
-    - name: Create Gradle Wrapper
-      run: |
-        echo "🔧 Creating Gradle Wrapper in all modules..."
-        
-        # Находим все build.gradle файлы, исключая пути с tmp
-        find . -name "build.gradle" -type f | grep -v tmp | while read build_file; do
-          # Переходим в папку с build.gradle
-          cd "$(dirname "$build_file")"
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
           
-          echo "📁 Creating wrapper in: $(pwd)"
+      - name: Create Gradle Wrapper
+        run: |
+          echo "🔧 Creating Gradle Wrapper in all modules..."
           
-          # Создаем Gradle Wrapper
-          gradle wrapper
-          chmod +x gradlew
+          # Находим все build.gradle файлы, исключая пути с tmp
+          find . -name "build.gradle" -type f | grep -v tmp | while read build_file; do
+            # Переходим в папку с build.gradle
+            cd "$(dirname "$build_file")"
+            
+            echo "📁 Creating wrapper in: $(pwd)"
+            
+            # Создаем Gradle Wrapper
+            gradle wrapper
+            chmod +x gradlew
+            
+            # Возвращаемся обратно
+            cd - > /dev/null
+          done
+          echo "✅ Gradle Wrapper creation completed"        
+            
+      - name: Check project structure
+        run: |
+          echo "📁 Project structure:"
+          ls -lah
+          echo ""
+          echo "🔍 Searching for Gradle files:"
+          find . -name "build.gradle" -o -name "build.gradle.kts" -o -name "gradlew" | head -20
+          echo ""
+          echo "📊 Gradle version:"
+          if [ -f "code/gradlew" ]; then
+            cd code && ./gradlew --version || true
+          else
+            echo "❌ gradlew not found in code directory"
+          fi
           
-          # Возвращаемся обратно
-          cd - > /dev/null
-        done
-        
-        echo "✅ Gradle Wrapper creation completed"        
-    # - name: 📦 Setup Gradle caching
-    #   uses: actions/cache@v3
-    #   with:
-    #     path: |
-    #       ~/.gradle/caches
-    #       ~/.gradle/wrapper
-    #     key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-    #     restore-keys: |
-    #       ${{ runner.os }}-gradle-
+      - name: 🏗️ Build and Publish Shared Modules
+        run: |
+          echo "🚀 Building and publishing shared modules to Maven Local..."
+          if [ -f "code/gradlew" ]; then
+            cd code && ./gradlew publishAllShared --stacktrace --info --build-cache
+            
+            echo "📦 Verifying published modules:"
+            ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
+          else
+            echo "❌ Cannot build - gradlew not found"
+            exit 1
+          fi    
+      - name: ⏳ Wait for services to be ready
+        run: |
+          echo "Waiting for services to be fully ready..."
+          sleep 10
           
-    - name: Check project structure
-      run: |
-        echo "📁 Project structure:"
-        ls -lah
-        echo ""
-        echo "🔍 Searching for Gradle files:"
-        find . -name "build.gradle" -o -name "build.gradle.kts" -o -name "gradlew" | head -20
-        echo ""
-        echo "📊 Gradle version:"
-        if [ -f "code/gradlew" ]; then
-          cd code && ./gradlew --version || true
-        else
-          echo "❌ gradlew not found in code directory"
-        fi
-        
-    - name: 🏗️ Build and Publish Shared Modules
-      run: |
-        echo "🚀 Building and publishing shared modules to Maven Local..."
-        if [ -f "code/gradlew" ]; then
-          cd code && ./gradlew publishAllShared --stacktrace --info --build-cache
+          echo "Checking PostgreSQL..."
+          # Устанавливаем postgresql-client для pg_isready
+          sudo apt-get update && sudo apt-get install -y postgresql-client
           
-          echo "📦 Verifying published modules:"
-          ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
-        else
-          echo "❌ Cannot build - gradlew not found"
-          exit 1
-        fi
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          **/.gradle/caches
-          **/.gradle/wrapper    
+          # Проверяем PostgreSQL с правильными параметрами
+          pg_isready -h localhost -p 5434 -U test_user -d test_db || echo "PostgreSQL not ready yet"
+          
+          echo "All services should be ready now"
+          
+      - name: 🧪 Run All Tests
+        run: |
+          echo "🧪 Running all tests with testAll task..."
+          if [ -f "code/gradlew" ]; then
+            cd code && ./gradlew allTest --continue --build-cache
+          else
+            echo "❌ Cannot run tests - gradlew not found"
+            exit 1
+          fi
+          
+        continue-on-error: true
+          
+      - name: 📊 Generate Test Reports
+        if: always()
+        run: |
+          echo "📊 Generating test reports..."
+          if [ -f "code/gradlew" ]; then
+            cd code && ./gradlew generateCombinedAllureReport --no-daemon --build-cache
+          else
+            echo "❌ Cannot generate reports - gradlew not found"
+          fi
+          
+      - name: 💾 Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/build/test-results/
+            **/build/reports/
+          retention-days: 30
+          
+      - name: 📈 Upload Allure Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: |
+            **/build/reports/allure-report/
+            **/build/allure-results/
+          retention-days: 30
         
-    - name: ⏳ Wait for services to be ready
-      run: |
-        echo "Waiting for services to be fully ready..."
-        sleep 10
-        
-        echo "Checking PostgreSQL..."
-        # Устанавливаем postgresql-client для pg_isready
-        sudo apt-get update && sudo apt-get install -y postgresql-client
-        
-        # Проверяем PostgreSQL с правильными параметрами
-        pg_isready -h localhost -p 5434 -U test_user -d test_db || echo "PostgreSQL not ready yet"
-        
-        echo "All services should be ready now"
-        
-    - name: 🧪 Run All Tests
-      run: |
-        echo "🧪 Running all tests with testAll task..."
-        if [ -f "code/gradlew" ]; then
-          cd code && ./gradlew allTest --continue --build-cache
-        else
-          echo "❌ Cannot run tests - gradlew not found"
-          exit 1
-        fi
-        
-      continue-on-error: true
-        
-    - name: 📊 Generate Test Reports
-      if: always()
-      run: |
-        echo "📊 Generating test reports..."
-        if [ -f "code/gradlew" ]; then
-          cd code && ./gradlew generateCombinedAllureReport --no-daemon --build-cache
-        else
-          echo "❌ Cannot generate reports - gradlew not found"
-        fi
-        
-    - name: 💾 Upload Test Results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results
-        path: |
-          **/build/test-results/
-          **/build/reports/
-        retention-days: 30
-        
-    - name: 📈 Upload Allure Report
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: allure-report
-        path: |
-          **/build/reports/allure-report/
-          **/build/allure-results/
-        retention-days: 30
-      
-    - name: 📋 Upload Build Artifacts
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: service-jars
-        path: |
-          **/service/*/build/libs/*.jar
-          **/shared/*/build/libs/*.jar
-        retention-days: 7
+      - name: Cache
+        uses: actions/cache@v4.3.0
+        with:
+          # A list of files, directories, and wildcard patterns to cache and restore
+          path: |
+            **/.gradle
+            **/gradle
+            **/build
+          # An explicit key for restoring and saving the cache
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle- 
+          save-always: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
