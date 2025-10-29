@@ -245,7 +245,7 @@ task publishAllShared {
     doFirst {
         logger.lifecycle("🚀 Publishing shared modules in correct order...")
         // Отключаем тесты для всех shared модулей
-        subprojects.findAll { it.path.contains('shared') }.each { project ->
+        subprojects.findAll { it.path.contains('shared') || it.path.contains('service') }.each { project ->
             project.tasks.withType(Test).configureEach { enabled = false }
         }
     }
@@ -266,29 +266,39 @@ def sharedPublishOrder = [
     ':shared:device-shared:publishToMavenLocal',
     ':shared:device-token-shared:publishToMavenLocal',
     ':shared:message-shared:publishToMavenLocal',
-    ':shared:token-shared:publishToMavenLocal'
+    ':shared:token-shared:publishToMavenLocal',
+    ':service:auth-service:publishToMavenLocal',
+    ':service:device-service:publishToMavenLocal',
+    ':service:device-auth-service:publishToMavenLocal',
+    ':service:connection-scheme-service:publishToMavenLocal',
+    ':service:buffer-service:publishToMavenLocal',
+    ':service:message-service:publishToMavenLocal'
 ]
 
 // Добавляем зависимости в правильном порядке
-def previousTask = null
 sharedPublishOrder.each { taskPath ->
     def task = tasks.findByPath(taskPath)
     if (task) {
-        publishAllShared.dependsOn task
-        if (previousTask != null) {
-            task.mustRunAfter previousTask
-        }
-        previousTask = task
+        publishAllShared.dependsOn(task)
+    }
+}
+
+// Устанавливаем порядок выполнения между задачами
+for (int i = 1; i < sharedPublishOrder.size(); i++) {
+    def currentTask = tasks.findByPath(sharedPublishOrder[i])
+    def previousTask = tasks.findByPath(sharedPublishOrder[i-1])
+    
+    if (currentTask && previousTask) {
+        currentTask.mustRunAfter(previousTask)
     }
 }
 
 publishAllShared.doLast {
     logger.lifecycle("🎉 All shared modules published to Maven Local!")
     // Включаем тесты обратно
-    subprojects.findAll { it.path.contains('shared') }.each { project ->
+    subprojects.findAll { it.path.contains('shared') || it.path.contains('service') }.each { project ->
         project.tasks.withType(Test).configureEach { enabled = true }
     }
 }
-
 // ========== ЗАДАЧИ ПО УМОЛЧАНИЮ ==========
 defaultTasks 'buildAll'

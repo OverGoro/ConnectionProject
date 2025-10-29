@@ -28,10 +28,10 @@
           "name": "buffer-service-1.0.0-plain.jar",
           "url": "buffer-service-1.0.0-plain.jar",
           "size": 30786,
-          "sha512": "210523b8b44a6062603b12c9bff0b8b5693d8413db1556c78480dea9608c05534a49f82dd33b3606ca701a26c0a57ffd02f0c3b739e37067be5a32fcc0be47f1",
-          "sha256": "4599c205c30ae3cb205c2a5ef82520b40b1c398cb211eed83a23825a6b9028af",
-          "sha1": "bf16b62f956e2aca8b2849c2c194c0ee649ed200",
-          "md5": "8d74e3d5728b6b212486d4d45854fe47"
+          "sha512": "65c39e66ab7c38555aa693fd14a830b4b522ad88a30165695fe184544ecf9aec8eb97407c3f32dbdac6715376ede1150074d7a052f383ed34eebd394ea5453ad",
+          "sha256": "a021aeb95ef813b32e35589bbe42b0ea9cda59263c386031f7ceb1b430aebdc9",
+          "sha1": "c0e3dff371fec5385e45d756ba95aca73af30ce9",
+          "md5": "e5ef82d2b693dcb6014cbc7b5b9e1e8d"
         }
       ]
     },
@@ -214,10 +214,10 @@
           "name": "buffer-service-1.0.0-plain.jar",
           "url": "buffer-service-1.0.0-plain.jar",
           "size": 30786,
-          "sha512": "210523b8b44a6062603b12c9bff0b8b5693d8413db1556c78480dea9608c05534a49f82dd33b3606ca701a26c0a57ffd02f0c3b739e37067be5a32fcc0be47f1",
-          "sha256": "4599c205c30ae3cb205c2a5ef82520b40b1c398cb211eed83a23825a6b9028af",
-          "sha1": "bf16b62f956e2aca8b2849c2c194c0ee649ed200",
-          "md5": "8d74e3d5728b6b212486d4d45854fe47"
+          "sha512": "65c39e66ab7c38555aa693fd14a830b4b522ad88a30165695fe184544ecf9aec8eb97407c3f32dbdac6715376ede1150074d7a052f383ed34eebd394ea5453ad",
+          "sha256": "a021aeb95ef813b32e35589bbe42b0ea9cda59263c386031f7ceb1b430aebdc9",
+          "sha1": "c0e3dff371fec5385e45d756ba95aca73af30ce9",
+          "md5": "e5ef82d2b693dcb6014cbc7b5b9e1e8d"
         }
       ]
     }

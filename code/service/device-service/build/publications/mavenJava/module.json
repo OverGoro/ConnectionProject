@@ -28,10 +28,10 @@
           "name": "device-service-1.0.0-plain.jar",
           "url": "device-service-1.0.0-plain.jar",
           "size": 27487,
-          "sha512": "8170b1973ef2748f9d37899726fb4cf749658a02c03701861d70c9593b77036364ec81341b0075209984d09ffed2b85bba4a24374a11128473d59fbd7a656dc5",
-          "sha256": "4887a673f4cd0f80f1530cdc307620bbaad7c7bbea807021312937734c804585",
-          "sha1": "bd456b2e430641c68f473947bc57c0f6be2b3bd9",
-          "md5": "0f68bfe13bb48a7417b3fbdb21ff0bc2"
+          "sha512": "26506c1112646fd3b25907d4fe4def85dbc538890f78c036adfa8b9c9bf54bfdbf41f238d3423646e2b86aa65257a1767a80d317c2430e847dbcfff68a249d1f",
+          "sha256": "e61491385835c39d0363aa54d7cf643168924621569db1892fe715fdf899380e",
+          "sha1": "c9bf7ab4d07122ce4457178c5b5ac53598b77191",
+          "md5": "b1bfeaa136ac9936e58a8917c41bf7e2"
         }
       ]
     },
@@ -155,10 +155,10 @@
           "name": "device-service-1.0.0-plain.jar",
           "url": "device-service-1.0.0-plain.jar",
           "size": 27487,
-          "sha512": "8170b1973ef2748f9d37899726fb4cf749658a02c03701861d70c9593b77036364ec81341b0075209984d09ffed2b85bba4a24374a11128473d59fbd7a656dc5",
-          "sha256": "4887a673f4cd0f80f1530cdc307620bbaad7c7bbea807021312937734c804585",
-          "sha1": "bd456b2e430641c68f473947bc57c0f6be2b3bd9",
-          "md5": "0f68bfe13bb48a7417b3fbdb21ff0bc2"
+          "sha512": "26506c1112646fd3b25907d4fe4def85dbc538890f78c036adfa8b9c9bf54bfdbf41f238d3423646e2b86aa65257a1767a80d317c2430e847dbcfff68a249d1f",
+          "sha256": "e61491385835c39d0363aa54d7cf643168924621569db1892fe715fdf899380e",
+          "sha1": "c9bf7ab4d07122ce4457178c5b5ac53598b77191",
+          "md5": "b1bfeaa136ac9936e58a8917c41bf7e2"
         }
       ]
     }

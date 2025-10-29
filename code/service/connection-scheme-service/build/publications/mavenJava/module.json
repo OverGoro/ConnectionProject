@@ -28,10 +28,10 @@
           "name": "connection-scheme-service-1.0.0-plain.jar",
           "url": "connection-scheme-service-1.0.0-plain.jar",
           "size": 27124,
-          "sha512": "30e14f794b83b288c3bc4af7e8bc3b7cb95a3618db7dd0871f661000457f2b9d8a15bde803461645c66898f084297d9fd0a0809b13522304633d5c4167bb1028",
-          "sha256": "69b6a51a6d07506b5117b3616fa513bc04fb20c3cac5cf0bb4fb2745265b6320",
-          "sha1": "22cbdb1709209a328b7c77b8bfa2596588dffcb3",
-          "md5": "1f4792d28e68b6dc7858b989cfead3cc"
+          "sha512": "d90f1966c1e813a8155b5c0b982d4724e141d347dccfb262ca706c716afdbe8505d129d60b547076c5d138a2d68ed699b31886eab4afd8be33ab61e1764e7972",
+          "sha256": "169c0cd35db967109b17386446c869a4045ae9fda926fd8b34d6eabfe07cc1d4",
+          "sha1": "1e4c14946e72150af96cc431853fec2d9914dc90",
+          "md5": "0422e3b099e038b3ba7d5579d01bf8ef"
         }
       ]
     },
@@ -155,10 +155,10 @@
           "name": "connection-scheme-service-1.0.0-plain.jar",
           "url": "connection-scheme-service-1.0.0-plain.jar",
           "size": 27124,
-          "sha512": "30e14f794b83b288c3bc4af7e8bc3b7cb95a3618db7dd0871f661000457f2b9d8a15bde803461645c66898f084297d9fd0a0809b13522304633d5c4167bb1028",
-          "sha256": "69b6a51a6d07506b5117b3616fa513bc04fb20c3cac5cf0bb4fb2745265b6320",
-          "sha1": "22cbdb1709209a328b7c77b8bfa2596588dffcb3",
-          "md5": "1f4792d28e68b6dc7858b989cfead3cc"
+          "sha512": "d90f1966c1e813a8155b5c0b982d4724e141d347dccfb262ca706c716afdbe8505d129d60b547076c5d138a2d68ed699b31886eab4afd8be33ab61e1764e7972",
+          "sha256": "169c0cd35db967109b17386446c869a4045ae9fda926fd8b34d6eabfe07cc1d4",
+          "sha1": "1e4c14946e72150af96cc431853fec2d9914dc90",
+          "md5": "0422e3b099e038b3ba7d5579d01bf8ef"
         }
       ]
     }
