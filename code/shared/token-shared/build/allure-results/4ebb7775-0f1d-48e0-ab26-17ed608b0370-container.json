@@ -1,0 +1,1 @@
+{"uuid":"4ebb7775-0f1d-48e0-ab26-17ed608b0370","name":"Generate and parse round trip - Positive","children":["bf4f4374-d879-44fd-aa6f-c0986f694eae"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761698559464,"stop":1761698559464}],"afters":[],"start":1761698559462,"stop":1761698559637}

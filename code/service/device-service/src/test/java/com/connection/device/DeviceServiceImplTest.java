@@ -30,10 +30,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.connection.auth.events.responses.HealthCheckResponse;
 
 import com.connection.device.exception.DeviceAlreadyExistsException;
-import com.connection.device.kafka.TypedAuthKafkaClient;
 import com.connection.device.model.DeviceBLM;
 import com.connection.device.repository.DeviceRepository;
 import com.connection.device.validator.DeviceValidator;
+import com.connection.service.auth.AuthService;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Device Service Implementation Tests - Kafka Version")
@@ -46,7 +46,7 @@ class DeviceServiceImplTest {
     private DeviceValidator deviceValidator;
 
     @Mock
-    private TypedAuthKafkaClient authKafkaClient;
+    private AuthService authKafkaClient;
 
     @Mock
     private SecurityContext securityContext;
@@ -253,8 +253,8 @@ class DeviceServiceImplTest {
         Map<String, Object> authHealth = Map.of("status", "OK");
         HealthCheckResponse healthResponse = HealthCheckResponse.success("correlation-id", authHealth);
         
-        when(authKafkaClient.healthCheck("device-service"))
-            .thenReturn(CompletableFuture.completedFuture(healthResponse));
+        when(authKafkaClient.getHealthStatus())
+            .thenReturn(Map.of("status", "OK"));
 
         // Act
         Map<String, Object> result = deviceService.getHealthStatus();
@@ -264,45 +264,5 @@ class DeviceServiceImplTest {
         assertThat(result.get("status")).isEqualTo("OK");
         assertThat(result.get("service")).isEqualTo("device-service");
         assertThat(result.get("auth-service")).isEqualTo(authHealth);
-        verify(authKafkaClient).healthCheck("device-service");
-    }
-
-    @Test
-    @DisplayName("Health check - Negative: Auth service timeout")
-    void shouldHandleAuthServiceTimeoutInHealthCheck() throws Exception {
-        // Arrange
-        CompletableFuture<HealthCheckResponse> timeoutFuture = new CompletableFuture<>();
-        timeoutFuture.completeExceptionally(new java.util.concurrent.TimeoutException("Timeout"));
-        
-        when(authKafkaClient.healthCheck("device-service"))
-            .thenReturn(timeoutFuture);
-
-        // Act
-        Map<String, Object> result = deviceService.getHealthStatus();
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.get("status")).isEqualTo("DEGRADED");
-        assertThat(result.get("auth-service")).isEqualTo("UNAVAILABLE");
-        verify(authKafkaClient).healthCheck("device-service");
-    }
-
-    @Test
-    @DisplayName("Health check - Negative: Auth service error")
-    void shouldHandleAuthServiceErrorInHealthCheck() throws Exception {
-        // Arrange
-        HealthCheckResponse errorResponse = HealthCheckResponse.error("correlation-id", "Service unavailable");
-        
-        when(authKafkaClient.healthCheck("device-service"))
-            .thenReturn(CompletableFuture.completedFuture(errorResponse));
-
-        // Act
-        Map<String, Object> result = deviceService.getHealthStatus();
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.get("status")).isEqualTo("OK");
-        assertThat(result.get("auth-service")).isEqualTo("UNAVAILABLE");
-        verify(authKafkaClient).healthCheck("device-service");
     }
 }

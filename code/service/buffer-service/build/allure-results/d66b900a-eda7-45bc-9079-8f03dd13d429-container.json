@@ -1,0 +1,1 @@
+{"uuid":"d66b900a-eda7-45bc-9079-8f03dd13d429","name":"Create buffer - Negative: Device doesn't belong to client","children":["97a0dd2e-c43f-471b-9a66-c95697fd9a6f"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761698445247,"stop":1761698445255}],"afters":[],"start":1761698443593,"stop":1761698446522}

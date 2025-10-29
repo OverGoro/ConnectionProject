@@ -9,8 +9,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.connection.message.client.ClientJwtKafkaAuthenticationFilter;
-import com.connection.message.client.DeviceJwtKafkaAuthenticationFilter;
+import com.connection.message.client.AuthenticationFilter;
+import com.connection.message.client.DeviceAuthenticationFilter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -20,8 +20,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final ClientJwtKafkaAuthenticationFilter clientJwtKafkaAuthenticationFilter;
-    private final DeviceJwtKafkaAuthenticationFilter deviceJwtKafkaAuthenticationFilter;
+    private final AuthenticationFilter clientAuthenticationFilter;
+    private final DeviceAuthenticationFilter deviceAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -42,8 +42,8 @@ public class SecurityConfig {
                         .anyRequest().denyAll()
                 )
                 // Оба фильтра будут работать по принципу ИЛИ
-                .addFilterBefore(clientJwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(deviceJwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(clientAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(deviceAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }

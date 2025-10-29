@@ -1,6 +1,13 @@
 // BaseDeviceAuthIntegrationTest.java
 package com.service.device.auth.integration;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
@@ -10,29 +17,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.env.Environment;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Arrays;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.Collections;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("integrationtest")
@@ -48,19 +42,10 @@ public abstract class BaseDeviceAuthIntegrationTest {
     protected TestRestTemplate restTemplate = new TestRestTemplate();
 
     @Autowired
-    protected KafkaTemplate<String, Object> kafkaTemplate;
-
-    @Autowired
     protected NamedParameterJdbcTemplate deviceTokenJdbcTemplate;
 
     @Autowired
     protected NamedParameterJdbcTemplate deviceAccessTokenJdbcTemplate;
-
-    @DynamicPropertySource
-    static void configureKafkaTopics(DynamicPropertyRegistry registry) {
-        registry.add("app.kafka.topics.auth-commands", TestTopicUtils::getTestAuthCommandsTopic);
-        registry.add("app.kafka.topics.device-auth-commands", TestTopicUtils::getTestDeviceAuthCommandsTopic);
-    }
 
     protected final Map<String, String> testData = new ConcurrentHashMap<>();
     protected UUID testClientUid;
@@ -124,7 +109,6 @@ public abstract class BaseDeviceAuthIntegrationTest {
     protected void checkConfig() {
         log.info("=== Device Auth Service Integration Test Configuration ===");
         log.info("Active profiles: {}", Arrays.toString(environment.getActiveProfiles()));
-        log.info("Kafka servers: {}", environment.getProperty("spring.kafka.bootstrap-servers"));
         log.info("Device Token DB URL: {}", environment.getProperty("app.datasource.device-token.xa-properties.url"));
         log.info("Device Access Token DB URL: {}", environment.getProperty("app.datasource.device-access-token.xa-properties.url"));
         log.info("Service name: {}", environment.getProperty("spring.application.name"));
@@ -267,19 +251,6 @@ public abstract class BaseDeviceAuthIntegrationTest {
             Thread.currentThread().interrupt();
             log.warn("Sleep interrupted", e);
         }
-    }
-
-    protected HttpEntity<Object> createHttpEntity(Object body) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        return new HttpEntity<>(body, headers);
-    }
-
-    protected HttpEntity<Object> createHttpEntityWithAuth(Object body, String token) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(token);
-        return new HttpEntity<>(body, headers);
     }
 
     protected UUID getTestClientUid() {

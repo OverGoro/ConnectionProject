@@ -38,6 +38,7 @@ import com.connection.device.token.repository.DeviceAccessTokenRepository;
 import com.connection.device.token.repository.DeviceTokenRepository;
 import com.connection.device.token.validator.DeviceAccessTokenValidator;
 import com.connection.device.token.validator.DeviceTokenValidator;
+import com.connection.service.auth.AuthService;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Device Auth Service Implementation Tests - London Style")
@@ -66,6 +67,9 @@ class DeviceAuthServiceImplLondonTest {
 
     @Mock
     private DeviceAccessTokenGenerator deviceAccessTokenGenerator;
+
+    @Mock
+    private AuthService authClient;
 
     private Duration deviceTokenDuration = Duration.ofSeconds(2592000); // 30 days
     private Duration deviceAccessTokenDuration = Duration.ofSeconds(3600); // 1 hour

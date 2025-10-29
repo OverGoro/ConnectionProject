@@ -1,0 +1,1 @@
+{"uuid":"612a0f90-05ae-43ed-bdb5-c967073a1b3a","name":"Get schemes by client - Positive","children":["f689f31c-59fa-4c9a-8ca9-46717b5b50b0"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761698462119,"stop":1761698462126}],"afters":[],"start":1761698460120,"stop":1761698462892}

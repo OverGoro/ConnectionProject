@@ -1,4 +1,3 @@
-// DeviceController.java
 package com.connection.device.controller;
 
 import java.util.ArrayList;

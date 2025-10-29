@@ -47,9 +47,6 @@ public abstract class BaseDeviceIntegrationTest {
     protected TestRestTemplate restTemplate = new TestRestTemplate();
 
     @Autowired
-    protected KafkaTemplate<String, Object> kafkaTemplate;
-
-    @Autowired
     protected NamedParameterJdbcTemplate deviceJdbcTemplate;
 
     @DynamicPropertySource

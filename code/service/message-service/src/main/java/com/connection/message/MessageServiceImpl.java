@@ -14,26 +14,21 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.stereotype.Service;
 
-import com.connection.buffer.events.responses.GetBuffersByConnectionSchemeResponse;
-import com.connection.buffer.events.responses.GetBuffersByDeviceResponse;
+import com.connection.device.DeviceService;
 import com.connection.device.converter.DeviceConverter;
 import com.connection.message.config.SecurityUtils;
 import com.connection.message.converter.MessageConverter;
-import com.connection.message.kafka.TypedAuthKafkaClient;
-import com.connection.message.kafka.TypedBufferKafkaClient;
-import com.connection.message.kafka.TypedConnectionSchemeKafkaClient;
-import com.connection.message.kafka.TypedDeviceAuthKafkaClient;
-import com.connection.message.kafka.TypedDeviceKafkaClient;
 import com.connection.message.model.MessageBLM;
 import com.connection.message.repository.MessageRepository;
 import com.connection.message.validator.MessageValidator;
 import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.processing.buffer.model.BufferBLM;
-import com.connection.processing.buffer.model.BufferDTO;
 import com.connection.scheme.converter.ConnectionSchemeConverter;
-import com.connection.scheme.events.responses.GetConnectionSchemesByBufferResponse;
 import com.connection.scheme.model.ConnectionSchemeBLM;
-import com.connection.scheme.model.ConnectionSchemeDTO;
+import com.connection.service.auth.AuthService;
+import com.service.buffer.BufferService;
+import com.service.connectionscheme.ConnectionSchemeService;
+import com.service.device.auth.DeviceAuthService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,11 +43,13 @@ public class MessageServiceImpl implements MessageService {
 
     protected final MessageRepository messageRepository;
     protected final MessageValidator messageValidator;
-    protected final TypedAuthKafkaClient authKafkaClient;
-    protected final TypedBufferKafkaClient bufferKafkaClient;
-    protected final TypedConnectionSchemeKafkaClient connectionSchemeKafkaClient;
-    protected final TypedDeviceAuthKafkaClient deviceAuthKafkaClient;
-    protected final TypedDeviceKafkaClient deviceKafkaClient;
+    
+    protected final AuthService authClient;
+    protected final BufferService bufferClient;
+    protected final ConnectionSchemeService connectionSchemeClient;
+    protected final DeviceAuthService deviceAuthClient;
+    protected final DeviceService deviceClient;
+
     protected final BufferConverter bufferConverter;
     protected final ConnectionSchemeConverter connectionSchemeConverter;
     protected final DeviceConverter deviceConverter;
@@ -111,7 +108,7 @@ public class MessageServiceImpl implements MessageService {
             UUID currentClientUid = SecurityUtils.getCurrentClientUid();
 
             // Проверяем, что схема принадлежит клиенту
-            if (!connectionSchemeKafkaClient.connectionSchemeExistsAndBelongsToClient(schemeUuid, currentClientUid)) {
+            if (!connectionSchemeExistsAndBelongsToClient(schemeUuid, currentClientUid)) {
                 throw new SecurityException("Connection scheme doesn't belong to the authenticated client");
             }
         } else if (SecurityUtils.isDeviceAuthenticated()) {
@@ -149,7 +146,7 @@ public class MessageServiceImpl implements MessageService {
         if (SecurityUtils.isClientAuthenticated()) {
             // Клиент может получать сообщения своих устройств
             UUID currentClientUid = SecurityUtils.getCurrentClientUid();
-            if (!deviceKafkaClient.deviceExistsAndBelongsToClient(deviceUuid, currentClientUid)) {
+            if (!deviceExistsAndBelongsToClient(deviceUuid, currentClientUid)) {
                 throw new SecurityException("Device doesn't belong to the authenticated client");
             }
         } else if (SecurityUtils.isDeviceAuthenticated()) {
@@ -183,35 +180,25 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public Map<String, String> health() {
         try {
-            com.connection.auth.events.responses.HealthCheckResponse authHealth = authKafkaClient
-                    .healthCheck("message-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+            var authHealth = authClient.getHealthStatus();
 
-            com.connection.buffer.events.responses.HealthCheckResponse buufferHealth = bufferKafkaClient
-                    .healthCheck("message-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+            var buufferHealth = bufferClient.getHealthStatus();
 
-            com.connection.scheme.events.responses.HealthCheckResponse connectionSchemeHealth = connectionSchemeKafkaClient
-                    .healthCheck("message-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+            var connectionSchemeHealth = connectionSchemeClient.getHealthStatus();
 
-            com.connection.device.events.responses.HealthCheckResponse deviceHealth = deviceKafkaClient
-                    .healthCheck("message-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+            var deviceHealth = deviceClient.getHealthStatus();
 
-            com.connection.device.auth.events.responses.HealthCheckResponse deviceAuthHealth = deviceAuthKafkaClient
-                    .healthCheck("message-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+            var deviceAuthHealth = deviceAuthClient.getHealthStatus();
 
             return Map.of(
                     "status", "OK",
                     "service", "message-service",
                     "timestamp", String.valueOf(System.currentTimeMillis()),
-                    "auth-service", authHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
-                    "buffer-service", buufferHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
-                    "connection-scheme-service", connectionSchemeHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
-                    "device-service", deviceHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE",
-                    "device-auth-service", deviceAuthHealth.isSuccess() ? "AVAILABLE" : "UNAVAILABLE");
+                    "auth-service", authHealth!= null ? "AVAILABLE" : "UNAVAILABLE",
+                    "buffer-service", buufferHealth!= null ? "AVAILABLE" : "UNAVAILABLE",
+                    "connection-scheme-service", connectionSchemeHealth!= null ? "AVAILABLE" : "UNAVAILABLE",
+                    "device-service", deviceHealth!= null ? "AVAILABLE" : "UNAVAILABLE",
+                    "device-auth-service", deviceAuthHealth!= null ? "AVAILABLE" : "UNAVAILABLE");
 
         } catch (Exception e) {
             log.error("Health check error: ", e);
@@ -244,14 +231,9 @@ public class MessageServiceImpl implements MessageService {
     private boolean hasClientAccessToBuffer(UUID clientUid, UUID bufferUuid) {
         try {
             // Получаем информацию о буфере и проверяем принадлежность устройства клиенту
-            var bufferResponse = bufferKafkaClient.getBufferByUid(bufferUuid, "message-service")
-                    .get(10, java.util.concurrent.TimeUnit.SECONDS);
+            BufferBLM bufferBLM = bufferClient.getBufferByUid(bufferUuid);
+            return deviceExistsAndBelongsToClient(bufferBLM.getDeviceUid(), clientUid);
 
-            if (bufferResponse.isSuccess() && bufferResponse.getBufferDTO() != null) {
-                UUID deviceUid = UUID.fromString(bufferResponse.getBufferDTO().getDeviceUid());
-                return deviceKafkaClient.deviceExistsAndBelongsToClient(deviceUid, clientUid);
-            }
-            return false;
         } catch (Exception e) {
             log.error("Error checking client buffer access: {}", e.getMessage());
             return false;
@@ -261,14 +243,8 @@ public class MessageServiceImpl implements MessageService {
     private boolean hasDeviceAccessToBuffer(UUID deviceUid, UUID bufferUuid) {
         try {
             // Получаем информацию о буфере и проверяем принадлежность устройству
-            var bufferResponse = bufferKafkaClient.getBufferByUid(bufferUuid, "message-service")
-                    .get(10, java.util.concurrent.TimeUnit.SECONDS);
-
-            if (bufferResponse.isSuccess() && bufferResponse.getBufferDTO() != null) {
-                UUID bufferDeviceUid = UUID.fromString(bufferResponse.getBufferDTO().getDeviceUid());
-                return deviceUid.equals(bufferDeviceUid);
-            }
-            return false;
+            BufferBLM bufferBLM = bufferClient.getBufferByUid(bufferUuid);
+            return deviceUid.equals(bufferBLM.getDeviceUid());
         } catch (Exception e) {
             log.error("Error checking device buffer access: {}", e.getMessage());
             return false;
@@ -278,7 +254,7 @@ public class MessageServiceImpl implements MessageService {
     private boolean isSchemeAccessibleToDevice(UUID schemeUuid, UUID deviceUid) {
         try {
             // Получаем буферы устройства и проверяем, связаны ли они с данной схемой
-            List<ConnectionSchemeBLM> schemeBuffers = getBufferSchemesForDevice(schemeUuid, deviceUid);
+            List<BufferBLM> schemeBuffers = getBufferSchemesForDevice(schemeUuid, deviceUid);
             
             // Если у устройства есть буферы, связанные с этой схемой - доступ разрешен
             return !schemeBuffers.isEmpty();
@@ -288,35 +264,22 @@ public class MessageServiceImpl implements MessageService {
         }
     }
 
-    private List<ConnectionSchemeBLM> getBufferSchemesForDevice(UUID schemeUuid, UUID deviceUid) {
+    private List<BufferBLM> getBufferSchemesForDevice(UUID schemeUuid, UUID deviceUid) {
         try {
-            // Получаем схему и проверяем, связана ли она с буферами устройства
-            var schemeResponse = connectionSchemeKafkaClient.getConnectionSchemeByUid(schemeUuid, "message-service")
-                    .get(10, java.util.concurrent.TimeUnit.SECONDS);
+            // Получаем буферы устройства
+            List<BufferBLM> deviceBuffers = getDeviceBuffers(deviceUid);
+            
+            // Получаем буферы схемы
+            List<BufferBLM> schemeBuffers = getSchemeBuffers(schemeUuid);
+                
+            // Проверяем пересечение буферов устройства и схемы
+            Set<UUID> deviceBufferUids = deviceBuffers.stream()
+                    .map(BufferBLM::getUid)
+                    .collect(Collectors.toSet());
+            
+            schemeBuffers  = schemeBuffers.stream().filter(buffer -> deviceBufferUids.contains(buffer.getUid())).toList();
+            return schemeBuffers;
 
-            if (schemeResponse.isSuccess() && schemeResponse.getConnectionSchemeDTO() != null) {
-                // Получаем буферы устройства
-                List<BufferBLM> deviceBuffers = getDeviceBuffers(deviceUid);
-                
-                // Получаем буферы схемы
-                List<BufferBLM> schemeBuffers = getSchemeBuffers(schemeUuid);
-                
-                // Проверяем пересечение буферов устройства и схемы
-                Set<UUID> deviceBufferUids = deviceBuffers.stream()
-                        .map(BufferBLM::getUid)
-                        .collect(Collectors.toSet());
-                
-                Set<UUID> schemeBufferUids = schemeBuffers.stream()
-                        .map(BufferBLM::getUid)
-                        .collect(Collectors.toSet());
-                
-                // Если есть общие буферы - доступ разрешен
-                schemeBufferUids.retainAll(deviceBufferUids);
-                return !schemeBufferUids.isEmpty() ? 
-                    List.of(connectionSchemeConverter.toBLM(schemeResponse.getConnectionSchemeDTO())) : 
-                    List.of();
-            }
-            return List.of();
         } catch (Exception e) {
             log.error("Error getting buffer schemes for device: {}", e.getMessage());
             return List.of();
@@ -360,93 +323,24 @@ public class MessageServiceImpl implements MessageService {
         deleteMessage(messageBLM.getUid());
     }
 
+    protected boolean deviceExistsAndBelongsToClient(UUID deviceUuid, UUID clientUuid){
+        return deviceClient.getDevice(deviceUuid).getClientUuid().equals(clientUuid);
+    }
+    protected boolean connectionSchemeExistsAndBelongsToClient(UUID connectionSchemeUid, UUID clientUid){
+        return connectionSchemeClient.schemeExists(connectionSchemeUid) &&
+            connectionSchemeClient.getSchemeByUid(connectionSchemeUid).getClientUid().equals(clientUid);
+    }
+
     private List<ConnectionSchemeBLM> getBufferSchemes(UUID bufferUuid) {
-        try {
-            GetConnectionSchemesByBufferResponse response = connectionSchemeKafkaClient
-                    .getConnectionSchemesByBufferUid(bufferUuid, "message-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
-
-            if (!response.isSuccess() || response.getConnectionSchemeDTOs() == null) {
-                log.warn("Failed to get connection schemes for buffer: {}", bufferUuid);
-                return List.of();
-            }
-
-            List<ConnectionSchemeDTO> connectionSchemeDTOs = response.getConnectionSchemeDTOs();
-            List<ConnectionSchemeBLM> connectionSchemeBLMs = connectionSchemeDTOs.stream()
-                    .map(connectionSchemeConverter::toBLM)
-                    .collect(Collectors.toList());
-
-            return connectionSchemeBLMs;
-
-        } catch (java.util.concurrent.TimeoutException e) {
-            log.error("Timeout getting connection schemes for bufferUuid: {}", bufferUuid, e);
-            throw new RuntimeException("Device service timeout", e);
-        } catch (java.util.concurrent.ExecutionException e) {
-            log.error("Error getting devices for bufferUuid: {}", bufferUuid, e);
-            throw new RuntimeException("Device service error", e);
-        } catch (Exception e) {
-            log.error("Unexpected error getting buffers for bufferUuid: {}", bufferUuid, e);
-            throw new RuntimeException("Unexpected error", e);
-        }
+        return connectionSchemeClient.getSchemesByBuffer(bufferUuid);            
+        
     }
 
     private List<BufferBLM> getSchemeBuffers(UUID connectionSchemeUuid) {
-        try {
-            GetBuffersByConnectionSchemeResponse response = bufferKafkaClient
-                    .getBuffersByConnectionSchemeUid(connectionSchemeUuid, "message-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
-
-            if (!response.isSuccess() || response.getBufferDTOs() == null) {
-                log.warn("Failed to get buffers for connection schemes: {}", connectionSchemeUuid);
-                return List.of();
-            }
-
-            List<BufferDTO> bufferDTOs = response.getBufferDTOs();
-            List<BufferBLM> bufferBLMs = bufferDTOs.stream()
-                    .map(bufferConverter::toBLM)
-                    .collect(Collectors.toList());
-
-            return bufferBLMs;
-
-        } catch (java.util.concurrent.TimeoutException e) {
-            log.error("Timeout getting connection schemes for connectionSchemeUuid: {}", connectionSchemeUuid, e);
-            throw new RuntimeException("Device service timeout", e);
-        } catch (java.util.concurrent.ExecutionException e) {
-            log.error("Error getting devices for connectionSchemeUuid: {}", connectionSchemeUuid, e);
-            throw new RuntimeException("Device service error", e);
-        } catch (Exception e) {
-            log.error("Unexpected error getting buffers for connectionSchemeUuid: {}", connectionSchemeUuid, e);
-            throw new RuntimeException("Unexpected error", e);
-        }
+        return bufferClient.getBuffersByConnectionScheme(connectionSchemeUuid);
     }
 
     private List<BufferBLM> getDeviceBuffers(UUID deviceUuid) {
-        try {
-            GetBuffersByDeviceResponse response = bufferKafkaClient
-                    .getBuffersByDeviceUid(deviceUuid, "message-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
-
-            if (!response.isSuccess() || response.getBufferDTOs() == null) {
-                log.warn("Failed to get buffers for device: {}", deviceUuid);
-                return List.of();
-            }
-
-            List<BufferDTO> bufferDTOs = response.getBufferDTOs();
-            List<BufferBLM> bufferBLMs = bufferDTOs.stream()
-                    .map(bufferConverter::toBLM)
-                    .collect(Collectors.toList());
-
-            return bufferBLMs;
-
-        } catch (java.util.concurrent.TimeoutException e) {
-            log.error("Timeout getting connection schemes for bufferUuid: {}", deviceUuid, e);
-            throw new RuntimeException("Device service timeout", e);
-        } catch (java.util.concurrent.ExecutionException e) {
-            log.error("Error getting devices for bufferUuid: {}", deviceUuid, e);
-            throw new RuntimeException("Device service error", e);
-        } catch (Exception e) {
-            log.error("Unexpected error getting buffers for bufferUuid: {}", deviceUuid, e);
-            throw new RuntimeException("Unexpected error", e);
-        }
+        return bufferClient.getBuffersByDevice(deviceUuid);
     }
 }

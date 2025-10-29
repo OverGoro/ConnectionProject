@@ -1,0 +1,1 @@
+{"uuid":"7f4bedf0-4bdb-4eac-9a82-879f092d99f1","name":"Get buffers by device - Positive","children":["afcccda7-0dfa-46ff-b32d-03d3eef20960"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761698445247,"stop":1761698445255}],"afters":[],"start":1761698443593,"stop":1761698446524}

@@ -1,1 +1,0 @@
-{"uuid":"16a5f0f6-353a-4884-b348-1cf1533f1587","name":"Validate AccessTokenDTO with empty token - Negative","children":["9e984ada-c6ee-47c7-9bf6-1cb17dab28b1"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363753231,"stop":1761363753231}],"afters":[],"start":1761363753230,"stop":1761363753232}

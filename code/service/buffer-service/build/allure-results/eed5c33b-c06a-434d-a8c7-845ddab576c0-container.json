@@ -1,1 +1,0 @@
-{"uuid":"eed5c33b-c06a-434d-a8c7-845ddab576c0","name":"Get buffers by client - Negative: Device service timeout","children":["83124733-6706-40ae-ac55-8f65b5aed21d"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761383884286,"stop":1761383884297}],"afters":[],"start":1761383882622,"stop":1761383885604}

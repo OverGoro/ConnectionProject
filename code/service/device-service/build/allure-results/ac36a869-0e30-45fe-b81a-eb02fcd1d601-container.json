@@ -1,0 +1,1 @@
+{"uuid":"ac36a869-0e30-45fe-b81a-eb02fcd1d601","name":"Get devices by client - Positive","children":["8635a0c4-db94-41ca-bacc-e3f8796bb337"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761698493806,"stop":1761698493816}],"afters":[],"start":1761698492306,"stop":1761698494667}

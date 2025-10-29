@@ -16,8 +16,9 @@ import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
 import com.connection.scheme.model.ConnectionSchemeBLM;
 import com.connection.scheme.repository.ConnectionSchemeRepository;
 import com.connection.scheme.validator.ConnectionSchemeValidator;
+import com.connection.service.auth.AuthService;
 import com.service.connectionscheme.config.SecurityUtils;
-import com.service.connectionscheme.kafka.TypedAuthKafkaClient;
+// import com.service.connectionscheme.kafka.KafkaAuthClient;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,7 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
 
     private final ConnectionSchemeRepository schemeRepository;
     private final ConnectionSchemeValidator schemeValidator;
-    private final TypedAuthKafkaClient authKafkaClient;
+    private final AuthService authClient;
 
     @Override
     public ConnectionSchemeBLM createScheme(ConnectionSchemeBLM schemeBLM) {
@@ -135,14 +136,15 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     @Override
     public Map<String, Object> getHealthStatus() {
         try {
-            var authHealth = authKafkaClient.healthCheck("connection-scheme-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+            // var authHealth = authClient.healthCheck("connection-scheme-service")
+            //         .get(5, java.util.concurrent.TimeUnit.SECONDS);
+            var authHealth = authClient.getHealthStatus();
 
             return Map.of(
                     "status", "OK",
                     "service", "connection-scheme-service",
                     "timestamp", System.currentTimeMillis(),
-                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+                    "auth-service", authHealth != null ? authHealth : "UNAVAILABLE");
         } catch (Exception e) {
             log.error("Kafka Client: ", e);
             return Map.of(

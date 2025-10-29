@@ -1,5 +1,13 @@
 package com.service.buffer.integration;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
@@ -8,34 +16,21 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.env.Environment;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import com.connection.device.model.DeviceDTO;
+import com.connection.device.model.DeviceBLM;
+import com.connection.service.auth.AuthService;
 
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Arrays;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.Collections;
-import java.util.List;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("integrationtest")
@@ -46,28 +41,19 @@ import java.util.List;
 public abstract class BaseBufferIntegrationTest {
 
     @Autowired
-    protected TestDeviceServiceResponder testDeviceResponder;
+    protected TestDeviceService testDeviceService;
     @Autowired
-    protected TestConnectionSchemeServiceResponder testConnectionSchemeResponder;
+    protected TestConnectionSchemeService testConnectionSchemeService;
+
+    @MockitoBean
+    protected AuthService authService;
 
     @Autowired
     protected Environment environment;
 
-    protected TestRestTemplate restTemplate = new TestRestTemplate();
-
-    @Autowired
-    protected KafkaTemplate<String, Object> kafkaTemplate;
-
     @Autowired
     @Qualifier("BufferJdbcTemplate")
     protected NamedParameterJdbcTemplate bufferJdbcTemplate;
-
-    @DynamicPropertySource
-    static void configureKafkaTopics(DynamicPropertyRegistry registry) {
-        registry.add("app.kafka.topics.auth-commands", TestTopicUtils::getTestAuthCommandsTopic);
-        registry.add("app.kafka.topics.connection-scheme-commands", TestTopicUtils::getTestConnectionSchemeCommandsTopic);
-        registry.add("app.kafka.topics.device-commands", TestTopicUtils::getTestDeviceCommandsTopic);
-    }
 
     protected final Map<String, String> testData = new ConcurrentHashMap<>();
     protected UUID testClientUid;
@@ -81,8 +67,8 @@ public abstract class BaseBufferIntegrationTest {
         testData.clear();
         
         // Очищаем тестовые данные перед каждым тестом
-        testDeviceResponder.clearTestData();
-        testConnectionSchemeResponder.clearTestData();
+        testDeviceService.clearTestData();
+        testConnectionSchemeService.clearTestData();
     }
 
     @AfterEach
@@ -92,8 +78,8 @@ public abstract class BaseBufferIntegrationTest {
         clearAuthentication();
 
         // Очищаем тестовые данные после каждого теста
-        testDeviceResponder.clearTestData();
-        testConnectionSchemeResponder.clearTestData();
+        testDeviceService.clearTestData();
+        testConnectionSchemeService.clearTestData();
     }
 
     /**
@@ -101,7 +87,7 @@ public abstract class BaseBufferIntegrationTest {
      */
     protected void setupTestDevices(UUID clientUid, UUID... deviceUids) {
         for (UUID deviceUid : deviceUids) {
-            testDeviceResponder.addTestDevice(
+            testDeviceService.addTestDevice(
                     deviceUid,
                     clientUid,
                     "Test Device " + deviceUid.toString().substring(0, 8));
@@ -114,10 +100,9 @@ public abstract class BaseBufferIntegrationTest {
      */
     protected void setupTestConnectionSchemes(UUID clientUid, UUID... schemeUids) {
         for (UUID schemeUid : schemeUids) {
-            testConnectionSchemeResponder.addTestConnectionSchemeWithBuffers(
+            testConnectionSchemeService.addTestConnectionSchemeWithBuffers(
                     schemeUid,
                     clientUid
-            // без буферов по умолчанию
             );
         }
         log.info("✅ Test connection schemes setup for client {}: {}", clientUid, List.of(schemeUids));
@@ -127,7 +112,7 @@ public abstract class BaseBufferIntegrationTest {
      * Настраивает connection scheme с указанными буферами
      */
     protected void setupTestConnectionSchemeWithBuffers(UUID schemeUid, UUID clientUid, UUID... bufferUids) {
-        testConnectionSchemeResponder.addTestConnectionSchemeWithBuffers(schemeUid, clientUid, bufferUids);
+        testConnectionSchemeService.addTestConnectionSchemeWithBuffers(schemeUid, clientUid, bufferUids);
         log.info("✅ Test connection scheme {} setup for client {} with buffers: {}",
                 schemeUid, clientUid, List.of(bufferUids));
     }
@@ -136,8 +121,8 @@ public abstract class BaseBufferIntegrationTest {
      * Связывает connection scheme с buffer
      */
     protected void linkSchemeToBuffer(UUID schemeUid, UUID bufferUid) {
-        testConnectionSchemeResponder.linkSchemeToBuffer(schemeUid, bufferUid);
-        testConnectionSchemeResponder.addBufferToScheme(schemeUid, bufferUid);
+        testConnectionSchemeService.linkSchemeToBuffer(schemeUid, bufferUid);
+        testConnectionSchemeService.addBufferToScheme(schemeUid, bufferUid);
         log.info("🔗 Linked scheme {} to buffer {}", schemeUid, bufferUid);
     }
 
@@ -145,7 +130,7 @@ public abstract class BaseBufferIntegrationTest {
      * Добавляет буфер в usedBuffers схемы
      */
     protected void addBufferToScheme(UUID schemeUid, UUID bufferUid) {
-        testConnectionSchemeResponder.addBufferToScheme(schemeUid, bufferUid);
+        testConnectionSchemeService.addBufferToScheme(schemeUid, bufferUid);
         log.info("➕ Added buffer {} to scheme {} usedBuffers", bufferUid, schemeUid);
     }
 
@@ -153,37 +138,37 @@ public abstract class BaseBufferIntegrationTest {
      * Проверяет, зарегистрировано ли устройство в тестовом ответчике
      */
     protected boolean isDeviceRegistered(UUID deviceUid) {
-        return testDeviceResponder.hasDevice(deviceUid);
+        return testDeviceService.hasDevice(deviceUid);
     }
 
     /**
      * Проверяет, зарегистрирована ли connection scheme в тестовом ответчике
      */
     protected boolean isConnectionSchemeRegistered(UUID schemeUid) {
-        return testConnectionSchemeResponder.hasConnectionScheme(schemeUid);
+        return testConnectionSchemeService.hasConnectionScheme(schemeUid);
     }
 
     /**
      * Проверяет, принадлежит ли connection scheme клиенту
      */
     protected boolean connectionSchemeBelongsToClient(UUID schemeUid, UUID clientUid) {
-        return testConnectionSchemeResponder.connectionSchemeBelongsToClient(schemeUid, clientUid);
+        return testConnectionSchemeService.connectionSchemeBelongsToClient(schemeUid, clientUid);
     }
 
     /**
      * Проверяет, связана ли схема с буфером
      */
-    protected boolean isSchemeLinkedToBuffer(UUID schemeUid, UUID bufferUid) {
+    protected boolean isSchemeLinkeBLMBuffer(UUID schemeUid, UUID bufferUid) {
         // Эта логика будет зависеть от реализации, можно добавить соответствующий метод
-        // в responder
-        return testConnectionSchemeResponder.hasConnectionScheme(schemeUid);
+        // в Service
+        return testConnectionSchemeService.hasConnectionScheme(schemeUid);
     }
 
     /**
      * Настраивает тестовое устройство с конкретными данными
      */
-    protected void setupTestDevice(DeviceDTO device) {
-        testDeviceResponder.addTestDevice(device);
+    protected void setupTestDevice(DeviceBLM device) {
+        testDeviceService.addTestDevice(device);
     }
 
     protected void checkConfig() {
@@ -240,10 +225,7 @@ public abstract class BaseBufferIntegrationTest {
         }
     }
 
-    // BaseBufferIntegrationTest.java - упрощаем метод cleanupAllTestData
     protected void cleanupAllTestData() {
-        // Этот метод теперь не используется, так как каждый тест очищает только свои
-        // данные
         log.debug("Global cleanup is disabled - each test cleans up its own client data");
     }
 
@@ -257,83 +239,9 @@ public abstract class BaseBufferIntegrationTest {
         }
     }
 
-    protected HttpEntity<Object> createHttpEntity(Object body) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        return new HttpEntity<>(body, headers);
-    }
-
-    protected HttpEntity<Object> createHttpEntityWithAuth(Object body, String token) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(token);
-        return new HttpEntity<>(body, headers);
-    }
-
     protected UUID getTestClientUid() {
         return testClientUid;
     }
 
-    /**
-     * Генерирует уникальное имя темы для тестов
-     */
-    protected String generateUniqueTopic(String baseTopicName) {
-        return baseTopicName + ".test." + UUID.randomUUID().toString();
-    }
-
-    /**
-     * Получает уникальную тему для device commands в тестах
-     */
-    protected String getTestDeviceCommandsTopic() {
-        return environment.getProperty("app.kafka.topics.device-commands-test",
-                "device.commands.test." + UUID.randomUUID().toString());
-    }
-
-    /**
-     * Получает уникальную тему для connection scheme commands в тестах
-     */
-    protected String getTestConnectionSchemeCommandsTopic() {
-        return environment.getProperty("app.kafka.topics.connection-scheme-commands-test",
-                "scheme.commands.test." + UUID.randomUUID().toString());
-    }
-
-    /**
-     * Настраивает тестовые темы Kafka перед выполнением теста
-     */
-    protected void setupTestKafkaTopics() {
-        // Сохраняем оригинальные значения тем
-        testData.put("original.device-commands",
-                environment.getProperty("app.kafka.topics.device-commands"));
-        testData.put("original.connection-scheme-commands",
-                environment.getProperty("app.kafka.topics.connection-scheme-commands"));
-
-        // Генерируем уникальные темы для теста
-        String testDeviceTopic = getTestDeviceCommandsTopic();
-        String testSchemeTopic = getTestConnectionSchemeCommandsTopic();
-
-        // Устанавливаем системные свойства для переопределения тем в runtime
-        System.setProperty("app.kafka.topics.device-commands", testDeviceTopic);
-        System.setProperty("app.kafka.topics.connection-scheme-commands", testSchemeTopic);
-
-        log.info("✅ Test Kafka topics setup - Device: {}, Scheme: {}",
-                testDeviceTopic, testSchemeTopic);
-    }
-
-    /**
-     * Восстанавливает оригинальные темы Kafka после теста
-     */
-    protected void restoreOriginalKafkaTopics() {
-        // Восстанавливаем оригинальные значения
-        String originalDeviceTopic = testData.get("original.device-commands");
-        String originalSchemeTopic = testData.get("original.connection-scheme-commands");
-
-        if (originalDeviceTopic != null) {
-            System.setProperty("app.kafka.topics.device-commands", originalDeviceTopic);
-        }
-        if (originalSchemeTopic != null) {
-            System.setProperty("app.kafka.topics.connection-scheme-commands", originalSchemeTopic);
-        }
-
-        log.info("✅ Original Kafka topics restored");
-    }
+    
 }

@@ -17,9 +17,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.util.Pair;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.connection.device.token.model.DeviceAccessTokenBLM;
 import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.service.auth.AuthService;
 import com.service.device.auth.DeviceAuthService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,9 @@ public class DeviceAuthServiceIntegrationTest extends BaseDeviceAuthIntegrationT
 
     @Autowired
     private DeviceAuthService deviceAuthService;
+
+    @MockitoBean
+    protected AuthService authService;
 
     private UUID testDeviceUid;
     private UUID testDeviceUid2;

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
@@ -22,6 +23,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,9 +46,6 @@ public abstract class BaseConnectionSchemeIntegrationTest {
     protected Environment environment;
 
     protected TestRestTemplate restTemplate = new TestRestTemplate();
-
-    @Autowired
-    protected KafkaTemplate<String, Object> kafkaTemplate;
 
     @Autowired
     @Qualifier("ConnectionSchemeJdbcTemplate")

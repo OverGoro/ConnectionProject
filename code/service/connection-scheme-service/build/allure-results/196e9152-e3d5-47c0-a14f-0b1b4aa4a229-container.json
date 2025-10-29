@@ -1,1 +1,0 @@
-{"uuid":"196e9152-e3d5-47c0-a14f-0b1b4aa4a229","name":"Get scheme by UID - Positive","children":["4a958ee8-9f01-4882-b7d6-d756a3b84b54"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761381854571,"stop":1761381854579}],"afters":[],"start":1761381852758,"stop":1761381855221}

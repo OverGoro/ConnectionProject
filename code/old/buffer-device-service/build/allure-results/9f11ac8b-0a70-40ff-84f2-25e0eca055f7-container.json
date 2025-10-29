@@ -1,1 +1,0 @@
-{"uuid":"9f11ac8b-0a70-40ff-84f2-25e0eca055f7","name":"Create buffer device binding - Positive","children":["950c3ccb-8f75-4aa0-8d7d-95cf0fd9a631"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1758888596599,"stop":1758888596599}],"afters":[],"start":1758888596593,"stop":1758888596606}

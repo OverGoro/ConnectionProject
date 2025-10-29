@@ -1,3 +1,4 @@
+// SecurityConfig.java
 package com.service.buffer.config;
 
 import org.springframework.context.annotation.Bean;
@@ -9,7 +10,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.service.buffer.client.JwtKafkaAuthenticationFilter;
+import com.service.buffer.client.AuthenticationFilter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -19,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtKafkaAuthenticationFilter jwtKafkaAuthenticationFilter;
+    private final AuthenticationFilter jwtKafkaAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {

@@ -1,0 +1,1 @@
+{"uuid":"efdef079-cb0c-4e2e-883d-2aa9678f3566","name":"Check device exists by client and name - Positive","children":["27d72a0f-f5db-4dbb-a408-31f812c25a76"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761698544758,"stop":1761698544759}],"afters":[],"start":1761698544757,"stop":1761698544761}

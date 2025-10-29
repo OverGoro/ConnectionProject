@@ -4,6 +4,7 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.7'
     id 'io.qameta.allure' version '3.0.0'
     id 'com.avast.gradle.docker-compose' version '0.17.6'
+    id 'maven-publish'
 }
 
 // ========== CONFIGURATION ==========
@@ -113,6 +114,10 @@ dependencies {
     implementation 'com.connection:common-device-events:1.0.0'
     implementation 'com.connection:common-buffer-events:1.0.0'
     implementation 'com.connection:common-connection-scheme-events:1.0.0'
+
+    implementation 'com.connection:auth-service:1.0.0'
+    implementation 'com.connection:connection-scheme-service:1.0.0'
+    implementation 'com.connection:device-service:1.0.0'
 
 
     // Test dependencies
@@ -532,3 +537,25 @@ tasks.withType(Test).configureEach {
 
 // ========== DEFAULT TASKS ==========
 defaultTasks 'build'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            pom {
+                name = 'Buffer-service Shared Module'
+                description = 'Shared components of Buffer-service'
+                url = 'http://www.example.com'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        mavenLocal()
+    }
+}

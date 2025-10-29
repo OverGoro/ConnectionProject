@@ -14,12 +14,14 @@ public interface DeviceAuthService {
     DeviceTokenBLM createDeviceToken(UUID deviceUid);
     DeviceTokenBLM getDeviceToken(UUID deviceUid);
     void revokeDeviceToken(UUID deviceUid);
-    void validateDeviceToken(DeviceTokenBLM deviceToken);
+    DeviceTokenBLM validateDeviceToken(DeviceTokenBLM deviceToken);
+    DeviceTokenBLM validateDeviceToken(String deviceTokenString);
     
     // Device Access Token operations
     Pair<DeviceAccessTokenBLM, DeviceTokenBLM> createDeviceAccessToken(DeviceTokenBLM deviceToken);
     DeviceAccessTokenBLM refreshDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken);
-    void validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken);
+    DeviceAccessTokenBLM validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken);
+    DeviceAccessTokenBLM validateDeviceAccessToken(String deviceAccessTokenString);
         
     
     Map<String, Object> getHealthStatus();

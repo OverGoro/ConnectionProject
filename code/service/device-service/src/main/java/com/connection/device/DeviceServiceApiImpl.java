@@ -9,13 +9,12 @@ import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfig
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.connection.auth.events.responses.HealthCheckResponse;
 import com.connection.device.config.SecurityUtils;
 import com.connection.device.exception.DeviceAlreadyExistsException;
-import com.connection.device.kafka.TypedAuthKafkaClient;
 import com.connection.device.model.DeviceBLM;
 import com.connection.device.repository.DeviceRepository;
 import com.connection.device.validator.DeviceValidator;
+import com.connection.service.auth.AuthService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +30,7 @@ public class DeviceServiceApiImpl implements DeviceService {
 
     private final DeviceRepository deviceRepository;
     private final DeviceValidator deviceValidator;
-    private final TypedAuthKafkaClient authKafkaClient;
+    private final AuthService authClient;
 
     @Override
     public DeviceBLM createDevice(DeviceBLM deviceBLM) {
@@ -116,14 +115,13 @@ public class DeviceServiceApiImpl implements DeviceService {
     @Override
     public Map<String, Object> getHealthStatus() {
         try {
-            HealthCheckResponse authHealth = authKafkaClient.healthCheck("device-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+            var authHealth = authClient.getHealthStatus();
 
             return Map.of(
                     "status", "OK",
                     "service", "device-service",
                     "timestamp", System.currentTimeMillis(),
-                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+                    "auth-service", authHealth != null ? authHealth : "UNAVAILABLE");
         } catch (Exception e) {
             log.error("Kafka Client: ", e);
             return Map.of(

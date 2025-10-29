@@ -1,63 +1,63 @@
-package com.service.buffer.kafka;
+// package com.service.buffer.kafka;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationListener;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
-import org.springframework.kafka.listener.MessageListenerContainer;
-import org.springframework.stereotype.Component;
+// import org.apache.kafka.clients.consumer.ConsumerRecord;
+// import org.springframework.beans.factory.annotation.Autowired;
+// import org.springframework.boot.context.event.ApplicationReadyEvent;
+// import org.springframework.context.ApplicationListener;
+// import org.springframework.kafka.annotation.KafkaListener;
+// import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+// import org.springframework.kafka.listener.MessageListenerContainer;
+// import org.springframework.stereotype.Component;
 
-import com.connection.auth.events.responses.TokenValidationResponse;
-import com.connection.common.events.CommandResponse;
-import com.connection.auth.events.responses.HealthCheckResponse;
+// import com.connection.auth.events.responses.TokenValidationResponse;
+// import com.connection.common.events.CommandResponse;
+// import com.connection.auth.events.responses.HealthCheckResponse;
 
-import lombok.extern.slf4j.Slf4j;
+// import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
-@Component
-public class AuthResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
-    @Autowired
-    private TypedAuthKafkaClient authKafkaClient;
-    @Autowired
-    private KafkaListenerEndpointRegistry registry;
+// @Slf4j
+// @Component
+// public class AuthResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
+//     @Autowired
+//     private TypedAuthKafkaClient authKafkaClient;
+//     @Autowired
+//     private KafkaListenerEndpointRegistry registry;
 
-    @KafkaListener(id = "dynamicAuthListener", topics = "#{@typedAuthKafkaClient.getInstanceReplyTopic()}")
-    public void handleAuthResponse(ConsumerRecord<String, CommandResponse> record) {
-        try {
-            CommandResponse message = record.value();
-            String correlationId = record.key();
+//     @KafkaListener(id = "dynamicAuthListener", topics = "#{@typedAuthKafkaClient.getInstanceReplyTopic()}")
+//     public void handleAuthResponse(ConsumerRecord<String, CommandResponse> record) {
+//         try {
+//             CommandResponse message = record.value();
+//             String correlationId = record.key();
             
-            log.info("Received auth response from instance topic: correlationId={}, topic={}", 
-                    correlationId, record.topic());
+//             log.info("Received auth response from instance topic: correlationId={}, topic={}", 
+//                     correlationId, record.topic());
                 
-            if (message instanceof TokenValidationResponse) {
-                TokenValidationResponse typedResponse = (TokenValidationResponse) message;
-                authKafkaClient.handleResponse(correlationId, typedResponse);
-            } else if (message instanceof HealthCheckResponse) {
-                HealthCheckResponse typedResponse = (HealthCheckResponse) message;
-                authKafkaClient.handleResponse(correlationId, typedResponse);
-            } else {
-                log.warn("Unknown response type for correlationId: {}", correlationId);
-            }
+//             if (message instanceof TokenValidationResponse) {
+//                 TokenValidationResponse typedResponse = (TokenValidationResponse) message;
+//                 authKafkaClient.handleResponse(correlationId, typedResponse);
+//             } else if (message instanceof HealthCheckResponse) {
+//                 HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+//                 authKafkaClient.handleResponse(correlationId, typedResponse);
+//             } else {
+//                 log.warn("Unknown response type for correlationId: {}", correlationId);
+//             }
             
-        } catch (Exception e) {
-            log.error("Error processing auth response: correlationId={}", record.key(), e);
-        }
-    }
+//         } catch (Exception e) {
+//             log.error("Error processing auth response: correlationId={}", record.key(), e);
+//         }
+//     }
 
-    @Override
-    public void onApplicationEvent(ApplicationReadyEvent event) {
-        try {
-            MessageListenerContainer container = registry.getListenerContainer("dynamicAuthListener");
-            if (container != null && !container.isRunning()) {
-                container.start();
-                log.info("Dynamic auth response listener started for topic: {}", 
-                        authKafkaClient.getInstanceReplyTopic());
-            }
-        } catch (Exception e) {
-            log.error("Failed to start dynamic auth listener", e);
-        }
-    }
-}
+//     @Override
+//     public void onApplicationEvent(ApplicationReadyEvent event) {
+//         try {
+//             MessageListenerContainer container = registry.getListenerContainer("dynamicAuthListener");
+//             if (container != null && !container.isRunning()) {
+//                 container.start();
+//                 log.info("Dynamic auth response listener started for topic: {}", 
+//                         authKafkaClient.getInstanceReplyTopic());
+//             }
+//         } catch (Exception e) {
+//             log.error("Failed to start dynamic auth listener", e);
+//         }
+//     }
+// }

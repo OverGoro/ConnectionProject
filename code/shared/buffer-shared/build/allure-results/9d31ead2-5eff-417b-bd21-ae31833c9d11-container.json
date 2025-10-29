@@ -1,1 +1,0 @@
-{"uuid":"9d31ead2-5eff-417b-bd21-ae31833c9d11","name":"Validate BufferDTO with empty prototype - Negative","children":["219707d1-f0f4-45f5-b43d-bc871141f6be"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363715614,"stop":1761363715614}],"afters":[],"start":1761363715613,"stop":1761363715616}

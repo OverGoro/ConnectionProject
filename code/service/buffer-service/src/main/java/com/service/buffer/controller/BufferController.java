@@ -46,7 +46,8 @@ public class BufferController {
     @PostMapping("/buffers")
     public ResponseEntity<BufferResponse> createBuffer(@RequestBody BufferDTO bufferDTO) {
         bufferValidator.validate(bufferDTO);
-        BufferBLM buffer = bufferService.createBuffer(bufferDTO);
+        BufferBLM bufferBLM = bufferConverter.toBLM(bufferDTO);
+        BufferBLM buffer = bufferService.createBuffer(bufferBLM);
 
         return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
     }
@@ -103,7 +104,7 @@ public class BufferController {
         
         bufferValidator.validate(buffer);
 
-        bufferService.updateBuffer(bufferUid, bufferConverter.toDTO(buffer));
+        bufferService.updateBuffer(bufferUid, buffer);
         
         return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
     }
@@ -118,7 +119,10 @@ public class BufferController {
         log.info("Updating buffer: {} for client: {}", bufferUid, clientUid);
 
         bufferValidator.validate(bufferDTO);
-        BufferBLM buffer = bufferService.updateBuffer(bufferUid, bufferDTO);
+
+        BufferBLM bufferBLM = bufferConverter.toBLM(bufferDTO);
+
+        BufferBLM buffer = bufferService.updateBuffer(bufferUid, bufferBLM);
 
         return ResponseEntity.ok(new BufferResponse(buffer.getUid()));
     }

@@ -21,8 +21,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 import lombok.extern.slf4j.Slf4j;
@@ -44,19 +42,19 @@ import java.util.List;
 public abstract class BaseMessageIntegrationTest {
 
     @Autowired
-    protected TestAuthServiceResponder testAuthResponder;
+    protected TestAuthService testAuth;
 
     @Autowired
-    protected TestDeviceAuthServiceResponder testDeviceAuthResponder;
+    protected TestDeviceAuthService testDeviceAuth;
 
     @Autowired
-    protected TestDeviceServiceResponder testDeviceResponder;
+    protected TestDeviceService testDevice;
 
     @Autowired
-    protected TestBufferServiceResponder testBufferResponder;
+    protected TestBufferService testBuffer;
 
     @Autowired
-    protected TestConnectionSchemeServiceResponder testConnectionSchemeResponder;
+    protected TestConnectionSchemeService testConnectionScheme;
 
     @Autowired
     protected Environment environment;
@@ -68,16 +66,6 @@ public abstract class BaseMessageIntegrationTest {
 
     @Autowired
     protected NamedParameterJdbcTemplate messageJdbcTemplate;
-
-    @DynamicPropertySource
-    static void configureKafkaTopics(DynamicPropertyRegistry registry) {
-        registry.add("app.kafka.topics.auth-commands", TestTopicUtils::getTestAuthCommandsTopic);
-        registry.add("app.kafka.topics.device-auth-commands", TestTopicUtils::getTestDeviceAuthCommandsTopic);
-        registry.add("app.kafka.topics.device-commands", TestTopicUtils::getTestDeviceCommandsTopic);
-        registry.add("app.kafka.topics.buffer-commands", TestTopicUtils::getTestBufferCommandsTopic);
-        registry.add("app.kafka.topics.connection-scheme-commands", TestTopicUtils::getTestConnectionSchemeCommandsTopic);
-        registry.add("app.kafka.topics.message-commands", TestTopicUtils::getTestMessageCommandsTopic);
-    }
 
     protected final Map<String, String> testData = new ConcurrentHashMap<>();
     protected UUID testClientUid;
@@ -103,17 +91,17 @@ public abstract class BaseMessageIntegrationTest {
         testData.clear();
 
         // Очищаем тестовые данные перед каждым тестом
-        testAuthResponder.clearTestData();
-        testDeviceAuthResponder.clearTestData();
-        testDeviceResponder.clearTestData();
-        testBufferResponder.clearTestData();
-        testConnectionSchemeResponder.clearTestData();
+        testAuth.clearTestData();
+        testDeviceAuth.clearTestData();
+        testDevice.clearTestData();
+        testBuffer.clearTestData();
+        testConnectionScheme.clearTestData();
 
         // Инициализируем тестовые данные в БД
         initializeTestDataInDatabase();
 
-        // Настраиваем responders после инициализации БД
-        setupTestResponders();
+        // Настраиваем s после инициализации БД
+        setupTests();
     }
 
     @AfterEach
@@ -123,11 +111,11 @@ public abstract class BaseMessageIntegrationTest {
         clearAuthentication();
 
         // Очищаем тестовые данные после каждого теста
-        testAuthResponder.clearTestData();
-        testDeviceAuthResponder.clearTestData();
-        testDeviceResponder.clearTestData();
-        testBufferResponder.clearTestData();
-        testConnectionSchemeResponder.clearTestData();
+        testAuth.clearTestData();
+        testDeviceAuth.clearTestData();
+        testDevice.clearTestData();
+        testBuffer.clearTestData();
+        testConnectionScheme.clearTestData();
     }
 
     /**
@@ -253,32 +241,32 @@ public abstract class BaseMessageIntegrationTest {
     }
 
     /**
-     * Настраивает responders для корректной работы проверок доступа
+     * Настраивает s для корректной работы проверок доступа
      */
-    private void setupTestResponders() {
+    private void setupTests() {
         // 1. Настраиваем валидные токены
-        testAuthResponder.addValidToken(testClientToken, testClientUid);
-        testDeviceAuthResponder.addValidDeviceToken(testDeviceToken, testDeviceUid);
+        testAuth.addValidToken(testClientToken, testClientUid);
+        testDeviceAuth.addValidDeviceToken(testDeviceToken, testDeviceUid);
 
-        // 2. Настраиваем тестовые устройства в responders
-        testDeviceResponder.addTestDevice(testDeviceUid, testClientUid, "Test Device");
+        // 2. Настраиваем тестовые устройства в s
+        testDevice.addTestDevice(testDeviceUid, testClientUid, "Test Device");
 
-        // 3. Настраиваем тестовые буферы в responders
-        testBufferResponder.addTestBuffer(testBufferUid, testDeviceUid, 1000, 1024);
-        testBufferResponder.addTestBuffer(testTargetBufferUid, testDeviceUid, 1000, 1024);
+        // 3. Настраиваем тестовые буферы в s
+        testBuffer.addTestBuffer(testBufferUid, testDeviceUid, 1000, 1024);
+        testBuffer.addTestBuffer(testTargetBufferUid, testDeviceUid, 1000, 1024);
 
-        // 4. Настраиваем тестовую схему соединения в responders
+        // 4. Настраиваем тестовую схему соединения в s
         List<UUID> usedBuffers = List.of(testBufferUid, testTargetBufferUid);
         Map<UUID, List<UUID>> bufferTransitions = Map.of(
                 testBufferUid, List.of(testTargetBufferUid));
-        testConnectionSchemeResponder.addTestConnectionScheme(testSchemeUid, testClientUid, usedBuffers,
+        testConnectionScheme.addTestConnectionScheme(testSchemeUid, testClientUid, usedBuffers,
                 bufferTransitions);
 
-        // 5. Связываем схему с буферами в responders
-        testConnectionSchemeResponder.linkSchemeToBuffer(testSchemeUid, testBufferUid);
-        testConnectionSchemeResponder.linkSchemeToBuffer(testSchemeUid, testTargetBufferUid);
+        // 5. Связываем схему с буферами в s
+        testConnectionScheme.linkSchemeToBuffer(testSchemeUid, testBufferUid);
+        testConnectionScheme.linkSchemeToBuffer(testSchemeUid, testTargetBufferUid);
 
-        log.info("✅ Test responders setup completed");
+        log.info("✅ Test s setup completed");
     }
 
     /**
@@ -322,7 +310,7 @@ public abstract class BaseMessageIntegrationTest {
      * Настраивает тестовые устройства
      */
     protected void setupTestDevices() {
-        testDeviceResponder.addTestDevice(testDeviceUid, testClientUid, "Test Device");
+        testDevice.addTestDevice(testDeviceUid, testClientUid, "Test Device");
         log.info("✅ Test device setup: {} for client {}", testDeviceUid, testClientUid);
     }
 
@@ -331,7 +319,7 @@ public abstract class BaseMessageIntegrationTest {
      */
     protected void setupTestBuffers() {
         UUID bufferUid = UUID.randomUUID();
-        testBufferResponder.addTestBuffer(bufferUid, testDeviceUid, 1000, 1024);
+        testBuffer.addTestBuffer(bufferUid, testDeviceUid, 1000, 1024);
         log.info("✅ Test buffer setup: {} for device {}", bufferUid, testDeviceUid);
     }
 
@@ -344,7 +332,7 @@ public abstract class BaseMessageIntegrationTest {
         Map<UUID, List<UUID>> bufferTransitions = Map.of(
                 sourceBufferUid, List.of(targetBufferUid));
 
-        testConnectionSchemeResponder.addTestConnectionScheme(schemeUid, testClientUid, usedBuffers, bufferTransitions);
+        testConnectionScheme.addTestConnectionScheme(schemeUid, testClientUid, usedBuffers, bufferTransitions);
         log.info("✅ Test connection scheme setup: {} with transitions {} -> {}", schemeUid, sourceBufferUid,
                 targetBufferUid);
 

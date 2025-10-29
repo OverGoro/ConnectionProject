@@ -13,8 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.connection.auth.events.responses.HealthCheckResponse;
-
 
 import com.connection.device.token.generator.DeviceAccessTokenGenerator;
 import com.connection.device.token.generator.DeviceTokenGenerator;
@@ -24,7 +22,7 @@ import com.connection.device.token.repository.DeviceAccessTokenRepository;
 import com.connection.device.token.repository.DeviceTokenRepository;
 import com.connection.device.token.validator.DeviceAccessTokenValidator;
 import com.connection.device.token.validator.DeviceTokenValidator;
-import com.service.device.auth.kafka.TypedAuthKafkaClient;
+import com.connection.service.auth.AuthService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 @EnableTransactionManagement
 public class DeviceAuthServiceImpl implements DeviceAuthService {
 
-    private final TypedAuthKafkaClient authKafkaClient;
+    private final AuthService authService;
 
 
 
@@ -115,9 +113,10 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     }
 
     @Override
-    public void validateDeviceToken(DeviceTokenBLM deviceToken) {
+    public DeviceTokenBLM validateDeviceToken(DeviceTokenBLM deviceToken) {
         log.info("Validating device token for device: {}", deviceToken.getDeviceUid());
         deviceTokenValidator.validate(deviceToken);
+        return deviceToken;
     }
 
     @Override
@@ -198,23 +197,23 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     }
 
     @Override
-    public void validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+    public DeviceAccessTokenBLM validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
         log.info("Validating device access token: {}", deviceAccessToken.getUid());
         // Только JWT валидация, без проверки в БД
         deviceAccessTokenValidator.validate(deviceAccessToken);
+        return deviceAccessToken;
     }
 
     @Override
     public Map<String, Object> getHealthStatus() {
         try {
-            HealthCheckResponse authHealth = authKafkaClient.healthCheck("device-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+            var authHealth = authService.getHealthStatus();
 
             return Map.of(
                     "status", "OK",
                     "service", "device-service",
                     "timestamp", System.currentTimeMillis(),
-                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+                    "auth-service", authHealth!= null ? authHealth : "UNAVAILABLE");
         } catch (Exception e) {
             log.error("Kafka Client: ", e);
             return Map.of(
@@ -224,5 +223,19 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
                     "auth-service", "UNAVAILABLE",
                     "error", e.getMessage());
         }
+    }
+
+    @Override
+    public DeviceTokenBLM validateDeviceToken(String deviceTokenString) { 
+        DeviceTokenBLM deviceTokenBLM = deviceTokenGenerator.getDeviceTokenBLM(deviceTokenString);
+        deviceTokenValidator.validate(deviceTokenBLM);
+        return validateDeviceToken(deviceTokenBLM);
+    }
+
+    @Override
+    public DeviceAccessTokenBLM validateDeviceAccessToken(String deviceAccessTokenString) {
+        DeviceAccessTokenBLM deviceAccessTokenBLM = deviceAccessTokenGenerator.getDeviceAccessTokenBLM(deviceAccessTokenString);
+        deviceAccessTokenValidator.validate(deviceAccessTokenBLM);
+        return validateDeviceAccessToken(deviceAccessTokenBLM);
     }
 }

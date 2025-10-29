@@ -9,8 +9,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.connection.device.client.JwtKafkaAuthenticationFilter;
-import com.connection.device.kafka.TypedAuthKafkaClient;
+import com.connection.device.client.AuthenticationFilter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -20,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final TypedAuthKafkaClient authKafkaClient;
+    private final AuthenticationFilter authFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -37,12 +36,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/**").authenticated()
                         .anyRequest().denyAll()
                 )
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
-    }
-
-    @Bean
-    public JwtKafkaAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtKafkaAuthenticationFilter(authKafkaClient);
     }
 }   

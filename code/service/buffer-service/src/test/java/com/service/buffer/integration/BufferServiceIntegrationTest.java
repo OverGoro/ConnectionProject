@@ -18,7 +18,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.connection.processing.buffer.model.BufferBLM;
-import com.connection.processing.buffer.model.BufferDTO;
 import com.service.buffer.BufferService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @ActiveProfiles("integrationtest")
 @DisplayName("Buffer Service Integration Tests")
 public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
+
 
     @Autowired
     @Qualifier("ApiBufferService")
@@ -62,13 +62,13 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should create buffer successfully")
     void shouldCreateBufferSuccessfully() {
         // Given
-        BufferDTO bufferDTO = createTestBufferDTO();
+        BufferBLM bufferBLM = createTestBufferBLM();
 
         // Устанавливаем аутентификацию перед вызовом сервиса
         setupAuthentication();
 
         // When
-        BufferBLM createdBuffer = bufferService.createBuffer(bufferDTO);
+        BufferBLM createdBuffer = bufferService.createBuffer(bufferBLM);
 
         // Then
         assertThat(createdBuffer).isNotNull();
@@ -84,11 +84,11 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should get buffer by UID")
     void shouldGetBufferByUid() {
         // Given
-        BufferDTO bufferDTO = createTestBufferDTO();
+        BufferBLM bufferBLM = createTestBufferBLM();
 
         // Создаем буфер с аутентификацией
         setupAuthentication();
-        bufferService.createBuffer(bufferDTO);
+        bufferService.createBuffer(bufferBLM);
 
         // Получаем буфер с той же аутентификацией
         BufferBLM foundBuffer = bufferService.getBufferByUid(testBufferUid);
@@ -105,10 +105,10 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should get buffers by device")
     void shouldGetBuffersByDevice() {
         // Given
-        BufferDTO bufferDTO = createTestBufferDTO();
+        BufferBLM bufferBLM = createTestBufferBLM();
 
         setupAuthentication();
-        bufferService.createBuffer(bufferDTO);
+        bufferService.createBuffer(bufferBLM);
 
         // When
         List<BufferBLM> buffers = bufferService.getBuffersByDevice(testDeviceUid);
@@ -126,22 +126,22 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should update buffer successfully")
     void shouldUpdateBufferSuccessfully() {
         // Given
-        BufferDTO originalBufferDTO = createTestBufferDTO();
+        BufferBLM originalBufferBLM = createTestBufferBLM();
 
         setupAuthentication();
-        bufferService.createBuffer(originalBufferDTO);
+        bufferService.createBuffer(originalBufferBLM);
 
-        // Обновляем DTO без message_prototype, так как его нет в таблице
-        BufferDTO updatedBufferDTO = new BufferDTO(
-                testBufferUid.toString(),
-                testDeviceUid.toString(),
+        // Обновляем BLM без message_prototype, так как его нет в таблице
+        BufferBLM updatedBufferBLM = new BufferBLM(
+                testBufferUid,
+                testDeviceUid,
                 2000, // updated max messages
                 2048, // updated max size
                 "{}" // message_prototype не используется
         );
 
         // When
-        BufferBLM updatedBuffer = bufferService.updateBuffer(testBufferUid, updatedBufferDTO);
+        BufferBLM updatedBuffer = bufferService.updateBuffer(testBufferUid, updatedBufferBLM);
 
         // Then
         assertThat(updatedBuffer).isNotNull();
@@ -156,10 +156,10 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should delete buffer successfully")
     void shouldDeleteBufferSuccessfully() {
         // Given
-        BufferDTO bufferDTO = createTestBufferDTO();
+        BufferBLM bufferBLM = createTestBufferBLM();
 
         setupAuthentication();
-        bufferService.createBuffer(bufferDTO);
+        bufferService.createBuffer(bufferBLM);
 
         // Verify buffer exists
         BufferBLM foundBuffer = bufferService.getBufferByUid(testBufferUid);
@@ -179,7 +179,7 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should check buffer existence")
     void shouldCheckBufferExistence() {
         // Given
-        BufferDTO bufferDTO = createTestBufferDTO();
+        BufferBLM bufferBLM = createTestBufferBLM();
 
         // When & Then - Before creation
         setupAuthentication();
@@ -187,7 +187,7 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
         assertThat(existsBefore).isFalse();
 
         // When & Then - After creation
-        bufferService.createBuffer(bufferDTO);
+        bufferService.createBuffer(bufferBLM);
         boolean existsAfter = bufferService.bufferExists(testBufferUid);
         assertThat(existsAfter).isTrue();
 
@@ -253,13 +253,13 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should throw SecurityException when not authenticated")
     void shouldThrowSecurityExceptionWhenNotAuthenticated() {
         // Given
-        BufferDTO bufferDTO = createTestBufferDTO();
+        BufferBLM bufferBLM = createTestBufferBLM();
 
         // Очищаем аутентификацию
         clearAuthentication();
 
         // When & Then
-        assertThatThrownBy(() -> bufferService.createBuffer(bufferDTO))
+        assertThatThrownBy(() -> bufferService.createBuffer(bufferBLM))
                 .isInstanceOf(SecurityException.class)
                 .hasMessageContaining("User not authenticated");
 
@@ -411,77 +411,10 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
         }
     }
 
-    /**
-     * Создает связь между буфером и схемой соединения
-     */
-    private void linkBufferToScheme() {
-        try {
-            String linkSql = """
-                    INSERT INTO processing.connection_scheme_buffer (uid, scheme_uid, buffer_uid)
-                    VALUES (:uid, :schemeUid, :bufferUid)
-                    """;
-
-            bufferJdbcTemplate.update(linkSql, Map.of(
-                    "uid", UUID.randomUUID(),
-                    "schemeUid", testConnectionSchemeUid,
-                    "bufferUid", testBufferUid));
-
-            log.info("✅ Linked buffer {} to scheme {}", testBufferUid, testConnectionSchemeUid);
-        } catch (Exception e) {
-            log.warn("Failed to link buffer to scheme: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * Инициализирует другого клиента и устройство для тестирования разных клиентов
-     */
-    private void initializeDifferentClientAndDevice(UUID clientUid, UUID deviceUid) {
-        try {
-            // Создаем клиента
-            String insertClientSql = """
-                    INSERT INTO core.client (uid, email, birth_date, username, password)
-                    VALUES (:uid, :email, CURRENT_DATE - INTERVAL '30 years', :username, :password)
-                    """;
-
-            bufferJdbcTemplate.update(insertClientSql, Map.of(
-                    "uid", clientUid,
-                    "email", "different.client." + clientUid + "@example.com",
-                    "username", "diffclient_" + clientUid.toString().substring(0, 8),
-                    "password", "differentpassword123"));
-
-            // Создаем устройство для этого клиента
-            String insertDeviceSql = """
-                    INSERT INTO core.device (uid, client_uuid, device_name, device_description)
-                    VALUES (:uid, :clientUuid, :deviceName, :deviceDescription)
-                    """;
-
-            bufferJdbcTemplate.update(insertDeviceSql, Map.of(
-                    "uid", deviceUid,
-                    "clientUuid", clientUid,
-                    "deviceName", "Different Test Device " + deviceUid.toString().substring(0, 8),
-                    "deviceDescription", "Device for different client test"));
-
-            log.info("✅ Created different client {} with device {}", clientUid, deviceUid);
-
-        } catch (Exception e) {
-            log.error("❌ Failed to initialize different client and device: {}", e.getMessage(), e);
-            throw new RuntimeException("Different client initialization failed", e);
-        }
-    }
-
-    private BufferDTO createTestBufferDTO() {
-        return new BufferDTO(
-                testBufferUid.toString(),
-                testDeviceUid.toString(),
-                1000,
-                1024,
-                "{}");
-    }
-
-    private BufferDTO createTestBufferDTOForDifferentClient(UUID bufferUid, UUID deviceUid) {
-        return new BufferDTO(
-                bufferUid.toString(),
-                deviceUid.toString(),
+    private BufferBLM createTestBufferBLM() {
+        return new BufferBLM(
+                testBufferUid,
+                testDeviceUid,
                 1000,
                 1024,
                 "{}");

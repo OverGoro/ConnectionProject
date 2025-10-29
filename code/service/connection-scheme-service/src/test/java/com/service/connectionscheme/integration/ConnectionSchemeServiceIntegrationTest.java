@@ -2,7 +2,6 @@ package com.service.connectionscheme.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 import java.util.Map;
@@ -16,9 +15,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.connection.scheme.exception.ConnectionSchemeValidateException;
 import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.service.auth.AuthService;
 import com.service.connectionscheme.ConnectionSchemeService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 @ActiveProfiles("integrationtest")
 @DisplayName("Connection Scheme Service Integration Tests")
 public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionSchemeIntegrationTest {
+    @MockitoBean
+    protected AuthService authClient;
 
     @Autowired
     @Qualifier("ApiConnectionSchemeService")
