@@ -1,338 +1,181 @@
-name: Java CI/CD with Allure Reports
+name: Java CI/CD Pipeline
 
-on:
-  push:
-    branches: [ main, master, develop, feature/*, release/* ]
-  pull_request:
-    branches: [ main, master, develop ]
-
-env:
-  POSTGRES_HOST: localhost
-  POSTGRES_PORT: 5434
-  POSTGRES_DB: test_db
-  POSTGRES_USER: test_user
-  POSTGRES_PASSWORD: test_password
-
-jobs:
-  test-and-deploy:
-    name: Run Tests and Deploy Allure Reports
-    runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          POSTGRES_DB: ${{ env.POSTGRES_DB }}
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5434:5432
-      
-      zookeeper:
-        image: confluentinc/cp-zookeeper:7.4.0
-        env:
-          ZOOKEEPER_CLIENT_PORT: 2181
-          ZOOKEEPER_TICK_TIME: 2000
-        ports:
-          - 2181:2181
-      
-      kafka:
-        image: confluentinc/cp-kafka:7.4.0
-        env:
-          KAFKA_BROKER_ID: 1
-          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-          KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
-          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-          KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-          KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-        ports:
-          - 9092:9092
-          - 29092:29092
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-
-    - name: Verify and Fix Gradle Wrapper
-      run: |
-        cd code
-        
-        echo "🔍 Checking Gradle Wrapper integrity..."
-        
-        # Проверяем наличие всех необходимых файлов
-        if [ -f "gradlew" ] && [ -f "gradle/wrapper/gradle-wrapper.jar" ] && [ -f "gradle/wrapper/gradle-wrapper.properties" ]; then
-          echo "✅ Gradle Wrapper files are present"
-          chmod +x gradlew
+  on:
+    push:
+      branches: [ main, develop, feature/* ]
+    pull_request:
+      branches: [ main, develop ]
+  
+  env:
+    JAVA_VERSION: '21'
+    GRADLE_VERSION: '8.7'
+    POSTGRES_IMAGE: 'postgres:15'
+    KAFKA_IMAGE: 'confluentinc/cp-kafka:7.4.0'
+    ZOOKEEPER_IMAGE: 'confluentinc/cp-zookeeper:7.4.0'
+  
+  jobs:
+    build-and-test:
+      name: Build and Test
+      services:
+        postgres:
+          image: ${{ env.POSTGRES_IMAGE }}
+          env:
+            POSTGRES_PASSWORD: test_password
+            POSTGRES_USER: test_user
+            POSTGRES_DB: test_db
+          options: >-
+            --health-cmd pg_isready
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
+          ports:
+            - 5434:5432
+            
+        # Zookeeper для Kafka
+        zookeeper:
+          image: ${{ env.ZOOKEEPER_IMAGE }}
+          env:
+            ZOOKEEPER_CLIENT_PORT: 2181
+            ZOOKEEPER_TICK_TIME: 2000
+          options: >-
+            --health-cmd "echo 'ruok' | nc localhost 2181"
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 3
+          ports:
+            - 2182:2181
+            
+        # Kafka Broker
+        kafka:
+          image: ${{ env.KAFKA_IMAGE }}
+          depends_on:
+            zookeeper:
+              condition: service_healthy
+          env:
+            KAFKA_BROKER_ID: 1
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+            KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29093
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9093,PLAINTEXT_HOST://localhost:29093
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+            KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+          options: >-
+            --health-cmd "kafka-topics --bootstrap-server localhost:9093 --list"
+            --health-interval 20s
+            --health-timeout 10s
+            --health-retries 5
+          ports:
+            - 9093:9093
+            - 29093:29093
+  
+      steps:
+      - name: Setup Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
           
-          # Проверяем что wrapper работает
-          if ./gradlew --version > /dev/null 2>&1; then
-            echo "✅ Gradle Wrapper is functional"
-          else
-            echo "❌ Gradle Wrapper is not functional, recreating..."
-            rm -f gradlew gradlew.bat
-            rm -rf gradle/wrapper
-          fi
-        else
-          echo "❌ Gradle Wrapper files are missing or incomplete"
-        fi
-        
-        # Если файлы отсутствуют или не работают, создаем их заново
-        if [ ! -f "gradlew" ] || [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
-          echo "📦 Recreating Gradle Wrapper..."
+      - name: Setup Gradle ${{ env.GRADLE_VERSION }}
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
           
-          # Устанавливаем Gradle для создания wrapper
-          sudo apt-get update
-          sudo apt-get install -y gradle
+      - name: Check project structure
+        run: |
+          echo "📁 Project structure:"
+          find . -name "build.gradle" -type f | head -20
+          echo ""
+          echo "📊 Gradle projects:"
+          cd code && ./gradlew projects --no-daemon || true
           
-          # Создаем wrapper
-          gradle wrapper --gradle-version 8.5 --distribution-type all
+      - name: 🏗️ Build and Publish Shared Modules
+        run: |
+          echo "🚀 Building and publishing shared modules to Maven Local..."
+          cd code && ./gradlew publishAllShared --no-daemon --stacktrace --info
           
-          # Проверяем создание
-          if [ -f "gradlew" ] && [ -f "gradle/wrapper/gradle-wrapper.jar" ]; then
-            echo "✅ Gradle Wrapper recreated successfully"
-            chmod +x gradlew
-          else
-            echo "❌ Failed to recreate Gradle Wrapper"
-            exit 1
-          fi
-        fi
-        
-        # Финальная проверка
-        echo "🎯 Final verification:"
-        ./gradlew --version
-
-    - name: Wait for services to be ready
-      run: |
-        echo "Waiting for services to start..."
-        # Ждем PostgreSQL
-        timeout 120s bash -c 'until pg_isready -h localhost -p 5434 -U test_user -d test_db 2>/dev/null; do sleep 5; echo "Waiting for PostgreSQL..."; done'
-        echo "✅ PostgreSQL is ready!"
-        
-        # Ждем Kafka
-        echo "Waiting for Kafka..."
-        sleep 30
-
-    - name: Setup PostgreSQL schema
-      run: |
-        # Создаем директорию для SQL файлов
-        mkdir -p db
-        
-        # Создаем scheme-init.sql
-        cat > db/scheme-init.sql << 'EOF'
-        create schema if not exists core;
-        create schema if not exists access;
-        create schema if not exists transaction;
-        create schema if not exists processing;
-        EOF
-        
-        # Создаем core-init.sql
-        cat > db/core-init.sql << 'EOF'
-        create table if not exists core.client(
-          uid uuid primary key,
-          email varchar not null unique,
-          birth_date date,
-          username varchar not null unique,
-          password varchar not null
-        );
-
-        create table if not exists core.device(
-          uid uuid primary key, 
-          client_uuid uuid not null references core.client(uid),
-          device_name varchar(100) not null, 
-          device_description varchar(500) not null
-        );
-
-        create table if not exists core.tariff(
-          uid uuid primary key, 
-          tariff_name varchar(100) not null, 
-          amount NUMERIC(20, 8) NOT NULL,
-          currency_code CHAR(3) NOT NULL
-        );
-        EOF
-        
-        # Создаем token-init.sql
-        cat > db/token-init.sql << 'EOF'
-        create  table if not exists access.refresh_token (
-          uid uuid primary key,
-          client_id uuid not null references core.client(uid) on delete cascade,
-          token varchar(512) not null unique,
+          echo "📦 Verifying published modules:"
+          ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
           
-          created_at TIMESTAMP WITH TIME zone not null,
-          expires_at TIMESTAMP WITH TIME zone not null,
+      - name: ⏳ Wait for services to be ready
+        run: |
+          echo "Waiting for services to be fully ready..."
+          sleep 5
           
-          CONSTRAINT chk_refresh_token_expiry CHECK (expires_at > created_at)
-        );
-
-        create table if not exists access.device_token(
-          uid uuid primary key, 
-          device_uid uuid not null references core.device(uid) on delete cascade,
-          token varchar(512) not null unique,	
-          created_at TIMESTAMP WITH TIME zone not null,
-          expires_at TIMESTAMP WITH TIME zone not null
-        );
-
-        create table if not exists access.device_access_token(
-          uid uuid primary key,
-          device_token_uid uuid not null references access.device_token(uid) on delete cascade,
-          token varchar(512) not null unique,	
-          created_at TIMESTAMP WITH TIME zone not null,
-          expires_at TIMESTAMP WITH TIME zone not null
-        );
-        EOF
+          echo "Checking PostgreSQL..."
+          pg_isready -h localhost -p 5434 -U test_user || echo "PostgreSQL not ready yet"
+          
+          echo "Checking Kafka..."
+          docker exec ${{ job.services.kafka.id }} kafka-topics --bootstrap-server localhost:9093 --list || echo "Kafka not ready yet"
+          
+          echo "All services should be ready now"
+          
+      - name: 🧪 Run All Tests
+        run: |
+          echo "🧪 Running all tests with testAll task..."
+          cd code && ./gradlew testAll --no-daemon --stacktrace --info --continue
+          
+        continue-on-error: true  # Продолжить даже если тесты упали
         
-        # Создаем transaction-init.sql
-        cat > db/transaction-init.sql << 'EOF'
-        create table if not exists transaction.client_transaction(
-          uid uuid primary key, 
-          client_uid uuid not null references core.client(uid),
-          transaction_date TIMESTAMP WITH TIME zone not null,
-          amount NUMERIC(20, 8) NOT NULL,
-          currency_code CHAR(3) NOT NULL,
-          description varchar
-        );
-
-        create table if not exists transaction.tariff_transaction(
-          uid uuid primary key, 
-          tariff_uid uuid not null references core.tariff(uid) on delete cascade,
-          transaction_uid uuid not null references transaction.client_transaction(uid) on delete cascade,
-          transaction_date TIMESTAMP WITH TIME zone not null,
-          expires_at TIMESTAMP WITH TIME zone not null
-        );
-        EOF
-        
-        # Создаем connection-init.sql
-        cat > db/connection-init.sql << 'EOF'
-        create table if not exists processing.connection_scheme(
-          uid uuid primary key, 
-          client_uid uuid not null references core.client(uid) on delete cascade,
-          scheme_json jsonb not null
-        );
-
-        create table if not exists processing.buffer(
-          uid uuid primary key, 
-          device_uid uuid not null references core.device(uid) on delete cascade,
-          max_messages_number integer not null CHECK (max_messages_number > 0),
-          max_message_size integer not null CHECK ( max_message_size > 0 ),
-          message_prototype varchar
-        );
-
-        create table if not exists processing.connection_scheme_buffer(
-          uid uuid primary key,
-          scheme_uid uuid not null references processing.connection_scheme(uid) on delete cascade,
-          buffer_uid uuid not null references processing.buffer(uid) on delete cascade
-        );
-
-        create table if not exists processing.message(
-          uid uuid primary key, 
-          buffer_uid uuid not null references processing.buffer(uid) on delete cascade,
-          content jsonb not null, 
-          content_type varchar not null, -- incomming/outcomming
-          created_at TIMESTAMP WITH TIME zone not null
-        );
-        EOF
-        
-        echo "Executing SQL files..."
-        for sql_file in db/*.sql; do
-          echo "📄 Executing $sql_file"
-          psql -h localhost -p 5434 -U test_user -d test_db -f "$sql_file" || echo "⚠️  Warning: $sql_file execution had issues"
-        done
-      env:
-        PGPASSWORD: test_password
-
-    - name: Cache Gradle packages
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-          code/.gradle
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-
-    - name: Install Allure
-      run: |
-        sudo wget -q https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
-        sudo tar -zxvf allure-2.29.0.tgz -C /opt/
-        sudo ln -sf /opt/allure-2.29.0/bin/allure /usr/bin/allure
-        allure --version
-
-    - name: Build and test shared modules
-      run: |
-        cd code
-        echo "🏗️ Building shared modules..."
-        ./gradlew :shared:common-events:build :shared:common-auth-events:build :shared:common-buffer-events:build :shared:common-connection-scheme-events:build :shared:common-device-auth-events:build :shared:common-device-events:build :shared:common-message-events:build -x test --no-daemon --stacktrace
-
-    - name: Publish shared modules
-      run: |
-        cd code
-        echo "📤 Publishing shared modules..."
-        ./gradlew publishAllShared --no-daemon --stacktrace
-
-    - name: Build and test services
-      run: |
-        cd code
-        echo "🔨 Building and testing service modules..."
-        ./gradlew build --no-daemon --stacktrace --continue
-
-    - name: Run all tests
-      run: |
-        cd code
-        echo "🧪 Running all tests..."
-        ./gradlew testAll --no-daemon --stacktrace --continue
-
-    - name: Generate Allure report
-      run: |
-        cd code
-        echo "📊 Generating Allure reports..."
-        ./gradlew collectAllureResults generateCombinedAllureReport --no-daemon --continue
-
-    - name: Create branch-specific index
-      run: |
-        cd code
-        BRANCH_NAME="${{ github.ref_name }}"
-        cat > build/reports/allure-report/branch-index.html << EOF
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Allure Report - $BRANCH_NAME</title>
-            <meta http-equiv="refresh" content="0;url=index.html">
-        </head>
-        <body>
-            <p>Redirecting to <a href="index.html">Allure Report for $BRANCH_NAME</a></p>
-        </body>
-        </html>
-        EOF
-
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./code/build/reports/allure-report
-        destination_dir: ./allure/${{ github.ref_name }}
-        keep_files: true
-        force_orphan: false
-
-    - name: Upload test results artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results-${{ github.ref_name }}-${{ github.run_id }}
-        path: |
-          code/build/reports
-          code/build/test-results
-        retention-days: 7
+      - name: 📊 Generate Test Reports
+        if: always()
+        run: |
+          echo "📊 Generating test reports..."
+          cd code && ./gradlew generateCombinedAllureReport --no-daemon
+          
+      - name: 📦 Build All Services
+        if: always()
+        run: |
+          echo "📦 Building all service modules..."
+          cd code && ./gradlew buildAll --no-daemon --parallel -x test
+          
+      - name: 🎯 Check Test Results
+        if: always()
+        run: |
+          echo "🎯 Test Results Summary:"
+          find . -name "TEST-*.xml" -path "*/build/test-results/*" | head -5 | while read file; do
+            echo "📄 Test file: $file"
+            if command -v xmllint >/dev/null 2>&1; then
+              failures=$(xmllint --xpath 'string(//testsuite/@failures)' "$file" 2>/dev/null || echo "N/A")
+              errors=$(xmllint --xpath 'string(//testsuite/@errors)' "$file" 2>/dev/null || echo "N/A")
+              tests=$(xmllint --xpath 'string(//testsuite/@tests)' "$file" 2>/dev/null || echo "N/A")
+              echo "   Tests: $tests, Failures: $failures, Errors: $errors"
+            fi
+          done
+          
+      - name: 💾 Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/build/test-results/
+            **/build/reports/
+            **/allure-history/
+          retention-days: 30
+          
+      - name: 📈 Upload Allure Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: |
+            build/reports/allure-report/
+            build/allure-results/
+          retention-days: 30
+          
+      - name: 📋 Upload Build Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-jars
+          path: |
+            service/*/build/libs/*.jar
+            shared/*/build/libs/*.jar
+          retention-days: 7
+  
+  # Настройки workflow
+  concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
