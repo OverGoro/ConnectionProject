@@ -28,56 +28,47 @@ jobs:
         ports:
           - 5434:5432
     steps:
-    - name: 📥 Checkout code
+    - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
         
-    - name: 🏗️ Setup Java
+    - name: Setup Java
       uses: actions/setup-java@v4
       with:
         java-version: ${{ env.JAVA_VERSION }}
         distribution: 'temurin'
         cache: 'gradle'
         
-    - name: 🔧 Create Gradle Wrapper
+    - name: Create Gradle Wrapper
       run: |
-        echo "🔧 Creating Gradle Wrapper..."
+        echo "🔧 Creating Gradle Wrapper in all modules..."
         
-        # Проверяем структуру проекта
-        echo "📁 Project structure:"
-        ls -la code/
-        
-        # Переходим в корневую папку проекта
-        cd code
-        
-        # Создаем Gradle Wrapper если его нет
-        if [ ! -f "gradlew" ]; then
-          echo "📦 Creating Gradle Wrapper..."
-          gradle wrapper --gradle-version=${{ env.GRADLE_VERSION }}
+        # Находим все build.gradle файлы, исключая пути с tmp
+        find . -name "build.gradle" -type f | grep -v tmp | while read build_file; do
+          # Переходим в папку с build.gradle
+          cd "$(dirname "$build_file")"
           
-          # Делаем gradlew исполняемым
+          echo "📁 Creating wrapper in: $(pwd)"
+          
+          # Создаем Gradle Wrapper
+          gradle wrapper --gradle-version=${{ env.GRADLE_VERSION }}
           chmod +x gradlew
-          echo "✅ Gradle Wrapper created"
-        else
-          echo "✅ Gradle Wrapper already exists"
-          chmod +x gradlew
-        fi
+          
+          # Возвращаемся обратно
+          cd - > /dev/null
+        done
         
-        # Проверяем что wrapper создался
-        echo "📋 Checking Gradle Wrapper files:"
-        ls -la gradlew* || echo "No gradlew files"
-        ls -la gradle/wrapper/ || echo "No gradle/wrapper directory"
-        
-    - name: 📦 Setup Gradle caching
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
+        echo "✅ Gradle Wrapper creation completed"        
+    # - name: 📦 Setup Gradle caching
+    #   uses: actions/cache@v3
+    #   with:
+    #     path: |
+    #       ~/.gradle/caches
+    #       ~/.gradle/wrapper
+    #     key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-gradle-
           
     - name: Check project structure
       run: |
