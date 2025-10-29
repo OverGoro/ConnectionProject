@@ -38,17 +38,36 @@ jobs:
       with:
         java-version: ${{ env.JAVA_VERSION }}
         distribution: 'temurin'
-        cache: 'gradle'  # Включаем кеш Gradle
+        cache: 'gradle'
         
-    - name: 🔧 Make gradlew executable
+    - name: 🔧 Create Gradle Wrapper
       run: |
-        if [ -f "code/gradlew" ]; then
-          chmod +x code/gradlew
-          echo "✅ gradlew made executable"
+        echo "🔧 Creating Gradle Wrapper..."
+        
+        # Проверяем структуру проекта
+        echo "📁 Project structure:"
+        ls -la code/
+        
+        # Переходим в корневую папку проекта
+        cd code
+        
+        # Создаем Gradle Wrapper если его нет
+        if [ ! -f "gradlew" ]; then
+          echo "📦 Creating Gradle Wrapper..."
+          gradle wrapper --gradle-version=${{ env.GRADLE_VERSION }}
+          
+          # Делаем gradlew исполняемым
+          chmod +x gradlew
+          echo "✅ Gradle Wrapper created"
         else
-          echo "❌ gradlew not found in code directory"
-          find . -name "gradlew" | head -5
+          echo "✅ Gradle Wrapper already exists"
+          chmod +x gradlew
         fi
+        
+        # Проверяем что wrapper создался
+        echo "📋 Checking Gradle Wrapper files:"
+        ls -la gradlew* || echo "No gradlew files"
+        ls -la gradle/wrapper/ || echo "No gradle/wrapper directory"
         
     - name: 📦 Setup Gradle caching
       uses: actions/cache@v3
@@ -68,27 +87,23 @@ jobs:
         echo "🔍 Searching for Gradle files:"
         find . -name "build.gradle" -o -name "build.gradle.kts" -o -name "gradlew" | head -20
         echo ""
-        echo "📊 Gradle projects:"
-        if [ -d "code" ] && [ -f "code/gradlew" ]; then
+        echo "📊 Gradle version:"
+        if [ -f "code/gradlew" ]; then
           cd code && ./gradlew --version || true
-          echo ""
-          ./gradlew projects --console=plain -q || true
         else
-          echo "❌ Папка 'code' не найдена или gradlew отсутствует"
-          echo "📂 Текущая структура каталогов:"
-          find . -type d -maxdepth 3 | sort
+          echo "❌ gradlew not found in code directory"
         fi
         
     - name: 🏗️ Build and Publish Shared Modules
       run: |
         echo "🚀 Building and publishing shared modules to Maven Local..."
-        if [ -d "code" ] && [ -f "code/gradlew" ]; then
+        if [ -f "code/gradlew" ]; then
           cd code && ./gradlew publishAllShared --stacktrace --info --build-cache
           
           echo "📦 Verifying published modules:"
           ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
         else
-          echo "❌ Cannot build - 'code' directory or gradlew not found"
+          echo "❌ Cannot build - gradlew not found"
           exit 1
         fi
         
@@ -98,17 +113,21 @@ jobs:
         sleep 10
         
         echo "Checking PostgreSQL..."
-        pg_isready -h localhost -p 5434 || echo "PostgreSQL not ready yet"
+        # Устанавливаем postgresql-client для pg_isready
+        sudo apt-get update && sudo apt-get install -y postgresql-client
+        
+        # Проверяем PostgreSQL с правильными параметрами
+        pg_isready -h localhost -p 5434 -U test_user -d test_db || echo "PostgreSQL not ready yet"
         
         echo "All services should be ready now"
         
     - name: 🧪 Run All Tests
       run: |
         echo "🧪 Running all tests with testAll task..."
-        if [ -d "code" ] && [ -f "code/gradlew" ]; then
+        if [ -f "code/gradlew" ]; then
           cd code && ./gradlew allTest --continue --build-cache
         else
-          echo "❌ Cannot run tests - 'code' directory or gradlew not found"
+          echo "❌ Cannot run tests - gradlew not found"
           exit 1
         fi
         
@@ -118,10 +137,10 @@ jobs:
       if: always()
       run: |
         echo "📊 Generating test reports..."
-        if [ -d "code" ] && [ -f "code/gradlew" ]; then
+        if [ -f "code/gradlew" ]; then
           cd code && ./gradlew generateCombinedAllureReport --no-daemon --build-cache
         else
-          echo "❌ Cannot generate reports - 'code' directory or gradlew not found"
+          echo "❌ Cannot generate reports - gradlew not found"
         fi
         
     - name: 💾 Upload Test Results
