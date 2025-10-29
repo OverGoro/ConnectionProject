@@ -28,24 +28,48 @@ jobs:
         ports:
           - 5434:5432
     steps:
-    # Ключевой шаг: получение кода из репозитория
-    - name: 📥 Checkout code
+    - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
         
-    # - name: Setup Java ${{ env.JAVA_VERSION }}
-    #   uses: actions/setup-java@v4
-    #   with:
-    #     java-version: ${{ env.JAVA_VERSION }}
-    #     distribution: 'temurin'
-    #     cache: 'gradle'
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: 'gradle'
         
-    # - name: Setup Gradle ${{ env.GRADLE_VERSION }}
-    #   uses: gradle/actions/setup-gradle@v3
+    - name: Create Gradle Wrapper
+      run: |
+        echo "🔧 Creating Gradle Wrapper in all modules..."
+        
+        # Находим все build.gradle файлы, исключая пути с tmp
+        find . -name "build.gradle" -type f | grep -v tmp | while read build_file; do
+          # Переходим в папку с build.gradle
+          cd "$(dirname "$build_file")"
+          
+          echo "📁 Creating wrapper in: $(pwd)"
+          
+          # Создаем Gradle Wrapper
+          gradle wrapper
+          chmod +x gradlew
+          
+          # Возвращаемся обратно
+          cd - > /dev/null
+        done
+        
+        echo "✅ Gradle Wrapper creation completed"        
+    # - name: 📦 Setup Gradle caching
+    #   uses: actions/cache@v3
     #   with:
-    #     gradle-version: ${{ env.GRADLE_VERSION }}
-    
+    #     path: |
+    #       ~/.gradle/caches
+    #       ~/.gradle/wrapper
+    #     key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-gradle-
+          
     - name: Check project structure
       run: |
         echo "📁 Project structure:"
@@ -54,26 +78,23 @@ jobs:
         echo "🔍 Searching for Gradle files:"
         find . -name "build.gradle" -o -name "build.gradle.kts" -o -name "gradlew" | head -20
         echo ""
-        echo "📊 Gradle projects:"
-        # Проверяем существует ли папка code и gradlew
-        if [ -d "code" ] && [ -f "code/gradlew" ]; then
-          cd code && gradle projects || true
+        echo "📊 Gradle version:"
+        if [ -f "code/gradlew" ]; then
+          cd code && ./gradlew --version || true
         else
-          echo "❌ Папка 'code' не найдена или gradlew отсутствует"
-          echo "📂 Текущая структура каталогов:"
-          find . -type d -maxdepth 3 | sort
+          echo "❌ gradlew not found in code directory"
         fi
         
     - name: 🏗️ Build and Publish Shared Modules
       run: |
         echo "🚀 Building and publishing shared modules to Maven Local..."
-        if [ -d "code" ] && [ -f "code/gradlew" ]; then
-          cd code && gradle publishAllShared --stacktrace --info
+        if [ -f "code/gradlew" ]; then
+          cd code && ./gradlew publishAllShared --stacktrace --info --build-cache
           
           echo "📦 Verifying published modules:"
           ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
         else
-          echo "❌ Cannot build - 'code' directory or gradlew not found"
+          echo "❌ Cannot build - gradlew not found"
           exit 1
         fi
         
@@ -83,31 +104,34 @@ jobs:
         sleep 10
         
         echo "Checking PostgreSQL..."
-        # Используем правильные параметры для проверки
-        pg_isready -h localhost -p 5434 || echo "PostgreSQL not ready yet"
+        # Устанавливаем postgresql-client для pg_isready
+        sudo apt-get update && sudo apt-get install -y postgresql-client
+        
+        # Проверяем PostgreSQL с правильными параметрами
+        pg_isready -h localhost -p 5434 -U test_user -d test_db || echo "PostgreSQL not ready yet"
         
         echo "All services should be ready now"
         
     - name: 🧪 Run All Tests
       run: |
         echo "🧪 Running all tests with testAll task..."
-        if [ -d "code" ] && [ -f "code/gradlew" ]; then
-          cd code && gradle allTest --continue
+        if [ -f "code/gradlew" ]; then
+          cd code && ./gradlew allTest --continue --build-cache
         else
-          echo "❌ Cannot run tests - 'code' directory or gradlew not found"
+          echo "❌ Cannot run tests - gradlew not found"
           exit 1
         fi
         
-      continue-on-error: true  # Продолжить даже если тесты упали
-      
+      continue-on-error: true
+        
     - name: 📊 Generate Test Reports
       if: always()
       run: |
         echo "📊 Generating test reports..."
-        if [ -d "code" ] && [ -f "code/gradlew" ]; then
-          cd code && gradle generateCombinedAllureReport --no-daemon
+        if [ -f "code/gradlew" ]; then
+          cd code && ./gradlew generateCombinedAllureReport --no-daemon --build-cache
         else
-          echo "❌ Cannot generate reports - 'code' directory or gradlew not found"
+          echo "❌ Cannot generate reports - gradlew not found"
         fi
         
     - name: 💾 Upload Test Results
@@ -118,7 +142,6 @@ jobs:
         path: |
           **/build/test-results/
           **/build/reports/
-          **/allure-history/
         retention-days: 30
         
     - name: 📈 Upload Allure Report
@@ -141,7 +164,6 @@ jobs:
           **/shared/*/build/libs/*.jar
         retention-days: 7
 
-# Настройки workflow
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
