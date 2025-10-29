@@ -28,6 +28,12 @@ jobs:
         ports:
           - 5434:5432
     steps:
+    # Ключевой шаг: получение кода из репозитория
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
     # - name: Setup Java ${{ env.JAVA_VERSION }}
     #   uses: actions/setup-java@v4
     #   with:
@@ -44,33 +50,53 @@ jobs:
       run: |
         echo "📁 Project structure:"
         ls -lah
-        find . -name "build.gradle" -type f | head -20
+        echo ""
+        echo "🔍 Searching for Gradle files:"
+        find . -name "build.gradle" -o -name "build.gradle.kts" -o -name "gradlew" | head -20
         echo ""
         echo "📊 Gradle projects:"
-        cd code && ./gradlew projects || true
+        # Проверяем существует ли папка code и gradlew
+        if [ -d "code" ] && [ -f "code/gradlew" ]; then
+          cd code && ./gradlew projects || true
+        else
+          echo "❌ Папка 'code' не найдена или gradlew отсутствует"
+          echo "📂 Текущая структура каталогов:"
+          find . -type d -maxdepth 3 | sort
+        fi
         
     - name: 🏗️ Build and Publish Shared Modules
       run: |
         echo "🚀 Building and publishing shared modules to Maven Local..."
-        cd code && ./gradlew publishAllShared --stacktrace --info
-        
-        echo "📦 Verifying published modules:"
-        ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
+        if [ -d "code" ] && [ -f "code/gradlew" ]; then
+          cd code && ./gradlew publishAllShared --stacktrace --info
+          
+          echo "📦 Verifying published modules:"
+          ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
+        else
+          echo "❌ Cannot build - 'code' directory or gradlew not found"
+          exit 1
+        fi
         
     - name: ⏳ Wait for services to be ready
       run: |
         echo "Waiting for services to be fully ready..."
-        sleep 5
+        sleep 10
         
         echo "Checking PostgreSQL..."
-        pg_isready -h localhost -p 5434 -U test_user || echo "PostgreSQL not ready yet"
+        # Используем правильные параметры для проверки
+        pg_isready -h localhost -p 5434 || echo "PostgreSQL not ready yet"
         
         echo "All services should be ready now"
         
     - name: 🧪 Run All Tests
       run: |
         echo "🧪 Running all tests with testAll task..."
-        cd code && ./gradlew allTest --continue
+        if [ -d "code" ] && [ -f "code/gradlew" ]; then
+          cd code && ./gradlew allTest --continue
+        else
+          echo "❌ Cannot run tests - 'code' directory or gradlew not found"
+          exit 1
+        fi
         
       continue-on-error: true  # Продолжить даже если тесты упали
       
@@ -78,27 +104,11 @@ jobs:
       if: always()
       run: |
         echo "📊 Generating test reports..."
-        cd code && ./gradlew generateCombinedAllureReport --no-daemon
-        
-    # - name: 📦 Build All Services
-    #   if: always()
-    #   run: |
-    #     echo "📦 Building all service modules..."
-    #     cd code && ./gradlew buildAll --no-daemon --parallel -x test
-        
-    # - name: 🎯 Check Test Results
-    #   if: always()
-    #   run: |
-    #     echo "🎯 Test Results Summary:"
-    #     find . -name "TEST-*.xml" -path "*/build/test-results/*" | head -5 | while read file; do
-    #       echo "📄 Test file: $file"
-    #       if command -v xmllint >/dev/null 2>&1; then
-    #         failures=$(xmllint --xpath 'string(//testsuite/@failures)' "$file" 2>/dev/null || echo "N/A")
-    #         errors=$(xmllint --xpath 'string(//testsuite/@errors)' "$file" 2>/dev/null || echo "N/A")
-    #         tests=$(xmllint --xpath 'string(//testsuite/@tests)' "$file" 2>/dev/null || echo "N/A")
-    #         echo "   Tests: $tests, Failures: $failures, Errors: $errors"
-    #       fi
-    #     done
+        if [ -d "code" ] && [ -f "code/gradlew" ]; then
+          cd code && ./gradlew generateCombinedAllureReport --no-daemon
+        else
+          echo "❌ Cannot generate reports - 'code' directory or gradlew not found"
+        fi
         
     - name: 💾 Upload Test Results
       if: always()
@@ -117,8 +127,8 @@ jobs:
       with:
         name: allure-report
         path: |
-          build/reports/allure-report/
-          build/allure-results/
+          **/build/reports/allure-report/
+          **/build/allure-results/
         retention-days: 30
         
     - name: 📋 Upload Build Artifacts
@@ -127,8 +137,8 @@ jobs:
       with:
         name: service-jars
         path: |
-          service/*/build/libs/*.jar
-          shared/*/build/libs/*.jar
+          **/service/*/build/libs/*.jar
+          **/shared/*/build/libs/*.jar
         retention-days: 7
 
 # Настройки workflow
