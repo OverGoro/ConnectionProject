@@ -86,7 +86,7 @@ jobs:
         run: |
           echo "🚀 Building and publishing shared modules to Maven Local..."
           if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew publishAllShared --stacktrace --info --build-cache
+            cd code && ./gradlew publishAllShared
             
             echo "📦 Verifying published modules:"
             ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
@@ -119,6 +119,20 @@ jobs:
           fi
           
         continue-on-error: true
+      - name: Cache
+        uses: actions/cache@v4.3.0
+        with:
+          # A list of files, directories, and wildcard patterns to cache and restore
+          path: |
+            **/.gradle
+            **/gradle
+            **/build
+          # An explicit key for restoring and saving the cache
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle- 
+          save-always: true
+          continue-on-error: true
           
       - name: 📊 Generate Test Reports
         if: always()
@@ -140,6 +154,7 @@ jobs:
             **/build/reports/
           retention-days: 30
           
+          
       - name: 📈 Upload Allure Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -149,20 +164,7 @@ jobs:
             **/build/reports/allure-report/
             **/build/allure-results/
           retention-days: 30
-        
-      - name: Cache
-        uses: actions/cache@v4.3.0
-        with:
-          # A list of files, directories, and wildcard patterns to cache and restore
-          path: |
-            **/.gradle
-            **/gradle
-            **/build
-          # An explicit key for restoring and saving the cache
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle- 
-          save-always: true
+
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
