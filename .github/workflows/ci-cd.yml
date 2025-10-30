@@ -2,13 +2,15 @@ name: Java CI/CD Pipeline
 
 on:
   push:
-    branches: [ main]
+    branches: [main]
   pull_request:
-    branches: [ main]
+    branches: [main]
+
 env:
   JAVA_VERSION: '21'
   GRADLE_VERSION: '8.7'
   POSTGRES_IMAGE: 'postgres:15'
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -27,47 +29,41 @@ jobs:
           --health-retries 5
         ports:
           - 5434:5432
-    permissions: # Добавьте этот блок
-        contents: read # Для checkout кода
-        actions: read # (При необходимости) Для взаимодействия с другими Actions
-        packages: read # (При необходимости) Если нужно работать с GitHub Packages
-    steps:
-      - name: Setup Java JDK
-        uses: actions/setup-java@v5.0.0
-        with:
-          # The Java version to set up. Takes a whole or semver Java version. See examples of supported syntax in README file
-          java-version: '21'
-          distribution: 'adopt'          
-      - name: Install Allure
-        run: |
-          # Добавляем официальный репозиторий Allure
-          sudo apt-get install -y default-jre-headless
-          wget https://github.com/allure-framework/allure2/releases/download/2.27.0/allure_2.27.0-1_all.deb
-          sudo dpkg -i allure_2.27.0-1_all.deb
-          sudo apt-get install -f
-          allure --help
-          
-          
     
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    
+    steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-        
+      
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
           cache: 'gradle'
-          
+      
+      - name: Install Allure
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-jre-headless
+          wget https://github.com/allure-framework/allure2/releases/download/2.27.0/allure_2.27.0-1_all.deb
+          sudo dpkg -i allure_2.27.0-1_all.deb || true
+          sudo apt-get install -f -y
+          allure --version
+      
       - name: Create Gradle Wrapper
         run: |
           echo "🔧 Creating Gradle Wrapper..."
           cd code && gradle wrapper
           chmod +x gradlew
-          echo "✅ Gradle Wrapper creation completed"        
-          
+          echo "✅ Gradle Wrapper creation completed"
+      
       - name: 🏗️ Build modules
         run: |
           echo "🚀 Building and publishing shared modules to Maven Local..."
@@ -76,8 +72,8 @@ jobs:
           else
             echo "❌ Cannot build - gradlew not found"
             exit 1
-          fi    
-          
+          fi
+      
       - name: 🧪 Run All Tests
         run: |
           echo "🧪 Running all tests with testAll task..."
@@ -87,23 +83,19 @@ jobs:
             echo "❌ Cannot run tests - gradlew not found"
             exit 1
           fi
-          
         continue-on-error: true
+      
       - name: Cache
         uses: actions/cache@v4.3.0
         with:
-          # A list of files, directories, and wildcard patterns to cache and restore
           path: |
             **/.gradle
             **/gradle
             **/build
-          # An explicit key for restoring and saving the cache
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-gradle- 
-          save-always: true
-          continue-on-error: true
-          
+            ${{ runner.os }}-gradle-
+      
       - name: 📊 Generate Test Reports
         if: always()
         run: |
@@ -113,44 +105,50 @@ jobs:
           else
             echo "❌ Cannot generate reports - gradlew not found"
           fi
-      - name: Upload Allure report  # Загружаем результаты тестов в GitHub Actions
-        if: always()  # Загружаем файлы независимо от успеха/неуспеха тестов
+      
+      - name: Upload Allure HTML Report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report  # Название артефакта
-          path: code/build/reports/allure-report  # Путь к файлам отчета
-  publish-report:  # Джоба для публикации Allure-отчета на GitHub Pages
-    if: always()  # Джоба будет выполнена вне зависимости от успеха или неуспеха run-tests
-    needs: [ build-and-test ]  # Выполняется только после успешного выполнения run-tests
-    runs-on: ubuntu-latest  # Используем последнюю версию Ubuntu
+          name: allure-html-report
+          path: code/build/reports/allure-report
+          retention-days: 1
 
+  publish-report:
+    if: always()
+    needs: [build-and-test]
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
     steps:
-      - name: Check out repository  # Клонируем репозиторий, включая ветку gh-pages
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: gh-pages  # Операции будем выполнять в ветке gh-pages
-          path: gh-pages  # Клонируем файлы в папку gh-pages
-
-      - name: Download Allure results  # Загружаем ранее сохраненные результаты тестов
+      
+      - name: Download Allure HTML Report
         uses: actions/download-artifact@v4
         with:
-          name: allure-report  # Название артефакта
-          path: code/build/reports/allure-report  # Путь для скачивания
-
-      - name: Allure Report action from marketplace  # Генерация отчета Allure
-        uses: simple-elf/allure-report-action@v1.12
-        if: always()
+          name: allure-html-report
+          path: public
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          allure_results: allure-results  # Папка с результатами тестов
-          allure_history: allure-history  # Папка для хранения истории отчетов
-
-      - name: Deploy report to Github Pages  # Публикация отчета на GitHub Pages
-        if: always()
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}  # Токен для доступа к репозиторию
-          publish_branch: gh-pages  # Публикуем отчет в ветку gh-pages
-          publish_dir: allure-history  # Папка, где находится сгенерированный отчет
+          path: public
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
