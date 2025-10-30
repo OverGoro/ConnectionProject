@@ -32,11 +32,6 @@ jobs:
         # You may pin to the exact commit or the version.
         # uses: allure-framework/setup-allurectl@a06d172c13fb9f51145d605e5178f7a84e502d5f
         uses: allure-framework/setup-allurectl@v1.0.2
-  
-      - name: Setup Allure TestOps
-        # You may pin to the exact commit or the version.
-        # uses: allure-framework/setup-allurectl@a06d172c13fb9f51145d605e5178f7a84e502d5f
-        uses: allure-framework/setup-allurectl@v1.0.2
           
           
       - name: Setup Java JDK
