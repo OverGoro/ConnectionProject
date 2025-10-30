@@ -32,8 +32,11 @@ jobs:
         # You may pin to the exact commit or the version.
         # uses: allure-framework/setup-allurectl@a06d172c13fb9f51145d605e5178f7a84e502d5f
         uses: allure-framework/setup-allurectl@v1.0.2
-    
-          
+  
+      - name: Install Allure
+        uses: simple-elf/allure-report-action@v1.7
+        with:
+          allure-version: 2.27.0
           
       - name: Setup Java JDK
         uses: actions/setup-java@v5.0.0
