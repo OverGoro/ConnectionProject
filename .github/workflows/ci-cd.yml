@@ -45,7 +45,7 @@ jobs:
           wget https://github.com/allure-framework/allure2/releases/download/2.27.0/allure_2.27.0-1_all.deb
           sudo dpkg -i allure_2.27.0-1_all.deb
           sudo apt-get install -f
-          allure
+          allure --help
           
           
     
