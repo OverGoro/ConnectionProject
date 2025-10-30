@@ -1,1 +1,0 @@
-{"uuid":"679535ac-a5a5-4731-94d0-727db11f83d9","name":"Get buffers by device - Negative: Device doesn't belong to client","children":["23a2ded3-dcd7-4781-95bb-d4aa48eb8499"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761788791693,"stop":1761788791698}],"afters":[],"start":1761788790296,"stop":1761788792690}
