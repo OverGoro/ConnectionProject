@@ -1,1 +1,0 @@
-{"uuid":"a1aa3f68-5ff3-41fd-9648-8da7aeb086ec","name":"Health check - Positive","children":["574ccea5-0420-4c11-bc0e-88c18ca9a7bc"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761698462119,"stop":1761698462126}],"afters":[],"start":1761698460119,"stop":1761698462892}

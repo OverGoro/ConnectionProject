@@ -53,9 +53,17 @@ repositories {
 
 
 dependencies {
-    implementation 'com.connection:common-events:1.0.0'
-    implementation 'com.connection:connection-scheme-shared:1.0.0'
-    annotationProcessor 'com.connection:common-events:1.0.0'
+
+    def isStandalone = project == rootProject
+    if (isStandalone) {
+        implementation      'com.connection:common-events:1.0.0'
+        implementation      'com.connection:connection-scheme-shared:1.0.0'
+        annotationProcessor 'com.connection:common-events:1.0.0'
+    } else {
+        implementation      project(':shared:common-events')
+        implementation      project(':shared:connection-scheme-shared')
+        annotationProcessor project(':shared:common-events')
+    }
     
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.4'
     compileOnly 'org.projectlombok:lombok:1.18.38'
@@ -426,8 +434,8 @@ publishing {
             from components.java
             // Добавляем информацию о pom для лучшей совместимости
             pom {
-                name = 'buffer Shared Module'
-                description = 'Shared components for buffer services'
+                name = 'connection-scheme Shared Module'
+                description = 'Shared components for connection-scheme services'
                 url = 'http://www.example.com'
                 licenses {
                     license {

@@ -99,18 +99,29 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok:1.18.38'
 	testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
 
-	implementation 'com.connection:token-shared:1.0.0'
-	compileOnly 'com.connection:token-shared:1.0.0'
-	
-	implementation 'com.connection:connection-scheme-shared:1.0.0'
-	compileOnly 'com.connection:connection-scheme-shared:1.0.0'
+    def isStandalone = project == rootProject
+    if (isStandalone) {
+        implementation 'com.connection:token-shared:1.0.0'
+        compileOnly 'com.connection:token-shared:1.0.0'
+        
+        implementation 'com.connection:connection-scheme-shared:1.0.0'
+        compileOnly 'com.connection:connection-scheme-shared:1.0.0'
 
-    implementation 'com.connection:common-events:1.0.0'
-    implementation 'com.connection:common-auth-events:1.0.0'    
-    implementation 'com.connection:common-events:1.0.0'
-    implementation 'com.connection:common-connection-scheme-events:1.0.0'
+        implementation 'com.connection:common-events:1.0.0'
+        implementation 'com.connection:common-auth-events:1.0.0'    
+        implementation 'com.connection:common-events:1.0.0'
+        implementation 'com.connection:common-connection-scheme-events:1.0.0'
 
-    implementation 'com.connection:auth-service:1.0.0'
+        implementation 'com.connection:auth-service:1.0.0'
+    } else {
+        implementation  project(':shared:token-shared')
+        implementation  project(':shared:connection-scheme-shared')
+        implementation  project(':shared:common-events')
+        implementation  project(':shared:common-auth-events'    )
+        implementation  project(':shared:common-events')
+        implementation  project(':shared:common-connection-scheme-events')
+        implementation  project(':service:auth-service')
+    }
 
 	// Тестовые зависимости
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

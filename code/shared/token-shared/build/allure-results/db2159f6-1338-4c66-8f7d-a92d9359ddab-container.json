@@ -1,1 +1,0 @@
-{"uuid":"db2159f6-1338-4c66-8f7d-a92d9359ddab","name":"Validate null AccessTokenDTO - Negative","children":["b65b6577-de89-4c17-925e-8601bfc62976"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761698559006,"stop":1761698559006}],"afters":[],"start":1761698559004,"stop":1761698559007}

@@ -1,1 +1,0 @@
-{"uuid":"e746c876-085b-415a-911f-a0bccb164c7d","name":"Register client - Positive","children":["988bb135-7eab-48a6-9bd0-8f423dc1d016"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363582271,"stop":1761363582273}],"afters":[],"start":1761363580841,"stop":1761363583162}

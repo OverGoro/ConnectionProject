@@ -1,1 +1,0 @@
-{"uuid":"78581bce-2529-433a-8015-81edb3c1b113","name":"Handle response - completes exceptionally for type mismatch","children":["8ac633a6-c099-4fad-905d-3ecaf6347e44"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363680525,"stop":1761363680526}],"afters":[],"start":1761363678946,"stop":1761363681694}

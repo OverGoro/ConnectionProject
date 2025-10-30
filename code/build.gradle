@@ -253,6 +253,13 @@ task publishAllShared {
 
 // Определяем правильный порядок публикации
 def sharedPublishOrder = [
+    ':shared:buffer-shared:publishToMavenLocal',
+    ':shared:client-shared:publishToMavenLocal',
+    ':shared:connection-scheme-shared:publishToMavenLocal',
+    ':shared:device-shared:publishToMavenLocal',
+    ':shared:device-token-shared:publishToMavenLocal',
+    ':shared:token-shared:publishToMavenLocal',
+    ':shared:message-shared:publishToMavenLocal',
     ':shared:common-events:publishToMavenLocal',
     ':shared:common-auth-events:publishToMavenLocal',
     ':shared:common-buffer-events:publishToMavenLocal',
@@ -260,13 +267,6 @@ def sharedPublishOrder = [
     ':shared:common-device-auth-events:publishToMavenLocal',
     ':shared:common-device-events:publishToMavenLocal',
     ':shared:common-message-events:publishToMavenLocal',
-    ':shared:buffer-shared:publishToMavenLocal',
-    ':shared:client-shared:publishToMavenLocal',
-    ':shared:connection-scheme-shared:publishToMavenLocal',
-    ':shared:device-shared:publishToMavenLocal',
-    ':shared:device-token-shared:publishToMavenLocal',
-    ':shared:message-shared:publishToMavenLocal',
-    ':shared:token-shared:publishToMavenLocal',
     ':service:auth-service:publishToMavenLocal',
     ':service:device-service:publishToMavenLocal',
     ':service:device-auth-service:publishToMavenLocal',

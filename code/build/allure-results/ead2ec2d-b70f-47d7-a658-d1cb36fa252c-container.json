@@ -1,1 +1,0 @@
-{"uuid":"ead2ec2d-b70f-47d7-a658-d1cb36fa252c","name":"Validate MessageDTO with invalid content - Negative","children":["d4887d66-65af-4783-bf87-1a81a2ad1759"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363748077,"stop":1761363748077}],"afters":[],"start":1761363748074,"stop":1761363748079}

@@ -105,12 +105,20 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok:1.18.38'
 	testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
 
-	implementation 'com.connection:token-shared:1.0.0'
-	implementation 'com.connection:device-shared:1.0.0'
-	implementation 'com.connection:device-token-shared:1.0.0'
-    implementation 'com.connection:connection-scheme-shared:1.0.0'
-
-    implementation 'com.connection:auth-service:1.0.0'
+    def isStandalone = project == rootProject
+    if (isStandalone) {
+        implementation 'com.connection:token-shared:1.0.0'
+        implementation 'com.connection:device-shared:1.0.0'
+        implementation 'com.connection:device-token-shared:1.0.0'
+        implementation 'com.connection:connection-scheme-shared:1.0.0'
+        implementation 'com.connection:auth-service:1.0.0'
+    } else {
+        implementation project(':shared:token-shared')
+        implementation project(':shared:device-shared')
+        implementation project(':shared:device-token-shared')
+        implementation project(':shared:connection-scheme-shared')
+        implementation project(':service:auth-service')
+    }
 
 	// Тестовые зависимости
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

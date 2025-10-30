@@ -1,1 +1,0 @@
-{"uuid":"f243488c-e1d0-4d04-a99d-deeac52c830e","name":"Validate BufferDTO with negative max size - Negative","children":["798c8d5c-ff7d-4dd9-91f6-4bcca6d69e4b"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363715621,"stop":1761363715621}],"afters":[],"start":1761363715620,"stop":1761363715622}

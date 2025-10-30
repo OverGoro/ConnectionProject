@@ -1,1 +1,0 @@
-{"uuid":"2b9cb2f7-c54d-49a5-bf52-8ecdb9ca1462","name":"Validate DeviceBLM with null fields - Negative","children":["b5232807-e284-45bd-837e-93ddbdd409ca"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363736773,"stop":1761363736774}],"afters":[],"start":1761363736710,"stop":1761363737256}

@@ -98,12 +98,19 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok:1.18.38'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
 
-    // Shared modules
-    implementation 'com.connection:client-shared:1.0.0'
-    implementation 'com.connection:token-shared:1.0.0'
-    implementation 'com.connection:common-events:1.0.0'
-    implementation 'com.connection:common-auth-events:1.0.0'
-
+    // Shared modules  
+    def isStandalone = project == rootProject
+    if (isStandalone) {
+        implementation 'com.connection:client-shared:1.0.0'
+        implementation 'com.connection:token-shared:1.0.0'
+        implementation 'com.connection:common-events:1.0.0'
+        implementation 'com.connection:common-auth-events:1.0.0'
+    } else {
+        implementation project(':shared:client-shared')
+        implementation project(':shared:token-shared')
+        implementation project(':shared:common-events')
+        implementation project(':shared:common-auth-events')
+    }
     // Test dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test:3.3.10'

@@ -1,1 +1,0 @@
-{"uuid":"07a4f8ce-a7b4-410a-8862-59e3ef0c79b6","name":"Create device - Positive","children":["9982ae3f-d62b-4be3-9e46-ddd7be8b4783"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761698493805,"stop":1761698493816}],"afters":[],"start":1761698492305,"stop":1761698494668}

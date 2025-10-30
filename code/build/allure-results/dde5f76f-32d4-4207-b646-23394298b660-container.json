@@ -1,1 +1,0 @@
-{"uuid":"dde5f76f-32d4-4207-b646-23394298b660","name":"Check scheme exists - Negative","children":["5f7ec7e0-5c67-4617-919e-025a12c869eb"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363733486,"stop":1761363733487}],"afters":[],"start":1761363733484,"stop":1761363733488}

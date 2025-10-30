@@ -1,1 +1,0 @@
-{"uuid":"0df1ac3e-7a0c-471c-bd27-2f67d14fd35a","name":"Validate null ConnectionSchemeBLM - Negative","children":["85b5090c-fb33-41e1-850b-7bb0e8f85228"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761698538811,"stop":1761698538811}],"afters":[],"start":1761698538809,"stop":1761698538812}

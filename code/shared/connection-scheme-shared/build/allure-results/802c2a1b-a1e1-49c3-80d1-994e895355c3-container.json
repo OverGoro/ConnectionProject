@@ -1,1 +1,0 @@
-{"uuid":"802c2a1b-a1e1-49c3-80d1-994e895355c3","name":"Validate ConnectionSchemeDTO with empty transitions - Negative","children":["1b032615-65e9-4141-a8f4-a50efeef3621"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761698538785,"stop":1761698538785}],"afters":[],"start":1761698538783,"stop":1761698538787}

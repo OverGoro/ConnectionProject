@@ -1,1 +1,0 @@
-{"uuid":"f9f7dfc8-6284-48e2-9ff5-fc9b25388050","name":"Validate null ClientDTO - Negative","children":["f3086a23-b083-4b18-9dd8-69d824fa6fe0"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363720396,"stop":1761363720396}],"afters":[],"start":1761363720393,"stop":1761363720399}

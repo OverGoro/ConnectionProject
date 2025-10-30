@@ -1,1 +1,0 @@
-{"uuid":"3f8aa33f-c937-4a1d-9575-907b7f510946","name":"Find client by username - Positive","children":["4c69cabc-e2ac-4afc-8909-f3cd9eb75a06"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761363721616,"stop":1761363721617}],"afters":[],"start":1761363721615,"stop":1761363721618}
