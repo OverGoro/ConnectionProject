@@ -28,10 +28,12 @@ jobs:
         ports:
           - 5434:5432
     steps:
-      - name: Allure Action
+      - name: Setup Allure TestOps
         # You may pin to the exact commit or the version.
-        # uses: piotrek111/install-allure-for-linux@bd836fdc78f64714a2b07cabcadfd479070b0846
-        uses: piotrek111/install-allure-for-linux@v1.0.0
+        # uses: allure-framework/setup-allurectl@a06d172c13fb9f51145d605e5178f7a84e502d5f
+        uses: allure-framework/setup-allurectl@v1.0.2
+    
+          
           
       - name: Setup Java JDK
         uses: actions/setup-java@v5.0.0
@@ -104,28 +106,44 @@ jobs:
           else
             echo "❌ Cannot generate reports - gradlew not found"
           fi
-          
-      - name: 💾 Upload Test Results
-        if: always()
+      - name: Upload Allure report  # Загружаем результаты тестов в GitHub Actions
+        if: always()  # Загружаем файлы независимо от успеха/неуспеха тестов
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
-          path: |
-            **/build/test-results/
-            **/build/reports/
-          retention-days: 30
-          
-          
-      - name: 📈 Upload Allure Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report
-          path: |
-            **/build/reports/allure-report/
-            **/build/allure-results/
-          retention-days: 30
+          name: allure-report  # Название артефакта
+          path: code/build/reports/allure-report  # Путь к файлам отчета
+  publish-report:  # Джоба для публикации Allure-отчета на GitHub Pages
+    if: always()  # Джоба будет выполнена вне зависимости от успеха или неуспеха run-tests
+    needs: [ build-and-test ]  # Выполняется только после успешного выполнения run-tests
+    runs-on: ubuntu-latest  # Используем последнюю версию Ubuntu
 
+    steps:
+      - name: Check out repository  # Клонируем репозиторий, включая ветку gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages  # Операции будем выполнять в ветке gh-pages
+          path: gh-pages  # Клонируем файлы в папку gh-pages
+
+      - name: Download Allure results  # Загружаем ранее сохраненные результаты тестов
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-report  # Название артефакта
+          path: code/build/reports/allure-report  # Путь для скачивания
+
+      - name: Allure Report action from marketplace  # Генерация отчета Allure
+        uses: simple-elf/allure-report-action@v1.12
+        if: always()
+        with:
+          allure_results: allure-results  # Папка с результатами тестов
+          allure_history: allure-history  # Папка для хранения истории отчетов
+
+      - name: Deploy report to Github Pages  # Публикация отчета на GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}  # Токен для доступа к репозиторию
+          publish_branch: gh-pages  # Публикуем отчет в ветку gh-pages
+          publish_dir: allure-history  # Папка, где находится сгенерированный отчет
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
