@@ -1,0 +1,1 @@
+{"uuid":"6cb9d88d-c6aa-4fe8-9221-369b6ed43ea6","name":"Create buffer - Negative: Buffer already exists","children":["17a89e1f-8220-42fd-abe2-c614c5876a05"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761788791693,"stop":1761788791699}],"afters":[],"start":1761788790296,"stop":1761788792690}

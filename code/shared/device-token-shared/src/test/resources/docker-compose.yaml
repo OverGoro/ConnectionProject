@@ -1,1 +1,66 @@
-/home/yurik/GitHub/ConnectionProject/code/src/test/resources/docker-compose.yaml
+# src/test/resources/docker-compose.yaml
+version: '3.8'
+
+services:
+  # Zookeeper (требуется для Kafka)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper-test
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2182:2181"  # +1 к релизному порту
+    networks:
+      - app-network-test
+
+  # Kafka Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka-test
+    depends_on:
+      - zookeeper
+    ports:
+      - "9093:9093"  # +1 к релизному порту
+      - "29093:29093"  # +1 к релизному порту
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9093,PLAINTEXT_HOST://localhost:29093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - app-network-test
+
+  postgres:
+    image: postgres:15
+    container_name: postgres-test
+    restart: unless-stopped
+    volumes:
+      - postgres_data_test:/var/lib/postgresql/data
+      - ./db/scheme-init.sql:/docker-entrypoint-initdb.d/01-scheme-init.sql
+      - ./db/core-init.sql:/docker-entrypoint-initdb.d/02-core-init.sql
+      - ./db/token-init.sql:/docker-entrypoint-initdb.d/03-token-init.sql
+      - ./db/transaction-init.sql:/docker-entrypoint-initdb.d/04-transaction-init.sql
+      - ./db/connection-init.sql:/docker-entrypoint-initdb.d/05-connection-init.sql
+    environment:
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_USER: test_user
+      POSTGRES_DB: test_db
+    ports:
+      - "5434:5432"  # +1 к релизному порту
+    command: postgres -c max_prepared_transactions=100
+    networks:
+      - app-network-test
+
+networks:
+  app-network-test:
+    driver: bridge
+
+volumes:
+  postgres_data_test:
