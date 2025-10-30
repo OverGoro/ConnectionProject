@@ -50,12 +50,20 @@ jobs:
       
       - name: Install Allure
         run: |
-          sudo apt-get update
-          sudo apt-get install -y default-jre-headless
-          wget https://github.com/allure-framework/allure2/releases/download/2.27.0/allure_2.27.0-1_all.deb
-          sudo dpkg -i allure_2.27.0-1_all.deb || true
-          sudo apt-get install -f -y
-          allure --version
+          echo "🔍 Checking if Allure is already installed..."
+          if allure --version > /dev/null 2>&1; then
+            echo "✅ Allure is already installed"
+            allure --version
+          else
+            echo "📥 Installing Allure..."
+            sudo apt-get update
+            sudo apt-get install -y default-jre-headless
+            wget https://github.com/allure-framework/allure2/releases/download/2.27.0/allure_2.27.0-1_all.deb
+            sudo dpkg -i allure_2.27.0-1_all.deb || true
+            sudo apt-get install -f -y
+            echo "✅ Allure installation completed"
+            allure --version
+          fi
       - name: Setup Report directories
         run: |
           mkdir -p code
@@ -123,13 +131,6 @@ jobs:
           allure_report: code/build/allure-report
           allure_history: code/build/allure-history
       
-      - name: Upload Allure HTML Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-html-report
-          path: code/build/allure-report
-          retention-days: 1
       - name: Upload Allure HTML Report
         if: always()
         uses: actions/upload-artifact@v4
