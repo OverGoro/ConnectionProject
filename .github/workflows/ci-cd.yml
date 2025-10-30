@@ -56,6 +56,13 @@ jobs:
           sudo dpkg -i allure_2.27.0-1_all.deb || true
           sudo apt-get install -f -y
           allure --version
+      - name: Setup Report directories
+        run: |
+          mkdir -p code
+          mkdir -p code/build
+          mkdir -p code/build/allure-history
+          mkdir -p code/build/allure-results
+          mkdir -p code/build/allure-report
       
       - name: Create Gradle Wrapper
         run: |
@@ -96,22 +103,39 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
       
-      - name: 📊 Generate Test Reports
+      - name: 📊 Collect Test Results
         if: always()
         run: |
-          echo "📊 Generating test reports..."
+          echo "📊 Collecting test results..."
           if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew generateCombinedAllureReport
+            cd code && ./gradlew collectAllureResults
           else
             echo "❌ Cannot generate reports - gradlew not found"
           fi
+
+      - name: Allure Report with history
+        # You may pin to the exact commit or the version.
+        # uses: simple-elf/allure-report-action@53ebb757a2097edc77c53ecef4d454fc2f2f774c
+        uses: simple-elf/allure-report-action@v1.13
+        with:
+          # Allure test result data dir
+          allure_results: code/build/allure-results
+          allure_report: code/build/allure-report
+          allure_history: code/build/allure-history
       
       - name: Upload Allure HTML Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-html-report
-          path: code/build/reports/allure-report
+          path: code/build/allure-report
+          retention-days: 1
+      - name: Upload Allure HTML Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-html-report
+          path: code/build/allure-report
           retention-days: 1
 
   publish-report:
