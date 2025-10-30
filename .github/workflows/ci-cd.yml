@@ -27,7 +27,18 @@ jobs:
           --health-retries 5
         ports:
           - 5434:5432
+    permissions: # Добавьте этот блок
+        contents: read # Для checkout кода
+        actions: read # (При необходимости) Для взаимодействия с другими Actions
+        packages: read # (При необходимости) Если нужно работать с GitHub Packages
     steps:
+        
+      - name: Setup Allure TestOps
+        # You may pin to the exact commit or the version.
+        # uses: allure-framework/setup-allurectl@a06d172c13fb9f51145d605e5178f7a84e502d5f
+        uses: allure-framework/setup-allurectl@v1.0.2
+          
+          
       - name: Setup Java JDK
         uses: actions/setup-java@v5.0.0
         with:
@@ -49,38 +60,10 @@ jobs:
           
       - name: Create Gradle Wrapper
         run: |
-          echo "🔧 Creating Gradle Wrapper in all modules..."
-          
-          # Находим все build.gradle файлы, исключая пути с tmp
-          find . -name "build.gradle" -type f | grep -v tmp | while read build_file; do
-            # Переходим в папку с build.gradle
-            cd "$(dirname "$build_file")"
-            
-            echo "📁 Creating wrapper in: $(pwd)"
-            
-            # Создаем Gradle Wrapper
-            gradle wrapper
-            chmod +x gradlew
-            
-            # Возвращаемся обратно
-            cd - > /dev/null
-          done
+          echo "🔧 Creating Gradle Wrapper..."
+          cd code && gradle wrapper
+          chmod +x gradlew
           echo "✅ Gradle Wrapper creation completed"        
-            
-      - name: Check project structure
-        run: |
-          echo "📁 Project structure:"
-          ls -lah
-          echo ""
-          echo "🔍 Searching for Gradle files:"
-          find . -name "build.gradle" -o -name "build.gradle.kts" -o -name "gradlew" | head -20
-          echo ""
-          echo "📊 Gradle version:"
-          if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew --version || true
-          else
-            echo "❌ gradlew not found in code directory"
-          fi
           
       - name: 🏗️ Build modules
         run: |
@@ -91,25 +74,12 @@ jobs:
             echo "❌ Cannot build - gradlew not found"
             exit 1
           fi    
-      - name: ⏳ Wait for services to be ready
-        run: |
-          echo "Waiting for services to be fully ready..."
-          sleep 10
-          
-          echo "Checking PostgreSQL..."
-          # Устанавливаем postgresql-client для pg_isready
-          sudo apt-get update && sudo apt-get install -y postgresql-client
-          
-          # Проверяем PostgreSQL с правильными параметрами
-          pg_isready -h localhost -p 5434 -U test_user -d test_db || echo "PostgreSQL not ready yet"
-          
-          echo "All services should be ready now"
           
       - name: 🧪 Run All Tests
         run: |
           echo "🧪 Running all tests with testAll task..."
           if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew allTest --continue
+            cd code && ./gradlew test --continue
           else
             echo "❌ Cannot run tests - gradlew not found"
             exit 1
@@ -136,32 +106,48 @@ jobs:
         run: |
           echo "📊 Generating test reports..."
           if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew generateCombinedAllureReport --no-daemon --build-cache
+            cd code && ./gradlew generateCombinedAllureReport
           else
             echo "❌ Cannot generate reports - gradlew not found"
           fi
-          
-      - name: 💾 Upload Test Results
-        if: always()
+      - name: Upload Allure report  # Загружаем результаты тестов в GitHub Actions
+        if: always()  # Загружаем файлы независимо от успеха/неуспеха тестов
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
-          path: |
-            **/build/test-results/
-            **/build/reports/
-          retention-days: 30
-          
-          
-      - name: 📈 Upload Allure Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report
-          path: |
-            **/build/reports/allure-report/
-            **/build/allure-results/
-          retention-days: 30
+          name: allure-report  # Название артефакта
+          path: code/build/reports/allure-report  # Путь к файлам отчета
+  publish-report:  # Джоба для публикации Allure-отчета на GitHub Pages
+    if: always()  # Джоба будет выполнена вне зависимости от успеха или неуспеха run-tests
+    needs: [ build-and-test ]  # Выполняется только после успешного выполнения run-tests
+    runs-on: ubuntu-latest  # Используем последнюю версию Ubuntu
 
+    steps:
+      - name: Check out repository  # Клонируем репозиторий, включая ветку gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages  # Операции будем выполнять в ветке gh-pages
+          path: gh-pages  # Клонируем файлы в папку gh-pages
+
+      - name: Download Allure results  # Загружаем ранее сохраненные результаты тестов
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-report  # Название артефакта
+          path: code/build/reports/allure-report  # Путь для скачивания
+
+      - name: Allure Report action from marketplace  # Генерация отчета Allure
+        uses: simple-elf/allure-report-action@v1.12
+        if: always()
+        with:
+          allure_results: allure-results  # Папка с результатами тестов
+          allure_history: allure-history  # Папка для хранения истории отчетов
+
+      - name: Deploy report to Github Pages  # Публикация отчета на GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}  # Токен для доступа к репозиторию
+          publish_branch: gh-pages  # Публикуем отчет в ветку gh-pages
+          publish_dir: allure-history  # Папка, где находится сгенерированный отчет
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
