@@ -49,38 +49,41 @@ jobs:
           
       - name: Create Gradle Wrapper
         run: |
-          echo "🔧 Creating Gradle Wrapper in all modules..."
+          echo "🔧 Creating Gradle Wrapper..."
           
-          # Находим все build.gradle файлы, исключая пути с tmp
-          find . -name "build.gradle" -type f | grep -v tmp | while read build_file; do
-            # Переходим в папку с build.gradle
-            cd "$(dirname "$build_file")"
+          # # Находим все build.gradle файлы, исключая пути с tmp
+          # find . -name "build.gradle" -type f | grep -v tmp | while read build_file; do
+          #   # Переходим в папку с build.gradle
+          #   cd "$(dirname "$build_file")"
             
-            echo "📁 Creating wrapper in: $(pwd)"
+          #   echo "📁 Creating wrapper in: $(pwd)"
             
-            # Создаем Gradle Wrapper
-            gradle wrapper
-            chmod +x gradlew
+          #   # Создаем Gradle Wrapper
+            # gradle wrapper
+            # chmod +x gradlew
             
-            # Возвращаемся обратно
-            cd - > /dev/null
-          done
+          #   # Возвращаемся обратно
+          #   cd - > /dev/null
+          # done
+
+          cd code && gradle wrapper
+          chmod +x gradlew
           echo "✅ Gradle Wrapper creation completed"        
             
-      - name: Check project structure
-        run: |
-          echo "📁 Project structure:"
-          ls -lah
-          echo ""
-          echo "🔍 Searching for Gradle files:"
-          find . -name "build.gradle" -o -name "build.gradle.kts" -o -name "gradlew" | head -20
-          echo ""
-          echo "📊 Gradle version:"
-          if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew --version || true
-          else
-            echo "❌ gradlew not found in code directory"
-          fi
+      # - name: Check project structure
+      #   run: |
+      #     echo "📁 Project structure:"
+      #     ls -lah
+      #     echo ""
+      #     echo "🔍 Searching for Gradle files:"
+      #     find . -name "build.gradle" -o -name "build.gradle.kts" -o -name "gradlew" | head -20
+      #     echo ""
+      #     echo "📊 Gradle version:"
+      #     if [ -f "code/gradlew" ]; then
+      #       cd code && ./gradlew --version || true
+      #     else
+      #       echo "❌ gradlew not found in code directory"
+      #     fi
           
       - name: 🏗️ Build modules
         run: |
@@ -91,25 +94,25 @@ jobs:
             echo "❌ Cannot build - gradlew not found"
             exit 1
           fi    
-      - name: ⏳ Wait for services to be ready
-        run: |
-          echo "Waiting for services to be fully ready..."
-          sleep 10
+      # - name: ⏳ Wait for services to be ready
+      #   run: |
+      #     echo "Waiting for services to be fully ready..."
+      #     sleep 10
           
-          echo "Checking PostgreSQL..."
-          # Устанавливаем postgresql-client для pg_isready
-          sudo apt-get update && sudo apt-get install -y postgresql-client
+      #     echo "Checking PostgreSQL..."
+      #     # Устанавливаем postgresql-client для pg_isready
+      #     sudo apt-get update && sudo apt-get install -y postgresql-client
           
-          # Проверяем PostgreSQL с правильными параметрами
-          pg_isready -h localhost -p 5434 -U test_user -d test_db || echo "PostgreSQL not ready yet"
+      #     # Проверяем PostgreSQL с правильными параметрами
+      #     pg_isready -h localhost -p 5434 -U test_user -d test_db || echo "PostgreSQL not ready yet"
           
-          echo "All services should be ready now"
+      #     echo "All services should be ready now"
           
       - name: 🧪 Run All Tests
         run: |
           echo "🧪 Running all tests with testAll task..."
           if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew allTest --continue
+            cd code && ./gradlew test --continue
           else
             echo "❌ Cannot run tests - gradlew not found"
             exit 1
