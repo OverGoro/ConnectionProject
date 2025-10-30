@@ -32,7 +32,10 @@ jobs:
         actions: read # (При необходимости) Для взаимодействия с другими Actions
         packages: read # (При необходимости) Если нужно работать с GitHub Packages
     steps:
-        
+      - name: Install Allure CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install allure
       - name: Setup Allure TestOps
         # You may pin to the exact commit or the version.
         # uses: allure-framework/setup-allurectl@a06d172c13fb9f51145d605e5178f7a84e502d5f
