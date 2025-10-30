@@ -27,7 +27,12 @@ jobs:
           --health-retries 5
         ports:
           - 5434:5432
+    permissions: # Добавьте этот блок
+        contents: read # Для checkout кода
+        actions: read # (При необходимости) Для взаимодействия с другими Actions
+        packages: read # (При необходимости) Если нужно работать с GitHub Packages
     steps:
+        
       - name: Setup Allure TestOps
         # You may pin to the exact commit or the version.
         # uses: allure-framework/setup-allurectl@a06d172c13fb9f51145d605e5178f7a84e502d5f
