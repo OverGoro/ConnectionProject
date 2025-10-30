@@ -82,14 +82,11 @@ jobs:
             echo "❌ gradlew not found in code directory"
           fi
           
-      - name: 🏗️ Build and Publish Shared Modules
+      - name: 🏗️ Build modules
         run: |
           echo "🚀 Building and publishing shared modules to Maven Local..."
           if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew publishAllShared --no-parallel --continue
-            
-            echo "📦 Verifying published modules:"
-            ls -la ~/.m2/repository/com/connection/ || echo "No Maven local repository found"
+            cd code && ./gradlew build -x test -x copyJarToK8s
           else
             echo "❌ Cannot build - gradlew not found"
             exit 1
@@ -112,7 +109,7 @@ jobs:
         run: |
           echo "🧪 Running all tests with testAll task..."
           if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew allTest --continue --build-cache
+            cd code && ./gradlew allTest --continue
           else
             echo "❌ Cannot run tests - gradlew not found"
             exit 1
