@@ -93,7 +93,7 @@ jobs:
         run: |
           echo "🧪 Running all tests with testAll task..."
           if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew test --continue
+            cd code && ./gradlew test -x generateAllureReport --continue
           else
             echo "❌ Cannot run tests - gradlew not found"
             exit 1
@@ -130,6 +130,14 @@ jobs:
           allure_results: code/build/allure-results
           allure_report: code/build/allure-report
           allure_history: code/build/allure-history
+      - name: Allure Report Cache
+        uses: actions/cache@v4.3.0
+        with:
+          path: |
+            code/build/allure-history
+          key: ${{ runner.os }}-allure-report-${{ hashFiles('code/build/allure-history') }}
+          restore-keys: |
+            ${{ runner.os }}-allure-report-
       
       - name: Upload Allure HTML Report
         if: always()
