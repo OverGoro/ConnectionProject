@@ -1,1 +1,0 @@
-{"uuid":"8eeaa2be-caf8-4109-8988-8341964f40b4","name":"Authorize by email - Positive","children":["8029138c-b4b1-4e84-baa9-1823688317d0"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761826650023,"stop":1761826650025}],"afters":[],"start":1761826648631,"stop":1761826650995}

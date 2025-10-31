@@ -415,6 +415,7 @@ task cleanTestResults(type: Delete) {
     description = 'Clean old test results'
     group = 'Build'
     delete layout.buildDirectory.dir("test-results")
+    delete layout.buildDirectory.dir("allure-results")
     delete layout.buildDirectory.dir("reports/tests")
 }
 

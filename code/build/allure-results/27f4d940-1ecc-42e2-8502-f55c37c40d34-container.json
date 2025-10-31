@@ -1,1 +1,0 @@
-{"uuid":"27f4d940-1ecc-42e2-8502-f55c37c40d34","name":"Register client - Negative: Client validation fails","children":["01602909-455a-4f9e-9d6b-e075542c5868"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761826650023,"stop":1761826650025}],"afters":[],"start":1761826648631,"stop":1761826650996}
