@@ -1,1 +1,0 @@
-{"uuid":"7a996a4a-0a92-40b6-8b71-7f04d8e5b9e8","name":"Validate valid MessageDALM - Positive","children":["54c959b6-8f78-45d3-990a-0bf45d3d5680"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761878396964,"stop":1761878396964}],"afters":[],"start":1761878396963,"stop":1761878396965}

@@ -1,1 +1,0 @@
-{"uuid":"c2997408-3f96-4e41-8188-bcfce6959db9","name":"Validate DeviceDTO with long name - Negative","children":["6b4dce72-c967-4a3e-a485-91adb82016cd"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761878385417,"stop":1761878385417}],"afters":[],"start":1761878385414,"stop":1761878385420}

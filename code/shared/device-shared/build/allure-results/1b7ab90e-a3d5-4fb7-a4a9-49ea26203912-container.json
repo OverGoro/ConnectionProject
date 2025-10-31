@@ -1,1 +1,0 @@
-{"uuid":"1b7ab90e-a3d5-4fb7-a4a9-49ea26203912","name":"Validate valid DeviceBLM - Positive","children":["0198a8a6-ef41-4e03-a60d-fbb461163519"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761878385445,"stop":1761878385445}],"afters":[],"start":1761878385443,"stop":1761878385446}

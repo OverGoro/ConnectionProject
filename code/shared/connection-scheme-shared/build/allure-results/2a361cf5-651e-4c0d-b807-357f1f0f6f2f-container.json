@@ -1,1 +1,0 @@
-{"uuid":"2a361cf5-651e-4c0d-b807-357f1f0f6f2f","name":"Find schemes by client UID with empty result - Positive","children":["7c9656e2-6189-4ebe-9b38-20d017949460"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761878381191,"stop":1761878381192}],"afters":[],"start":1761878381189,"stop":1761878381194}

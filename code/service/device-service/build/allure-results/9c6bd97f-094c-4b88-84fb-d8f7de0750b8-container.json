@@ -1,1 +1,0 @@
-{"uuid":"9c6bd97f-094c-4b88-84fb-d8f7de0750b8","name":"Get device - Positive","children":["dadd676c-a10a-40ef-af77-5da4ed38855c"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761881651838,"stop":1761881651847}],"afters":[],"start":1761881650129,"stop":1761881652671}

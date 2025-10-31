@@ -1,1 +1,0 @@
-{"uuid":"03f4372c-0933-4eff-9acd-ee2b66721ad4","name":"Validate DeviceDTO with empty name - Negative","children":["7462833b-d981-4441-8399-1e85ad64efac"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761878385399,"stop":1761878385399}],"afters":[],"start":1761878385396,"stop":1761878385402}
