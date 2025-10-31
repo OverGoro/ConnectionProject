@@ -64,15 +64,6 @@ jobs:
             allure --version
           fi
       
-      - name: Restore Allure History
-        uses: actions/cache@v4
-        with:
-          path: code/build/allure-history
-          key: ${{ runner.os }}-allure-history-${{ github.ref_name }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-allure-history-${{ github.ref_name }}-
-            ${{ runner.os }}-allure-history-
-      
       - name: Setup Report directories
         run: |
           mkdir -p code
@@ -106,6 +97,14 @@ jobs:
             echo "❌ Cannot build - gradlew not found"
             exit 1
           fi
+      - name: Cache Allure History
+        uses: actions/cache@v4
+        with:
+          path: code/build/allure-history
+          key: ${{ runner.os }}-allure-history-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-allure-history-${{ github.ref_name }}-
+            ${{ runner.os }}-allure-history-
       - name: 🧪 Clean Tests
         run: |
           echo "🧪 Running all tests with testAll task..."
@@ -175,14 +174,7 @@ jobs:
           # Save new history for next run
           mkdir -p build/allure-history && cp -r build/allure-report/history build/allure-history/
       
-      - name: Save Allure History
-        uses: actions/cache@v4
-        with:
-          path: code/build/allure-history
-          key: ${{ runner.os }}-allure-history-${{ github.ref_name }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-allure-history-${{ github.ref_name }}-
-            ${{ runner.os }}-allure-history-
+
       
       - name: Upload Allure HTML Report
         if: always()
