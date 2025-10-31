@@ -289,6 +289,8 @@ import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
 import com.connection.processing.buffer.exception.BufferNotFoundException;
 import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.validator.BufferValidator;
 
 import java.util.List;
 import java.util.UUID;
@@ -330,13 +332,12 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     private static final String EXISTS_SCHEME_BUFFER_LINK = "SELECT COUNT(*) FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid AND buffer_uid = :buffer_uid";
     private static final String EXISTS_BY_DEVICE_AND_NAME = "SELECT COUNT(*) FROM processing.buffer WHERE device_uid = :device_uid AND message_prototype = :message_prototype";
 
-
     private final BufferConverter converter = new BufferConverter();
-
+    private final BufferValidator validator = new BufferValidator();
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
-    private final RowMapper<BufferBLM> bufferRowMapper = (rs, rowNum) -> {
-        BufferBLM buffer = new BufferBLM();
+    private final RowMapper<BufferDALM> bufferRowMapper = (rs, rowNum) -> {
+        BufferDALM buffer = new BufferDALM();
         buffer.setUid(UUID.fromString(rs.getString("uid")));
         buffer.setDeviceUid(UUID.fromString(rs.getString("device_uid")));
         buffer.setMaxMessagesNumber(rs.getInt("max_messages_number"));
@@ -352,16 +353,22 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     @Override
     @Transactional
     public void add(BufferBLM buffer) throws BufferAlreadyExistsException {
+        // Валидация BLM модели
+        validator.validate(buffer);
+        
         if (exists(buffer.getUid())) {
             throw new BufferAlreadyExistsException("Buffer with UID " + buffer.getUid() + " already exists");
         }
 
+        // Конвертация BLM в DALM
+        BufferDALM dalBuffer = converter.toDALM(buffer);
+
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", buffer.getUid());
-        params.addValue("device_uid", buffer.getDeviceUid());
-        params.addValue("max_messages_number", buffer.getMaxMessagesNumber());
-        params.addValue("max_message_size", buffer.getMaxMessageSize());
-        params.addValue("message_prototype", buffer.getMessagePrototype());
+        params.addValue("uid", dalBuffer.getUid());
+        params.addValue("device_uid", dalBuffer.getDeviceUid());
+        params.addValue("max_messages_number", dalBuffer.getMaxMessagesNumber());
+        params.addValue("max_message_size", dalBuffer.getMaxMessageSize());
+        params.addValue("message_prototype", dalBuffer.getMessagePrototype());
 
         jdbcTemplate.update(INSERT_BUFFER, params);
     }
@@ -369,16 +376,22 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     @Override
     @Transactional
     public void update(BufferBLM buffer) throws BufferNotFoundException {
+        // Валидация BLM модели
+        validator.validate(buffer);
+        
         if (!exists(buffer.getUid())) {
             throw new BufferNotFoundException("Buffer with UID " + buffer.getUid() + " not found");
         }
 
+        // Конвертация BLM в DALM
+        BufferDALM dalBuffer = converter.toDALM(buffer);
+
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", buffer.getUid());
-        params.addValue("device_uid", buffer.getDeviceUid());
-        params.addValue("max_messages_number", buffer.getMaxMessagesNumber());
-        params.addValue("max_message_size", buffer.getMaxMessageSize());
-        params.addValue("message_prototype", buffer.getMessagePrototype());
+        params.addValue("uid", dalBuffer.getUid());
+        params.addValue("device_uid", dalBuffer.getDeviceUid());
+        params.addValue("max_messages_number", dalBuffer.getMaxMessagesNumber());
+        params.addValue("max_message_size", dalBuffer.getMaxMessageSize());
+        params.addValue("message_prototype", dalBuffer.getMessagePrototype());
 
         jdbcTemplate.update(UPDATE_BUFFER, params);
     }
@@ -426,7 +439,9 @@ public class BufferRepositorySQLImpl implements BufferRepository {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
         try {
-            return jdbcTemplate.queryForObject(SELECT_BUFFER_BY_UID, params, bufferRowMapper);
+            BufferDALM dalBuffer = jdbcTemplate.queryForObject(SELECT_BUFFER_BY_UID, params, bufferRowMapper);
+            // Конвертация DALM в BLM
+            return converter.toBLM(dalBuffer);
         } catch (EmptyResultDataAccessException e) {
             throw new BufferNotFoundException("Buffer with UID " + uid + " not found");
         }
@@ -437,7 +452,12 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     public List<BufferBLM> findByDeviceUid(UUID deviceUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("device_uid", deviceUid);
-        return jdbcTemplate.query(SELECT_BUFFERS_BY_DEVICE, params, bufferRowMapper);
+        List<BufferDALM> dalBuffers = jdbcTemplate.query(SELECT_BUFFERS_BY_DEVICE, params, bufferRowMapper);
+        
+        // Конвертация списка DALM в BLM
+        return dalBuffers.stream()
+                .map(converter::toBLM)
+                .toList();
     }
 
     @Override
@@ -445,7 +465,12 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     public List<BufferBLM> findByConnectionSchemeUid(UUID connectionSchemeUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("scheme_uid", connectionSchemeUid);
-        return jdbcTemplate.query(SELECT_BUFFERS_BY_SCHEME, params, bufferRowMapper);
+        List<BufferDALM> dalBuffers = jdbcTemplate.query(SELECT_BUFFERS_BY_SCHEME, params, bufferRowMapper);
+        
+        // Конвертация списка DALM в BLM
+        return dalBuffers.stream()
+                .map(converter::toBLM)
+                .toList();
     }
 
     @Override

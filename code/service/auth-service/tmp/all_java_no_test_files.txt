@@ -1,0 +1,1282 @@
+package com.connection.service.auth.config;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.token.repository.RefreshTokenRepository;
+import com.connection.token.repository.RefreshTokenRepositorySQLImpl;
+
+@Configuration
+public class RefreshTokenRepositoryConfig {
+    @Bean("RefreshTokenRepository")
+    RefreshTokenRepository refreshTokenRepository(@Qualifier("RefreshTokenJdbcTemplate")NamedParameterJdbcTemplate template){
+        return new RefreshTokenRepositorySQLImpl(template);
+    }
+}
+package com.connection.service.auth.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.connection.client.converter.ClientConverter;
+import com.connection.client.validator.ClientValidator;
+
+
+@Configuration
+public class ClientUtilsConfig {
+    @Bean("ClientConverter")
+    ClientConverter clientConverter(){
+        return new ClientConverter();
+    }
+
+    @Bean("ClientValidator")
+    ClientValidator clientValidator(){
+        return new ClientValidator();
+    }
+}
+package com.connection.service.auth.config;
+
+import java.util.Properties;
+
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.atomikos.jdbc.AtomikosDataSourceBean;
+
+@Configuration
+public class RefreshTokenJDBCConfig {
+    
+    @Value("${app.datasource.refresh-token.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    private String xaDataSourceClassName;
+
+    @Value("${app.datasource.refresh-token.xa-properties.url}")
+    private String jdbcUrl;
+
+    @Value("${app.datasource.refresh-token.xa-properties.user}")
+    private String username;
+
+    @Value("${app.datasource.refresh-token.xa-properties.password}")
+    private String password;
+
+    @Value("${app.datasource.refresh-token.pool-size:5}")
+    private int poolSize;
+
+    @Value("${app.datasource.refresh-token.max-pool-size:10}")
+    private int maxPoolSize;
+
+    @Value("${app.datasource.refresh-token.min-pool-size:2}")
+    private int minPoolSize;
+
+    @Value("${app.datasource.refresh-token.borrow-connection-timeout:30000}")
+    private int borrowConnectionTimeout;
+
+    @Value("${app.datasource.refresh-token.max-idle-time:60}")
+    private int maxIdleTime;
+
+    @Value("${app.datasource.refresh-token.max-lifetime:120}")
+    private int maxLifetime;
+
+    @Value("${app.datasource.refresh-token.test-query:SELECT 1}")
+    private String testQuery;
+
+    @Value("${app.datasource.refresh-token.maintenance-interval:60}")
+    private int maintenanceInterval;
+
+    @Value("${app.datasource.refresh-token.unique-resource-name:refreshTokenXADataSource}")
+    private String uniqueResourceName;
+
+    @Bean("RefreshTokenDataSource")
+    DataSource refreshTokenDataSource() {
+        AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
+
+        dataSource.setUniqueResourceName(uniqueResourceName);
+        dataSource.setXaDataSourceClassName(xaDataSourceClassName);
+
+        Properties xaProperties = new Properties();
+        xaProperties.setProperty("url", jdbcUrl);
+        xaProperties.setProperty("user", username);
+        xaProperties.setProperty("password", password);
+
+        dataSource.setXaProperties(xaProperties);
+
+        dataSource.setPoolSize(poolSize);
+        dataSource.setMaxPoolSize(maxPoolSize);
+        dataSource.setMinPoolSize(minPoolSize);
+        dataSource.setBorrowConnectionTimeout(borrowConnectionTimeout);
+        dataSource.setMaxIdleTime(maxIdleTime);
+        dataSource.setMaxLifetime(maxLifetime);
+
+        dataSource.setTestQuery(testQuery);
+        dataSource.setMaintenanceInterval(maintenanceInterval);
+
+        return dataSource;
+    }
+
+    @Bean("RefreshTokenJdbcTemplate")
+    NamedParameterJdbcTemplate refreshTokenNamedParameterJdbcTemplate(
+            @Qualifier("RefreshTokenDataSource") DataSource refreshTokenDataSource) {
+        return new NamedParameterJdbcTemplate(refreshTokenDataSource);
+    }
+}package com.connection.service.auth.config;
+
+import java.util.Properties;
+
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.atomikos.jdbc.AtomikosDataSourceBean;
+
+@Configuration
+public class ClientJDBCConfig {
+    
+    @Value("${app.datasource.client.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    private String xaDataSourceClassName;
+
+    @Value("${app.datasource.client.xa-properties.url}")
+    private String jdbcUrl;
+
+    @Value("${app.datasource.client.xa-properties.user}")
+    private String username;
+
+    @Value("${app.datasource.client.xa-properties.password}")
+    private String password;
+
+    @Value("${app.datasource.client.pool-size:5}")
+    private int poolSize;
+
+    @Value("${app.datasource.client.max-pool-size:10}")
+    private int maxPoolSize;
+
+    @Value("${app.datasource.client.min-pool-size:2}")
+    private int minPoolSize;
+
+    @Value("${app.datasource.client.borrow-connection-timeout:30000}")
+    private int borrowConnectionTimeout;
+
+    @Value("${app.datasource.client.max-idle-time:60}")
+    private int maxIdleTime;
+
+    @Value("${app.datasource.client.max-lifetime:120}")
+    private int maxLifetime;
+
+    @Value("${app.datasource.client.test-query:SELECT 1}")
+    private String testQuery;
+
+    @Value("${app.datasource.client.maintenance-interval:60}")
+    private int maintenanceInterval;
+
+    @Value("${app.datasource.client.unique-resource-name:clientXADataSource}")
+    private String uniqueResourceName;
+
+    @Bean("ClientDataSource")
+    DataSource clientDataSource() {
+        AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
+
+        dataSource.setUniqueResourceName(uniqueResourceName);
+        dataSource.setXaDataSourceClassName(xaDataSourceClassName);
+        
+        Properties xaProperties = new Properties();
+        xaProperties.setProperty("url", jdbcUrl);
+        xaProperties.setProperty("user", username);
+        xaProperties.setProperty("password", password);
+
+        dataSource.setXaProperties(xaProperties);
+
+        dataSource.setPoolSize(poolSize);
+        dataSource.setMaxPoolSize(maxPoolSize);
+        dataSource.setMinPoolSize(minPoolSize);
+        dataSource.setBorrowConnectionTimeout(borrowConnectionTimeout);
+        dataSource.setMaxIdleTime(maxIdleTime);
+        dataSource.setMaxLifetime(maxLifetime);
+
+        dataSource.setTestQuery(testQuery);
+        dataSource.setMaintenanceInterval(maintenanceInterval);
+
+        return dataSource;
+    }
+
+    @Bean("ClientJdbcTemplate")
+    NamedParameterJdbcTemplate clientNamedParameterJdbcTemplate(
+            @Qualifier("ClientDataSource") DataSource clientDataSource) {
+        return new NamedParameterJdbcTemplate(clientDataSource);
+    }
+}package com.connection.service.auth.config;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.MacAlgorithm;
+
+@Configuration
+public class JwtConfig {
+    @Value("${JWT_KEY:${app.jwt.key:zbhcWhLNkuwmbgJBdLKQU5tEArWPrWyMHrenwYT7e9c}}")
+    private String jwtSecretString;
+
+    @Value("AuthToken")
+    private String jwtSubjectString;
+
+    @Value("${ACCESS_TOKEN_EXPIRATION:${app.jwt.access-token.expiration:600}}")
+    private long accessTokenExpiration;
+    
+    @Value("${REFRESH_TOKEN_EXPIRATION:${app.jwt.refresh-token.expiration:86400}}")
+    private long refreshTokenExpiration;
+
+    private final MacAlgorithm jwtAlgorithmMacAlgorithm = Jwts.SIG.HS256;
+
+    @Bean("jwtSecretKey")
+    SecretKey jwtSecretKey() {
+        return createSecretKeyFromString(jwtSecretString, jwtAlgorithmMacAlgorithm);
+    }
+
+    @Bean("jwtSubject")
+    String jwtSubject(){
+        return jwtSecretString;
+    }
+
+    @Bean("jwtAccessTokenExpiration")
+    Duration jwtAccessTokenDuration(){
+        return Duration.ofSeconds(accessTokenExpiration);
+    }
+
+    @Bean("jwtRefreshTokenExpiration")
+    Duration jwtRefreshTokenDuration(){
+        return Duration.ofSeconds(refreshTokenExpiration);
+    }
+    
+    @Bean("jwtAlghorithm")
+    MacAlgorithm jwtAlgorithmMacAlgorithm(){
+        return jwtAlgorithmMacAlgorithm;
+    }
+
+    private SecretKey createSecretKeyFromString(String secretString, MacAlgorithm algorithm) {
+        byte[] keyBytes = secretString.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+
+}
+package com.connection.service.auth.config;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.validator.RefreshTokenValidator;
+
+@Configuration
+public class RefreshTokenUtilsConfig {
+
+    @Bean("RefreshTokenValidator")
+    RefreshTokenValidator refreshTokenValidator(){
+        return new RefreshTokenValidator();
+    }
+
+    @Bean("RefreshTokenGenerator")
+    RefreshTokenGenerator refreshTokenGenerator(
+            @Qualifier("jwtSecretKey") SecretKey secretKey,
+            @Qualifier("appName") String appNameString,
+            @Qualifier("jwtSubject") String subjecString) {
+        return new RefreshTokenGenerator(secretKey, appNameString, subjecString);
+    }
+
+    @Bean("RefreshTokenConverter")
+    RefreshTokenConverter refreshTokenConverter(
+            @Qualifier("RefreshTokenGenerator") RefreshTokenGenerator refreshTokenGenerator) {
+        return new RefreshTokenConverter(refreshTokenGenerator);
+    }
+}
+package com.connection.service.auth.config;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.util.backoff.FixedBackOff;
+
+@Configuration
+public class KafkaConfig {
+
+    @Value("${spring.kafka.bootstrap-servers:localhost:29092}")
+    private String bootstrapServers;
+
+    // Конфигурация для Consumer с обработкой ошибок десериализации
+    @Bean
+    public ConsumerFactory<String, Object> consumerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "auth-service-group"); // Изменено на auth-service-group
+        configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+
+        // Конфигурация для JsonDeserializer
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES,
+                "com.connection.auth.events.commands," +
+                        "com.connection.auth.events.responses," +
+                        "com.connection.common.events");
+
+        // Конфигурация для ErrorHandlingDeserializer (как в BufferKafkaConfig)
+        configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS,
+                org.apache.kafka.common.serialization.StringDeserializer.class);
+        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
+
+        configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
+        configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
+        configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");
+
+        return new DefaultKafkaConsumerFactory<>(configProps);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+
+        // Обработка ошибок десериализации - пропускаем некорректные сообщения (как в
+        // BufferKafkaConfig)
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(
+                (record, exception) -> {
+                    org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("KafkaErrorHandler");
+                    logger.error(
+                            "Skipping invalid message - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}, {}",
+                            record.topic(),
+                            record.partition(),
+                            record.offset(),
+                            record.key(),
+                            exception.getMessage(),
+                            exception.toString());
+                },
+                new FixedBackOff(0L, 0L));
+
+        factory.setCommonErrorHandler(errorHandler);
+
+        return factory;
+    }
+
+    // Конфигурация для Producer (как в BufferKafkaConfig)
+    @Bean
+    public ProducerFactory<String, Object> producerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                org.apache.kafka.common.serialization.StringSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
+        return new DefaultKafkaProducerFactory<>(configProps);
+    }
+
+    @Bean
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
+    }
+}package com.connection.service.auth.config;
+
+import java.util.UUID;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.jta.JtaTransactionManager;
+
+import com.atomikos.icatch.jta.UserTransactionManager;
+
+import jakarta.transaction.SystemException;
+
+@Configuration
+public class TransactionConfig {
+    
+    @Bean
+    public UserTransactionManager userTransactionManager() throws SystemException {
+        setPropertyIfNotExists("com.atomikos.icatch.log_base_name", "atomikos-tm-" + UUID.randomUUID().toString().substring(0, 8));
+        setPropertyIfNotExists("com.atomikos.icatch.log_base_dir", "./logs");
+        setPropertyIfNotExists("com.atomikos.icatch.tm_unique_name", "tm-" + UUID.randomUUID().toString().substring(0, 8));
+        
+        UserTransactionManager manager = new UserTransactionManager();
+        manager.setTransactionTimeout(300);
+        manager.setForceShutdown(true);
+        return manager;
+    }
+
+    @Bean(name = "atomicosTransactionManager")
+    public JtaTransactionManager jtaTransactionManager() throws SystemException {
+        JtaTransactionManager jtaTransactionManager = new JtaTransactionManager();
+        jtaTransactionManager.setTransactionManager(userTransactionManager());
+        jtaTransactionManager.setUserTransaction(userTransactionManager());
+        return jtaTransactionManager;
+    }
+    
+    /**
+     * Устанавливает системное свойство только если оно еще не было установлено
+     * @param key ключ свойства
+     * @param value значение свойства
+     */
+    private void setPropertyIfNotExists(String key, String value) {
+        if (System.getProperty(key) == null) {
+            System.setProperty(key, value);
+            System.out.println("Set property: " + key + " = " + value);
+        } else {
+            System.out.println("Property already set: " + key + " = " + System.getProperty(key));
+        }
+    }
+}package com.connection.service.auth.config;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import com.connection.client.repository.ClientRepository;
+import com.connection.client.repository.ClientRepositorySQLImpl;
+
+@Configuration
+public class ClientRepositoryConfig {
+    @Bean("ClientRepository")
+    ClientRepository clientRepository(@Qualifier("ClientJdbcTemplate")NamedParameterJdbcTemplate template){
+        return new ClientRepositorySQLImpl(template);
+    }
+}
+package com.connection.service.auth.config;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class ApplicationConfig {
+    @Value("${spring.application.name:auth-service}")
+    private String appNameString;
+
+    @Bean
+    @Qualifier("appName")
+    String appName(){
+        return appNameString;
+    }
+}
+package com.connection.service.auth.config;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.connection.token.converter.AccessTokenConverter;
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.validator.AccessTokenValidator;
+@Configuration
+public class AccessTokenUtilsConfig {
+    @Bean("AccessTokenValidator")
+    AccessTokenValidator accessTokenValidator() {
+        return new AccessTokenValidator();
+    }
+
+    @Bean("AccessTokenGenerator")
+    AccessTokenGenerator accessTokenGenerator(
+            @Qualifier("jwtSecretKey") SecretKey secretKey,
+            @Qualifier("appName") String appNameString,
+            @Qualifier("jwtSubject") String subjecString) {
+        return new AccessTokenGenerator(secretKey, appNameString, subjecString);
+    }
+
+    @Bean("AccessTokenConverter")
+    AccessTokenConverter accessTokenConverter(
+            @Qualifier("AccessTokenGenerator") AccessTokenGenerator accessTokenGenerator) {
+        return new AccessTokenConverter(accessTokenGenerator);
+    }
+
+}
+package com.connection.service.auth.controller;
+
+import org.springframework.data.util.Pair;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.connection.client.converter.ClientConverter;
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDTO;
+import com.connection.client.validator.ClientValidator;
+import com.connection.service.auth.AuthService;
+import com.connection.token.converter.AccessTokenConverter;
+import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.exception.BaseTokenException;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.AccessTokenDTO;
+import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.RefreshTokenDTO;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1")
+@Tag(name = "Auth Service", description = "Authentication and Authorization APIs")
+public class AuthServiceController {
+
+    private final AccessTokenConverter accessTokenConverter;
+    private final RefreshTokenConverter refreshTokenConverter;
+    private final ClientConverter clientConverter;
+    private final ClientValidator clientValidator;
+    private final AuthService authService;
+
+    @Operation(summary = "Register new client", description = "Register a new client in the system")
+    @ApiResponse(responseCode = "200", description = "Client registered successfully", content = @Content(schema = @Schema(implementation = RegistrationResponse.class)))
+    @PostMapping("/register")
+    public ResponseEntity<RegistrationResponse> register(
+            @Parameter(description = "Client data", required = true) @RequestBody ClientDTO clientDTO) {
+
+        log.info("Registration attempt for email: {}", clientDTO.getEmail());
+
+        clientValidator.validate(clientDTO);
+
+        ClientBLM clientBLM = clientConverter.toBLM(clientDTO);
+        authService.register(clientBLM);
+
+        log.info("Client registered successfully: {}", clientDTO.getUid());
+        return ResponseEntity.ok(new RegistrationResponse(
+                "User registered successfully",
+                clientDTO.getEmail()));
+    }
+
+    @Operation(summary = "Login by email", description = "Authenticate client using email and password")
+    @ApiResponse(responseCode = "201", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> loginByEmail(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Login credentials", required = true, content = @Content(schema = @Schema(implementation = LoginRequest.class))) @RequestBody LoginRequest loginRequest) {
+
+        log.info("Login attempt by email: {}", loginRequest.getEmail());
+
+        Pair<AccessTokenBLM, RefreshTokenBLM> tokens = authService.authorizeByEmail(
+                loginRequest.getEmail(), loginRequest.getPassword());
+
+        log.info("Login successful for email: {}", loginRequest.getEmail());
+
+        return ResponseEntity.ok(new LoginResponse(
+                tokens.getFirst().getToken(),
+                tokens.getSecond().getToken(),
+                tokens.getFirst().getExpiresAt(),
+                tokens.getSecond().getExpiresAt(),
+                tokens.getFirst().getClientUID()));
+    }
+
+    @Operation(summary = "Refresh tokens", description = "Get new access and refresh tokens using refresh token")
+    @ApiResponse(responseCode = "201", description = "Tokens refreshed successfully", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refreshToken(
+            @Parameter(description = "Refresh token request", required = true) @RequestBody RefreshTokenRequest refreshRequest) {
+        try {
+            log.info("Token refresh attempt");
+            log.info(refreshRequest.getRefreshToken());
+            RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshRequest.getRefreshToken());
+            RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
+
+            log.info(refreshTokenBLM.getToken());
+            log.info(refreshTokenBLM.getClientUID().toString());
+
+            Pair<AccessTokenBLM, RefreshTokenBLM> newTokens = authService.refresh(refreshTokenBLM);
+
+            log.info("Token refresh successful");
+            return ResponseEntity.ok(new LoginResponse(
+                    newTokens.getFirst().getToken(),
+                    newTokens.getSecond().getToken(),
+                    newTokens.getFirst().getExpiresAt(),
+                    newTokens.getSecond().getExpiresAt(),
+                    newTokens.getFirst().getClientUID()));
+        } catch (BaseTokenException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @Operation(summary = "Health check", description = "Check service health")
+    @ApiResponse(responseCode = "200", description = "Service is healthy", content = @Content(schema = @Schema(implementation = HealthResponse.class)))
+    @GetMapping("/health")
+    public ResponseEntity<HealthResponse> healthCheck() {
+        log.info("Health check: status: OK, service: auth-service, timestamp: {}",
+                System.currentTimeMillis());
+
+        return ResponseEntity.ok(new HealthResponse(
+                "OK",
+                "auth-service",
+                System.currentTimeMillis()));
+    }
+
+    @Operation(summary = "Validate access token", description = "Check if access token is valid")
+    @ApiResponse(responseCode = "200", description = "Token is valid", content = @Content(schema = @Schema(implementation = ValidationResponse.class)))
+    @PostMapping("/validate/access")
+    public ResponseEntity<ValidationResponse> validateAccessToken(
+            @Parameter(description = "Access token to validate", required = true) @RequestParam String accessToken) {
+        try {
+            log.info("Validating access token");
+            AccessTokenDTO accessTokenDTO = new AccessTokenDTO(accessToken);
+
+            AccessTokenBLM accessTokenBLM = accessTokenConverter.toBLM(accessTokenDTO);
+            authService.validateAccessToken(accessTokenBLM);
+
+            return ResponseEntity.ok(new ValidationResponse("OK"));
+        } catch (BaseTokenException e) {
+            return ResponseEntity.badRequest().build();
+        }
+
+    }
+
+    @Operation(summary = "Validate refresh token", description = "Check if refresh token is valid")
+    @ApiResponse(responseCode = "200", description = "Token is valid", content = @Content(schema = @Schema(implementation = ValidationResponse.class)))
+    @PostMapping("/validate/refresh")
+    public ResponseEntity<ValidationResponse> validateRefreshToken(
+            @Parameter(description = "Refresh token to validate", required = true) @RequestParam String refreshToken) {
+
+        log.info("Validating refresh token");
+        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
+
+        RefreshTokenBLM refreshTokenBLM = refreshTokenConverter.toBLM(refreshTokenDTO);
+        authService.validateRefreshToken(refreshTokenBLM);
+
+        return ResponseEntity.ok(new ValidationResponse("OK"));
+    }
+}package com.connection.service.auth.controller;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+@Schema
+public class ValidationResponse {
+    private final String status;
+}
+package com.connection.service.auth.controller;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+
+import java.util.Map;
+
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(com.connection.client.exception.ClientAlreadyExisistsException.class)
+    public ResponseEntity<?> handleClientAlreadyExistsException(
+            com.connection.client.exception.ClientAlreadyExisistsException e) {
+        log.warn("Client registration failed: {}", e);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "client_already_exist",
+                "An account with such email or uid already exists"));
+    }
+
+    @ExceptionHandler(com.connection.client.exception.ClientNotFoundException.class)
+    public ResponseEntity<?> handleClientNotFoundException(com.connection.client.exception.ClientNotFoundException e) {
+        log.warn("Client not found: {}", e);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(
+                "client_not_found",
+                "User not found"));
+    }
+
+    @ExceptionHandler(com.connection.client.exception.ClientValidateException.class)
+    public ResponseEntity<?> handleClientValidateException(com.connection.client.exception.ClientValidateException e) {
+        log.warn("Client validation failed: {}\n {}", e, e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(
+                "validation_failed",
+                e.getMessage() != null ? e.getMessage() : "Invalid user data"));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handleGenericException(Exception e) {
+        log.error("Unexpected error occurred: {}", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "error", "Internal server error",
+                "message", "An unexpected error occurred"));
+    }
+}package com.connection.service.auth.controller;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+@Schema
+public class ErrorResponse {
+    private final String error;
+    private final String message;
+}
+
+package com.connection.service.auth.controller;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
+@Schema
+public class HealthResponse {
+    private final String status;
+    private final String service;
+    private final long timestamp;
+}
+
+package com.connection.service.auth.controller;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@AllArgsConstructor
+@Getter
+@Setter
+@Schema
+public class RegistrationResponse {
+    private final String message;
+    private final String email;
+}package com.connection.service.auth.controller;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Schema(description = "Login request with email and password")
+public class LoginRequest {
+    
+    @Schema(description = "User email", required = true)
+    private String email;
+    
+    @Schema(description = "User password", required = true)
+    private String password;
+}package com.connection.service.auth.controller;
+
+import java.util.Date;
+import java.util.UUID;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
+@Data
+@AllArgsConstructor
+@Getter
+@Setter
+@Schema(description = "Login response with tokens")
+public class LoginResponse {
+    
+    private String accessToken;
+    
+    private String refreshToken;
+
+    private Date accessTokenExpiresAt;  // Используйте конкретный тип
+    
+    private Date refreshTokenExpiresAt;  // Используйте конкретный тип
+    
+    private UUID clientUid;
+}package com.connection.service.auth.controller;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@AllArgsConstructor
+@Getter
+@Setter
+@Schema
+public class RefreshTokenRequest {
+    private String refreshToken;
+}
+
+package com.connection.service.auth.kafka;
+// package com.service.auth.kafka;
+
+// import org.apache.kafka.clients.consumer.ConsumerRecord;
+// import org.springframework.kafka.annotation.KafkaListener;
+// import org.springframework.kafka.core.KafkaTemplate;
+// import org.springframework.stereotype.Component;
+
+// import com.connection.auth.events.commands.HealthCheckCommand;
+// import com.connection.auth.events.commands.ValidateTokenCommand;
+// import com.connection.auth.events.responses.HealthCheckResponse;
+// import com.connection.auth.events.responses.TokenValidationResponse;
+// import com.connection.token.converter.AccessTokenConverter;
+// import com.connection.token.model.AccessTokenBLM;
+// import com.service.auth.AuthService;
+
+// import lombok.RequiredArgsConstructor;
+// import lombok.extern.slf4j.Slf4j;
+
+// @Slf4j
+// @Component
+// @RequiredArgsConstructor
+// public class AuthCommandConsumer {
+
+//     private final AuthService authService;
+//     private final AccessTokenConverter accessTokenConverter;
+//     private final KafkaTemplate<String, Object> kafkaTemplate;
+
+//     @KafkaListener(
+//         topics = "${app.kafka.topics.auth-commands:auth.commands}",
+//         containerFactory = "kafkaListenerContainerFactory" // Указываем конкретную фабрику
+//     )
+//     public void handleAuthCommand(ConsumerRecord<String, Object> record) { // Изменен тип на Object
+//         try {
+//             log.debug("Received command from Kafka: key={}, topic={}, partition={}", 
+//                      record.key(), record.topic(), record.partition());
+
+//             Object command = record.value();
+
+//             if (command instanceof ValidateTokenCommand) {
+//                 ValidateTokenCommand validateCommand = (ValidateTokenCommand) command;
+//                 handleValidateTokenCommand(validateCommand, record.key());
+//             } else if (command instanceof HealthCheckCommand) {
+//                 HealthCheckCommand healthCommand = (HealthCheckCommand) command;
+//                 handleHealthCheckCommand(healthCommand, record.key());
+//             } else {
+//                 log.warn("Unknown command type: {}", command != null ? command.getClass().getCanonicalName() : "null");
+//             }
+
+//         } catch (Exception e) {
+//             log.error("Error processing auth command from Kafka: key={}", record.key(), e);
+//         }
+//     }
+
+//     private void handleValidateTokenCommand(ValidateTokenCommand command, String key) {
+//         try {
+//             log.info("Processing token validation: correlationId={}", command.getCorrelationId());
+
+//             AccessTokenBLM tokenBLM = accessTokenConverter.toBLM(
+//                     new com.connection.token.model.AccessTokenDTO(command.getToken()));
+//             authService.validateAccessToken(tokenBLM);
+
+//             TokenValidationResponse response = TokenValidationResponse.valid(
+//                     command.getCorrelationId(),
+//                     tokenBLM.getClientUID(),
+//                     command.getTokenType().name());
+
+//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+//             log.info("Token validation response sent to {}: correlationId={}",
+//                     command.getReplyTopic(), command.getCorrelationId());
+
+//         } catch (Exception e) {
+//             TokenValidationResponse response = TokenValidationResponse.error(
+//                     command.getCorrelationId(),
+//                     e.getMessage());
+
+//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+//             log.error("Token validation failed: correlationId={}, error={}",
+//                     command.getCorrelationId(), e.getMessage());
+//         }
+//     }
+
+//     private void handleHealthCheckCommand(HealthCheckCommand command, String key) {
+//         try {
+//             java.util.Map<String, Object> healthStatus = java.util.Map.of(
+//                     "status", "OK",
+//                     "service", "auth-service",
+//                     "timestamp", System.currentTimeMillis());
+
+//             HealthCheckResponse response = HealthCheckResponse.success(
+//                     command.getCorrelationId(),
+//                     healthStatus);
+
+//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+//             log.info("Health check response sent to {}: correlationId={}",
+//                     command.getReplyTopic(), command.getCorrelationId());
+
+//         } catch (Exception e) {
+//             HealthCheckResponse response = HealthCheckResponse.error(
+//                     command.getCorrelationId(),
+//                     e.getMessage());
+
+//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+//             log.error("Health check failed: correlationId={}, error={}",
+//                     command.getCorrelationId(), e.getMessage());
+//         }
+//     }
+// }package com.connection.service.auth;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class AuthServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(AuthServiceApplication.class, args);
+	}
+	
+}
+package com.connection.service.auth;
+
+import java.util.Map;
+
+import org.springframework.data.util.Pair;
+
+import com.connection.client.model.ClientBLM;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.RefreshTokenBLM;
+
+
+
+public interface AuthService {
+    public Pair<AccessTokenBLM, RefreshTokenBLM> authorizeByEmail(String email, String password);
+    public void register(ClientBLM clientBLM);
+    public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(RefreshTokenBLM refreshTokenBLM);
+    public void validateAccessToken(AccessTokenBLM accessTokenBLM);
+    public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM);
+
+    public AccessTokenBLM validateAccessToken(String token);
+
+    public Map<String, Object> getHealthStatus();
+}
+package com.connection.service.auth;
+
+import java.time.Duration;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.data.util.Pair;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.connection.client.model.ClientBLM;
+import com.connection.client.repository.ClientRepository;
+import com.connection.client.validator.ClientValidator;
+import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.RefreshTokenDALM;
+import com.connection.token.repository.RefreshTokenRepository;
+import com.connection.token.validator.AccessTokenValidator;
+import com.connection.token.validator.RefreshTokenValidator;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@EnableAutoConfiguration(exclude = {
+        JpaRepositoriesAutoConfiguration.class
+})
+@EnableTransactionManagement
+public class AuthServiceImpl implements AuthService {
+    private final RefreshTokenConverter refreshTokenConverter;
+
+    private final ClientValidator clientValidator;
+    private final RefreshTokenValidator refreshTokenValidator;
+    private final AccessTokenValidator accessTokenValidator;
+
+    private final RefreshTokenGenerator refreshTokenGenerator;
+    private final AccessTokenGenerator accessTokenGenerator;
+
+    private final ClientRepository clientRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    @Qualifier("jwtAccessTokenExpiration")
+    private final Duration jwtAccessTokenDuration;
+
+    @Qualifier("jwtRefreshTokenExpiration")
+    private final Duration jwtRefreshTokenDuration;
+
+    @Override
+    @Transactional("atomicosTransactionManager")
+    public Pair<AccessTokenBLM, RefreshTokenBLM> authorizeByEmail(String email, String password) {
+        clientValidator.validateEmail(email);
+
+        ClientBLM clientBLM = clientRepository.findByEmail(email);
+
+        if (!clientBLM.getPassword().equals(password)) {
+            throw new SecurityException("Invalid email or password");
+        }
+
+        // Инициалаизация общих полей
+        UUID newClientUuid = clientBLM.getUid();
+        Date newCreatedAt = new Date();
+
+        // Инициализация нового refreshToken
+        UUID newRefreshUID = UUID.randomUUID();
+
+        Date newRefreshExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
+        String newRefreshTokenString = refreshTokenGenerator.generateRefreshToken(newRefreshUID, newClientUuid,
+                newCreatedAt, newRefreshExpiresAt);
+
+        RefreshTokenBLM newRefreshTokenBLM = new RefreshTokenBLM(newRefreshTokenString, newRefreshUID, newClientUuid,
+                newCreatedAt, newRefreshExpiresAt);
+
+        refreshTokenValidator.validate(newRefreshTokenBLM);
+
+        // Инициалищация нового accessToken
+        Date newAccessExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
+        String newAcessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
+                newAccessExpiresAt);
+        AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAcessTokenString, newClientUuid, newCreatedAt,
+                newAccessExpiresAt);
+        accessTokenValidator.validate(newAccessTokenBLM);
+
+        // Добавление нового refreshToken в БД
+        RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
+        refreshTokenRepository.add(newRefreshTokenDALM);
+
+        // Возварты пары токенов
+        return Pair.of(newAccessTokenBLM, newRefreshTokenBLM);
+
+    }
+
+    @Override
+    @Transactional("atomicosTransactionManager")
+    public void register(ClientBLM clientBLM) {
+        clientValidator.validate(clientBLM);
+        clientRepository.add(clientBLM);
+    }
+
+    @Override
+    @Transactional("atomicosTransactionManager")
+    public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(
+            RefreshTokenBLM refreshTokenBLM) {
+
+        log.info("Validating refresh token");
+        refreshTokenValidator.validate(refreshTokenBLM);
+        log.info("Validated refresh token");
+
+        // Инициалаизация общих полей
+        UUID newClientUuid = refreshTokenBLM.getClientUID();
+        Date newCreatedAt = new Date();
+
+        // Инициализация нового refreshToken
+        UUID newRefreshUID = refreshTokenBLM.getUid();
+        Date newRefreshExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
+        String newRefreshTokenString = refreshTokenGenerator.generateRefreshToken(newRefreshUID, newClientUuid,
+                newCreatedAt, newRefreshExpiresAt);
+
+        RefreshTokenBLM newRefreshTokenBLM = new RefreshTokenBLM(newRefreshTokenString, newRefreshUID, newClientUuid,
+                newCreatedAt, newRefreshExpiresAt);
+        log.info("Validating new refresh token");
+        refreshTokenValidator.validate(newRefreshTokenBLM);
+        log.info("Validated new refresh token");
+
+        // Инициалищация нового accessToken
+        Date newAccessExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
+        String newAcessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
+                newAccessExpiresAt);
+        log.info("Generated new access token");
+        AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAcessTokenString, newClientUuid, newCreatedAt,
+                newAccessExpiresAt);
+        accessTokenValidator.validate(newAccessTokenBLM);
+        log.info("Validated new access token");
+
+        // Обновление RefreshToken в репозитории
+        RefreshTokenDALM refreshTokenDALM = refreshTokenConverter.toDALM(refreshTokenBLM);
+        log.info("Converted refresh token");
+        RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
+        log.info("Converted new refresh token");
+        refreshTokenRepository.updateToken(refreshTokenDALM, newRefreshTokenDALM);
+        log.info("Updated by repo refresh token");
+        // Возвращат новых токенов
+        return Pair.of(newAccessTokenBLM, newRefreshTokenBLM);
+    }
+
+    @Override
+    public void validateAccessToken(AccessTokenBLM accessTokenBLM) {
+        accessTokenValidator.validate(accessTokenBLM);
+    }
+
+    @Override
+    public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM) {
+        refreshTokenValidator.validate(refreshTokenBLM);
+    }
+
+    @Override
+    public Map<String, Object> getHealthStatus() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("status", "OK");
+        return map;
+    }
+
+    @Override
+    public AccessTokenBLM validateAccessToken(String token) {
+        AccessTokenBLM accessTokenBLM = accessTokenGenerator.getAccessTokenBLM(token);
+        accessTokenValidator.validate(accessTokenBLM);
+        return accessTokenBLM;
+    }
+}
+package com.connection.service.auth.mother;
+
+import java.util.Date;
+import java.util.UUID;
+
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDALM;
+import com.connection.client.model.ClientDTO;
+import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.RefreshTokenBLM;
+
+public class AuthObjectMother {
+
+    public static final UUID CLIENT_UUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    public static final UUID REFRESH_TOKEN_UUID = UUID.fromString("323e4567-e89b-12d3-a456-426614174002");
+    public static final String VALID_EMAIL = "test@example.com";
+    public static final String VALID_PASSWORD = "securePassword123";
+    public static final String VALID_USERNAME = "testuser";
+    public static final Date BIRTH_DATE = new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000); // 25 years ago
+
+    public static ClientDTO randomValidClientDTO() {
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String threadId = String.valueOf(Thread.currentThread().getId());
+        String uniqueSuffix = timestamp + "_" + threadId;
+
+        return new ClientDTO(
+            UUID.randomUUID(),
+            new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000),
+            "test_" + uniqueSuffix + "@example.com",
+            "Password123!" + uniqueSuffix,
+            "user_" + uniqueSuffix
+        );
+    }
+
+    public static ClientBLM randomValidClientBLM() {
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String threadId = String.valueOf(Thread.currentThread().getId());
+        String uniqueSuffix = timestamp + "_" + threadId;
+
+        return new ClientBLM(
+            UUID.randomUUID(),
+            new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000),
+            "test_" + uniqueSuffix + "@example.com",
+            "Password123!" + uniqueSuffix,
+            "user_" + uniqueSuffix
+        );
+    }
+
+    public static ClientBLM createValidClientBLM() {
+        return new ClientBLM(
+            CLIENT_UUID,
+            BIRTH_DATE,
+            VALID_EMAIL,
+            VALID_PASSWORD,
+            VALID_USERNAME
+        );
+    }
+
+    public static ClientDALM createValidClientDALM() {
+        return new ClientDALM(
+            CLIENT_UUID,
+            BIRTH_DATE,
+            VALID_EMAIL,
+            VALID_PASSWORD,
+            VALID_USERNAME
+        );
+    }
+
+    public static AccessTokenBLM createValidAccessTokenBLM() {
+        Date createdAt = new Date();
+        Date expiresAt = new Date(createdAt.getTime() + 600000); // 10 minutes
+        String tokenString = "valid.access.token.string";
+        
+        return new AccessTokenBLM(
+            tokenString,
+            CLIENT_UUID,
+            createdAt,
+            expiresAt
+        );
+    }
+
+    public static RefreshTokenBLM createValidRefreshTokenBLM() {
+        Date createdAt = new Date();
+        Date expiresAt = new Date(createdAt.getTime() + 86400000); // 24 hours
+        String tokenString = "valid.refresh.token.string";
+        
+        return new RefreshTokenBLM(
+            tokenString,
+            REFRESH_TOKEN_UUID,
+            CLIENT_UUID,
+            createdAt,
+            expiresAt
+        );
+    }
+
+    public static RefreshTokenBLM createExpiredRefreshTokenBLM() {
+        Date createdAt = new Date(System.currentTimeMillis() - 86400000); // 24 hours ago
+        Date expiresAt = new Date(createdAt.getTime() + 3600000); // 1 hour, already expired
+        String tokenString = "expired.refresh.token.string";
+        
+        return new RefreshTokenBLM(
+            tokenString,
+            REFRESH_TOKEN_UUID,
+            CLIENT_UUID,
+            createdAt,
+            expiresAt
+        );
+    }
+}
