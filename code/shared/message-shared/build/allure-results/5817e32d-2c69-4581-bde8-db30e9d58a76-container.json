@@ -1,0 +1,1 @@
+{"uuid":"5817e32d-2c69-4581-bde8-db30e9d58a76","name":"Add message with exception - Negative","children":["76d1298b-3c18-4e1b-84cf-92b146b6d45e"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761878398213,"stop":1761878398214}],"afters":[],"start":1761878398210,"stop":1761878398218}

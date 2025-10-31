@@ -1,0 +1,1 @@
+{"uuid":"6d264148-e2e8-42c6-8edf-c4159e3ace16","name":"Validate DeviceDTO with long description - Negative","children":["efbae4d3-f59d-4b8e-bd0b-61bcecad1a88"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761878385411,"stop":1761878385411}],"afters":[],"start":1761878385409,"stop":1761878385413}

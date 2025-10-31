@@ -101,136 +101,136 @@ public class SecurityUtils {
     public static String getCurrentClientUidAsString() {
         return getCurrentClientUid().toString();
     }
-}package com.connection.device.config;
+}// package com.connection.device.config;
 
-import java.util.HashMap;
-import java.util.Map;
+// import java.util.HashMap;
+// import java.util.Map;
 
-import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
-import org.springframework.kafka.config.TopicBuilder;
-import org.springframework.kafka.core.ConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.listener.DefaultErrorHandler;
-import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.kafka.support.serializer.JsonSerializer;
-import org.springframework.util.backoff.FixedBackOff;
+// import org.apache.kafka.clients.admin.NewTopic;
+// import org.apache.kafka.clients.consumer.ConsumerConfig;
+// import org.apache.kafka.clients.producer.ProducerConfig;
+// import org.springframework.beans.factory.annotation.Value;
+// import org.springframework.context.annotation.Bean;
+// import org.springframework.context.annotation.Configuration;
+// import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+// import org.springframework.kafka.config.TopicBuilder;
+// import org.springframework.kafka.core.ConsumerFactory;
+// import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+// import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+// import org.springframework.kafka.core.KafkaTemplate;
+// import org.springframework.kafka.core.ProducerFactory;
+// import org.springframework.kafka.listener.DefaultErrorHandler;
+// import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
+// import org.springframework.kafka.support.serializer.JsonDeserializer;
+// import org.springframework.kafka.support.serializer.JsonSerializer;
+// import org.springframework.util.backoff.FixedBackOff;
 
-import com.connection.auth.events.AuthEventConstants;
-import com.connection.device.events.DeviceEventConstants;
+// import com.connection.auth.events.AuthEventConstants;
+// import com.connection.device.events.DeviceEventConstants;
 
-@Configuration
-public class DeviceKafkaConfig {
-    @Value("${spring.kafka.bootstrap-servers:localhost:29092}")
-    private String bootstrapServers;
+// @Configuration
+// public class DeviceKafkaConfig {
+//     @Value("${spring.kafka.bootstrap-servers:localhost:29092}")
+//     private String bootstrapServers;
 
-    @Bean
-    public NewTopic authResponsesTopic() {
-        return TopicBuilder.name(AuthEventConstants.AUTH_RESPONSES_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
+//     @Bean
+//     public NewTopic authResponsesTopic() {
+//         return TopicBuilder.name(AuthEventConstants.AUTH_RESPONSES_TOPIC)
+//                 .partitions(3)
+//                 .replicas(1)
+//                 .build();
+//     }
 
-    // Конфигурация топиков для device-service
-    @Bean
-    public NewTopic deviceCommandsTopic() {
-        return TopicBuilder.name(DeviceEventConstants.DEVICE_COMMANDS_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
+//     // Конфигурация топиков для device-service
+//     @Bean
+//     public NewTopic deviceCommandsTopic() {
+//         return TopicBuilder.name(DeviceEventConstants.DEVICE_COMMANDS_TOPIC)
+//                 .partitions(3)
+//                 .replicas(1)
+//                 .build();
+//     }
 
-    @Bean
-    public NewTopic deviceResponsesTopic() {
-        return TopicBuilder.name(DeviceEventConstants.DEVICE_RESPONSES_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
+//     @Bean
+//     public NewTopic deviceResponsesTopic() {
+//         return TopicBuilder.name(DeviceEventConstants.DEVICE_RESPONSES_TOPIC)
+//                 .partitions(3)
+//                 .replicas(1)
+//                 .build();
+//     }
 
-    @Bean
-    public NewTopic deviceEventsTopic() {
-        return TopicBuilder.name(DeviceEventConstants.DEVICE_EVENTS_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
+//     @Bean
+//     public NewTopic deviceEventsTopic() {
+//         return TopicBuilder.name(DeviceEventConstants.DEVICE_EVENTS_TOPIC)
+//                 .partitions(3)
+//                 .replicas(1)
+//                 .build();
+//     }
 
-    // Конфигурация для Consumer с обработкой ошибок десериализации
-    @Bean
-    public ConsumerFactory<String, Object> consumerFactory() {
-        Map<String, Object> configProps = new HashMap<>();
-        configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "device-service-group");
-        configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-        configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+//     // Конфигурация для Consumer с обработкой ошибок десериализации
+//     @Bean
+//     public ConsumerFactory<String, Object> consumerFactory() {
+//         Map<String, Object> configProps = new HashMap<>();
+//         configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+//         configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "device-service-group");
+//         configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+//         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+//         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         
-        // Конфигурация для ErrorHandlingDeserializer
-        configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, org.apache.kafka.common.serialization.StringDeserializer.class);
-        configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
+//         // Конфигурация для ErrorHandlingDeserializer
+//         configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, org.apache.kafka.common.serialization.StringDeserializer.class);
+//         configProps.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
         
-        // Конфигурация для JsonDeserializer
-        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "com.connection.auth.events.commands,com.connection.common.events,com.connection.device.events.commands,com.connection.auth.events.responses");
-        configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
-        configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
-        configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");
+//         // Конфигурация для JsonDeserializer
+//         configProps.put(JsonDeserializer.TRUSTED_PACKAGES, "com.connection.auth.events.commands,com.connection.common.events,com.connection.device.events.commands,com.connection.auth.events.responses");
+//         configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
+//         configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
+//         configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");
         
-        return new DefaultKafkaConsumerFactory<>(configProps);
-    }
+//         return new DefaultKafkaConsumerFactory<>(configProps);
+//     }
 
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, Object> factory = 
-            new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
+//     @Bean
+//     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+//         ConcurrentKafkaListenerContainerFactory<String, Object> factory = 
+//             new ConcurrentKafkaListenerContainerFactory<>();
+//         factory.setConsumerFactory(consumerFactory());
         
-        // Обработка ошибок десериализации - пропускаем некорректные сообщения
-                DefaultErrorHandler errorHandler = new DefaultErrorHandler(
-                (record, exception) -> { // Логируем ошибку с помощью SLF4J
-                    org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("KafkaErrorHandler");
-                    logger.error("Skipping invalid message - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}",
-                            record.topic(),
-                            record.partition(),
-                            record.offset(),
-                            record.key(),
-                            exception.getMessage());
-                },
-                new FixedBackOff(0L, 0L) // Без повторных попыток
-        );
+//         // Обработка ошибок десериализации - пропускаем некорректные сообщения
+//                 DefaultErrorHandler errorHandler = new DefaultErrorHandler(
+//                 (record, exception) -> { // Логируем ошибку с помощью SLF4J
+//                     org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("KafkaErrorHandler");
+//                     logger.error("Skipping invalid message - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}",
+//                             record.topic(),
+//                             record.partition(),
+//                             record.offset(),
+//                             record.key(),
+//                             exception.getMessage());
+//                 },
+//                 new FixedBackOff(0L, 0L) // Без повторных попыток
+//         );
 
 
-        factory.setCommonErrorHandler(errorHandler);
+//         factory.setCommonErrorHandler(errorHandler);
         
-        return factory;
-    }
+//         return factory;
+//     }
 
-    // Конфигурация для Producer
-    @Bean
-    public ProducerFactory<String, Object> producerFactory() {
-        Map<String, Object> configProps = new HashMap<>();
-        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.StringSerializer.class);
-        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
-        return new DefaultKafkaProducerFactory<>(configProps);
-    }
+//     // Конфигурация для Producer
+//     @Bean
+//     public ProducerFactory<String, Object> producerFactory() {
+//         Map<String, Object> configProps = new HashMap<>();
+//         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+//         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.StringSerializer.class);
+//         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+//         configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, true);
+//         return new DefaultKafkaProducerFactory<>(configProps);
+//     }
 
-    @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
-    }
-}package com.connection.device.config;
+//     @Bean
+//     public KafkaTemplate<String, Object> kafkaTemplate() {
+//         return new KafkaTemplate<>(producerFactory());
+//     }
+// }package com.connection.device.config;
 
 import java.util.Properties;
 import javax.sql.DataSource;
@@ -451,8 +451,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.connection.device.client.JwtKafkaAuthenticationFilter;
-import com.connection.device.kafka.TypedAuthKafkaClient;
+import com.connection.device.client.AuthenticationFilter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -462,7 +461,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final TypedAuthKafkaClient authKafkaClient;
+    private final AuthenticationFilter authFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -479,13 +478,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/**").authenticated()
                         .anyRequest().denyAll()
                 )
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
-    }
-
-    @Bean
-    public JwtKafkaAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtKafkaAuthenticationFilter(authKafkaClient);
     }
 }   // GlobalExceptionHandler.java
 package com.connection.device.controller;
@@ -569,8 +563,7 @@ import lombok.Getter;
 @Getter
 public class HealthResponse {
     private final String message;
-}// DeviceController.java
-package com.connection.device.controller;
+}package com.connection.device.controller;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -750,363 +743,363 @@ public class DevicesListResponse {
         private final int totalCount;
         private final boolean hasMore;
     }
-}package com.connection.device.kafka;
+}// package com.connection.device.kafka;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Component;
+// import org.apache.kafka.clients.consumer.ConsumerRecord;
+// import org.springframework.beans.factory.annotation.Qualifier;
+// import org.springframework.kafka.annotation.KafkaListener;
+// import org.springframework.kafka.core.KafkaTemplate;
+// import org.springframework.stereotype.Component;
 
-import com.connection.device.events.commands.GetDeviceByUidCommand;
-import com.connection.device.events.commands.GetDevicesByClientUid;
-import com.connection.device.events.commands.HealthCheckCommand;
-import com.connection.device.events.responses.GetDeviceByUidResponse;
-import com.connection.device.events.responses.GetDevicesByClientResponse;
-import com.connection.device.events.responses.HealthCheckResponse;
-import com.connection.common.events.Command;
-import com.connection.device.DeviceService;
-import com.connection.device.converter.DeviceConverter;
-import com.connection.device.model.DeviceBLM;
-import com.connection.device.model.DeviceDTO;
+// import com.connection.device.events.commands.GetDeviceByUidCommand;
+// import com.connection.device.events.commands.GetDevicesByClientUid;
+// import com.connection.device.events.commands.HealthCheckCommand;
+// import com.connection.device.events.responses.GetDeviceByUidResponse;
+// import com.connection.device.events.responses.GetDevicesByClientResponse;
+// import com.connection.device.events.responses.HealthCheckResponse;
+// import com.connection.common.events.Command;
+// import com.connection.device.DeviceService;
+// import com.connection.device.converter.DeviceConverter;
+// import com.connection.device.model.DeviceBLM;
+// import com.connection.device.model.DeviceDTO;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+// import lombok.RequiredArgsConstructor;
+// import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
-import java.util.stream.Collectors;
+// import java.util.List;
+// import java.util.stream.Collectors;
 
-@Slf4j
-@Component
-@RequiredArgsConstructor
-public class DeviceCommandConsumer {
+// @Slf4j
+// @Component
+// @RequiredArgsConstructor
+// public class DeviceCommandConsumer {
     
-    @Qualifier("DeviceServiceKafkaImpl")
-    private final DeviceService deviceService;
+//     @Qualifier("DeviceServiceKafkaImpl")
+//     private final DeviceService deviceService;
 
-    private final DeviceConverter deviceConverter;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+//     private final DeviceConverter deviceConverter;
+//     private final KafkaTemplate<String, Object> kafkaTemplate;
     
-    @KafkaListener(topics = "${app.kafka.topics.device-commands:device.commands}")
-    public void handleDeviceCommand(ConsumerRecord<String, Command> record) {
-        try {
-            Command command = record.value();
-            String key = record.key();
+//     @KafkaListener(topics = "${app.kafka.topics.device-commands:device.commands}")
+//     public void handleDeviceCommand(ConsumerRecord<String, Command> record) {
+//         try {
+//             Command command = record.value();
+//             String key = record.key();
 
-            log.info("Received device command: {} with key: {}", command.getClass().getSimpleName(), key);
+//             log.info("Received device command: {} with key: {}", command.getClass().getSimpleName(), key);
 
-            if (command instanceof GetDeviceByUidCommand) {
-                GetDeviceByUidCommand getDeviceCommand = (GetDeviceByUidCommand) command;
-                handleGetDeviceByUidCommand(getDeviceCommand, key);
-            } else if (command instanceof GetDevicesByClientUid) {
-                GetDevicesByClientUid getDevicesCommand = (GetDevicesByClientUid) command;
-                handleGetDevicesByClientCommand(getDevicesCommand, key);
-            } else if (command instanceof HealthCheckCommand) {
-                HealthCheckCommand healthCommand = (HealthCheckCommand) command;
-                handleHealthCheckCommand(healthCommand, key);
-            } else {
-                log.warn("Unknown device command type: {}", command.getClass().getCanonicalName());
-            }
+//             if (command instanceof GetDeviceByUidCommand) {
+//                 GetDeviceByUidCommand getDeviceCommand = (GetDeviceByUidCommand) command;
+//                 handleGetDeviceByUidCommand(getDeviceCommand, key);
+//             } else if (command instanceof GetDevicesByClientUid) {
+//                 GetDevicesByClientUid getDevicesCommand = (GetDevicesByClientUid) command;
+//                 handleGetDevicesByClientCommand(getDevicesCommand, key);
+//             } else if (command instanceof HealthCheckCommand) {
+//                 HealthCheckCommand healthCommand = (HealthCheckCommand) command;
+//                 handleHealthCheckCommand(healthCommand, key);
+//             } else {
+//                 log.warn("Unknown device command type: {}", command.getClass().getCanonicalName());
+//             }
 
-        } catch (Exception e) {
-            log.error("Error processing device command: key={}", record.key(), e);
-        }
-    }
+//         } catch (Exception e) {
+//             log.error("Error processing device command: key={}", record.key(), e);
+//         }
+//     }
 
-    private void handleGetDeviceByUidCommand(GetDeviceByUidCommand command, String key) {
-        try {
-            log.info("Processing GetDeviceByUidCommand for device UID: {}", command.getDeviceUid());
+//     private void handleGetDeviceByUidCommand(GetDeviceByUidCommand command, String key) {
+//         try {
+//             log.info("Processing GetDeviceByUidCommand for device UID: {}", command.getDeviceUid());
 
-            DeviceBLM deviceBLM = deviceService.getDevice(command.getDeviceUid());
-            DeviceDTO deviceDTO = deviceConverter.toDTO(deviceBLM);
+//             DeviceBLM deviceBLM = deviceService.getDevice(command.getDeviceUid());
+//             DeviceDTO deviceDTO = deviceConverter.toDTO(deviceBLM);
 
-            GetDeviceByUidResponse response = GetDeviceByUidResponse.success(
-                    command.getCorrelationId(),
-                    deviceDTO);
+//             GetDeviceByUidResponse response = GetDeviceByUidResponse.success(
+//                     command.getCorrelationId(),
+//                     deviceDTO);
 
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("Successfully processed GetDeviceByUidCommand for device: {}", command.getDeviceUid());
+//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+//             log.info("Successfully processed GetDeviceByUidCommand for device: {}", command.getDeviceUid());
 
-        } catch (Exception e) {
-            log.error("Error processing GetDeviceByUidCommand for device UID: {}", command.getDeviceUid(), e);
+//         } catch (Exception e) {
+//             log.error("Error processing GetDeviceByUidCommand for device UID: {}", command.getDeviceUid(), e);
 
-            GetDeviceByUidResponse response = GetDeviceByUidResponse.error(
-                    command.getCorrelationId(),
-                    e.getMessage());
+//             GetDeviceByUidResponse response = GetDeviceByUidResponse.error(
+//                     command.getCorrelationId(),
+//                     e.getMessage());
 
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-        }
-    }
+//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+//         }
+//     }
 
-    private void handleGetDevicesByClientCommand(GetDevicesByClientUid command, String key) {
-        try {
-            log.info("Processing GetDevicesByClientCommand for client UID: {}", command.getClientUid());
+//     private void handleGetDevicesByClientCommand(GetDevicesByClientUid command, String key) {
+//         try {
+//             log.info("Processing GetDevicesByClientCommand for client UID: {}", command.getClientUid());
 
-            List<DeviceBLM> devicesBLM = deviceService.getDevicesByClient(command.getClientUid());
-            List<DeviceDTO> deviceDTOs = devicesBLM.stream()
-                    .map(deviceConverter::toDTO)
-                    .collect(Collectors.toList());
+//             List<DeviceBLM> devicesBLM = deviceService.getDevicesByClient(command.getClientUid());
+//             List<DeviceDTO> deviceDTOs = devicesBLM.stream()
+//                     .map(deviceConverter::toDTO)
+//                     .collect(Collectors.toList());
 
-            GetDevicesByClientResponse response = GetDevicesByClientResponse.valid(
-                    command.getCorrelationId(),
-                    deviceDTOs);
+//             GetDevicesByClientResponse response = GetDevicesByClientResponse.valid(
+//                     command.getCorrelationId(),
+//                     deviceDTOs);
 
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
 
-            log.info("Successfully processed GetDevicesByClientCommand for client: {}, found {} devices",
-                    command.getClientUid(), deviceDTOs.size());
+//             log.info("Successfully processed GetDevicesByClientCommand for client: {}, found {} devices",
+//                     command.getClientUid(), deviceDTOs.size());
 
-        } catch (Exception e) {
-            log.error("Error processing GetDevicesByClientCommand for client UID: {}", command.getClientUid(), e);
+//         } catch (Exception e) {
+//             log.error("Error processing GetDevicesByClientCommand for client UID: {}", command.getClientUid(), e);
 
-            GetDevicesByClientResponse response = GetDevicesByClientResponse.error(
-                    command.getCorrelationId(),
-                    e.getMessage());
+//             GetDevicesByClientResponse response = GetDevicesByClientResponse.error(
+//                     command.getCorrelationId(),
+//                     e.getMessage());
 
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-        }
-    }
+//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+//         }
+//     }
 
-    private void handleHealthCheckCommand(HealthCheckCommand command, String key) {
-        try {
-            log.info("Processing HealthCheckCommand");
+//     private void handleHealthCheckCommand(HealthCheckCommand command, String key) {
+//         try {
+//             log.info("Processing HealthCheckCommand");
 
-            var healthStatus = deviceService.getHealthStatus();
+//             var healthStatus = deviceService.getHealthStatus();
 
-            HealthCheckResponse response = HealthCheckResponse.success(
-                    command.getCorrelationId(),
-                    healthStatus);
+//             HealthCheckResponse response = HealthCheckResponse.success(
+//                     command.getCorrelationId(),
+//                     healthStatus);
 
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
 
-            log.info("Successfully processed HealthCheckCommand");
+//             log.info("Successfully processed HealthCheckCommand");
 
-        } catch (Exception e) {
-            log.error("Error processing HealthCheckCommand", e);
+//         } catch (Exception e) {
+//             log.error("Error processing HealthCheckCommand", e);
 
-            HealthCheckResponse response = HealthCheckResponse.error(
-                    command.getCorrelationId(),
-                    e.getMessage());
+//             HealthCheckResponse response = HealthCheckResponse.error(
+//                     command.getCorrelationId(),
+//                     e.getMessage());
 
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-        }
-    }
-}package com.connection.device.kafka;
+//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+//         }
+//     }
+// }// package com.connection.device.kafka;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationListener;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
-import org.springframework.kafka.listener.MessageListenerContainer;
-import org.springframework.stereotype.Component;
+// import org.apache.kafka.clients.consumer.ConsumerRecord;
+// import org.springframework.boot.context.event.ApplicationReadyEvent;
+// import org.springframework.context.ApplicationListener;
+// import org.springframework.kafka.annotation.KafkaListener;
+// import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+// import org.springframework.kafka.listener.MessageListenerContainer;
+// import org.springframework.stereotype.Component;
 
-import com.connection.auth.events.responses.TokenValidationResponse;
-import com.connection.common.events.CommandResponse;
-import com.connection.auth.events.responses.ClientUidResponse;
-import com.connection.auth.events.responses.HealthCheckResponse;
+// import com.connection.auth.events.responses.TokenValidationResponse;
+// import com.connection.common.events.CommandResponse;
+// import com.connection.auth.events.responses.ClientUidResponse;
+// import com.connection.auth.events.responses.HealthCheckResponse;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+// import lombok.RequiredArgsConstructor;
+// import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
-@Component
-@RequiredArgsConstructor
-public class AuthResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
+// @Slf4j
+// @Component
+// @RequiredArgsConstructor
+// public class AuthResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
 
-    private final TypedAuthKafkaClient authKafkaClient;
-    private final KafkaListenerEndpointRegistry registry;
+//     private final TypedAuthKafkaClient authKafkaClient;
+//     private final KafkaListenerEndpointRegistry registry;
 
-    @KafkaListener(id = "dynamicAuthListener", topics = "#{@typedAuthKafkaClient.getInstanceReplyTopic()}")
-    public void handleAuthResponse(ConsumerRecord<String, CommandResponse> record) {
-        try {
-            CommandResponse message = record.value();
-            String correlationId = record.key();
+//     @KafkaListener(id = "dynamicAuthListener", topics = "#{@typedAuthKafkaClient.getInstanceReplyTopic()}")
+//     public void handleAuthResponse(ConsumerRecord<String, CommandResponse> record) {
+//         try {
+//             CommandResponse message = record.value();
+//             String correlationId = record.key();
 
-            log.info("Received auth response from instance topic: correlationId={}, topic={}",
-                    correlationId, record.topic());
+//             log.info("Received auth response from instance topic: correlationId={}, topic={}",
+//                     correlationId, record.topic());
 
-            if (message instanceof TokenValidationResponse) {
-                TokenValidationResponse typedResponse = (TokenValidationResponse) message;
-                authKafkaClient.handleResponse(correlationId, typedResponse);
-            } else if (message instanceof ClientUidResponse) {
-                ClientUidResponse typedResponse = (ClientUidResponse) message;
-                authKafkaClient.handleResponse(correlationId, typedResponse);
-            } else if (message instanceof HealthCheckResponse) {
-                HealthCheckResponse typedResponse = (HealthCheckResponse) message;
-                authKafkaClient.handleResponse(correlationId, typedResponse);
-            } else {
-                log.warn("Unknown response type for correlationId: {}, type: {}",
-                        correlationId, message.getClass().getSimpleName());
-            }
+//             if (message instanceof TokenValidationResponse) {
+//                 TokenValidationResponse typedResponse = (TokenValidationResponse) message;
+//                 authKafkaClient.handleResponse(correlationId, typedResponse);
+//             } else if (message instanceof ClientUidResponse) {
+//                 ClientUidResponse typedResponse = (ClientUidResponse) message;
+//                 authKafkaClient.handleResponse(correlationId, typedResponse);
+//             } else if (message instanceof HealthCheckResponse) {
+//                 HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+//                 authKafkaClient.handleResponse(correlationId, typedResponse);
+//             } else {
+//                 log.warn("Unknown response type for correlationId: {}, type: {}",
+//                         correlationId, message.getClass().getSimpleName());
+//             }
 
-        } catch (Exception e) {
-            log.error("Error processing auth response: correlationId={}", record.key(), e);
-        }
-    }
+//         } catch (Exception e) {
+//             log.error("Error processing auth response: correlationId={}", record.key(), e);
+//         }
+//     }
 
-    @Override
-    public void onApplicationEvent(ApplicationReadyEvent event) {
+//     @Override
+//     public void onApplicationEvent(ApplicationReadyEvent event) {
 
-        try {
-            MessageListenerContainer container = registry.getListenerContainer("dynamicAuthListener");
-            if (container != null && !container.isRunning()) {
-                container.start();
-                log.info("Dynamic auth response listener started for topic: {}",
-                        authKafkaClient.getInstanceReplyTopic());
-            }
-        } catch (Exception e) {
-            log.error("Failed to start dynamic auth listener", e);
-        }
-    }
-}package com.connection.device.kafka;
+//         try {
+//             MessageListenerContainer container = registry.getListenerContainer("dynamicAuthListener");
+//             if (container != null && !container.isRunning()) {
+//                 container.start();
+//                 log.info("Dynamic auth response listener started for topic: {}",
+//                         authKafkaClient.getInstanceReplyTopic());
+//             }
+//         } catch (Exception e) {
+//             log.error("Failed to start dynamic auth listener", e);
+//         }
+//     }
+// }// package com.connection.device.kafka;
 
-import java.util.Date;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+// import java.util.Date;
+// import java.util.Map;
+// import java.util.UUID;
+// import java.util.concurrent.CompletableFuture;
+// import java.util.concurrent.ConcurrentHashMap;
+// import java.util.concurrent.TimeUnit;
 
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Component;
+// import org.springframework.kafka.core.KafkaTemplate;
+// import org.springframework.stereotype.Component;
 
-import com.connection.auth.events.AuthEventConstants;
-import com.connection.auth.events.AuthEventUtils;
-import com.connection.auth.events.commands.ExtractClientUidCommand;
-import com.connection.auth.events.commands.HealthCheckCommand;
-import com.connection.auth.events.commands.ValidateTokenCommand;
-import com.connection.auth.events.responses.ClientUidResponse;
-import com.connection.auth.events.responses.HealthCheckResponse;
-import com.connection.auth.events.responses.TokenValidationResponse;
+// import com.connection.auth.events.AuthEventConstants;
+// import com.connection.auth.events.AuthEventUtils;
+// import com.connection.auth.events.commands.ExtractClientUidCommand;
+// import com.connection.auth.events.commands.HealthCheckCommand;
+// import com.connection.auth.events.commands.ValidateTokenCommand;
+// import com.connection.auth.events.responses.ClientUidResponse;
+// import com.connection.auth.events.responses.HealthCheckResponse;
+// import com.connection.auth.events.responses.TokenValidationResponse;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+// import lombok.RequiredArgsConstructor;
+// import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
-@Component
-@RequiredArgsConstructor
-public class TypedAuthKafkaClient {
+// @Slf4j
+// @Component
+// @RequiredArgsConstructor
+// public class TypedAuthKafkaClient {
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+//     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
+//     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
 
-    private final String instanceReplyTopic = "auth.responses." + UUID.randomUUID().toString();
+//     private final String instanceReplyTopic = "auth.responses." + UUID.randomUUID().toString();
 
-    private static class PendingRequest<T> {
-        final CompletableFuture<T> future;
-        final Class<T> responseType;
+//     private static class PendingRequest<T> {
+//         final CompletableFuture<T> future;
+//         final Class<T> responseType;
 
-        PendingRequest(CompletableFuture<T> future, Class<T> responseType) {
-            this.future = future;
-            this.responseType = responseType;
-        }
-    }
+//         PendingRequest(CompletableFuture<T> future, Class<T> responseType) {
+//             this.future = future;
+//             this.responseType = responseType;
+//         }
+//     }
 
-    public CompletableFuture<TokenValidationResponse> validateToken(String token, String sourceService) {
-        return sendRequest(
-                ValidateTokenCommand.builder()
-                        .token(token)
-                        .tokenType(ValidateTokenCommand.TokenType.ACCESS)
-                        .sourceService(sourceService)
-                        .replyTopic(instanceReplyTopic)
-                        .correlationId(AuthEventUtils.generateCorrelationId())
-                        .build(),
-                TokenValidationResponse.class);
-    }
+//     public CompletableFuture<TokenValidationResponse> validateToken(String token, String sourceService) {
+//         return sendRequest(
+//                 ValidateTokenCommand.builder()
+//                         .token(token)
+//                         .tokenType(ValidateTokenCommand.TokenType.ACCESS)
+//                         .sourceService(sourceService)
+//                         .replyTopic(instanceReplyTopic)
+//                         .correlationId(AuthEventUtils.generateCorrelationId())
+//                         .build(),
+//                 TokenValidationResponse.class);
+//     }
 
-    public CompletableFuture<ClientUidResponse> getClientUid(String token, String sourceService) {
-        return sendRequest(
-                ExtractClientUidCommand.builder()
-                        .token(token)
-                        .tokenType(ExtractClientUidCommand.TokenType.ACCESS)
-                        .sourceService(sourceService)
-                        .replyTopic(instanceReplyTopic)
-                        .correlationId(AuthEventUtils.generateCorrelationId())
-                        .build(),
-                ClientUidResponse.class);
-    }
+//     public CompletableFuture<ClientUidResponse> getClientUid(String token, String sourceService) {
+//         return sendRequest(
+//                 ExtractClientUidCommand.builder()
+//                         .token(token)
+//                         .tokenType(ExtractClientUidCommand.TokenType.ACCESS)
+//                         .sourceService(sourceService)
+//                         .replyTopic(instanceReplyTopic)
+//                         .correlationId(AuthEventUtils.generateCorrelationId())
+//                         .build(),
+//                 ClientUidResponse.class);
+//     }
 
-    public CompletableFuture<HealthCheckResponse> healthCheck(String sourceService) {
-        return sendRequest(
-                HealthCheckCommand.builder()
-                        .eventId(UUID.randomUUID().toString())
-                        .sourceService(sourceService)
-                        .timestamp(new Date().toInstant())
-                        .replyTopic(instanceReplyTopic)
-                        .correlationId(AuthEventUtils.generateCorrelationId())
-                        .commandType(AuthEventConstants.COMMAND_HEALTH_CHECK)
-                        .build(),
-                HealthCheckResponse.class);
-    }
+//     public CompletableFuture<HealthCheckResponse> healthCheck(String sourceService) {
+//         return sendRequest(
+//                 HealthCheckCommand.builder()
+//                         .eventId(UUID.randomUUID().toString())
+//                         .sourceService(sourceService)
+//                         .timestamp(new Date().toInstant())
+//                         .replyTopic(instanceReplyTopic)
+//                         .correlationId(AuthEventUtils.generateCorrelationId())
+//                         .commandType(AuthEventConstants.COMMAND_HEALTH_CHECK)
+//                         .build(),
+//                 HealthCheckResponse.class);
+//     }
 
-    private <T> CompletableFuture<T> sendRequest(Object command, Class<T> responseType) {
-        String correlationId;
+//     private <T> CompletableFuture<T> sendRequest(Object command, Class<T> responseType) {
+//         String correlationId;
 
-        if (command instanceof ValidateTokenCommand) {
-            correlationId = ((ValidateTokenCommand) command).getCorrelationId();
-        } else if (command instanceof ExtractClientUidCommand) {
-            correlationId = ((ExtractClientUidCommand) command).getCorrelationId();
-        } else if (command instanceof HealthCheckCommand) {
-            correlationId = ((HealthCheckCommand) command).getCorrelationId();
-        } else {
-            throw new IllegalArgumentException("Unsupported command type: " + command.getClass());
-        }
+//         if (command instanceof ValidateTokenCommand) {
+//             correlationId = ((ValidateTokenCommand) command).getCorrelationId();
+//         } else if (command instanceof ExtractClientUidCommand) {
+//             correlationId = ((ExtractClientUidCommand) command).getCorrelationId();
+//         } else if (command instanceof HealthCheckCommand) {
+//             correlationId = ((HealthCheckCommand) command).getCorrelationId();
+//         } else {
+//             throw new IllegalArgumentException("Unsupported command type: " + command.getClass());
+//         }
 
-        CompletableFuture<T> future = new CompletableFuture<>();
-        pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
+//         CompletableFuture<T> future = new CompletableFuture<>();
+//         pendingRequests.put(correlationId, new PendingRequest<>(future, responseType));
 
-        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, ex) -> {
-            if (ex != null) {
-                pendingRequests.remove(correlationId);
-                log.warn("Request timeout or error for correlationId: {}", correlationId);
-            }
-        });
+//         future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, ex) -> {
+//             if (ex != null) {
+//                 pendingRequests.remove(correlationId);
+//                 log.warn("Request timeout or error for correlationId: {}", correlationId);
+//             }
+//         });
 
-        kafkaTemplate.send(AuthEventConstants.AUTH_COMMANDS_TOPIC, correlationId, command)
-                .whenComplete((result, ex) -> {
-                    if (ex != null) {
-                        future.completeExceptionally(ex);
-                        pendingRequests.remove(correlationId);
-                        log.error("Failed to send command: {}", ex.getMessage());
-                    } else {
-                        log.info("Command sent successfully: correlationId={}, topic={}",
-                                correlationId, AuthEventConstants.AUTH_COMMANDS_TOPIC);
-                    }
-                });
+//         kafkaTemplate.send(AuthEventConstants.AUTH_COMMANDS_TOPIC, correlationId, command)
+//                 .whenComplete((result, ex) -> {
+//                     if (ex != null) {
+//                         future.completeExceptionally(ex);
+//                         pendingRequests.remove(correlationId);
+//                         log.error("Failed to send command: {}", ex.getMessage());
+//                     } else {
+//                         log.info("Command sent successfully: correlationId={}, topic={}",
+//                                 correlationId, AuthEventConstants.AUTH_COMMANDS_TOPIC);
+//                     }
+//                 });
 
-        return future;
-    }
+//         return future;
+//     }
 
-    @SuppressWarnings("unchecked")
-    public void handleResponse(String correlationId, Object response) {
-        PendingRequest<?> pendingRequest = pendingRequests.remove(correlationId);
-        if (pendingRequest != null) {
-            try {
-                if (pendingRequest.responseType.isInstance(response)) {
-                    CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
-                    future.complete(response);
-                    log.info("Response handled successfully: correlationId={}", correlationId);
-                } else {
-                    log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}",
-                            correlationId, pendingRequest.responseType, response.getClass());
-                    pendingRequest.future.completeExceptionally(
-                            new ClassCastException("Type mismatch in response"));
-                }
-            } catch (Exception e) {
-                pendingRequest.future.completeExceptionally(e);
-                log.error("Error handling response: correlationId={}", correlationId, e);
-            }
-        } else {
-            log.warn("Received response for unknown correlationId: {}", correlationId);
-        }
-    }
+//     @SuppressWarnings("unchecked")
+//     public void handleResponse(String correlationId, Object response) {
+//         PendingRequest<?> pendingRequest = pendingRequests.remove(correlationId);
+//         if (pendingRequest != null) {
+//             try {
+//                 if (pendingRequest.responseType.isInstance(response)) {
+//                     CompletableFuture<Object> future = (CompletableFuture<Object>) pendingRequest.future;
+//                     future.complete(response);
+//                     log.info("Response handled successfully: correlationId={}", correlationId);
+//                 } else {
+//                     log.warn("Type mismatch for correlationId: {}. Expected: {}, Got: {}",
+//                             correlationId, pendingRequest.responseType, response.getClass());
+//                     pendingRequest.future.completeExceptionally(
+//                             new ClassCastException("Type mismatch in response"));
+//                 }
+//             } catch (Exception e) {
+//                 pendingRequest.future.completeExceptionally(e);
+//                 log.error("Error handling response: correlationId={}", correlationId, e);
+//             }
+//         } else {
+//             log.warn("Received response for unknown correlationId: {}", correlationId);
+//         }
+//     }
 
-    public String getInstanceReplyTopic() {
-        return instanceReplyTopic;
-    }
-}package com.connection.device;
+//     public String getInstanceReplyTopic() {
+//         return instanceReplyTopic;
+//     }
+// }package com.connection.device;
 
 import java.util.List;
 import java.util.Map;
@@ -1117,13 +1110,12 @@ import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfig
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.connection.auth.events.responses.HealthCheckResponse;
 import com.connection.device.config.SecurityUtils;
 import com.connection.device.exception.DeviceAlreadyExistsException;
-import com.connection.device.kafka.TypedAuthKafkaClient;
 import com.connection.device.model.DeviceBLM;
 import com.connection.device.repository.DeviceRepository;
 import com.connection.device.validator.DeviceValidator;
+import com.connection.service.auth.AuthService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -1139,7 +1131,7 @@ public class DeviceServiceApiImpl implements DeviceService {
 
     private final DeviceRepository deviceRepository;
     private final DeviceValidator deviceValidator;
-    private final TypedAuthKafkaClient authKafkaClient;
+    private final AuthService authClient;
 
     @Override
     public DeviceBLM createDevice(DeviceBLM deviceBLM) {
@@ -1224,111 +1216,13 @@ public class DeviceServiceApiImpl implements DeviceService {
     @Override
     public Map<String, Object> getHealthStatus() {
         try {
-            HealthCheckResponse authHealth = authKafkaClient.healthCheck("device-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+            var authHealth = authClient.getHealthStatus();
 
             return Map.of(
                     "status", "OK",
                     "service", "device-service",
                     "timestamp", System.currentTimeMillis(),
-                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
-        } catch (Exception e) {
-            log.error("Kafka Client: ", e);
-            return Map.of(
-                    "status", "DEGRADED",
-                    "service", "device-service",
-                    "timestamp", System.currentTimeMillis(),
-                    "auth-service", "UNAVAILABLE",
-                    "error", e.getMessage());
-        }
-    }
-}package com.connection.device;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.connection.auth.events.responses.HealthCheckResponse;
-import com.connection.device.kafka.TypedAuthKafkaClient;
-import com.connection.device.model.DeviceBLM;
-import com.connection.device.repository.DeviceRepository;
-import com.connection.device.validator.DeviceValidator;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
-@RequiredArgsConstructor
-@Service("DeviceServiceKafkaImpl")
-@EnableAutoConfiguration(exclude = {
-        JpaRepositoriesAutoConfiguration.class
-})
-@Transactional("atomicosTransactionManager")
-public class DeviceServiceKafkaImpl implements DeviceService {
-
-    private final DeviceRepository deviceRepository;
-    private final DeviceValidator deviceValidator;
-    private final TypedAuthKafkaClient authKafkaClient;
-
-    @Override
-    public DeviceBLM createDevice(DeviceBLM deviceBLM) {
-        deviceValidator.validate(deviceBLM);
-        deviceRepository.add(deviceBLM);
-
-        log.info("Kafka: Device created: {}", deviceBLM.getUid());
-        return deviceBLM;
-    }
-
-    @Override
-    public DeviceBLM getDevice(UUID deviceUid) {
-        DeviceBLM deviceBLM = deviceRepository.findByUid(deviceUid);
-        return (deviceBLM);
-    }
-
-    @Override
-    public List<DeviceBLM> getDevicesByClient(UUID clientUid) {
-        List<DeviceBLM> devicesBLM = deviceRepository.findByClientUuid(clientUid);
-        return devicesBLM;
-    }
-
-    @Override
-    public DeviceBLM updateDevice(DeviceBLM deviceBLM) {
-        deviceValidator.validate(deviceBLM);
-        deviceRepository.findByUid(deviceBLM.getUid());
-
-        deviceRepository.update(deviceBLM);
-
-        log.info("Kafka: Device updated: {}", deviceBLM.getUid());
-        return deviceBLM;
-    }
-
-    @Override
-    public void deleteDevice(UUID deviceUid) {
-        deviceRepository.delete(deviceUid);
-        log.info("Kafka: Device deleted: {}", deviceUid);
-    }
-
-    @Override
-    public boolean deviceExists(UUID deviceUid) {
-        return deviceRepository.exists(deviceUid);
-    }
-
-    @Override
-    public Map<String, Object> getHealthStatus() {
-        try {
-            HealthCheckResponse authHealth = authKafkaClient.healthCheck("device-service")
-                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
-
-            return Map.of(
-                    "status", "OK",
-                    "service", "device-service",
-                    "timestamp", System.currentTimeMillis(),
-                    "auth-service", authHealth.isSuccess() ? authHealth.getHealthStatus() : "UNAVAILABLE");
+                    "auth-service", authHealth != null ? authHealth : "UNAVAILABLE");
         } catch (Exception e) {
             log.error("Kafka Client: ", e);
             return Map.of(
@@ -1354,14 +1248,14 @@ public class DeviceServiceApplication {
 }
 package com.connection.device.client;
 
-import com.connection.device.kafka.TypedAuthKafkaClient;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import com.connection.auth.events.responses.TokenValidationResponse;
+import com.connection.service.auth.AuthService;
+import com.connection.token.model.AccessTokenBLM;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -1373,15 +1267,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
-@Component
+@Component("DeviceAuthenticationFilter")
 @RequiredArgsConstructor
-public class JwtKafkaAuthenticationFilter extends OncePerRequestFilter {
+public class AuthenticationFilter extends OncePerRequestFilter {
 
-    private final TypedAuthKafkaClient authKafkaClient;
+    private final AuthService authClient;
     private static final String AUTH_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
@@ -1417,33 +1309,41 @@ public class JwtKafkaAuthenticationFilter extends OncePerRequestFilter {
 
             log.info("Validating token: {}...", cleanToken);
 
-            CompletableFuture<TokenValidationResponse> validationFuture = authKafkaClient.validateToken(cleanToken,
-                    "device-service");
-
-            TokenValidationResponse validationResponse = validationFuture
-                    .get(10, TimeUnit.SECONDS);
-
-            if (!validationResponse.isValid()) {
-                throw new SecurityException("Token validation failed: " + validationResponse.getError());
-            }
+            AccessTokenBLM accessTokenBLM = authClient.validateAccessToken(cleanToken);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    validationResponse.getClientUid(),
+                    accessTokenBLM.getClientUID(),
                     null,
                     Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
 
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            log.info("Successfully authenticated client: {}", validationResponse.getClientUid());
-
-        } catch (java.util.concurrent.TimeoutException e) {
-            throw new SecurityException("Token validation timeout");
-        } catch (java.util.concurrent.ExecutionException e) {
-            throw new SecurityException("Token validation error: " + e.getCause().getMessage());
+            log.info("Successfully authenticated client: {}", accessTokenBLM.getClientUID());
         } catch (Exception e) {
             throw new SecurityException("Authentication failed: " + e.getMessage());
         }
+    }
+}// TestTopicUtils.java
+package com.connection.device.integration;
+
+import java.util.UUID;
+
+public class TestTopicUtils {
+
+    private static final String TEST_SUFFIX = "-test-" + UUID.randomUUID().toString().substring(0, 8);
+
+    public static String generateTestTopic(String baseTopic) {
+        String cleanTopic = baseTopic.replaceAll("-test-[a-f0-9]{8}$", "");
+        return cleanTopic + TEST_SUFFIX;
+    }
+
+    public static String getTestAuthCommandsTopic() {
+        return generateTestTopic("auth.commands");
+    }
+
+    public static String getTestDeviceCommandsTopic() {
+        return generateTestTopic("device.commands");
     }
 }package com.connection.device.mother;
 

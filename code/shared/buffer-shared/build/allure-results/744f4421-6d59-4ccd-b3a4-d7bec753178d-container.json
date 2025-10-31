@@ -1,0 +1,1 @@
+{"uuid":"744f4421-6d59-4ccd-b3a4-d7bec753178d","name":"Add buffer to connection scheme - Positive","children":["d435b075-b588-4cf6-a718-8f5a7877fb0f"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761878362070,"stop":1761878362071}],"afters":[],"start":1761878362067,"stop":1761878362075}

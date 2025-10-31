@@ -1961,177 +1961,48 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     }
 }package com.service.buffer.integration;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.connection.scheme.events.commands.GetConnectionSchemeByUidCommand;
-import com.connection.scheme.events.commands.GetConnectionSchemesByBufferUid;
-import com.connection.scheme.events.commands.GetConnectionSchemesByClientUid;
-import com.connection.scheme.events.commands.HealthCheckCommand;
-import com.connection.scheme.events.responses.GetConnectionSchemeByUidResponse;
-import com.connection.scheme.events.responses.GetConnectionSchemesByBufferResponse;
-import com.connection.scheme.events.responses.GetConnectionSchemesByClientResponse;
-import com.connection.scheme.events.responses.HealthCheckResponse;
-import com.connection.scheme.model.ConnectionSchemeDTO;
+import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.service.connectionscheme.ConnectionSchemeService;
 
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
 @Slf4j
+@Primary
 @Component
 @RequiredArgsConstructor
 @ActiveProfiles("integrationtest")
-public class TestConnectionSchemeService {
-
-    private final KafkaTemplate<String, Object> kafkaTemplate;
-
+public class TestConnectionSchemeService implements ConnectionSchemeService {
     // Хранилище тестовых данных
-    private final Map<UUID, ConnectionSchemeDTO> testSchemes = new ConcurrentHashMap<>();
-    private final Map<UUID, List<ConnectionSchemeDTO>> clientSchemes = new ConcurrentHashMap<>();
-    private final Map<UUID, List<ConnectionSchemeDTO>> bufferSchemes = new ConcurrentHashMap<>();
+    private final Map<UUID, ConnectionSchemeBLM> testSchemes = new ConcurrentHashMap<>();
+    private final Map<UUID, List<ConnectionSchemeBLM>> clientSchemes = new ConcurrentHashMap<>();
+    private final Map<UUID, List<ConnectionSchemeBLM>> bufferSchemes = new ConcurrentHashMap<>();
 
-    @Value("${app.kafka.topics.connection-scheme-commands:connection.scheme.commands}")
-    private String connectionSchemeCommandsTopic;
-    @PostConstruct
-    public void logKafkaConfiguration() {
-        log.info("""
-            🧪 Test Connection Scheme Responder Kafka Configuration:
-               📨 Listening Topic: {}
-            """, connectionSchemeCommandsTopic);
-    }
-
-
-    @KafkaListener(topics = "${app.kafka.topics.connection-scheme-commands:connection.scheme.commands}", groupId = "test-connection-scheme-responder")
-    public void handleConnectionSchemeCommand(ConsumerRecord<String, Object> record) {
-        try {
-            Object command = record.value();
-            if (command instanceof GetConnectionSchemeByUidCommand) {
-                handleGetConnectionSchemeByUid((GetConnectionSchemeByUidCommand) command);
-            } else if (command instanceof GetConnectionSchemesByClientUid) {
-                handleGetConnectionSchemesByClient((GetConnectionSchemesByClientUid) command);
-            } else if (command instanceof GetConnectionSchemesByBufferUid) {
-                handleGetConnectionSchemesByBuffer((GetConnectionSchemesByBufferUid) command);
-            } else if (command instanceof HealthCheckCommand) {
-                handleHealthCheck((HealthCheckCommand) command);
-            }
-
-        } catch (Exception e) {
-            log.error("❌ Error in test connection scheme responder", e);
-        }
-    }
-
-    private void handleGetConnectionSchemeByUid(GetConnectionSchemeByUidCommand command) {
-        try {
-            UUID schemeUid = command.getConnectionSchemeUid();
-            ConnectionSchemeDTO scheme = testSchemes.get(schemeUid);
-
-            GetConnectionSchemeByUidResponse response;
-            if (scheme != null) {
-                response = GetConnectionSchemeByUidResponse.success(
-                        command.getCorrelationId(),
-                        scheme);
-                log.info("✅ Test Responder: Connection Scheme {} found", schemeUid);
-            } else {
-                response = GetConnectionSchemeByUidResponse.error(
-                        command.getCorrelationId(),
-                        "Connection scheme not found in test data");
-                log.warn("⚠️ Test Responder: Connection Scheme {} not found", schemeUid);
-            }
-
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-
-        } catch (Exception e) {
-            log.error("❌ Error handling GetConnectionSchemeByUid", e);
-        }
-    }
-
-    private void handleGetConnectionSchemesByClient(GetConnectionSchemesByClientUid command) {
-        try {
-            UUID clientUid = command.getClientUid();
-            List<ConnectionSchemeDTO> schemes = clientSchemes.get(clientUid);
-
-            GetConnectionSchemesByClientResponse response;
-            if (schemes != null && !schemes.isEmpty()) {
-                response = GetConnectionSchemesByClientResponse.valid(
-                        command.getCorrelationId(),
-                        schemes);
-                log.info("✅ Test Responder: Found {} connection schemes for client {}", schemes.size(), clientUid);
-            } else {
-                response = GetConnectionSchemesByClientResponse.valid(
-                        command.getCorrelationId(),
-                        List.of());
-                log.info("ℹ️ Test Responder: No connection schemes found for client {}", clientUid);
-            }
-
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-
-        } catch (Exception e) {
-            log.error("❌ Error handling GetConnectionSchemesByClient", e);
-        }
-    }
-
-    private void handleGetConnectionSchemesByBuffer(GetConnectionSchemesByBufferUid command) {
-        try {
-            UUID bufferUid = command.getBufferUid();
-            List<ConnectionSchemeDTO> schemes = bufferSchemes.get(bufferUid);
-
-            GetConnectionSchemesByBufferResponse response;
-            if (schemes != null && !schemes.isEmpty()) {
-                response = GetConnectionSchemesByBufferResponse.valid(
-                        command.getCorrelationId(),
-                        schemes);
-                log.info("✅ Test Responder: Found {} connection schemes for buffer {}", schemes.size(), bufferUid);
-            } else {
-                response = GetConnectionSchemesByBufferResponse.valid(
-                        command.getCorrelationId(),
-                        List.of());
-                log.info("ℹ️ Test Responder: No connection schemes found for buffer {}", bufferUid);
-            }
-
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-
-        } catch (Exception e) {
-            log.error("❌ Error handling GetConnectionSchemesByBuffer", e);
-        }
-    }
-
-    private void handleHealthCheck(HealthCheckCommand command) {
-        try {
-            HealthCheckResponse response = HealthCheckResponse.success(
-                    command.getCorrelationId(),
-                    Map.of("status", "OK", "service", "test-connection-scheme-responder"));
-
-            kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-            log.info("✅ Test Responder: Health check responded");
-
-        } catch (Exception e) {
-            log.error("❌ Error handling HealthCheck", e);
-        }
-    }
-
-    // Методы для управления тестовыми данными
 
     public void addTestConnectionScheme(UUID schemeUid, UUID clientUid, List<UUID> usedBuffers) {
-        ConnectionSchemeDTO scheme = createTestConnectionSchemeDTO(schemeUid, clientUid, usedBuffers);
+        ConnectionSchemeBLM scheme = createTestConnectionSchemeBLM(schemeUid, clientUid, usedBuffers);
         addTestConnectionScheme(scheme);
     }
 
-    public void addTestConnectionScheme(ConnectionSchemeDTO scheme) {
-        UUID schemeUid = UUID.fromString(scheme.getUid());
-        UUID clientUid = UUID.fromString(scheme.getClientUid());
+    public void addTestConnectionScheme(ConnectionSchemeBLM scheme) {
+        UUID schemeUid = (scheme.getUid());
+        UUID clientUid = (scheme.getClientUid());
 
         testSchemes.put(schemeUid, scheme);
 
         // Добавляем в список схем клиента
-        List<ConnectionSchemeDTO> clientSchemeList = clientSchemes.computeIfAbsent(
+        List<ConnectionSchemeBLM> clientSchemeList = clientSchemes.computeIfAbsent(
                 clientUid, k -> new ArrayList<>());
         clientSchemeList.add(scheme);
 
@@ -2148,9 +2019,9 @@ public class TestConnectionSchemeService {
     }
 
     public void linkSchemeToBuffer(UUID schemeUid, UUID bufferUid) {
-        ConnectionSchemeDTO scheme = testSchemes.get(schemeUid);
+        ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
         if (scheme != null) {
-            List<ConnectionSchemeDTO> bufferSchemeList = bufferSchemes.computeIfAbsent(
+            List<ConnectionSchemeBLM> bufferSchemeList = bufferSchemes.computeIfAbsent(
                     bufferUid, k -> new ArrayList<>());
             if (!bufferSchemeList.contains(scheme)) {
                 bufferSchemeList.add(scheme);
@@ -2162,12 +2033,12 @@ public class TestConnectionSchemeService {
     }
 
     public void removeTestConnectionScheme(UUID schemeUid) {
-        ConnectionSchemeDTO scheme = testSchemes.remove(schemeUid);
+        ConnectionSchemeBLM scheme = testSchemes.remove(schemeUid);
         if (scheme != null) {
-            UUID clientUid = UUID.fromString(scheme.getClientUid());
+            UUID clientUid = (scheme.getClientUid());
 
             // Удаляем из списка клиента
-            List<ConnectionSchemeDTO> clientSchemesList = clientSchemes.get(clientUid);
+            List<ConnectionSchemeBLM> clientSchemesList = clientSchemes.get(clientUid);
             if (clientSchemesList != null) {
                 clientSchemesList.removeIf(s -> s.getUid().equals(schemeUid.toString()));
             }
@@ -2190,14 +2061,14 @@ public class TestConnectionSchemeService {
     }
 
     public boolean connectionSchemeBelongsToClient(UUID schemeUid, UUID clientUid) {
-        ConnectionSchemeDTO scheme = testSchemes.get(schemeUid);
+        ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
         return scheme != null && scheme.getClientUid().equals(clientUid.toString());
     }
 
-    private ConnectionSchemeDTO createTestConnectionSchemeDTO(UUID schemeUid, UUID clientUid, List<UUID> usedBuffers) {
-        return ConnectionSchemeDTO.builder()
-                .uid(schemeUid.toString())
-                .clientUid(clientUid.toString())
+    private ConnectionSchemeBLM createTestConnectionSchemeBLM(UUID schemeUid, UUID clientUid, List<UUID> usedBuffers) {
+        return ConnectionSchemeBLM.builder()
+                .uid(schemeUid)
+                .clientUid(clientUid)
                 .usedBuffers(usedBuffers != null ? usedBuffers : new ArrayList<>())
                 .schemeJson("{\"test\": true, \"schemeType\": \"integration-test\", \"buffers\": " +
                         (usedBuffers != null ? usedBuffers.toString() : "[]") + "}")
@@ -2212,7 +2083,7 @@ public class TestConnectionSchemeService {
     }
 
     public void addBufferToScheme(UUID schemeUid, UUID bufferUid) {
-        ConnectionSchemeDTO scheme = testSchemes.get(schemeUid);
+        ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
         if (scheme != null) {
             List<UUID> usedBuffers = scheme.getUsedBuffers();
             if (usedBuffers == null) {
@@ -2223,22 +2094,90 @@ public class TestConnectionSchemeService {
                 usedBuffers.add(bufferUid);
             }
             linkSchemeToBuffer(schemeUid, bufferUid);
-            log.info("➕ Test Responder: Added buffer {} to scheme {}", bufferUid, schemeUid);
+            log.info("Test Responder: Added buffer {} to scheme {}", bufferUid, schemeUid);
         }
     }
 
     public void removeBufferFromScheme(UUID schemeUid, UUID bufferUid) {
-        ConnectionSchemeDTO scheme = testSchemes.get(schemeUid);
+        ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
         if (scheme != null && scheme.getUsedBuffers() != null) {
             scheme.getUsedBuffers().remove(bufferUid);
 
             // Удаляем связь
-            List<ConnectionSchemeDTO> bufferSchemesList = bufferSchemes.get(bufferUid);
+            List<ConnectionSchemeBLM> bufferSchemesList = bufferSchemes.get(bufferUid);
             if (bufferSchemesList != null) {
                 bufferSchemesList.removeIf(s -> s.getUid().equals(schemeUid.toString()));
             }
-            log.info("➖ Test Responder: Removed buffer {} from scheme {}", bufferUid, schemeUid);
+            log.info("Test Responder: Removed buffer {} from scheme {}", bufferUid, schemeUid);
         }
+    }
+
+
+    @Override
+    public ConnectionSchemeBLM createScheme(ConnectionSchemeBLM schemeBLM) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'createScheme'");
+    }
+
+
+    @Override
+    public void deleteScheme(UUID schemeUid) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'deleteScheme'");
+    }
+
+
+    @Override
+    public Map<String, Object> getHealthStatus() {
+        return Map.of("status", "OK");
+    }
+
+
+    @Override
+    public ConnectionSchemeBLM getSchemeByUid(UUID schemeUid) {
+        return testSchemes.get(schemeUid);
+    }
+
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemeByUid(List<UUID> schemeUid) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getSchemeByUid'");
+    }
+
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemesByBuffer(UUID bufferUuid) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getSchemesByBuffer'");
+    }
+
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemesByBuffer(List<UUID> bufferUuid) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getSchemesByBuffer'");
+    }
+
+
+    @Override
+    public List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUuid) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getSchemesByClient'");
+    }
+
+
+    @Override
+    public boolean schemeExists(UUID schemeUid) {
+        // TODO Auto-generated method stub
+        return testSchemes.get(schemeUid) != null;
+    }
+
+
+    @Override
+    public ConnectionSchemeBLM updateScheme(UUID schemeUid, ConnectionSchemeBLM schemeBLM) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'updateScheme'");
     }
 }package com.service.buffer.integration;
 
@@ -2247,6 +2186,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -2257,6 +2197,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Primary
 @Component
 @RequiredArgsConstructor
 @ActiveProfiles("integrationtest")

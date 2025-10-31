@@ -1,0 +1,1 @@
+{"uuid":"0c0b9c7b-7bf2-4aaa-be57-5e6167823964","name":"Validate valid DeviceAccessTokenDTO - Positive","children":["6a63a316-509e-46c2-8f56-d97824f1c76d"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761878391303,"stop":1761878391303}],"afters":[],"start":1761878391301,"stop":1761878391304}
