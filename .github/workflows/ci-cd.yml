@@ -15,20 +15,20 @@ jobs:
   build-and-test:
     runs-on: self-hosted
     name: Build and Test
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_USER: test_user
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5434:5432
+    # services:
+    #   postgres:
+    #     image: postgres:15
+    #     env:
+    #       POSTGRES_PASSWORD: test_password
+    #       POSTGRES_USER: test_user
+    #       POSTGRES_DB: test_db
+    #     options: >-
+    #       --health-cmd pg_isready
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
+    #     ports:
+    #       - 5434:5432
     
     permissions:
       contents: read
@@ -46,7 +46,6 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
-          cache: 'gradle'
       
       - name: Install Allure
         run: |
@@ -112,6 +111,16 @@ jobs:
           echo "🧪 Running all tests with testAll task..."
           if [ -f "code/gradlew" ]; then
             cd code && ./gradlew test -x generateAllureReport --continue
+          else
+            echo "❌ Cannot run tests - gradlew not found"
+            exit 1
+          fi
+        continue-on-error: true
+      - name: 🧪 Start Test Containers
+        run: |
+          echo "🧪 Running all tests with testAll task..."
+          if [ -f "code/gradlew" ]; then
+            cd code/service/auth-service && ./gradlew startTestContainers --continue
           else
             echo "❌ Cannot run tests - gradlew not found"
             exit 1
