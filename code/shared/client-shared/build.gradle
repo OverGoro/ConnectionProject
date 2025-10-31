@@ -56,7 +56,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.5.3'
     compileOnly 'org.projectlombok:lombok:1.18.38'
     
+    compileOnly 'org.projectlombok:lombok:1.18.38'
     annotationProcessor 'org.projectlombok:lombok:1.18.38'
+    testCompileOnly 'org.projectlombok:lombok:1.18.38'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
+
 
     // Тестовые зависимости
     testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'
@@ -65,6 +69,8 @@ dependencies {
     testImplementation 'org.assertj:assertj-core:3.27.3'
     testImplementation 'io.qameta.allure:allure-junit5:'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'org.postgresql:postgresql:42.7.7'
+
 }
 
 // ========== COMPILATION CONFIGURATION ==========
