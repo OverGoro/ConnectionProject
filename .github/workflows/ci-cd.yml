@@ -13,8 +13,8 @@ env:
 
 jobs:
   build-and-test:
-    # runs-on: self-hosted
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    # runs-on: ubuntu-latest
     name: Build and Test
     # services:
     #   postgres:
@@ -205,8 +205,8 @@ jobs:
   publish-report:
     if: always()
     needs: [build-and-test]
-    #runs-on: self-hosted
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    # runs-on: ubuntu-latest
     
     permissions:
       contents: write
