@@ -65,6 +65,15 @@ jobs:
             allure --version
           fi
       
+      - name: Restore Allure History
+        uses: actions/cache@v4
+        with:
+          path: code/build/allure-history
+          key: ${{ runner.os }}-allure-history-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-allure-history-${{ github.ref_name }}-
+            ${{ runner.os }}-allure-history-
+      
       - name: Setup Report directories
         run: |
           mkdir -p code
@@ -72,14 +81,6 @@ jobs:
           mkdir -p code/build/allure-history
           mkdir -p code/build/allure-results
           mkdir -p code/build/allure-report
-      
-      - name: Restore Allure History
-        uses: actions/cache@v4
-        with:
-          path: code/build/allure-history
-          key: allure-history-${{ github.ref }}
-          restore-keys: |
-            allure-history-
       
       - name: Create Gradle Wrapper
         run: |
@@ -130,38 +131,31 @@ jobs:
             echo "❌ Cannot generate reports - gradlew not found"
           fi
 
-      - name: Generate Allure Report with History
+      - name: Generate Allure Report
         if: always()
         run: |
-          echo "📈 Generating Allure report..."
+          echo "📈 Generating Allure report with history..."
           cd code
           
-          # Проверяем, есть ли предыдущая история
-          if [ -d "build/allure-history" ] && [ -n "$(ls -A build/allure-history)" ]; then
-            echo "📚 Previous history found, copying to results..."
-            # Копируем историю в результаты текущего запуска
-            cp -r build/allure-history/* build/allure-results/ || echo "No history to copy"
-          else
-            echo "📭 No previous history found"
+          # Copy history from previous report if exists
+          if [ -d "build/allure-history" ]; then
+            echo "📚 Copying history from previous reports..."
+            cp -r build/allure-history/history build/allure-results/ || echo "No previous history found"
           fi
-          
-          # Генерируем отчет
+
           allure generate build/allure-results -o build/allure-report --clean
           
-          # Сохраняем историю для следующего запуска
-          echo "💾 Saving history for next run..."
-          mkdir -p build/allure-history-new
-          cp -r build/allure-report/history/* build/allure-history-new/ || echo "No history generated yet"
-          
-          # Обновляем папку истории
-          rm -rf build/allure-history
-          mv build/allure-history-new build/allure-history
+          # Save new history for next run
+          mkdir -p build/allure-history && cp -r build/allure-report/history build/allure-history/
       
       - name: Save Allure History
         uses: actions/cache@v4
         with:
           path: code/build/allure-history
-          key: allure-history-${{ github.ref }}
+          key: ${{ runner.os }}-allure-history-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-allure-history-${{ github.ref_name }}-
+            ${{ runner.os }}-allure-history-
       
       - name: Upload Allure HTML Report
         if: always()
