@@ -87,7 +87,16 @@ jobs:
           cd code && gradle wrapper
           chmod +x gradlew
           echo "✅ Gradle Wrapper creation completed"
-      
+      - name: 🧪 Start Test Containers
+        run: |
+          echo "🧪 Running all tests with testAll task..."
+          if [ -f "code/gradlew" ]; then
+            cd code/service/auth-service && ./gradlew startTestContainers
+          else
+            echo "❌ Cannot run tests - gradlew not found"
+            exit 1
+          fi
+        continue-on-error: true
       - name: 🏗️ Build modules
         run: |
           echo "🚀 Building and publishing shared modules to Maven Local..."
@@ -116,16 +125,7 @@ jobs:
             exit 1
           fi
         continue-on-error: true
-      - name: 🧪 Start Test Containers
-        run: |
-          echo "🧪 Running all tests with testAll task..."
-          if [ -f "code/gradlew" ]; then
-            cd code/service/auth-service && ./gradlew startTestContainers
-          else
-            echo "❌ Cannot run tests - gradlew not found"
-            exit 1
-          fi
-        continue-on-error: true
+      
       - name: 🧪 Run Integration Tests
         run: |
           echo "🧪 Running all tests with testAll task..."
