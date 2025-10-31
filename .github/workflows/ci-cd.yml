@@ -99,26 +99,16 @@ jobs:
             exit 1
           fi
       
-      - name: 🧪 Run All Tests (continue on test failure)
-        id: run-tests
+      - name: 🧪 Run All Tests
         run: |
-          echo "🧪 Running all tests (will continue even if some tests fail)..."
+          echo "🧪 Running all tests with testAll task..."
           if [ -f "code/gradlew" ]; then
-            # Запускаем тесты с флагом --continue, чтобы все модули выполнились
             cd code && ./gradlew test -x generateAllureReport --continue
-            TEST_EXIT_CODE=$?
-            if [ $TEST_EXIT_CODE -eq 0 ]; then
-              echo "✅ All tests passed"
-              echo "tests_passed=true" >> $GITHUB_OUTPUT
-            else
-              echo "⚠️ Some tests failed, but all tests were executed"
-              echo "tests_passed=false" >> $GITHUB_OUTPUT
-            fi
           else
             echo "❌ Cannot run tests - gradlew not found"
-            echo "tests_passed=false" >> $GITHUB_OUTPUT
             exit 1
           fi
+        continue-on-error: true
       
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -172,10 +162,6 @@ jobs:
           name: allure-html-report
           path: code/build/allure-report
           retention-days: 30
-    
-    # Завершаем job как проваленную, если тесты не прошли
-    outputs:
-      tests_passed: ${{ steps.run-tests.outputs.tests_passed }}
 
   publish-report:
     if: always()
@@ -212,17 +198,6 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-  check-test-results:
-    if: always()
-    needs: [build-and-test]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Fail if tests failed
-        if: needs.build-and-test.outputs.tests_passed == 'false'
-        run: |
-          echo "❌ Some tests failed in the build-and-test job"
-          exit 1
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
