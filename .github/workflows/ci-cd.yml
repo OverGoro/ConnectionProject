@@ -64,6 +64,16 @@ jobs:
             echo "✅ Allure installation completed"
             allure --version
           fi
+      
+      - name: Restore Allure History
+        uses: actions/cache@v4
+        with:
+          path: code/build/allure-history
+          key: ${{ runner.os }}-allure-history-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-allure-history-${{ github.ref_name }}-
+            ${{ runner.os }}-allure-history-
+      
       - name: Setup Report directories
         run: |
           mkdir -p code
@@ -100,8 +110,8 @@ jobs:
           fi
         continue-on-error: true
       
-      - name: Cache
-        uses: actions/cache@v4.3.0
+      - name: Cache Gradle
+        uses: actions/cache@v4
         with:
           path: |
             **/.gradle
@@ -121,23 +131,29 @@ jobs:
             echo "❌ Cannot generate reports - gradlew not found"
           fi
 
-      - name: Allure Report with history
-        # You may pin to the exact commit or the version.
-        # uses: simple-elf/allure-report-action@53ebb757a2097edc77c53ecef4d454fc2f2f774c
-        uses: simple-elf/allure-report-action@v1.13
+      - name: Generate Allure Report
+        if: always()
+        run: |
+          echo "📈 Generating Allure report with history..."
+          cd code && allure generate build/allure-results -o build/allure-report --clean
+          
+          # Copy history from previous report if exists
+          if [ -d "build/allure-history" ]; then
+            echo "📚 Copying history from previous reports..."
+            cp -r build/allure-history/history build/allure-report/history || echo "No previous history found"
+          fi
+          
+          # Generate new history for next run
+          allure generate build/allure-results -o build/allure-history --clean
+      
+      - name: Save Allure History
+        uses: actions/cache@v4
         with:
-          # Allure test result data dir
-          allure_results: code/build/allure-results
-          allure_report: code/build/allure-report
-          allure_history: code/build/allure-history
-      - name: Allure Report Cache
-        uses: actions/cache@v4.3.0
-        with:
-          path: |
-            code/build/allure-history
-          key: ${{ runner.os }}-allure-report-${{ hashFiles('code/build/allure-history') }}
+          path: code/build/allure-history
+          key: ${{ runner.os }}-allure-history-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-allure-report-
+            ${{ runner.os }}-allure-history-${{ github.ref_name }}-
+            ${{ runner.os }}-allure-history-
       
       - name: Upload Allure HTML Report
         if: always()
@@ -145,7 +161,7 @@ jobs:
         with:
           name: allure-html-report
           path: code/build/allure-report
-          retention-days: 1
+          retention-days: 30
 
   publish-report:
     if: always()
