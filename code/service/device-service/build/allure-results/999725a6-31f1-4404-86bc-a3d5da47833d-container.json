@@ -1,0 +1,1 @@
+{"uuid":"999725a6-31f1-4404-86bc-a3d5da47833d","name":"Get device - Negative: Device doesn't belong to client","children":["758b4f17-b9b1-4eb8-af88-951d2520e7ac"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1761881651838,"stop":1761881651848}],"afters":[],"start":1761881650126,"stop":1761881652671}
