@@ -11,6 +11,7 @@ env:
   GRADLE_VERSION: '8.7'
   POSTGRES_IMAGE: 'postgres:15'
 
+
 jobs:
   build-and-test:
     runs-on: self-hosted
