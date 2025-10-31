@@ -158,7 +158,7 @@ jobs:
           # Copy history from previous report if exists
           if [ -d "build/allure-history" ]; then
             echo "📚 Copying history from previous reports..."
-            cp -r build/allure-history/history build/allure-results/ || echo "No previous history found"
+            cp -r build/allure-history/history build/allure-results/ || echo "❌ No previous history found"
           fi
 
           allure generate build/allure-results -o build/allure-report --clean
