@@ -1,4 +1,4 @@
-seldname: Java CI/CD Pipeline
+selfname: Java CI/CD Pipeline
 
 on:
   push:
