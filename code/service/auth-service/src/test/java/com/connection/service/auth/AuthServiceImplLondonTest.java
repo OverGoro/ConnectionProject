@@ -110,7 +110,7 @@ class AuthServiceImplLondonTest {
         Pair<AccessTokenBLM, RefreshTokenBLM> result = authService.authorizeByEmail(VALID_EMAIL, VALID_PASSWORD);
 
         // Assert
-        assertThat(result).isNull();
+        assertThat(result).isNotNull();
         assertThat(result.getFirst()).isNotNull();
         assertThat(result.getSecond()).isNotNull();
         verify(clientValidator).validateEmail(VALID_EMAIL);
