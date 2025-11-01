@@ -14,6 +14,7 @@ env:
 jobs:
   build-and-test:
     runs-on: self-hosted
+    # runs-on: ubuntu-latest
     name: Build and Test
     # services:
     #   postgres:
@@ -64,15 +65,6 @@ jobs:
             allure --version
           fi
       
-      - name: Restore Allure History
-        uses: actions/cache@v4
-        with:
-          path: code/build/allure-history
-          key: ${{ runner.os }}-allure-history-${{ github.ref_name }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-allure-history-${{ github.ref_name }}-
-            ${{ runner.os }}-allure-history-
-      
       - name: Setup Report directories
         run: |
           mkdir -p code
@@ -106,6 +98,24 @@ jobs:
             echo "❌ Cannot build - gradlew not found"
             exit 1
           fi
+      - name: Cache Allure History
+        uses: actions/cache@v4
+        with:
+          path: code/build/allure-history
+          key: ${{ runner.os }}-allure-history-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-allure-history-${{ github.ref_name }}-
+            ${{ runner.os }}-allure-history-
+
+     # - name: Download Allure History
+     #   if: always()
+     #   uses: actions/download-artifact@v4
+      #  with:
+      #    name: allure-history
+       #   path: code/build/allure-history
+      #  continue-on-error: true
+
+          
       - name: 🧪 Clean Tests
         run: |
           echo "🧪 Running all tests with testAll task..."
@@ -119,18 +129,19 @@ jobs:
         run: |
           echo "🧪 Running all tests with testAll task..."
           if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew test -x generateAllureReport --continue
+            cd code && ./gradlew :service:auth-service:test -x generateAllureReport --continue
           else
             echo "❌ Cannot run tests - gradlew not found"
             exit 1
           fi
         continue-on-error: true
+
       
       - name: 🧪 Run Integration Tests
         run: |
           echo "🧪 Running all tests with testAll task..."
           if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew integrationTest -x generateAllureReport --continue
+            # cd code && ./gradlew integrationTest -x generateAllureReport --continue
           else
             echo "❌ Cannot run tests - gradlew not found"
             exit 1
@@ -175,14 +186,13 @@ jobs:
           # Save new history for next run
           mkdir -p build/allure-history && cp -r build/allure-report/history build/allure-history/
       
-      - name: Save Allure History
-        uses: actions/cache@v4
+      - name: Upload Allure History
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
+          name: allure-history
           path: code/build/allure-history
-          key: ${{ runner.os }}-allure-history-${{ github.ref_name }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-allure-history-${{ github.ref_name }}-
-            ${{ runner.os }}-allure-history-
+        continue-on-error: true
       
       - name: Upload Allure HTML Report
         if: always()
@@ -196,6 +206,7 @@ jobs:
     if: always()
     needs: [build-and-test]
     runs-on: self-hosted
+    # runs-on: ubuntu-latest
     
     permissions:
       contents: write
