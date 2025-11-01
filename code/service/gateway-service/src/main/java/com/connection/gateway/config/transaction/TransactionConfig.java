@@ -1,4 +1,4 @@
-package com.connection.gateway.config;
+package com.connection.gateway.config.transaction;
 
 import java.util.UUID;
 
