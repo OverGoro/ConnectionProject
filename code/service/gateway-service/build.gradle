@@ -459,6 +459,25 @@ task integrationTest(type: Test) {
     finalizedBy generateAllureReport
 }
 
+// Integration tests
+task E2ETest(type: Test) {
+    description = 'Run E2E tests with Testcontainers'
+    group = 'Verification'
+    
+    configureTestTask(delegate, 'E2ETest')
+    include '**/*E2ETest.*'
+    
+    systemProperty 'spring.profiles.active', 'E2Etest'
+    
+    doFirst {
+        logger.lifecycle("🔧 Running E2E tests")
+        logger.lifecycle("   Database: localhost:5434/test_db")
+        logger.lifecycle("   Kafka: localhost:29093")
+    }
+    
+    // dependsOn startTestContainers
+    finalizedBy generateAllureReport
+}
 // All tests sequence
 task allTests {
     description = 'Run all tests in sequence: unit → integration → e2e'

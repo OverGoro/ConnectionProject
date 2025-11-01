@@ -111,7 +111,7 @@ dependencies {
         implementation 'com.connection:connection-scheme-shared:1.0.0'
         implementation 'com.connection:device-shared:1.0.0'
         implementation 'com.connection:device-token-shared:1.0.0'
-        implementation 'com.connection:gateway-shared:1.0.0'
+        implementation 'com.connection:message-shared:1.0.0'
         implementation 'com.connection:token-shared:1.0.0'
 
         implementation 'com.connection:auth-service:1.0.0'
@@ -119,13 +119,14 @@ dependencies {
         implementation 'com.connection:connection-scheme-service:1.0.0'
         implementation 'com.connection:device-service:1.0.0'
         implementation 'com.connection:device-auth-service:1.0.0'
+        implementation 'com.connection:message-service:1.0.0'
     } else {
         implementation project(':shared:buffer-shared')
         implementation project(':shared:client-shared')
         implementation project(':shared:connection-scheme-shared')
         implementation project(':shared:device-shared')
         implementation project(':shared:device-token-shared')
-        implementation project(':shared:gateway-shared')
+        implementation project(':shared:message-shared')
         implementation project(':shared:token-shared')
         
         implementation project(':service:auth-service')
@@ -133,6 +134,7 @@ dependencies {
         implementation project(':service:connection-scheme-service')
         implementation project(':service:device-service')
         implementation project(':service:device-auth-service')
+        implementation project(':service:message-service')
     }
 
 
