@@ -130,7 +130,7 @@ jobs:
         run: |
           echo "🧪 Running all tests with testAll task..."
           if [ -f "code/gradlew" ]; then
-            cd code && ./gradlew :service:auth-service:test -x generateAllureReport --continue
+            cd code && ./gradlew test -x generateAllureReport --continue
           else
             echo "❌ Cannot run tests - gradlew not found"
             exit 1
