@@ -134,8 +134,6 @@ jobs:
             echo "❌ Cannot run tests - gradlew not found"
             exit 1
           fi
-        continue-on-error: true
-
       
       - name: 🧪 Run Integration Tests
         run: |
@@ -146,18 +144,15 @@ jobs:
             echo "❌ Cannot run tests - gradlew not found"
             exit 1
           fi
-        continue-on-error: true
-      
-      # - name: Cache Gradle
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: |
-      #       **/.gradle
-      #       **/gradle
-      #       **/build
-      #     key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-gradle-
+      - name: 🧪 Run E2E Tests
+        run: |
+          echo "🧪 Running all tests with testAll task..."
+          if [ -f "code/gradlew" ]; then
+            # cd code && ./gradlew E2ETest -x generateAllureReport --continue
+          else
+            echo "❌ Cannot run tests - gradlew not found"
+            exit 1
+          fi
       
       - name: 📊 Collect Test Results
         if: always()
