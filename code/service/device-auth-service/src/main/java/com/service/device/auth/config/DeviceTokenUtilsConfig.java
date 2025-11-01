@@ -6,28 +6,30 @@ import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import com.connection.device.token.converter.DeviceTokenConverter;
 import com.connection.device.token.generator.DeviceTokenGenerator;
 import com.connection.device.token.validator.DeviceTokenValidator;
 
 @Configuration
+@Primary
 public class DeviceTokenUtilsConfig {
 
-    @Bean
+    @Bean("deviceTokenValidator")
     DeviceTokenValidator deviceTokenValidator(){
         return new DeviceTokenValidator();
     }
 
-    @Bean
+    @Bean("deviceTokenGenerator")
     DeviceTokenGenerator deviceTokenGenerator(
             SecretKey jwtSecretKey,
             @Qualifier("appName") String appNameString,
-            @Qualifier("jwtSubject") String subjectString) {
+            @Qualifier("deviceJwtSubject") String subjectString) {
         return new DeviceTokenGenerator(jwtSecretKey, appNameString, subjectString);
     }
 
-    @Bean
+    @Bean("deviceTokenConverter")
     DeviceTokenConverter deviceTokenConverter(DeviceTokenGenerator deviceTokenGenerator) {
         return new DeviceTokenConverter(deviceTokenGenerator);
     }

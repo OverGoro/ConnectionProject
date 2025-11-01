@@ -1,4 +1,4 @@
-package com.connection.message;
+package com.connection.gateway;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -23,11 +23,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.connection.device.DeviceService;
 import com.connection.device.converter.DeviceConverter;
-import com.connection.message.config.SecurityUtils;
-import com.connection.message.converter.MessageConverter;
-import com.connection.message.model.MessageBLM;
-import com.connection.message.repository.MessageRepository;
-import com.connection.message.validator.MessageValidator;
+import com.connection.gateway.config.SecurityUtils;
+import com.connection.gateway.converter.GatewayConverter;
+import com.connection.gateway.model.GatewayBLM;
+import com.connection.gateway.repository.GatewayRepository;
+import com.connection.gateway.validator.GatewayValidator;
 import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.scheme.converter.ConnectionSchemeConverter;
 import com.connection.service.auth.AuthService;
@@ -36,13 +36,13 @@ import com.service.connectionscheme.ConnectionSchemeService;
 import com.service.device.auth.DeviceAuthService;
 
 @ExtendWith(MockitoExtension.class)
-class MessageServiceImplTest {
+class GatewayServiceImplTest {
 
     @Mock
-    private MessageRepository messageRepository;
+    private GatewayRepository gatewayRepository;
 
     @Mock
-    private MessageValidator messageValidator;
+    private GatewayValidator gatewayValidator;
 
     @MockitoBean
     private AuthService authClient;
@@ -69,17 +69,17 @@ class MessageServiceImplTest {
     private DeviceConverter deviceConverter;
 
     @Mock
-    private MessageConverter messageConverter;
+    private GatewayConverter gatewayConverter;
 
-    private MessageServiceImpl messageService;
+    private GatewayServiceImpl gatewayService;
     private MockedStatic<SecurityUtils> securityUtilsMock;
 
     @BeforeEach
     void setUp() {
         securityUtilsMock = mockStatic(SecurityUtils.class);
-        messageService = new MessageServiceImpl(
-            messageRepository,
-            messageValidator,
+        gatewayService = new GatewayServiceImpl(
+            gatewayRepository,
+            gatewayValidator,
             authClient,
             bufferClient,
             connectionSchemeClient,
@@ -88,7 +88,7 @@ class MessageServiceImplTest {
             bufferConverter,
             connectionSchemeConverter,
             deviceConverter,
-            messageConverter
+            gatewayConverter
         );
     }
 
@@ -98,62 +98,62 @@ class MessageServiceImplTest {
     }
 
     @Test
-    void testAddMessage_WithDeviceAuthentication_Success() {
+    void testAddGateway_WithDeviceAuthentication_Success() {
         // Arrange
         UUID deviceUid = UUID.randomUUID();
         UUID bufferUid = UUID.randomUUID();
-        MessageBLM messageBLM = MessageBLM.builder()
+        GatewayBLM gatewayBLM = GatewayBLM.builder()
             .uid(UUID.randomUUID())
             .bufferUid(bufferUid)
-            .content("test message")
+            .content("test gateway")
             .contentType("OUTGOING")
             .createdAt(new Date())
             .build();
 
         // securityUtilsMock.when(SecurityUtils::isDeviceAuthenticated).thenReturn(true);
         // securityUtilsMock.when(SecurityUtils::getCurrentDeviceUid).thenReturn(deviceUid);
-        // doNothing().when(messageValidator).validate(messageBLM);
+        // doNothing().when(gatewayValidator).validate(gatewayBLM);
 
         // // Act
-        // messageService.addMessage(messageBLM);
+        // gatewayService.addGateway(gatewayBLM);
 
         // // Assert
-        // verify(messageValidator).validate(messageBLM);
-        // verify(messageRepository).add(messageBLM);
+        // verify(gatewayValidator).validate(gatewayBLM);
+        // verify(gatewayRepository).add(gatewayBLM);
     }
 
     @Test
-    void testAddMessage_WithClientAuthentication_Success() {
+    void testAddGateway_WithClientAuthentication_Success() {
         // Arrange
         UUID clientUid = UUID.randomUUID();
         UUID bufferUid = UUID.randomUUID();
-        MessageBLM messageBLM = MessageBLM.builder()
+        GatewayBLM gatewayBLM = GatewayBLM.builder()
             .uid(UUID.randomUUID())
             .bufferUid(bufferUid)
-            .content("test message")
+            .content("test gateway")
             .contentType("OUTGOING")
             .createdAt(new Date())
             .build();
 
         // securityUtilsMock.when(SecurityUtils::isClientAuthenticated).thenReturn(true);
         // securityUtilsMock.when(SecurityUtils::getCurrentClientUid).thenReturn(clientUid);
-        // doNothing().when(messageValidator).validate(messageBLM);
+        // doNothing().when(gatewayValidator).validate(gatewayBLM);
 
         // // Act
-        // messageService.addMessage(messageBLM);
+        // gatewayService.addGateway(gatewayBLM);
 
         // // Assert
-        // verify(messageValidator).validate(messageBLM);
-        // verify(messageRepository).add(messageBLM);
+        // verify(gatewayValidator).validate(gatewayBLM);
+        // verify(gatewayRepository).add(gatewayBLM);
     }
 
     @Test
-    void testAddMessage_NoAuthentication_ThrowsSecurityException() {
+    void testAddGateway_NoAuthentication_ThrowsSecurityException() {
         // Arrange
-        MessageBLM messageBLM = MessageBLM.builder()
+        GatewayBLM gatewayBLM = GatewayBLM.builder()
             .uid(UUID.randomUUID())
             .bufferUid(UUID.randomUUID())
-            .content("test message")
+            .content("test gateway")
             .contentType("OUTGOING")
             .createdAt(new Date())
             .build();
@@ -163,27 +163,27 @@ class MessageServiceImplTest {
 
         // // Act & Assert
         // SecurityException exception = assertThrows(SecurityException.class, 
-        //     () -> messageService.addMessage(messageBLM));
-        // assertTrue(exception.getMessage().contains("Cannot add messages without authorization"));
+        //     () -> gatewayService.addGateway(gatewayBLM));
+        // assertTrue(exception.getGateway().contains("Cannot add gateways without authorization"));
     }
 
     @Test
-    void testGetMessagesByBuffer_Success() {
+    void testGetGatewaysByBuffer_Success() {
         // Arrange
         UUID bufferUid = UUID.randomUUID();
         UUID clientUid = UUID.randomUUID();
-        List<MessageBLM> expectedMessages = Arrays.asList(
-            MessageBLM.builder()
+        List<GatewayBLM> expectedGateways = Arrays.asList(
+            GatewayBLM.builder()
                 .uid(UUID.randomUUID())
                 .bufferUid(bufferUid)
-                .content("message 1")
+                .content("gateway 1")
                 .contentType("INCOMING")
                 .createdAt(new Date())
                 .build(),
-            MessageBLM.builder()
+            GatewayBLM.builder()
                 .uid(UUID.randomUUID())
                 .bufferUid(bufferUid)
-                .content("message 2")
+                .content("gateway 2")
                 .contentType("INCOMING")
                 .createdAt(new Date(System.currentTimeMillis() + 1000))
                 .build()
@@ -191,57 +191,57 @@ class MessageServiceImplTest {
 
         // securityUtilsMock.when(SecurityUtils::isClientAuthenticated).thenReturn(true);
         // securityUtilsMock.when(SecurityUtils::getCurrentClientUid).thenReturn(clientUid);
-        // when(messageRepository.findByBufferUid(bufferUid)).thenReturn(expectedMessages);
+        // when(gatewayRepository.findByBufferUid(bufferUid)).thenReturn(expectedGateways);
 
         // // Act
-        // List<MessageBLM> result = messageService.getMessagesByBuffer(bufferUid, false, 0, 10);
+        // List<GatewayBLM> result = gatewayService.getGatewaysByBuffer(bufferUid, false, 0, 10);
 
         // // Assert
-        // assertEquals(expectedMessages.size(), result.size());
-        // verify(messageRepository).findByBufferUid(bufferUid);
+        // assertEquals(expectedGateways.size(), result.size());
+        // verify(gatewayRepository).findByBufferUid(bufferUid);
     }
 
     @Test
-    void testGetMessagesByBuffer_WithDeleteOnGet() {
+    void testGetGatewaysByBuffer_WithDeleteOnGet() {
         // Arrange
         UUID bufferUid = UUID.randomUUID();
         UUID clientUid = UUID.randomUUID();
-        MessageBLM message = MessageBLM.builder()
+        GatewayBLM gateway = GatewayBLM.builder()
             .uid(UUID.randomUUID())
             .bufferUid(bufferUid)
-            .content("test message")
+            .content("test gateway")
             .contentType("INCOMING")
             .createdAt(new Date())
             .build();
-        List<MessageBLM> messages = Collections.singletonList(message);
+        List<GatewayBLM> gateways = Collections.singletonList(gateway);
 
         // securityUtilsMock.when(SecurityUtils::isClientAuthenticated).thenReturn(true);
         // securityUtilsMock.when(SecurityUtils::getCurrentClientUid).thenReturn(clientUid);
-        // when(messageRepository.findByBufferUid(bufferUid)).thenReturn(messages);
+        // when(gatewayRepository.findByBufferUid(bufferUid)).thenReturn(gateways);
 
         // // Act
-        // List<MessageBLM> result = messageService.getMessagesByBuffer(bufferUid, true, 0, 10);
+        // List<GatewayBLM> result = gatewayService.getGatewaysByBuffer(bufferUid, true, 0, 10);
 
         // // Assert
         // assertEquals(1, result.size());
-        // verify(messageRepository).findByBufferUid(bufferUid);
-        // verify(messageRepository).deleteByUid(message.getUid());
+        // verify(gatewayRepository).findByBufferUid(bufferUid);
+        // verify(gatewayRepository).deleteByUid(gateway.getUid());
     }
 
     @Test
     void testHealth_Success() {
         // Act
-        Map<String, String> result = messageService.health();
+        Map<String, String> result = gatewayService.health();
 
         // Assert
         assertNotNull(result);
         assertTrue(result.containsKey("status"));
         assertTrue(result.containsKey("service"));
-        assertEquals("message-service", result.get("service"));
+        assertEquals("gateway-service", result.get("service"));
     }
 
     @Test
-    void testGetMessagesByScheme_WithClientAuthentication() {
+    void testGetGatewaysByScheme_WithClientAuthentication() {
         // Arrange
         UUID schemeUid = UUID.randomUUID();
         UUID clientUid = UUID.randomUUID();
@@ -252,7 +252,7 @@ class MessageServiceImplTest {
         //     .thenReturn(true);
 
         // // Act
-        // List<MessageBLM> result = messageService.getMessagesByScheme(schemeUid, false, 0, 10);
+        // List<GatewayBLM> result = gatewayService.getGatewaysByScheme(schemeUid, false, 0, 10);
 
         // // Assert
         // assertNotNull(result);
@@ -260,7 +260,7 @@ class MessageServiceImplTest {
     }
 
     @Test
-    void testGetMessagesByDevice_WithDeviceAuthentication() {
+    void testGetGatewaysByDevice_WithDeviceAuthentication() {
         // Arrange
         UUID deviceUid = UUID.randomUUID();
 
@@ -268,7 +268,7 @@ class MessageServiceImplTest {
         // securityUtilsMock.when(SecurityUtils::getCurrentDeviceUid).thenReturn(deviceUid);
 
         // // Act
-        // List<MessageBLM> result = messageService.getMessagesByDevice(deviceUid, false, 0, 10);
+        // List<GatewayBLM> result = gatewayService.getGatewaysByDevice(deviceUid, false, 0, 10);
 
         // // Assert
         // assertNotNull(result);
@@ -276,7 +276,7 @@ class MessageServiceImplTest {
     }
 
     @Test
-    void testGetMessagesByDevice_WithClientAuthentication() {
+    void testGetGatewaysByDevice_WithClientAuthentication() {
         // Arrange
         // UUID deviceUid = UUID.randomUUID();
         // UUID clientUid = UUID.randomUUID();
@@ -287,7 +287,7 @@ class MessageServiceImplTest {
         //     .thenReturn(true);
 
         // // Act
-        // List<MessageBLM> result = messageService.getMessagesByDevice(deviceUid, false, 0, 10);
+        // List<GatewayBLM> result = gatewayService.getGatewaysByDevice(deviceUid, false, 0, 10);
 
         // // Assert
         // assertNotNull(result);
@@ -295,7 +295,7 @@ class MessageServiceImplTest {
     }
 
     @Test
-    void testGetMessagesByDevice_NoAccess_ThrowsSecurityException() {
+    void testGetGatewaysByDevice_NoAccess_ThrowsSecurityException() {
         // Arrange
         // UUID deviceUid = UUID.randomUUID();
         // UUID clientUid = UUID.randomUUID();
@@ -307,11 +307,11 @@ class MessageServiceImplTest {
 
         // // Act & Assert
         // SecurityException exception = assertThrows(SecurityException.class,
-        //     () -> messageService.getMessagesByDevice(deviceUid, false, 0, 10));
-        // assertTrue(exception.getMessage().contains("Device doesn't belong to the authenticated client"));
+        //     () -> gatewayService.getGatewaysByDevice(deviceUid, false, 0, 10));
+        // assertTrue(exception.getGateway().contains("Device doesn't belong to the authenticated client"));
     }
-}// MessageServiceIntegrationTest.java
-package com.connection.message.integration;
+}// GatewayServiceIntegrationTest.java
+package com.connection.gateway.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -329,20 +329,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.connection.message.MessageService;
-import com.connection.message.model.MessageBLM;
+import com.connection.gateway.GatewayService;
+import com.connection.gateway.model.GatewayBLM;
 
 import lombok.extern.slf4j.Slf4j;
 
-// MessageServiceIntegrationTest.java - упростить setup
+// GatewayServiceIntegrationTest.java - упростить setup
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("integrationtest")
-@DisplayName("Message Service Integration Tests")
-public class MessageServiceIntegrationTest extends BaseMessageIntegrationTest {
+@DisplayName("Gateway Service Integration Tests")
+public class GatewayServiceIntegrationTest extends BaseGatewayIntegrationTest {
 
     @Autowired
-    private MessageService messageService;
+    private GatewayService gatewayService;
 
     // Убираем локальные переменные, используем унаследованные из Base класса
 
@@ -359,180 +359,180 @@ public class MessageServiceIntegrationTest extends BaseMessageIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should add message successfully as client")
-    void shouldAddMessageSuccessfullyAsClient() {
+    @DisplayName("Should add gateway successfully as client")
+    void shouldAddGatewaySuccessfullyAsClient() {
         // Given
-        MessageBLM message = createTestMessage(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
+        GatewayBLM gateway = createTestGateway(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
 
         // When - устанавливаем аутентификацию клиента
         setupClientAuthentication();
-        messageService.addMessage(message);
+        gatewayService.addGateway(gateway);
 
         // Then - сообщение должно быть добавлено
-        List<MessageBLM> messages = messageService.getMessagesByBuffer(getTestBufferUid(), false, 0, 10);
-        assertThat(messages).isNotEmpty();
-        assertThat(messages.get(0).getContent()).isEqualTo("[12, 56, 64, 123, 2, 489]");
-        assertThat(messages.get(0).getContentType()).isEqualTo("OUTGOING");
+        List<GatewayBLM> gateways = gatewayService.getGatewaysByBuffer(getTestBufferUid(), false, 0, 10);
+        assertThat(gateways).isNotEmpty();
+        assertThat(gateways.get(0).getContent()).isEqualTo("[12, 56, 64, 123, 2, 489]");
+        assertThat(gateways.get(0).getContentType()).isEqualTo("OUTGOING");
 
-        log.info("Successfully added message as client: {}", message.getUid());
+        log.info("Successfully added gateway as client: {}", gateway.getUid());
     }
 
     @Test
-    @DisplayName("Should add message successfully as device")
-    void shouldAddMessageSuccessfullyAsDevice() {
+    @DisplayName("Should add gateway successfully as device")
+    void shouldAddGatewaySuccessfullyAsDevice() {
         // Given
-        MessageBLM message = createTestMessage(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
+        GatewayBLM gateway = createTestGateway(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
 
         // When - устанавливаем аутентификацию устройства
         setupDeviceAuthentication();
-        messageService.addMessage(message);
+        gatewayService.addGateway(gateway);
 
         // Then - сообщение должно быть добавлено
-        List<MessageBLM> messages = messageService.getMessagesByBuffer(getTestBufferUid(), false, 0, 10);
-        assertThat(messages).isNotEmpty();
-        assertThat(messages.get(0).getContent()).isEqualTo("[12, 56, 64, 123, 2, 489]");
+        List<GatewayBLM> gateways = gatewayService.getGatewaysByBuffer(getTestBufferUid(), false, 0, 10);
+        assertThat(gateways).isNotEmpty();
+        assertThat(gateways.get(0).getContent()).isEqualTo("[12, 56, 64, 123, 2, 489]");
 
-        log.info("Successfully added message as device: {}", message.getUid());
+        log.info("Successfully added gateway as device: {}", gateway.getUid());
     }
 
     @Test
-    @DisplayName("Should get messages by buffer as client")
-    void shouldGetMessagesByBufferAsClient() {
+    @DisplayName("Should get gateways by buffer as client")
+    void shouldGetGatewaysByBufferAsClient() {
         // Given
-        MessageBLM message1 = createTestMessage(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
-        MessageBLM message2 = createTestMessage(getTestBufferUid(), "INCOMING", "[12, 56, 64, 123, 2, 489]");
+        GatewayBLM gateway1 = createTestGateway(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
+        GatewayBLM gateway2 = createTestGateway(getTestBufferUid(), "INCOMING", "[12, 56, 64, 123, 2, 489]");
 
         setupClientAuthentication();
-        messageService.addMessage(message1);
-        messageService.addMessage(message2);
+        gatewayService.addGateway(gateway1);
+        gatewayService.addGateway(gateway2);
 
         // When
-        List<MessageBLM> messages = messageService.getMessagesByBuffer(getTestBufferUid(), false, 0, 10);
+        List<GatewayBLM> gateways = gatewayService.getGatewaysByBuffer(getTestBufferUid(), false, 0, 10);
 
         // Then
-        assertThat(messages).hasSize(2);
-        assertThat(messages).extracting(MessageBLM::getContent);
+        assertThat(gateways).hasSize(2);
+        assertThat(gateways).extracting(GatewayBLM::getContent);
 
-        log.info("Successfully retrieved {} messages by buffer", messages.size());
+        log.info("Successfully retrieved {} gateways by buffer", gateways.size());
     }
 
     @Test
-    @DisplayName("Should get messages by buffer as device")
-    void shouldGetMessagesByBufferAsDevice() {
+    @DisplayName("Should get gateways by buffer as device")
+    void shouldGetGatewaysByBufferAsDevice() {
         // Given
-        MessageBLM message = createTestMessage(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
+        GatewayBLM gateway = createTestGateway(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
 
         setupDeviceAuthentication();
-        messageService.addMessage(message);
+        gatewayService.addGateway(gateway);
 
         // When
-        List<MessageBLM> messages = messageService.getMessagesByBuffer(getTestBufferUid(), false, 0, 10);
+        List<GatewayBLM> gateways = gatewayService.getGatewaysByBuffer(getTestBufferUid(), false, 0, 10);
 
         // Then
-        assertThat(messages).isNotEmpty();
-        assertThat(messages.get(0).getContent()).isEqualTo("[12, 56, 64, 123, 2, 489]");
+        assertThat(gateways).isNotEmpty();
+        assertThat(gateways.get(0).getContent()).isEqualTo("[12, 56, 64, 123, 2, 489]");
 
-        log.info("Successfully retrieved messages by buffer as device");
+        log.info("Successfully retrieved gateways by buffer as device");
     }
 
     // @Test
-    // @DisplayName("Should get messages by scheme as client")
-    // void shouldGetMessagesBySchemeAsClient() {
+    // @DisplayName("Should get gateways by scheme as client")
+    // void shouldGetGatewaysBySchemeAsClient() {
     //     // Given
-    //     MessageBLM message = createTestMessage(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
+    //     GatewayBLM gateway = createTestGateway(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
 
     //     setupClientAuthentication();
-    //     messageService.addMessage(message);
+    //     gatewayService.addGateway(gateway);
 
     //     // When
-    //     List<MessageBLM> messages = messageService.getMessagesByScheme(getTestSchemeUid(), false, 0, 10);
+    //     List<GatewayBLM> gateways = gatewayService.getGatewaysByScheme(getTestSchemeUid(), false, 0, 10);
 
     //     // Then
-    //     assertThat(messages).isNotEmpty();
+    //     assertThat(gateways).isNotEmpty();
     //     // Сообщение должно быть доступно через схему, так как буфер связан со схемой
 
-    //     log.info("Successfully retrieved messages by scheme as client");
+    //     log.info("Successfully retrieved gateways by scheme as client");
     // }
 
     @Test
-    @DisplayName("Should get messages by device as client")
-    void shouldGetMessagesByDeviceAsClient() {
+    @DisplayName("Should get gateways by device as client")
+    void shouldGetGatewaysByDeviceAsClient() {
         // Given
-        MessageBLM message = createTestMessage(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
+        GatewayBLM gateway = createTestGateway(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
 
         setupClientAuthentication();
-        messageService.addMessage(message);
+        gatewayService.addGateway(gateway);
 
         // When
-        List<MessageBLM> messages = messageService.getMessagesByDevice(getTestDeviceUid(), false, 0, 10);
+        List<GatewayBLM> gateways = gatewayService.getGatewaysByDevice(getTestDeviceUid(), false, 0, 10);
 
         // Then
-        assertThat(messages).isNotEmpty();
-        assertThat(messages.get(0).getContent()).isEqualTo("[12, 56, 64, 123, 2, 489]");
+        assertThat(gateways).isNotEmpty();
+        assertThat(gateways.get(0).getContent()).isEqualTo("[12, 56, 64, 123, 2, 489]");
 
-        log.info("Successfully retrieved messages by device as client");
+        log.info("Successfully retrieved gateways by device as client");
     }
 
     @Test
-    @DisplayName("Should get messages by device as device itself")
-    void shouldGetMessagesByDeviceAsDeviceItself() {
+    @DisplayName("Should get gateways by device as device itself")
+    void shouldGetGatewaysByDeviceAsDeviceItself() {
         // Given
-        MessageBLM message = createTestMessage(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
+        GatewayBLM gateway = createTestGateway(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
 
         setupDeviceAuthentication();
-        messageService.addMessage(message);
+        gatewayService.addGateway(gateway);
 
         // When
-        List<MessageBLM> messages = messageService.getMessagesByDevice(getTestDeviceUid(), false, 0, 10);
+        List<GatewayBLM> gateways = gatewayService.getGatewaysByDevice(getTestDeviceUid(), false, 0, 10);
 
         // Then
-        assertThat(messages).isNotEmpty();
-        assertThat(messages.get(0).getContent()).isEqualTo("[12, 56, 64, 123, 2, 489]");
+        assertThat(gateways).isNotEmpty();
+        assertThat(gateways.get(0).getContent()).isEqualTo("[12, 56, 64, 123, 2, 489]");
 
-        log.info("Successfully retrieved own messages as device");
+        log.info("Successfully retrieved own gateways as device");
     }
 
     @Test
-    @DisplayName("Should process message movement for OUTGOING messages")
-    void shouldProcessMessageMovementForOutgoingMessages() {
+    @DisplayName("Should process gateway movement for OUTGOING gateways")
+    void shouldProcessGatewayMovementForOutgoingGateways() {
         // Given
-        MessageBLM outgoingMessage = createTestMessage(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
+        GatewayBLM outgoingGateway = createTestGateway(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
 
         // When
         setupClientAuthentication();
-        messageService.addMessage(outgoingMessage);
+        gatewayService.addGateway(outgoingGateway);
 
         // Then - сообщение должно быть скопировано в целевой буфер
-        List<MessageBLM> sourceMessages = messageService.getMessagesByBuffer(getTestBufferUid(), false, 0, 10);
-        List<MessageBLM> targetMessages = messageService.getMessagesByBuffer(getTestTargetBufferUid(), false, 0, 10);
+        List<GatewayBLM> sourceGateways = gatewayService.getGatewaysByBuffer(getTestBufferUid(), false, 0, 10);
+        List<GatewayBLM> targetGateways = gatewayService.getGatewaysByBuffer(getTestTargetBufferUid(), false, 0, 10);
 
-        assertThat(sourceMessages).isNotEmpty();
-        assertThat(targetMessages).isNotEmpty();
-        assertThat(targetMessages.get(0).getContentType()).isEqualTo("INCOMING");
-        assertThat(targetMessages.get(0).getContent()).isEqualTo("[12, 56, 64, 123, 2, 489]");
+        assertThat(sourceGateways).isNotEmpty();
+        assertThat(targetGateways).isNotEmpty();
+        assertThat(targetGateways.get(0).getContentType()).isEqualTo("INCOMING");
+        assertThat(targetGateways.get(0).getContent()).isEqualTo("[12, 56, 64, 123, 2, 489]");
 
-        log.info("Successfully processed message movement from {} to {}", getTestBufferUid(), getTestTargetBufferUid());
+        log.info("Successfully processed gateway movement from {} to {}", getTestBufferUid(), getTestTargetBufferUid());
     }
 
     // @Test
-    // @DisplayName("Should delete messages when deleteOnGet is true")
-    // void shouldDeleteMessagesWhenDeleteOnGetIsTrue() {
+    // @DisplayName("Should delete gateways when deleteOnGet is true")
+    // void shouldDeleteGatewaysWhenDeleteOnGetIsTrue() {
     //     // Given
-    //     MessageBLM message = createTestMessage(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
+    //     GatewayBLM gateway = createTestGateway(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
 
     //     setupClientAuthentication();
-    //     messageService.addMessage(message);
+    //     gatewayService.addGateway(gateway);
 
     //     // When - получаем сообщения с флагом удаления
-    //     List<MessageBLM> messagesFirstGet = messageService.getMessagesByBuffer(getTestBufferUid(), true, 0, 10);
+    //     List<GatewayBLM> gatewaysFirstGet = gatewayService.getGatewaysByBuffer(getTestBufferUid(), true, 0, 10);
         
     //     // Then - при повторном получении сообщений не должно быть
-    //     List<MessageBLM> messagesSecondGet = messageService.getMessagesByBuffer(getTestBufferUid(), false, 0, 10);
+    //     List<GatewayBLM> gatewaysSecondGet = gatewayService.getGatewaysByBuffer(getTestBufferUid(), false, 0, 10);
 
-    //     assertThat(messagesFirstGet).isNotEmpty();
-    //     assertThat(messagesSecondGet).isEmpty();
+    //     assertThat(gatewaysFirstGet).isNotEmpty();
+    //     assertThat(gatewaysSecondGet).isEmpty();
 
-    //     log.info("Successfully deleted messages on get with deleteOnGet=true");
+    //     log.info("Successfully deleted gateways on get with deleteOnGet=true");
     // }
 
     @Test
@@ -541,13 +541,13 @@ public class MessageServiceIntegrationTest extends BaseMessageIntegrationTest {
         // Given - создаем несколько сообщений
         setupClientAuthentication();
         for (int i = 1; i <= 5; i++) {
-            MessageBLM message = createTestMessage(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
-            messageService.addMessage(message);
+            GatewayBLM gateway = createTestGateway(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
+            gatewayService.addGateway(gateway);
         }
 
         // When - применяем пагинацию
-        List<MessageBLM> firstPage = messageService.getMessagesByBuffer(getTestBufferUid(), false, 0, 2);
-        List<MessageBLM> secondPage = messageService.getMessagesByBuffer(getTestBufferUid(), false, 2, 2);
+        List<GatewayBLM> firstPage = gatewayService.getGatewaysByBuffer(getTestBufferUid(), false, 0, 2);
+        List<GatewayBLM> secondPage = gatewayService.getGatewaysByBuffer(getTestBufferUid(), false, 2, 2);
 
         // Then
         assertThat(firstPage).hasSize(2);
@@ -558,46 +558,46 @@ public class MessageServiceIntegrationTest extends BaseMessageIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should throw SecurityException when adding message without authentication")
-    void shouldThrowSecurityExceptionWhenAddingMessageWithoutAuthentication() {
+    @DisplayName("Should throw SecurityException when adding gateway without authentication")
+    void shouldThrowSecurityExceptionWhenAddingGatewayWithoutAuthentication() {
         // Given
-        MessageBLM message = createTestMessage(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
+        GatewayBLM gateway = createTestGateway(getTestBufferUid(), "OUTGOING", "[12, 56, 64, 123, 2, 489]");
 
         // When & Then - без аутентификации
         clearAuthentication();
-        assertThatThrownBy(() -> messageService.addMessage(message))
+        assertThatThrownBy(() -> gatewayService.addGateway(gateway))
                 .isInstanceOf(SecurityException.class)
-                .hasMessageContaining("Cannot add messages without authorization");
+                .hasGatewayContaining("Cannot add gateways without authorization");
 
-        log.info("✅ SecurityException correctly thrown when adding message without authentication");
+        log.info("✅ SecurityException correctly thrown when adding gateway without authentication");
     }
 
     // @Test
-    // @DisplayName("Should throw SecurityException when client accesses wrong device messages")
-    // void shouldThrowSecurityExceptionWhenClientAccessesWrongDeviceMessages() {
+    // @DisplayName("Should throw SecurityException when client accesses wrong device gateways")
+    // void shouldThrowSecurityExceptionWhenClientAccessesWrongDeviceGateways() {
     //     // Given
     //     UUID wrongDeviceUid = UUID.randomUUID();
         
     //     // When & Then
     //     setupClientAuthentication();
-    //     assertThatThrownBy(() -> messageService.getMessagesByDevice(wrongDeviceUid, false, 0, 10))
+    //     assertThatThrownBy(() -> gatewayService.getGatewaysByDevice(wrongDeviceUid, false, 0, 10))
     //             .isInstanceOf(SecurityException.class)
-    //             .hasMessageContaining("Device doesn't belong to the authenticated client");
+    //             .hasGatewayContaining("Device doesn't belong to the authenticated client");
 
     //     log.info("✅ SecurityException correctly thrown for wrong device access");
     // }
 
     @Test
-    @DisplayName("Should throw SecurityException when device accesses other device messages")
-    void shouldThrowSecurityExceptionWhenDeviceAccessesOtherDeviceMessages() {
+    @DisplayName("Should throw SecurityException when device accesses other device gateways")
+    void shouldThrowSecurityExceptionWhenDeviceAccessesOtherDeviceGateways() {
         // Given
         UUID otherDeviceUid = UUID.randomUUID();
         
         // When & Then
         setupDeviceAuthentication();
-        assertThatThrownBy(() -> messageService.getMessagesByDevice(otherDeviceUid, false, 0, 10))
+        assertThatThrownBy(() -> gatewayService.getGatewaysByDevice(otherDeviceUid, false, 0, 10))
                 .isInstanceOf(SecurityException.class)
-                .hasMessageContaining("Device can only access its own messages");
+                .hasGatewayContaining("Device can only access its own gateways");
 
         log.info("✅ SecurityException correctly thrown for cross-device access");
     }
@@ -607,7 +607,7 @@ public class MessageServiceIntegrationTest extends BaseMessageIntegrationTest {
     void shouldGetHealthStatus() {
         // When
         try {
-            Map<String, String> healthStatus = messageService.health();
+            Map<String, String> healthStatus = gatewayService.health();
 
             // Then
             assertThat(healthStatus).isNotNull();
@@ -615,7 +615,7 @@ public class MessageServiceIntegrationTest extends BaseMessageIntegrationTest {
 
             log.info("Health status: {}", healthStatus);
         } catch (NullPointerException e) {
-            log.warn("Health status check threw NPE, but test continues: {}", e.getMessage());
+            log.warn("Health status check threw NPE, but test continues: {}", e.getGateway());
             // Тест проходит, даже если health check имеет проблемы
         }
     }
@@ -627,7 +627,7 @@ public class MessageServiceIntegrationTest extends BaseMessageIntegrationTest {
         String testQuery = "SELECT 1";
 
         // When
-        Integer result = messageJdbcTemplate.getJdbcTemplate()
+        Integer result = gatewayJdbcTemplate.getJdbcTemplate()
                 .queryForObject(testQuery, Integer.class);
 
         // Then
@@ -635,8 +635,8 @@ public class MessageServiceIntegrationTest extends BaseMessageIntegrationTest {
         log.info("✅ Database connection test passed");
     }
 
-    private MessageBLM createTestMessage(UUID bufferUid, String contentType, String content) {
-        return MessageBLM.builder()
+    private GatewayBLM createTestGateway(UUID bufferUid, String contentType, String content) {
+        return GatewayBLM.builder()
                 .uid(UUID.randomUUID())
                 .bufferUid(bufferUid)
                 .contentType(contentType)
@@ -645,7 +645,7 @@ public class MessageServiceIntegrationTest extends BaseMessageIntegrationTest {
                 .build();
     }
 }// TestConnectionSchemeServiceResponder.java
-package com.connection.message.integration;
+package com.connection.gateway.integration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -973,7 +973,7 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
         return existingScheme;
     }
 }// TestDeviceAuthServiceResponder.java
-package com.connection.message.integration;
+package com.connection.gateway.integration;
 
 import java.util.Map;
 import java.util.UUID;
@@ -1080,7 +1080,7 @@ public class TestDeviceAuthService implements DeviceAuthService {
         throw new UnsupportedOperationException("Unimplemented method 'validateDeviceToken'");
     }
 }// TestBufferServiceResponder.java
-package com.connection.message.integration;
+package com.connection.gateway.integration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1111,11 +1111,11 @@ public class TestBufferService implements BufferService {
     private final Map<UUID, List<BufferBLM>> clientBuffers = new ConcurrentHashMap<>();
 
     // Методы для управления тестовыми данными
-    public void addTestBuffer(UUID bufferUid, UUID deviceUid, int maxMessages, int maxSize) {
+    public void addTestBuffer(UUID bufferUid, UUID deviceUid, int maxGateways, int maxSize) {
         BufferBLM buffer = new BufferBLM(
                 bufferUid,
                 deviceUid,
-                maxMessages,
+                maxGateways,
                 maxSize,
                 "{}"
         );
@@ -1298,14 +1298,14 @@ public class TestBufferService implements BufferService {
         }
         
         // Обновляем поля буфера
-        if (bufferBLM.getMaxMessagesNumber() != null) {
-            existingBuffer.setMaxMessagesNumber(bufferBLM.getMaxMessagesNumber());
+        if (bufferBLM.getMaxGatewaysNumber() != null) {
+            existingBuffer.setMaxGatewaysNumber(bufferBLM.getMaxGatewaysNumber());
         }
-        if (bufferBLM.getMaxMessageSize() != null) {
-            existingBuffer.setMaxMessageSize(bufferBLM.getMaxMessageSize());
+        if (bufferBLM.getMaxGatewaySize() != null) {
+            existingBuffer.setMaxGatewaySize(bufferBLM.getMaxGatewaySize());
         }
-        if (bufferBLM.getMessagePrototype() != null) {
-            existingBuffer.setMessagePrototype(bufferBLM.getMessagePrototype());
+        if (bufferBLM.getGatewayPrototype() != null) {
+            existingBuffer.setGatewayPrototype(bufferBLM.getGatewayPrototype());
         }
         
         // Обрабатываем смену устройства
@@ -1352,7 +1352,7 @@ public class TestBufferService implements BufferService {
         return buffers != null ? buffers.size() : 0;
     }
 }// TestDeviceServiceResponder.java
-package com.connection.message.integration;
+package com.connection.gateway.integration;
 
 import java.util.List;
 import java.util.Map;
@@ -1530,8 +1530,8 @@ public class TestDeviceService implements DeviceService {
         log.info(" Test Responder: Updated device {}", deviceBLM.getUid());
         return existingDevice;
     }
-}// BaseMessageIntegrationTest.java
-package com.connection.message.integration;
+}// BaseGatewayIntegrationTest.java
+package com.connection.gateway.integration;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -1571,7 +1571,7 @@ import java.util.List;
 @TestMethodOrder(MethodOrderer.Random.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Slf4j
-public abstract class BaseMessageIntegrationTest {
+public abstract class BaseGatewayIntegrationTest {
 
     @Autowired
     protected TestAuthService testAuth;
@@ -1597,7 +1597,7 @@ public abstract class BaseMessageIntegrationTest {
     protected KafkaTemplate<String, Object> kafkaTemplate;
 
     @Autowired
-    protected NamedParameterJdbcTemplate messageJdbcTemplate;
+    protected NamedParameterJdbcTemplate gatewayJdbcTemplate;
 
     protected final Map<String, String> testData = new ConcurrentHashMap<>();
     protected UUID testClientUid;
@@ -1662,7 +1662,7 @@ public abstract class BaseMessageIntegrationTest {
                     ON CONFLICT (uid) DO NOTHING
                     """;
 
-            int clientsInserted = messageJdbcTemplate.update(insertClientSql, Map.of(
+            int clientsInserted = gatewayJdbcTemplate.update(insertClientSql, Map.of(
                     "uid", testClientUid,
                     "email", "test.client." + testClientUid + "@example.com",
                     "username", "testclient_" + testClientUid.toString().substring(0, 8),
@@ -1679,11 +1679,11 @@ public abstract class BaseMessageIntegrationTest {
                     ON CONFLICT (uid) DO NOTHING
                     """;
 
-            int devicesInserted = messageJdbcTemplate.update(insertDeviceSql, Map.of(
+            int devicesInserted = gatewayJdbcTemplate.update(insertDeviceSql, Map.of(
                     "uid", testDeviceUid,
                     "clientUuid", testClientUid,
                     "deviceName", "Test Device " + testDeviceUid.toString().substring(0, 8),
-                    "deviceDescription", "Integration test device for message service"));
+                    "deviceDescription", "Integration test device for gateway service"));
 
             if (devicesInserted > 0) {
                 log.info("✅ Created test device: {} for client: {}", testDeviceUid, testClientUid);
@@ -1691,16 +1691,16 @@ public abstract class BaseMessageIntegrationTest {
 
             // 3. Создаем тестовые буферы
             String insertBufferSql = """
-                    INSERT INTO processing.buffer (uid, device_uid, max_messages_number, max_message_size, message_prototype)
-                    VALUES (:uid, :deviceUid, :maxMessages, :maxSize, :prototype)
+                    INSERT INTO processing.buffer (uid, device_uid, max_gateways_number, max_gateway_size, gateway_prototype)
+                    VALUES (:uid, :deviceUid, :maxGateways, :maxSize, :prototype)
                     ON CONFLICT (uid) DO NOTHING
                     """;
 
             // Основной буфер
-            int buffersInserted = messageJdbcTemplate.update(insertBufferSql, Map.of(
+            int buffersInserted = gatewayJdbcTemplate.update(insertBufferSql, Map.of(
                     "uid", testBufferUid,
                     "deviceUid", testDeviceUid,
-                    "maxMessages", 1000,
+                    "maxGateways", 1000,
                     "maxSize", 1024,
                     "prototype", "{}"));
 
@@ -1709,10 +1709,10 @@ public abstract class BaseMessageIntegrationTest {
             }
 
             // Целевой буфер для перемещения сообщений
-            int targetBuffersInserted = messageJdbcTemplate.update(insertBufferSql, Map.of(
+            int targetBuffersInserted = gatewayJdbcTemplate.update(insertBufferSql, Map.of(
                     "uid", testTargetBufferUid,
                     "deviceUid", testDeviceUid,
-                    "maxMessages", 1000,
+                    "maxGateways", 1000,
                     "maxSize", 1024,
                     "prototype", "{}"));
 
@@ -1736,7 +1736,7 @@ public abstract class BaseMessageIntegrationTest {
                     }
                     """, testBufferUid, testTargetBufferUid, testBufferUid, testTargetBufferUid);
 
-            int schemesInserted = messageJdbcTemplate.update(insertSchemeSql, Map.of(
+            int schemesInserted = gatewayJdbcTemplate.update(insertSchemeSql, Map.of(
                     "uid", testSchemeUid,
                     "clientUid", testClientUid,
                     "schemeJson", schemeJson));
@@ -1753,13 +1753,13 @@ public abstract class BaseMessageIntegrationTest {
                     """;
 
             // Связываем схему с основным буфером
-            messageJdbcTemplate.update(insertSchemeBufferSql, Map.of(
+            gatewayJdbcTemplate.update(insertSchemeBufferSql, Map.of(
                     "uid", UUID.randomUUID(),
                     "schemeUid", testSchemeUid,
                     "bufferUid", testBufferUid));
 
             // Связываем схему с целевым буфером
-            messageJdbcTemplate.update(insertSchemeBufferSql, Map.of(
+            gatewayJdbcTemplate.update(insertSchemeBufferSql, Map.of(
                     "uid", UUID.randomUUID(),
                     "schemeUid", testSchemeUid,
                     "bufferUid", testTargetBufferUid));
@@ -1767,7 +1767,7 @@ public abstract class BaseMessageIntegrationTest {
             log.info("✅ Linked scheme {} to buffers {} and {}", testSchemeUid, testBufferUid, testTargetBufferUid);
 
         } catch (Exception e) {
-            log.error("❌ Failed to initialize test data in database: {}", e.getMessage(), e);
+            log.error("❌ Failed to initialize test data in database: {}", e.getGateway(), e);
             throw new RuntimeException("Test data initialization failed", e);
         }
     }
@@ -1872,24 +1872,24 @@ public abstract class BaseMessageIntegrationTest {
     }
 
     protected void checkConfig() {
-        log.info("=== Message Service Integration Test Configuration ===");
+        log.info("=== Gateway Service Integration Test Configuration ===");
         log.info("Active profiles: {}", Arrays.toString(environment.getActiveProfiles()));
         log.info("Kafka servers: {}", environment.getProperty("spring.kafka.bootstrap-servers"));
-        log.info("Database URL: {}", environment.getProperty("app.datasource.message.xa-properties.url"));
-        log.info("Database user: {}", environment.getProperty("app.datasource.message.xa-properties.user"));
+        log.info("Database URL: {}", environment.getProperty("app.datasource.gateway.xa-properties.url"));
+        log.info("Database user: {}", environment.getProperty("app.datasource.gateway.xa-properties.user"));
         log.info("Service name: {}", environment.getProperty("spring.application.name"));
         log.info("=====================================================");
     }
 
-   // В BaseMessageIntegrationTest - улучшить метод очистки
+   // В BaseGatewayIntegrationTest - улучшить метод очистки
 protected void cleanupAllTestData() {
     try {
         UUID currentClientUid = getTestClientUid();
         log.info("Cleaning up data for client: {}", currentClientUid);
 
         // 1. Очистка сообщений через буферы клиента
-        String deleteMessagesSql = """
-            DELETE FROM processing.message 
+        String deleteGatewaysSql = """
+            DELETE FROM processing.gateway 
             WHERE buffer_uid IN (
                 SELECT b.uid FROM processing.buffer b
                 JOIN core.device d ON b.device_uid = d.uid
@@ -1897,13 +1897,13 @@ protected void cleanupAllTestData() {
             )
             """;
         try {
-            int messagesDeleted = messageJdbcTemplate.update(deleteMessagesSql, 
+            int gatewaysDeleted = gatewayJdbcTemplate.update(deleteGatewaysSql, 
                     Map.of("clientUid", currentClientUid));
-            if (messagesDeleted > 0) {
-                log.debug("Deleted {} messages for client: {}", messagesDeleted, currentClientUid);
+            if (gatewaysDeleted > 0) {
+                log.debug("Deleted {} gateways for client: {}", gatewaysDeleted, currentClientUid);
             }
         } catch (Exception e) {
-            log.debug("No messages to delete for client: {}", currentClientUid);
+            log.debug("No gateways to delete for client: {}", currentClientUid);
         }
 
         // 2. Очистка связей схемы с буферами
@@ -1919,7 +1919,7 @@ protected void cleanupAllTestData() {
             )
             """;
         try {
-            int schemeBuffersDeleted = messageJdbcTemplate.update(deleteSchemeBuffersSql,
+            int schemeBuffersDeleted = gatewayJdbcTemplate.update(deleteSchemeBuffersSql,
                     Map.of("clientUid", currentClientUid));
             if (schemeBuffersDeleted > 0) {
                 log.debug("Deleted {} scheme-buffer links for client: {}", schemeBuffersDeleted, currentClientUid);
@@ -1931,7 +1931,7 @@ protected void cleanupAllTestData() {
         // 3. Очистка схем соединения клиента
         String deleteSchemesSql = "DELETE FROM processing.connection_scheme WHERE client_uid = :clientUid";
         try {
-            int schemesDeleted = messageJdbcTemplate.update(deleteSchemesSql, Map.of("clientUid", currentClientUid));
+            int schemesDeleted = gatewayJdbcTemplate.update(deleteSchemesSql, Map.of("clientUid", currentClientUid));
             if (schemesDeleted > 0) {
                 log.debug("Deleted {} connection schemes for client: {}", schemesDeleted, currentClientUid);
             }
@@ -1948,7 +1948,7 @@ protected void cleanupAllTestData() {
             )
             """;
         try {
-            int buffersDeleted = messageJdbcTemplate.update(deleteBuffersSql, Map.of("clientUid", currentClientUid));
+            int buffersDeleted = gatewayJdbcTemplate.update(deleteBuffersSql, Map.of("clientUid", currentClientUid));
             if (buffersDeleted > 0) {
                 log.debug("Deleted {} buffers for client: {}", buffersDeleted, currentClientUid);
             }
@@ -1959,7 +1959,7 @@ protected void cleanupAllTestData() {
         // 5. Очистка устройств клиента
         String deleteDevicesSql = "DELETE FROM core.device WHERE client_uuid = :clientUid";
         try {
-            int devicesDeleted = messageJdbcTemplate.update(deleteDevicesSql, Map.of("clientUid", currentClientUid));
+            int devicesDeleted = gatewayJdbcTemplate.update(deleteDevicesSql, Map.of("clientUid", currentClientUid));
             if (devicesDeleted > 0) {
                 log.debug("Deleted {} devices for client: {}", devicesDeleted, currentClientUid);
             }
@@ -1970,7 +1970,7 @@ protected void cleanupAllTestData() {
         // 6. Очистка самого клиента
         String deleteClientSql = "DELETE FROM core.client WHERE uid = :clientUid";
         try {
-            int clientsDeleted = messageJdbcTemplate.update(deleteClientSql, Map.of("clientUid", currentClientUid));
+            int clientsDeleted = gatewayJdbcTemplate.update(deleteClientSql, Map.of("clientUid", currentClientUid));
             if (clientsDeleted > 0) {
                 log.info("✅ Cleaned up client and all related data: {}", currentClientUid);
             }
@@ -1979,7 +1979,7 @@ protected void cleanupAllTestData() {
         }
 
     } catch (Exception e) {
-        log.warn("Cleanup warning for client {}: {}", getTestClientUid(), e.getMessage());
+        log.warn("Cleanup warning for client {}: {}", getTestClientUid(), e.getGateway());
     }
 }
 
@@ -2041,7 +2041,7 @@ protected void cleanupAllTestData() {
         return testTargetBufferUid;
     }
 }// TestAuthServiceResponder.java
-package com.connection.message.integration;
+package com.connection.gateway.integration;
 
 import java.util.Map;
 import java.util.UUID;

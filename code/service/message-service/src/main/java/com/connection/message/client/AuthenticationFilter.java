@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.util.Collections;
 
 @Slf4j
-@Component
+@Component("messageAuthenticationFilter")
 @RequiredArgsConstructor
 public class AuthenticationFilter extends OncePerRequestFilter {
 

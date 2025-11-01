@@ -1,0 +1,225 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.connection",
+    "module": "buffer-service",
+    "version": "1.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.13"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "buffer-service-1.0.0-plain.jar",
+          "url": "buffer-service-1.0.0-plain.jar",
+          "size": 30883,
+          "sha512": "fe38607e1d6d2980e7d94ce4b5b744aa09a582f6759f9438d5198d2d50fee88fa9d03773c7a6d8c995eb0fae4924f0100f1e57575dd3d33925363823b99a41b1",
+          "sha256": "2bd731326f6a6df26d5a5a835f8035ffbde411d683233085ccac2ecca3bed7d7",
+          "sha1": "cd47c2f9ed8bc2d33fabbe32a7daf6dc7c7deca0",
+          "md5": "36f84846af6874f87431df9e02448631"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.data",
+          "module": "spring-data-commons"
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-jdbc"
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-web"
+        },
+        {
+          "group": "org.springframework.cloud",
+          "module": "spring-cloud-starter-openfeign",
+          "version": {
+            "requires": "4.3.0"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-config",
+          "version": {
+            "requires": "6.5.3"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-web",
+          "version": {
+            "requires": "6.5.3"
+          }
+        },
+        {
+          "group": "org.springframework.kafka",
+          "module": "spring-kafka",
+          "version": {
+            "requires": "3.3.10"
+          }
+        },
+        {
+          "group": "com.atomikos",
+          "module": "transactions-spring-boot3-starter",
+          "version": {
+            "requires": "6.0.0"
+          }
+        },
+        {
+          "group": "io.jsonwebtoken",
+          "module": "jjwt-api",
+          "version": {
+            "requires": "0.12.5"
+          }
+        },
+        {
+          "group": "org.springdoc",
+          "module": "springdoc-openapi-starter-webmvc-ui",
+          "version": {
+            "requires": "2.8.6"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "token-shared",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "connection-scheme-shared",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "buffer-shared",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "device-shared",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "common-events",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "common-auth-events",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "common-device-events",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "common-buffer-events",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "common-connection-scheme-events",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "auth-service",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "connection-scheme-service",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "device-service",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "org.postgresql",
+          "module": "postgresql"
+        },
+        {
+          "group": "io.jsonwebtoken",
+          "module": "jjwt-impl",
+          "version": {
+            "requires": "0.12.5"
+          }
+        },
+        {
+          "group": "io.jsonwebtoken",
+          "module": "jjwt-jackson",
+          "version": {
+            "requires": "0.12.5"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "buffer-service-1.0.0-plain.jar",
+          "url": "buffer-service-1.0.0-plain.jar",
+          "size": 30883,
+          "sha512": "fe38607e1d6d2980e7d94ce4b5b744aa09a582f6759f9438d5198d2d50fee88fa9d03773c7a6d8c995eb0fae4924f0100f1e57575dd3d33925363823b99a41b1",
+          "sha256": "2bd731326f6a6df26d5a5a835f8035ffbde411d683233085ccac2ecca3bed7d7",
+          "sha1": "cd47c2f9ed8bc2d33fabbe32a7daf6dc7c7deca0",
+          "md5": "36f84846af6874f87431df9e02448631"
+        }
+      ]
+    }
+  ]
+}

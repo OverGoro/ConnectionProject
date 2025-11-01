@@ -398,7 +398,7 @@ import com.connection.scheme.model.ConnectionSchemeDALM;
 import java.util.List;
 import java.util.UUID;
 
-@Repository
+
 public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeRepository {
 
     private static final String SELECT_SCHEME = "SELECT cs.uid, cs.client_uid, cs.scheme_json";

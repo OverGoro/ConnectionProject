@@ -17,7 +17,7 @@ import com.connection.scheme.validator.ConnectionSchemeValidator;
 import java.util.List;
 import java.util.UUID;
 
-@Repository
+
 public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeRepository {
 
     // Основные запросы для схем

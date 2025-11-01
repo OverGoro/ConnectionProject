@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/message")
 @Tag(name = "Message Service", description = "API для управления сообщениями устройств")
 public class MessageController {
 

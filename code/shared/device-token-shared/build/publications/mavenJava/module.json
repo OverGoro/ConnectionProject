@@ -1,0 +1,90 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.connection",
+    "module": "device-token-shared",
+    "version": "1.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.13"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "device-token-shared-1.0.0.jar",
+          "url": "device-token-shared-1.0.0.jar",
+          "size": 45972,
+          "sha512": "8840822a54fb5d41fccb9b34c5333d48cff907e5bd9a8259f150a3a33f943c27c9455a17269246a508629534e0d114714a5bc0b98fd23ddf0784f41dba4f2b8d",
+          "sha256": "127aea4d5488c03c5f2a4decb1fa4b42779bfb8bdb98c71db47a3daa66c20ff7",
+          "sha1": "7d6601661930ce074247cbfaa46a18da5c97db11",
+          "md5": "ca5f353734240bb01678cbcdc7fccb05"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-data-jpa",
+          "version": {
+            "requires": "3.5.3"
+          }
+        },
+        {
+          "group": "io.jsonwebtoken",
+          "module": "jjwt-api",
+          "version": {
+            "requires": "0.12.6"
+          }
+        },
+        {
+          "group": "io.jsonwebtoken",
+          "module": "jjwt-impl",
+          "version": {
+            "requires": "0.12.6"
+          }
+        },
+        {
+          "group": "io.jsonwebtoken",
+          "module": "jjwt-jackson",
+          "version": {
+            "requires": "0.12.6"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "device-token-shared-1.0.0.jar",
+          "url": "device-token-shared-1.0.0.jar",
+          "size": 45972,
+          "sha512": "8840822a54fb5d41fccb9b34c5333d48cff907e5bd9a8259f150a3a33f943c27c9455a17269246a508629534e0d114714a5bc0b98fd23ddf0784f41dba4f2b8d",
+          "sha256": "127aea4d5488c03c5f2a4decb1fa4b42779bfb8bdb98c71db47a3daa66c20ff7",
+          "sha1": "7d6601661930ce074247cbfaa46a18da5c97db11",
+          "md5": "ca5f353734240bb01678cbcdc7fccb05"
+        }
+      ]
+    }
+  ]
+}

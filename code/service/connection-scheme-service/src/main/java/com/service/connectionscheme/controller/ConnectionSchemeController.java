@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/scheme")
 public class ConnectionSchemeController {
     @Qualifier("ApiConnectionSchemeService")
     private final ConnectionSchemeService connectionSchemeService;

@@ -293,7 +293,7 @@ import com.connection.processing.buffer.model.BufferDALM;
 import java.util.List;
 import java.util.UUID;
 
-@Repository
+
 public class BufferRepositorySQLImpl implements BufferRepository {
 
     private static final String SELECT_BUFFER = "SELECT b.uid, b.device_uid, b.max_messages_number, b.max_message_size, b.message_prototype";

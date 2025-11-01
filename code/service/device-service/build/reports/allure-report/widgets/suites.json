@@ -1,1 +1,1 @@
-{"total":1,"items":[{"uid":"9c324a9ac179f9e8802bb534ce28e938","name":"Device Service Implementation Tests - Kafka Version","statistic":{"failed":0,"broken":0,"skipped":0,"passed":11,"unknown":0,"total":11}}]}
+{"total":1,"items":[{"uid":"b818d961a9e8a8714ecedc372b4bc95d","name":"Device Service Integration Tests","statistic":{"failed":0,"broken":0,"skipped":0,"passed":11,"unknown":0,"total":11}}]}

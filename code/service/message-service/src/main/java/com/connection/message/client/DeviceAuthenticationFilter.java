@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.Collections;
 
 @Slf4j
-@Component
+@Component("messageDeviceAuthenticationFilter")
 @RequiredArgsConstructor
 public class DeviceAuthenticationFilter extends OncePerRequestFilter {
 

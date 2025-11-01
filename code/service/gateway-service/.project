@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>message-service-gateway-service</name>
-	<comment>Project message-service created by Buildship.</comment>
+	<name>gateway-service</name>
+	<comment>Project gateway-service created by Buildship.</comment>
 	<projects>
 	</projects>
 	<buildSpec>

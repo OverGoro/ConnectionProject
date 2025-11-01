@@ -1006,7 +1006,7 @@ import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
 import com.connection.device.token.exception.DeviceTokenNotFoundException;
 import com.connection.device.token.model.DeviceAccessTokenDALM;
 
-@Repository
+
 public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepository {
 
     private static final String SELECT_DEVICE_ACCESS_TOKEN = "SELECT uid, device_token_uid, token, created_at, expires_at";
@@ -1269,7 +1269,7 @@ import com.connection.device.token.exception.DeviceTokenAlreadyExistsException;
 import com.connection.device.token.exception.DeviceTokenNotFoundException;
 import com.connection.device.token.model.DeviceTokenDALM;
 
-@Repository
+
 public class DeviceTokenRepositorySQLImpl implements DeviceTokenRepository {
 
     private static final String SELECT_DEVICE_TOKEN = "SELECT uid, device_uid, token, created_at, expires_at";
@@ -2426,7 +2426,7 @@ import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
 import com.connection.device.token.exception.DeviceTokenNotFoundException;
 import com.connection.device.token.model.DeviceAccessTokenDALM;
 
-@Repository
+
 public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepository {
 
     private static final String SELECT_DEVICE_ACCESS_TOKEN = "SELECT uid, device_token_uid, token, created_at, expires_at";

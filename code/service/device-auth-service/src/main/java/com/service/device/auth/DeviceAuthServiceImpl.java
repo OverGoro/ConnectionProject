@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.data.util.Pair;
@@ -39,7 +40,6 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     private final AuthService authService;
 
 
-
     private final DeviceTokenValidator deviceTokenValidator;
     private final DeviceAccessTokenValidator deviceAccessTokenValidator;
 
@@ -49,7 +49,9 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     private final DeviceTokenRepository deviceTokenRepository;
     private final DeviceAccessTokenRepository deviceAccessTokenRepository;
 
+    @Qualifier("deviceTokenDuration")
     private final Duration deviceTokenDuration;
+    @Qualifier("deviceAccessTokenDuration")
     private final Duration deviceAccessTokenDuration;
 
     @Override

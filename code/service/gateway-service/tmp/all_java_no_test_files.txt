@@ -1,4 +1,4 @@
-// package com.connection.message.config;
+// package com.connection.gateway.config;
 
 // import java.util.HashMap;
 // import java.util.Map;
@@ -27,10 +27,10 @@
 // import com.connection.device.events.DeviceEventConstants;
 // import com.connection.device.auth.events.DeviceAuthEventConstants;
 // import com.connection.scheme.events.ConnectionSchemeEventConstants;
-// import com.connection.message.events.MessageEventConstants;
+// import com.connection.gateway.events.GatewayEventConstants;
 
 // @Configuration
-// public class MessageKafkaConfig {
+// public class GatewayKafkaConfig {
     
 //     @Value("${spring.kafka.bootstrap-servers:localhost:29092}")
 //     private String bootstrapServers;
@@ -75,26 +75,26 @@
 //                 .build();
 //     }
 
-//     // Конфигурация топиков для message-service
+//     // Конфигурация топиков для gateway-service
 //     @Bean
-//     public NewTopic messageCommandsTopic() {
-//         return TopicBuilder.name(MessageEventConstants.MESSAGE_COMMANDS_TOPIC)
+//     public NewTopic gatewayCommandsTopic() {
+//         return TopicBuilder.name(GatewayEventConstants.MESSAGE_COMMANDS_TOPIC)
 //                 .partitions(3)
 //                 .replicas(1)
 //                 .build();
 //     }
 
 //     @Bean
-//     public NewTopic messageResponsesTopic() {
-//         return TopicBuilder.name(MessageEventConstants.MESSAGE_RESPONSES_TOPIC)
+//     public NewTopic gatewayResponsesTopic() {
+//         return TopicBuilder.name(GatewayEventConstants.MESSAGE_RESPONSES_TOPIC)
 //                 .partitions(3)
 //                 .replicas(1)
 //                 .build();
 //     }
 
 //     @Bean
-//     public NewTopic messageEventsTopic() {
-//         return TopicBuilder.name(MessageEventConstants.MESSAGE_EVENTS_TOPIC)
+//     public NewTopic gatewayEventsTopic() {
+//         return TopicBuilder.name(GatewayEventConstants.MESSAGE_EVENTS_TOPIC)
 //                 .partitions(3)
 //                 .replicas(1)
 //                 .build();
@@ -105,7 +105,7 @@
 //     public ConsumerFactory<String, Object> consumerFactory() {
 //         Map<String, Object> configProps = new HashMap<>();
 //         configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-//         configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "message-service-group");
+//         configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "gateway-service-group");
 //         configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 //         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
 //         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
@@ -129,8 +129,8 @@
 //             "com.connection.scheme.events.responses," +
 //             "com.connection.device.auth.events.commands," +
 //             "com.connection.device.auth.events.responses," +
-//             "com.connection.message.events.commands,"+
-//             "com.connection.message.events.responses");
+//             "com.connection.gateway.events.commands,"+
+//             "com.connection.gateway.events.responses");
 //         configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
 //         configProps.put(JsonDeserializer.REMOVE_TYPE_INFO_HEADERS, false);
 //         configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.connection.common.events.Command");
@@ -148,12 +148,12 @@
 //         DefaultErrorHandler errorHandler = new DefaultErrorHandler(
 //                 (record, exception) -> {
 //                     org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("KafkaErrorHandler");
-//                     logger.error("Skipping invalid message - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}",
+//                     logger.error("Skipping invalid gateway - Topic: {}, Partition: {}, Offset: {}, Key: {}, Error: {}",
 //                             record.topic(),
 //                             record.partition(),
 //                             record.offset(),
 //                             record.key(),
-//                             exception.getMessage());
+//                             exception.getGateway());
 //                 },
 //                 new FixedBackOff(0L, 0L)
 //         );
@@ -178,28 +178,28 @@
 //     public KafkaTemplate<String, Object> kafkaTemplate() {
 //         return new KafkaTemplate<>(producerFactory());
 //     }
-// }package com.connection.message.config;
+// }package com.connection.gateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.connection.message.converter.MessageConverter;
-import com.connection.message.validator.MessageValidator;
+import com.connection.gateway.converter.GatewayConverter;
+import com.connection.gateway.validator.GatewayValidator;
 import com.connection.device.converter.DeviceConverter;
 import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.scheme.converter.ConnectionSchemeConverter;
 
 @Configuration
-public class MessageUtilsConfig {
+public class GatewayUtilsConfig {
     
-    @Bean("MessageConverter")
-    MessageConverter messageConverter(){
-        return new MessageConverter();
+    @Bean("GatewayConverter")
+    GatewayConverter gatewayConverter(){
+        return new GatewayConverter();
     }
 
-    @Bean("MessageValidator")
-    MessageValidator messageValidator(){
-        return new MessageValidator();
+    @Bean("GatewayValidator")
+    GatewayValidator gatewayValidator(){
+        return new GatewayValidator();
     }
 
     @Bean("BufferConverter")
@@ -216,7 +216,7 @@ public class MessageUtilsConfig {
     DeviceConverter deviceConverter(){
         return new DeviceConverter();
     }
-}package com.connection.message.config;
+}package com.connection.gateway.config;
 
 import java.util.Properties;
 import javax.sql.DataSource;
@@ -230,25 +230,25 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import com.atomikos.jdbc.AtomikosDataSourceBean;
 
 @Configuration
-public class MessageJDBCConfig {
+public class GatewayJDBCConfig {
     
-    @Value("${app.datasource.message.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    @Value("${app.datasource.gateway.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
     private String xaDataSourceClassName;
 
-    @Value("${app.datasource.message.xa-properties.url}")
+    @Value("${app.datasource.gateway.xa-properties.url}")
     private String jdbcUrl;
 
-    @Value("${app.datasource.message.xa-properties.user}")
+    @Value("${app.datasource.gateway.xa-properties.user}")
     private String username;
 
-    @Value("${app.datasource.message.xa-properties.password}")
+    @Value("${app.datasource.gateway.xa-properties.password}")
     private String password;
 
-    @Value("${app.datasource.message.unique-resource-name:messageXADataSource}")
+    @Value("${app.datasource.gateway.unique-resource-name:gatewayXADataSource}")
     private String uniqueResourceName;
 
-    @Bean("MessageDataSource")
-    DataSource messageDataSource() {
+    @Bean("GatewayDataSource")
+    DataSource gatewayDataSource() {
         AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
         dataSource.setUniqueResourceName(uniqueResourceName);
         dataSource.setXaDataSourceClassName(xaDataSourceClassName);
@@ -265,13 +265,13 @@ public class MessageJDBCConfig {
         return dataSource;
     }
 
-    @Bean("MessageJdbcTemplate")
-    NamedParameterJdbcTemplate messageNamedParameterJdbcTemplate(
-            @Qualifier("MessageDataSource") DataSource messageDataSource) {
-        return new NamedParameterJdbcTemplate(messageDataSource);
+    @Bean("GatewayJdbcTemplate")
+    NamedParameterJdbcTemplate gatewayNamedParameterJdbcTemplate(
+            @Qualifier("GatewayDataSource") DataSource gatewayDataSource) {
+        return new NamedParameterJdbcTemplate(gatewayDataSource);
     }
 }// SwaggerConfig.java
-package com.connection.message.config;
+package com.connection.gateway.config;
 
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
@@ -306,7 +306,7 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Message Service API")
+                        .title("Gateway Service API")
                         .version("1.0"))
                 .addSecurityItem(new SecurityRequirement().addList("clientAuth"))
                 .addSecurityItem(new SecurityRequirement().addList("deviceAuth"))
@@ -324,7 +324,7 @@ public class SwaggerConfig {
                                 .bearerFormat("JWT")
                                 .description("Device JWT Token")));
     }
-}package com.connection.message.config;
+}package com.connection.gateway.config;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -419,7 +419,7 @@ public class SecurityUtils {
             return "NONE";
         }
     }
-}package com.connection.message.config;
+}package com.connection.gateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -447,24 +447,24 @@ public class TransactionConfig {
         jtaTransactionManager.setUserTransaction(userTransactionManager());
         return jtaTransactionManager;
     }
-}package com.connection.message.config;
+}package com.connection.gateway.config;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.connection.message.repository.MessageRepository;
-import com.connection.message.repository.MessageRepositorySQLImpl;
+import com.connection.gateway.repository.GatewayRepository;
+import com.connection.gateway.repository.GatewayRepositorySQLImpl;
 
 @Configuration
-public class MessageRepositoryConfig {
+public class GatewayRepositoryConfig {
     
-    @Bean("MessageRepository")
-    MessageRepository messageRepository(@Qualifier("MessageJdbcTemplate") NamedParameterJdbcTemplate template){
-        return new MessageRepositorySQLImpl(template);
+    @Bean("GatewayRepository")
+    GatewayRepository gatewayRepository(@Qualifier("GatewayJdbcTemplate") NamedParameterJdbcTemplate template){
+        return new GatewayRepositorySQLImpl(template);
     }
-}package com.connection.message.config;
+}package com.connection.gateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -475,8 +475,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.connection.message.client.AuthenticationFilter;
-import com.connection.message.client.DeviceAuthenticationFilter;
+import com.connection.gateway.client.AuthenticationFilter;
+import com.connection.gateway.client.DeviceAuthenticationFilter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -503,7 +503,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/health").permitAll()
                         
                         // Разрешаем доступ с любой аутентификацией (клиент ИЛИ устройство)
-                        .requestMatchers("/api/v1/messages/**").hasAnyAuthority("ROLE_CLIENT", "ROLE_DEVICE")
+                        .requestMatchers("/api/v1/gateways/**").hasAnyAuthority("ROLE_CLIENT", "ROLE_DEVICE")
                         
                         .anyRequest().denyAll()
                 )
@@ -512,12 +512,12 @@ public class SecurityConfig {
                 .addFilterBefore(deviceAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
-}// MessageResponse.java
-package com.connection.message.controller;
+}// GatewayResponse.java
+package com.connection.gateway.controller;
 
 import java.util.List;
 
-import com.connection.message.model.MessageDTO;
+import com.connection.gateway.model.GatewayDTO;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -526,11 +526,11 @@ import lombok.Getter;
 @AllArgsConstructor
 @Getter
 @Schema(description = "Ответ с списком сообщений")
-public class MessageResponse {
+public class GatewayResponse {
     
     @Schema(description = "Список сообщений")
-    private final List<MessageDTO> messageDTOs;
-}package com.connection.message.controller;
+    private final List<GatewayDTO> gatewayDTOs;
+}package com.connection.gateway.controller;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -551,7 +551,7 @@ public class GlobalExceptionHandler {
         log.warn("Security exception: {}", e);
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse(
                 "access_denied",
-                e.getMessage()));
+                e.getGateway()));
     }
 
     @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
@@ -582,10 +582,10 @@ public class GlobalExceptionHandler {
     @Getter
     public static class ErrorResponse {
         private final String error;
-        private final String message;
+        private final String gateway;
     }
 }// HealthResponse.java
-package com.connection.message.controller;
+package com.connection.gateway.controller;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -597,8 +597,8 @@ import lombok.Getter;
 public class HealthResponse {
     
     @Schema(description = "Статус сервиса и зависимостей")
-    private final String message;
-}package com.connection.message.controller;
+    private final String gateway;
+}package com.connection.gateway.controller;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -614,10 +614,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.connection.message.MessageService;
-import com.connection.message.converter.MessageConverter;
-import com.connection.message.model.MessageBLM;
-import com.connection.message.model.MessageDTO;
+import com.connection.gateway.GatewayService;
+import com.connection.gateway.converter.GatewayConverter;
+import com.connection.gateway.model.GatewayBLM;
+import com.connection.gateway.model.GatewayDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -631,36 +631,36 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
-@Tag(name = "Message Service", description = "API для управления сообщениями устройств")
-public class MessageController {
+@Tag(name = "Gateway Service", description = "API для управления сообщениями устройств")
+public class GatewayController {
 
     // Константы для пагинации по умолчанию
     private static final int DEFAULT_OFFSET = 0;
     private static final int DEFAULT_LIMIT = 1;
     private static final int MAX_LIMIT = 1000;
 
-    protected final MessageConverter messageConverter;
-    protected final MessageService messageService;
+    protected final GatewayConverter gatewayConverter;
+    protected final GatewayService gatewayService;
 
     @Operation(security = {
             @SecurityRequirement(name = "clientAuth"),
             @SecurityRequirement(name = "deviceAuth")
     })
-    @PostMapping("/messages")
-    public ResponseEntity<Void> addMessage(
-            @Parameter(description = "DTO сообщения для добавления") @RequestBody MessageDTO messageDTO) {
+    @PostMapping("/gateways")
+    public ResponseEntity<Void> addGateway(
+            @Parameter(description = "DTO сообщения для добавления") @RequestBody GatewayDTO gatewayDTO) {
 
         try {
             // Конвертируем DTO в BLM
-            MessageBLM messageBLM = messageConverter.toBLM(messageDTO);
+            GatewayBLM gatewayBLM = gatewayConverter.toBLM(gatewayDTO);
 
             // Вызываем сервис
-            messageService.addMessage(messageBLM);
+            gatewayService.addGateway(gatewayBLM);
 
             return ResponseEntity.ok().build();
 
         } catch (Exception e) {
-            log.error("Error adding message: {}", e);
+            log.error("Error adding gateway: {}", e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -676,8 +676,8 @@ public class MessageController {
             @Parameter(name = "offset", description = "Смещение для пагинации", in = ParameterIn.QUERY),
             @Parameter(name = "limit", description = "Лимит для пагинации (макс. 1000)", in = ParameterIn.QUERY)
     })
-    @GetMapping("/messages/")
-    public ResponseEntity<MessageResponse> getMessage(
+    @GetMapping("/gateways/")
+    public ResponseEntity<GatewayResponse> getGateway(
             @RequestParam(required = false) List<UUID> schemeUids,
             @RequestParam(required = false) List<UUID> bufferUids,
             @RequestParam(required = false) List<UUID> deviceUids,
@@ -685,48 +685,48 @@ public class MessageController {
             @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
             @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
 
-        Set<MessageBLM> messageBLMs = new HashSet<>();
-        log.info("Getting messages");
+        Set<GatewayBLM> gatewayBLMs = new HashSet<>();
+        log.info("Getting gateways");
 
         if (schemeUids != null) {
             for (UUID schemeUid : schemeUids) {
-                log.info("Getting messages for schemeUid: {}", schemeUid);
-                messageBLMs.addAll(messageService.getMessagesByScheme(schemeUid, deleteOnGet, offset, limit));
+                log.info("Getting gateways for schemeUid: {}", schemeUid);
+                gatewayBLMs.addAll(gatewayService.getGatewaysByScheme(schemeUid, deleteOnGet, offset, limit));
             }
         }
 
         if (bufferUids != null) {
             for (UUID bufferUid : bufferUids) {
-                log.info("Getting messages for bufferUid: {}", bufferUid);
-                messageBLMs.addAll(messageService.getMessagesByBuffer(bufferUid, deleteOnGet, offset, limit));
+                log.info("Getting gateways for bufferUid: {}", bufferUid);
+                gatewayBLMs.addAll(gatewayService.getGatewaysByBuffer(bufferUid, deleteOnGet, offset, limit));
             }
         }
 
         if (deviceUids != null) {
             for (UUID deviceUid : deviceUids) {
-                log.info("Getting messages for deviceUid: {}", deviceUid);
-                messageBLMs.addAll(messageService.getMessagesByDevice(deviceUid, deleteOnGet, offset, limit));
+                log.info("Getting gateways for deviceUid: {}", deviceUid);
+                gatewayBLMs.addAll(gatewayService.getGatewaysByDevice(deviceUid, deleteOnGet, offset, limit));
             }
         }
-        log.info("Got messages: {}", messageBLMs.size());
+        log.info("Got gateways: {}", gatewayBLMs.size());
 
-        List<MessageBLM> resultBLM = new ArrayList<>(messageBLMs);
-        List<MessageDTO> resultDTO = resultBLM.stream().map(messageConverter::toDTO).toList();
-        return ResponseEntity.ok().body(new MessageResponse(resultDTO));
+        List<GatewayBLM> resultBLM = new ArrayList<>(gatewayBLMs);
+        List<GatewayDTO> resultDTO = resultBLM.stream().map(gatewayConverter::toDTO).toList();
+        return ResponseEntity.ok().body(new GatewayResponse(resultDTO));
     }
 
     @Operation(summary = "Health Check", description = "Проверка статуса сервиса и зависимостей. Не требует аутентификации.")
     @GetMapping("/health")
     public ResponseEntity<HealthResponse> healthCheck() {
-        log.info("Health check: service: message-service, timestamp: {}",
+        log.info("Health check: service: gateway-service, timestamp: {}",
                 System.currentTimeMillis());
 
-        return ResponseEntity.ok().body(new HealthResponse(messageService.health().toString()));
+        return ResponseEntity.ok().body(new HealthResponse(gatewayService.health().toString()));
     }
-}// MessagesListResponse.java
-package com.connection.message.controller;
+}// GatewaysListResponse.java
+package com.connection.gateway.controller;
 
-import com.connection.message.model.MessageDTO;
+import com.connection.gateway.model.GatewayDTO;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -737,10 +737,10 @@ import java.util.List;
 @AllArgsConstructor
 @Getter
 @Schema(description = "Ответ с списком сообщений и информацией о пагинации")
-public class MessagesListResponse {
+public class GatewaysListResponse {
     
     @Schema(description = "Список сообщений")
-    private final List<MessageDTO> messages;
+    private final List<GatewayDTO> gateways;
     
     @Schema(description = "Информация о пагинации")
     private final PaginationInfo pagination;
@@ -763,14 +763,14 @@ public class MessagesListResponse {
         private final boolean hasMore;
     }
 }// // ConnectionSchemeResponseConsumer.java
-// package com.connection.message.kafka;
+// package com.connection.gateway.kafka;
 
 // import org.apache.kafka.clients.consumer.ConsumerRecord;
 // import org.springframework.boot.context.event.ApplicationReadyEvent;
 // import org.springframework.context.ApplicationListener;
 // import org.springframework.kafka.annotation.KafkaListener;
 // import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
-// import org.springframework.kafka.listener.MessageListenerContainer;
+// import org.springframework.kafka.listener.GatewayListenerContainer;
 // import org.springframework.stereotype.Component;
 
 // import com.connection.common.events.CommandResponse;
@@ -794,35 +794,35 @@ public class MessagesListResponse {
 //                    topics = "#{@typedConnectionSchemeKafkaClient.getInstanceReplyTopic()}")
 //     public void handleConnectionSchemeResponse(ConsumerRecord<String, CommandResponse> record) {
 //         try {
-//             CommandResponse message = record.value();
+//             CommandResponse gateway = record.value();
 //             String correlationId = record.key();
             
 //             log.info("Received connection scheme response from instance topic: correlationId={}, topic={}", 
 //                     correlationId, record.topic());
                 
-//             if (message instanceof GetConnectionSchemeByUidResponse) {
-//                 GetConnectionSchemeByUidResponse typedResponse = (GetConnectionSchemeByUidResponse) message;
+//             if (gateway instanceof GetConnectionSchemeByUidResponse) {
+//                 GetConnectionSchemeByUidResponse typedResponse = (GetConnectionSchemeByUidResponse) gateway;
 //                 connectionSchemeKafkaClient.handleResponse(correlationId, typedResponse);
 //                 log.info("Processed GetConnectionSchemeByUidResponse: success={}", typedResponse.isSuccess());
-//             } else if (message instanceof GetConnectionSchemesByBufferResponse) {
-//                 GetConnectionSchemesByBufferResponse typedResponse = (GetConnectionSchemesByBufferResponse) message;
+//             } else if (gateway instanceof GetConnectionSchemesByBufferResponse) {
+//                 GetConnectionSchemesByBufferResponse typedResponse = (GetConnectionSchemesByBufferResponse) gateway;
 //                 connectionSchemeKafkaClient.handleResponse(correlationId, typedResponse);
 //                 log.info("Processed GetConnectionSchemesByBufferResponse: success={}, schemesCount={}", 
 //                         typedResponse.isSuccess(), 
 //                         typedResponse.getConnectionSchemeDTOs() != null ? typedResponse.getConnectionSchemeDTOs().size() : 0);
-//             } else if (message instanceof GetConnectionSchemesByClientResponse) {
-//                 GetConnectionSchemesByClientResponse typedResponse = (GetConnectionSchemesByClientResponse) message;
+//             } else if (gateway instanceof GetConnectionSchemesByClientResponse) {
+//                 GetConnectionSchemesByClientResponse typedResponse = (GetConnectionSchemesByClientResponse) gateway;
 //                 connectionSchemeKafkaClient.handleResponse(correlationId, typedResponse);
 //                 log.info("Processed GetConnectionSchemesByClientResponse: success={}, schemesCount={}", 
 //                         typedResponse.isSuccess(), 
 //                         typedResponse.getConnectionSchemeDTOs() != null ? typedResponse.getConnectionSchemeDTOs().size() : 0);
-//             } else if (message instanceof HealthCheckResponse) {
-//                 HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+//             } else if (gateway instanceof HealthCheckResponse) {
+//                 HealthCheckResponse typedResponse = (HealthCheckResponse) gateway;
 //                 connectionSchemeKafkaClient.handleResponse(correlationId, typedResponse);
 //                 log.info("Processed HealthCheckResponse: success={}", typedResponse.isSuccess());
 //             } else {
 //                 log.warn("Unknown connection scheme response type for correlationId: {}, type: {}", 
-//                         correlationId, message.getClass().getSimpleName());
+//                         correlationId, gateway.getClass().getSimpleName());
 //             }
             
 //         } catch (Exception e) {
@@ -833,7 +833,7 @@ public class MessagesListResponse {
 //     @Override
 //     public void onApplicationEvent(ApplicationReadyEvent event) {
 //         try {
-//             MessageListenerContainer container = registry.getListenerContainer("dynamicConnectionSchemeListener");
+//             GatewayListenerContainer container = registry.getListenerContainer("dynamicConnectionSchemeListener");
 //             if (container != null && !container.isRunning()) {
 //                 container.start();
 //                 log.info("Dynamic connection scheme response listener started for topic: {}", 
@@ -843,14 +843,14 @@ public class MessagesListResponse {
 //             log.error("Failed to start dynamic connection scheme listener", e);
 //         }
 //     }
-// }// package com.connection.message.kafka;
+// }// package com.connection.gateway.kafka;
 
 // import org.apache.kafka.clients.consumer.ConsumerRecord;
 // import org.springframework.boot.context.event.ApplicationReadyEvent;
 // import org.springframework.context.ApplicationListener;
 // import org.springframework.kafka.annotation.KafkaListener;
 // import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
-// import org.springframework.kafka.listener.MessageListenerContainer;
+// import org.springframework.kafka.listener.GatewayListenerContainer;
 // import org.springframework.stereotype.Component;
 
 // import com.connection.buffer.events.responses.GetBufferByUidResponse;
@@ -874,26 +874,26 @@ public class MessagesListResponse {
 //     @KafkaListener(id = "dynamicBufferListener", topics = "#{@typedBufferKafkaClient.getInstanceReplyTopic()}")
 //     public void handleBufferResponse(ConsumerRecord<String, CommandResponse> record) {
 //         try {
-//             CommandResponse message = record.value();
+//             CommandResponse gateway = record.value();
 //             String correlationId = record.key();
             
 //             log.info("Received buffer response from instance topic: correlationId={}, topic={}", 
 //                     correlationId, record.topic());
                 
-//             if (message instanceof GetBufferByUidResponse) {
-//                 GetBufferByUidResponse typedResponse = (GetBufferByUidResponse) message;
+//             if (gateway instanceof GetBufferByUidResponse) {
+//                 GetBufferByUidResponse typedResponse = (GetBufferByUidResponse) gateway;
 //                 bufferKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof GetBuffersByClientResponse) {
-//                 GetBuffersByClientResponse typedResponse = (GetBuffersByClientResponse) message;
+//             } else if (gateway instanceof GetBuffersByClientResponse) {
+//                 GetBuffersByClientResponse typedResponse = (GetBuffersByClientResponse) gateway;
 //                 bufferKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof GetBuffersByDeviceResponse) {
-//                 GetBuffersByDeviceResponse typedResponse = (GetBuffersByDeviceResponse) message;
+//             } else if (gateway instanceof GetBuffersByDeviceResponse) {
+//                 GetBuffersByDeviceResponse typedResponse = (GetBuffersByDeviceResponse) gateway;
 //                 bufferKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof GetBuffersByConnectionSchemeResponse) {
-//                 GetBuffersByConnectionSchemeResponse typedResponse = (GetBuffersByConnectionSchemeResponse) message;
+//             } else if (gateway instanceof GetBuffersByConnectionSchemeResponse) {
+//                 GetBuffersByConnectionSchemeResponse typedResponse = (GetBuffersByConnectionSchemeResponse) gateway;
 //                 bufferKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof HealthCheckResponse) {
-//                 HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+//             } else if (gateway instanceof HealthCheckResponse) {
+//                 HealthCheckResponse typedResponse = (HealthCheckResponse) gateway;
 //                 bufferKafkaClient.handleResponse(correlationId, typedResponse);
 //             } else {
 //                 log.warn("Unknown buffer response type for correlationId: {}", correlationId);
@@ -907,7 +907,7 @@ public class MessagesListResponse {
 //     @Override
 //     public void onApplicationEvent(ApplicationReadyEvent event) {
 //         try {
-//             MessageListenerContainer container = registry.getListenerContainer("dynamicBufferListener");
+//             GatewayListenerContainer container = registry.getListenerContainer("dynamicBufferListener");
 //             if (container != null && !container.isRunning()) {
 //                 container.start();
 //                 log.info("Dynamic buffer response listener started for topic: {}", 
@@ -917,14 +917,14 @@ public class MessagesListResponse {
 //             log.error("Failed to start dynamic buffer listener", e);
 //         }
 //     }
-// }// package com.connection.message.kafka;
+// }// package com.connection.gateway.kafka;
 
 // import org.apache.kafka.clients.consumer.ConsumerRecord;
 // import org.springframework.boot.context.event.ApplicationReadyEvent;
 // import org.springframework.context.ApplicationListener;
 // import org.springframework.kafka.annotation.KafkaListener;
 // import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
-// import org.springframework.kafka.listener.MessageListenerContainer;
+// import org.springframework.kafka.listener.GatewayListenerContainer;
 // import org.springframework.stereotype.Component;
 
 // import com.connection.auth.events.responses.TokenValidationResponse;
@@ -946,20 +946,20 @@ public class MessagesListResponse {
 //     @KafkaListener(id = "dynamicAuthListener", topics = "#{@typedAuthKafkaClient.getInstanceReplyTopic()}")
 //     public void handleAuthResponse(ConsumerRecord<String, CommandResponse> record) {
 //         try {
-//             CommandResponse message = record.value();
+//             CommandResponse gateway = record.value();
 //             String correlationId = record.key();
             
 //             log.info("Received auth response from instance topic: correlationId={}, topic={}", 
 //                     correlationId, record.topic());
                 
-//             if (message instanceof TokenValidationResponse) {
-//                 TokenValidationResponse typedResponse = (TokenValidationResponse) message;
+//             if (gateway instanceof TokenValidationResponse) {
+//                 TokenValidationResponse typedResponse = (TokenValidationResponse) gateway;
 //                 authKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof ClientUidResponse) {
-//                 ClientUidResponse typedResponse = (ClientUidResponse) message;
+//             } else if (gateway instanceof ClientUidResponse) {
+//                 ClientUidResponse typedResponse = (ClientUidResponse) gateway;
 //                 authKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof HealthCheckResponse) {
-//                 HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+//             } else if (gateway instanceof HealthCheckResponse) {
+//                 HealthCheckResponse typedResponse = (HealthCheckResponse) gateway;
 //                 authKafkaClient.handleResponse(correlationId, typedResponse);
 //             } else {
 //                 log.warn("Unknown response type for correlationId: {}", correlationId);
@@ -973,7 +973,7 @@ public class MessagesListResponse {
 //     @Override
 //     public void onApplicationEvent(ApplicationReadyEvent event) {
 //         try {
-//             MessageListenerContainer container = registry.getListenerContainer("dynamicAuthListener");
+//             GatewayListenerContainer container = registry.getListenerContainer("dynamicAuthListener");
 //             if (container != null && !container.isRunning()) {
 //                 container.start();
 //                 log.info("Dynamic auth response listener started for topic: {}", 
@@ -983,7 +983,7 @@ public class MessagesListResponse {
 //             log.error("Failed to start dynamic auth listener", e);
 //         }
 //     }
-// }// package com.connection.message.kafka;
+// }// package com.connection.gateway.kafka;
 
 // import java.util.Date;
 // import java.util.Map;
@@ -1040,12 +1040,12 @@ public class MessagesListResponse {
 //     String buffercommands;
 //     @Value("${app.kafka.topics.buffer-responses:buffer.responses}")
 //     String bufferresponses;
-//     @Value("${app.kafka.topics.message-commands:message.commands}")
-//     String messagecommands;
-//     @Value("${app.kafka.topics.message-responses:message.responses}")
-//     String messageresponses;
-//     @Value("${app.kafka.topics.message-events:message.events}")
-//     String messageevents;
+//     @Value("${app.kafka.topics.gateway-commands:gateway.commands}")
+//     String gatewaycommands;
+//     @Value("${app.kafka.topics.gateway-responses:gateway.responses}")
+//     String gatewayresponses;
+//     @Value("${app.kafka.topics.gateway-events:gateway.events}")
+//     String gatewayevents;
 //     // 👇 Уникальный топик для этого инстанса
 //     private final String instanceReplyTopic = "buffer.responses." + UUID.randomUUID().toString();
 
@@ -1154,7 +1154,7 @@ public class MessagesListResponse {
 //                     if (ex != null) {
 //                         future.completeExceptionally(ex);
 //                         pendingRequests.remove(correlationId);
-//                         log.error("Failed to send buffer command: {}", ex.getMessage());
+//                         log.error("Failed to send buffer command: {}", ex.getGateway());
 //                     } else {
 //                         log.info("Buffer command sent successfully: correlationId={}, topic={}", 
 //                                 correlationId, buffercommands);
@@ -1192,7 +1192,7 @@ public class MessagesListResponse {
 //     public String getInstanceReplyTopic() {
 //         return instanceReplyTopic;
 //     }
-// }// package com.connection.message.kafka;
+// }// package com.connection.gateway.kafka;
 
 // import java.util.Date;
 // import java.util.Map;
@@ -1244,12 +1244,12 @@ public class MessagesListResponse {
 //     String buffercommands;
 //     @Value("${app.kafka.topics.buffer-responses:buffer.responses}")
 //     String bufferresponses;
-//     @Value("${app.kafka.topics.message-commands:message.commands}")
-//     String messagecommands;
-//     @Value("${app.kafka.topics.message-responses:message.responses}")
-//     String messageresponses;
-//     @Value("${app.kafka.topics.message-events:message.events}")
-//     String messageevents;
+//     @Value("${app.kafka.topics.gateway-commands:gateway.commands}")
+//     String gatewaycommands;
+//     @Value("${app.kafka.topics.gateway-responses:gateway.responses}")
+//     String gatewayresponses;
+//     @Value("${app.kafka.topics.gateway-events:gateway.events}")
+//     String gatewayevents;
     
 //     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
     
@@ -1335,7 +1335,7 @@ public class MessagesListResponse {
 //                     if (ex != null) {
 //                         future.completeExceptionally(ex);
 //                         pendingRequests.remove(correlationId);
-//                         log.error("Failed to send auth command: {}", ex.getMessage());
+//                         log.error("Failed to send auth command: {}", ex.getGateway());
 //                     } else {
 //                         log.info("Auth command sent successfully: correlationId={}, topic={}", 
 //                                 correlationId, authcommands);
@@ -1374,7 +1374,7 @@ public class MessagesListResponse {
 //         return instanceReplyTopic;
 //     }
 // }// // TypedDeviceKafkaClient.java
-// package com.connection.message.kafka;
+// package com.connection.gateway.kafka;
 
 // import java.util.List;
 // import java.util.Map;
@@ -1425,12 +1425,12 @@ public class MessagesListResponse {
 //     String buffercommands;
 //     @Value("${app.kafka.topics.buffer-responses:buffer.responses}")
 //     String bufferresponses;
-//     @Value("${app.kafka.topics.message-commands:message.commands}")
-//     String messagecommands;
-//     @Value("${app.kafka.topics.message-responses:message.responses}")
-//     String messageresponses;
-//     @Value("${app.kafka.topics.message-events:message.events}")
-//     String messageevents;
+//     @Value("${app.kafka.topics.gateway-commands:gateway.commands}")
+//     String gatewaycommands;
+//     @Value("${app.kafka.topics.gateway-responses:gateway.responses}")
+//     String gatewayresponses;
+//     @Value("${app.kafka.topics.gateway-events:gateway.events}")
+//     String gatewayevents;
 //     private static class PendingRequest<T> {
 //         final CompletableFuture<T> future;
 //         final Class<T> responseType;
@@ -1480,7 +1480,7 @@ public class MessagesListResponse {
 //                     .get(10, java.util.concurrent.TimeUnit.SECONDS);
 //             return response.isSuccess() && response.getDeviceDTO() != null;
 //         } catch (Exception e) {
-//             log.error("Error checking device existence: {}", e.getMessage());
+//             log.error("Error checking device existence: {}", e.getGateway());
 //             return false;
 //         }
 //     }
@@ -1488,12 +1488,12 @@ public class MessagesListResponse {
 //     // В TypedDeviceKafkaClient добавим метод:
 //     public boolean deviceExistsAndBelongsToClient(UUID deviceUid, UUID clientUid) {
 //         try {
-//             GetDeviceByUidResponse response = getDeviceByUid(deviceUid, "message-service")
+//             GetDeviceByUidResponse response = getDeviceByUid(deviceUid, "gateway-service")
 //                     .get(10, java.util.concurrent.TimeUnit.SECONDS);
 //             return response.isSuccess() && response.getDeviceDTO() != null
 //                     && response.getDeviceDTO().getClientUuid().equals(clientUid.toString());
 //         } catch (Exception e) {
-//             log.error("Error checking device existence: {}", e.getMessage());
+//             log.error("Error checking device existence: {}", e.getGateway());
 //             return false;
 //         }
 //     }
@@ -1510,7 +1510,7 @@ public class MessagesListResponse {
 //             }
 //             return List.of();
 //         } catch (Exception e) {
-//             log.error("Error getting client devices: {}", e.getMessage());
+//             log.error("Error getting client devices: {}", e.getGateway());
 //             return List.of();
 //         }
 //     }
@@ -1526,7 +1526,7 @@ public class MessagesListResponse {
 //                     if (ex != null) {
 //                         future.completeExceptionally(ex);
 //                         pendingRequests.remove(correlationId);
-//                         log.error("Failed to send device command: {}", ex.getMessage());
+//                         log.error("Failed to send device command: {}", ex.getGateway());
 //                     }
 //                 });
 
@@ -1570,7 +1570,7 @@ public class MessagesListResponse {
 //     public String getInstanceReplyTopic() {
 //         return instanceReplyTopic;
 //     }
-// }// package com.connection.message.kafka;
+// }// package com.connection.gateway.kafka;
 
 // import java.util.Map;
 // import java.util.UUID;
@@ -1620,12 +1620,12 @@ public class MessagesListResponse {
 //     String buffercommands;
 //     @Value("${app.kafka.topics.buffer-responses:buffer.responses}")
 //     String bufferresponses;
-//     @Value("${app.kafka.topics.message-commands:message.commands}")
-//     String messagecommands;
-//     @Value("${app.kafka.topics.message-responses:message.responses}")
-//     String messageresponses;
-//     @Value("${app.kafka.topics.message-events:message.events}")
-//     String messageevents;
+//     @Value("${app.kafka.topics.gateway-commands:gateway.commands}")
+//     String gatewaycommands;
+//     @Value("${app.kafka.topics.gateway-responses:gateway.responses}")
+//     String gatewayresponses;
+//     @Value("${app.kafka.topics.gateway-events:gateway.events}")
+//     String gatewayevents;
 //     private final String instanceReplyTopic = "connection-scheme.responses." + UUID.randomUUID().toString();
 
 //     private static class PendingRequest<T> {
@@ -1675,23 +1675,23 @@ public class MessagesListResponse {
 //     // Вспомогательные методы для удобства
 //     public boolean connectionSchemeExistsAndBelongsToClient(UUID connectionSchemeUid) {
 //         try {
-//             GetConnectionSchemeByUidResponse response = getConnectionSchemeByUid(connectionSchemeUid, "message-service")
+//             GetConnectionSchemeByUidResponse response = getConnectionSchemeByUid(connectionSchemeUid, "gateway-service")
 //                     .get(10, TimeUnit.SECONDS);
 //             return response.isSuccess() && response.getConnectionSchemeDTO() != null;
 //         } catch (Exception e) {
-//             log.error("Error checking connection scheme existence: {}", e.getMessage());
+//             log.error("Error checking connection scheme existence: {}", e.getGateway());
 //             return false;
 //         }
 //     }
 
 //     public boolean connectionSchemeExistsAndBelongsToClient(UUID connectionSchemeUid, UUID clientUuid) {
 //         try {
-//             GetConnectionSchemeByUidResponse response = getConnectionSchemeByUid(connectionSchemeUid, "message-service")
+//             GetConnectionSchemeByUidResponse response = getConnectionSchemeByUid(connectionSchemeUid, "gateway-service")
 //                     .get(10, TimeUnit.SECONDS);
 //             return response.isSuccess() && response.getConnectionSchemeDTO() != null
 //                     && response.getConnectionSchemeDTO().getClientUid().equals(clientUuid.toString());
 //         } catch (Exception e) {
-//             log.error("Error checking connection scheme existence: {}", e.getMessage());
+//             log.error("Error checking connection scheme existence: {}", e.getGateway());
 //             return false;
 //         }
 //     }
@@ -1715,7 +1715,7 @@ public class MessagesListResponse {
 //                     if (ex != null) {
 //                         future.completeExceptionally(ex);
 //                         pendingRequests.remove(correlationId);
-//                         log.error("Failed to send connection scheme command: {}", ex.getMessage());
+//                         log.error("Failed to send connection scheme command: {}", ex.getGateway());
 //                     } else {
 //                         log.info("Connection scheme command sent successfully: correlationId={}, topic={}",
 //                                 correlationId, connectionschemecommands);
@@ -1764,14 +1764,14 @@ public class MessagesListResponse {
 //     public String getInstanceReplyTopic() {
 //         return instanceReplyTopic;
 //     }
-// }// package com.connection.message.kafka;
+// }// package com.connection.gateway.kafka;
 
 // import org.apache.kafka.clients.consumer.ConsumerRecord;
 // import org.springframework.boot.context.event.ApplicationReadyEvent;
 // import org.springframework.context.ApplicationListener;
 // import org.springframework.kafka.annotation.KafkaListener;
 // import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
-// import org.springframework.kafka.listener.MessageListenerContainer;
+// import org.springframework.kafka.listener.GatewayListenerContainer;
 // import org.springframework.stereotype.Component;
 
 // import com.connection.common.events.CommandResponse;
@@ -1794,20 +1794,20 @@ public class MessagesListResponse {
 //                    topics = "#{@typedDeviceKafkaClient.getInstanceReplyTopic()}")
 //     public void handleDeviceResponse(ConsumerRecord<String, CommandResponse> record) {
 //         try {
-//             CommandResponse message = record.value();
+//             CommandResponse gateway = record.value();
 //             String correlationId = record.key();
             
 //             log.info("Received device response from instance topic: correlationId={}, topic={}", 
 //                     correlationId, record.topic());
                 
-//             if (message instanceof GetDeviceByUidResponse) {
-//                 GetDeviceByUidResponse typedResponse = (GetDeviceByUidResponse) message;
+//             if (gateway instanceof GetDeviceByUidResponse) {
+//                 GetDeviceByUidResponse typedResponse = (GetDeviceByUidResponse) gateway;
 //                 deviceKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof GetDevicesByClientResponse) {
-//                 GetDevicesByClientResponse typedResponse = (GetDevicesByClientResponse) message;
+//             } else if (gateway instanceof GetDevicesByClientResponse) {
+//                 GetDevicesByClientResponse typedResponse = (GetDevicesByClientResponse) gateway;
 //                 deviceKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof HealthCheckResponse) {
-//                 HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+//             } else if (gateway instanceof HealthCheckResponse) {
+//                 HealthCheckResponse typedResponse = (HealthCheckResponse) gateway;
 //                 deviceKafkaClient.handleResponse(correlationId, typedResponse);
 //             } else {
 //                 log.warn("Unknown device response type for correlationId: {}", correlationId);
@@ -1821,7 +1821,7 @@ public class MessagesListResponse {
 //     @Override
 //     public void onApplicationEvent(ApplicationReadyEvent event) {
 //         try {
-//             MessageListenerContainer container = registry.getListenerContainer("dynamicDeviceListener");
+//             GatewayListenerContainer container = registry.getListenerContainer("dynamicDeviceListener");
 //             if (container != null && !container.isRunning()) {
 //                 container.start();
 //                 log.info("Dynamic device response listener started for topic: {}", 
@@ -1831,7 +1831,7 @@ public class MessagesListResponse {
 //             log.error("Failed to start dynamic device listener", e);
 //         }
 //     }
-// }// package com.connection.message.kafka;
+// }// package com.connection.gateway.kafka;
 
 // import java.util.Date;
 // import java.util.Map;
@@ -1879,12 +1879,12 @@ public class MessagesListResponse {
 //     String buffercommands;
 //     @Value("${app.kafka.topics.buffer-responses:buffer.responses}")
 //     String bufferresponses;
-//     @Value("${app.kafka.topics.message-commands:message.commands}")
-//     String messagecommands;
-//     @Value("${app.kafka.topics.message-responses:message.responses}")
-//     String messageresponses;
-//     @Value("${app.kafka.topics.message-events:message.events}")
-//     String messageevents;
+//     @Value("${app.kafka.topics.gateway-commands:gateway.commands}")
+//     String gatewaycommands;
+//     @Value("${app.kafka.topics.gateway-responses:gateway.responses}")
+//     String gatewayresponses;
+//     @Value("${app.kafka.topics.gateway-events:gateway.events}")
+//     String gatewayevents;
 //     private final KafkaTemplate<String, Object> kafkaTemplate;
     
 //     private final Map<String, PendingRequest<?>> pendingRequests = new ConcurrentHashMap<>();
@@ -1988,7 +1988,7 @@ public class MessagesListResponse {
 //                     if (ex != null) {
 //                         future.completeExceptionally(ex);
 //                         pendingRequests.remove(correlationId);
-//                         log.error("Failed to send device auth command: {}", ex.getMessage());
+//                         log.error("Failed to send device auth command: {}", ex.getGateway());
 //                     }
 //                 });
 
@@ -2021,14 +2021,14 @@ public class MessagesListResponse {
 //     public String getInstanceReplyTopic() {
 //         return instanceReplyTopic;
 //     }
-// }// package com.connection.message.kafka;
+// }// package com.connection.gateway.kafka;
 
 // import org.apache.kafka.clients.consumer.ConsumerRecord;
 // import org.springframework.boot.context.event.ApplicationReadyEvent;
 // import org.springframework.context.ApplicationListener;
 // import org.springframework.kafka.annotation.KafkaListener;
 // import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
-// import org.springframework.kafka.listener.MessageListenerContainer;
+// import org.springframework.kafka.listener.GatewayListenerContainer;
 // import org.springframework.stereotype.Component;
 
 // import com.connection.device.auth.events.responses.TokenValidationResponse;
@@ -2051,20 +2051,20 @@ public class MessagesListResponse {
 //                    topics = "#{@typedDeviceAuthKafkaClient.getInstanceReplyTopic()}")
 //     public void handleDeviceAuthResponse(ConsumerRecord<String, CommandResponse> record) {
 //         try {
-//             CommandResponse message = record.value();
+//             CommandResponse gateway = record.value();
 //             String correlationId = record.key();
             
 //             log.info("Received device auth response from instance topic: correlationId={}, topic={}", 
 //                     correlationId, record.topic());
                 
-//             if (message instanceof TokenValidationResponse) {
-//                 TokenValidationResponse typedResponse = (TokenValidationResponse) message;
+//             if (gateway instanceof TokenValidationResponse) {
+//                 TokenValidationResponse typedResponse = (TokenValidationResponse) gateway;
 //                 deviceAuthKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof DeviceUidResponse) {
-//                 DeviceUidResponse typedResponse = (DeviceUidResponse) message;
+//             } else if (gateway instanceof DeviceUidResponse) {
+//                 DeviceUidResponse typedResponse = (DeviceUidResponse) gateway;
 //                 deviceAuthKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof HealthCheckResponse) {
-//                 HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+//             } else if (gateway instanceof HealthCheckResponse) {
+//                 HealthCheckResponse typedResponse = (HealthCheckResponse) gateway;
 //                 deviceAuthKafkaClient.handleResponse(correlationId, typedResponse);
 //             } else {
 //                 log.warn("Unknown device auth response type for correlationId: {}", correlationId);
@@ -2078,7 +2078,7 @@ public class MessagesListResponse {
 //     @Override
 //     public void onApplicationEvent(ApplicationReadyEvent event) {
 //         try {
-//             MessageListenerContainer container = registry.getListenerContainer("dynamicDeviceAuthListener");
+//             GatewayListenerContainer container = registry.getListenerContainer("dynamicDeviceAuthListener");
 //             if (container != null && !container.isRunning()) {
 //                 container.start();
 //                 log.info("Dynamic device auth response listener started for topic: {}", 
@@ -2088,7 +2088,7 @@ public class MessagesListResponse {
 //             log.error("Failed to start dynamic device auth listener", e);
 //         }
 //     }
-// }package com.connection.message;
+// }package com.connection.gateway;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -2106,11 +2106,11 @@ import org.springframework.stereotype.Service;
 
 import com.connection.device.DeviceService;
 import com.connection.device.converter.DeviceConverter;
-import com.connection.message.config.SecurityUtils;
-import com.connection.message.converter.MessageConverter;
-import com.connection.message.model.MessageBLM;
-import com.connection.message.repository.MessageRepository;
-import com.connection.message.validator.MessageValidator;
+import com.connection.gateway.config.SecurityUtils;
+import com.connection.gateway.converter.GatewayConverter;
+import com.connection.gateway.model.GatewayBLM;
+import com.connection.gateway.repository.GatewayRepository;
+import com.connection.gateway.validator.GatewayValidator;
 import com.connection.processing.buffer.converter.BufferConverter;
 import com.connection.processing.buffer.model.BufferBLM;
 import com.connection.scheme.converter.ConnectionSchemeConverter;
@@ -2129,10 +2129,10 @@ import lombok.extern.slf4j.Slf4j;
 @EnableAutoConfiguration(exclude = {
         JpaRepositoriesAutoConfiguration.class
 })
-public class MessageServiceImpl implements MessageService {
+public class GatewayServiceImpl implements GatewayService {
 
-    protected final MessageRepository messageRepository;
-    protected final MessageValidator messageValidator;
+    protected final GatewayRepository gatewayRepository;
+    protected final GatewayValidator gatewayValidator;
     
     protected final AuthService authClient;
     protected final BufferService bufferClient;
@@ -2143,56 +2143,56 @@ public class MessageServiceImpl implements MessageService {
     protected final BufferConverter bufferConverter;
     protected final ConnectionSchemeConverter connectionSchemeConverter;
     protected final DeviceConverter deviceConverter;
-    protected final MessageConverter messageConverter;
+    protected final GatewayConverter gatewayConverter;
 
     @Override
-    public void addMessage(MessageBLM messageBLM) {
+    public void addGateway(GatewayBLM gatewayBLM) {
         // Для добавления сообщений требуется аутентификация устройства
         if (SecurityUtils.isDeviceAuthenticated()) {
             UUID currentDeviceUid = SecurityUtils.getCurrentDeviceUid();
-            messageValidator.validate(messageBLM);
+            gatewayValidator.validate(gatewayBLM);
 
             // Проверяем, что устройство имеет доступ к буферу
-            if (!hasDeviceAccessToBuffer(currentDeviceUid, messageBLM.getBufferUid())) {
+            if (!hasDeviceAccessToBuffer(currentDeviceUid, gatewayBLM.getBufferUid())) {
                 throw new SecurityException("Device doesn't have access to this buffer");
             }
 
-            messageRepository.add(messageBLM);
-            processMessageMovement(messageBLM);
+            gatewayRepository.add(gatewayBLM);
+            processGatewayMovement(gatewayBLM);
         } else if (SecurityUtils.isClientAuthenticated()) {
             UUID currentClientUid = SecurityUtils.getCurrentClientUid();
-            messageValidator.validate(messageBLM);
+            gatewayValidator.validate(gatewayBLM);
 
             // Проверяем, что клиент имеет доступ к буферу через свои устройства
-            if (!hasClientAccessToBuffer(currentClientUid, messageBLM.getBufferUid())) {
+            if (!hasClientAccessToBuffer(currentClientUid, gatewayBLM.getBufferUid())) {
                 throw new SecurityException("Client doesn't have access to this buffer");
             }
 
-            messageRepository.add(messageBLM);
-            processMessageMovement(messageBLM);
+            gatewayRepository.add(gatewayBLM);
+            processGatewayMovement(gatewayBLM);
         } else {
-            throw new SecurityException("Cannot add messages without authorization");
+            throw new SecurityException("Cannot add gateways without authorization");
         }
     }
 
     @Override
-    public List<MessageBLM> getMessagesByBuffer(UUID bufferUuid, boolean deleteOnGet, int offset, int limit) {
+    public List<GatewayBLM> getGatewaysByBuffer(UUID bufferUuid, boolean deleteOnGet, int offset, int limit) {
         checkBufferAccess(bufferUuid);
 
-        List<MessageBLM> messageBLMs = messageRepository.findByBufferUid(bufferUuid);
-        messageBLMs = messageBLMs.stream()
+        List<GatewayBLM> gatewayBLMs = gatewayRepository.findByBufferUid(bufferUuid);
+        gatewayBLMs = gatewayBLMs.stream()
                 .sorted((x, y) -> x.getCreatedAt().compareTo(y.getCreatedAt()))
                 .toList()
-                .subList(offset, Math.min(offset + limit, messageBLMs.size()));
+                .subList(offset, Math.min(offset + limit, gatewayBLMs.size()));
 
         if (deleteOnGet)
-            messageBLMs.forEach(this::deleteMessage);
+            gatewayBLMs.forEach(this::deleteGateway);
 
-        return messageBLMs;
+        return gatewayBLMs;
     }
 
     @Override
-    public List<MessageBLM> getMessagesByScheme(UUID schemeUuid, boolean deleteOnGet, int offset, int limit) {
+    public List<GatewayBLM> getGatewaysByScheme(UUID schemeUuid, boolean deleteOnGet, int offset, int limit) {
         // Для схем требуется аутентификация клиента ИЛИ устройства
         if (SecurityUtils.isClientAuthenticated()) {
             UUID currentClientUid = SecurityUtils.getCurrentClientUid();
@@ -2209,30 +2209,30 @@ public class MessageServiceImpl implements MessageService {
                 throw new SecurityException("Device doesn't have access to this connection scheme");
             }
         } else {
-            throw new SecurityException("Authentication required to access messages by scheme");
+            throw new SecurityException("Authentication required to access gateways by scheme");
         }
 
         List<BufferBLM> bufferBLMs = getSchemeBuffers(schemeUuid);
-        Set<MessageBLM> set = new HashSet<>();
+        Set<GatewayBLM> set = new HashSet<>();
         for (BufferBLM b : bufferBLMs) {
-            set.addAll(getMessagesByBuffer(b.getUid(), deleteOnGet, offset, limit));
+            set.addAll(getGatewaysByBuffer(b.getUid(), deleteOnGet, offset, limit));
         }
 
-        List<MessageBLM> rMessageBLMs = new ArrayList<>(set);
+        List<GatewayBLM> rGatewayBLMs = new ArrayList<>(set);
 
-        rMessageBLMs = rMessageBLMs.stream()
+        rGatewayBLMs = rGatewayBLMs.stream()
                 .sorted((x, y) -> x.getCreatedAt().compareTo(y.getCreatedAt()))
                 .toList()
-                .subList(offset, Math.min(offset + limit, rMessageBLMs.size()));
+                .subList(offset, Math.min(offset + limit, rGatewayBLMs.size()));
 
         if (deleteOnGet)
-            rMessageBLMs.forEach(this::deleteMessage);
+            rGatewayBLMs.forEach(this::deleteGateway);
 
-        return rMessageBLMs;
+        return rGatewayBLMs;
     }
 
     @Override
-    public List<MessageBLM> getMessagesByDevice(UUID deviceUuid, boolean deleteOnGet, int offset, int limit) {
+    public List<GatewayBLM> getGatewaysByDevice(UUID deviceUuid, boolean deleteOnGet, int offset, int limit) {
         if (SecurityUtils.isClientAuthenticated()) {
             // Клиент может получать сообщения своих устройств
             UUID currentClientUid = SecurityUtils.getCurrentClientUid();
@@ -2243,28 +2243,28 @@ public class MessageServiceImpl implements MessageService {
             // Устройство может получать только свои сообщения
             UUID currentDeviceUid = SecurityUtils.getCurrentDeviceUid();
             if (!currentDeviceUid.equals(deviceUuid)) {
-                throw new SecurityException("Device can only access its own messages");
+                throw new SecurityException("Device can only access its own gateways");
             }
         } else {
             throw new SecurityException("Authentication required");
         }
 
         List<BufferBLM> bufferBLMs = getDeviceBuffers(deviceUuid);
-        Set<MessageBLM> set = new HashSet<>();
+        Set<GatewayBLM> set = new HashSet<>();
         for (BufferBLM b : bufferBLMs) {
-            set.addAll(getMessagesByBuffer(b.getUid(), deleteOnGet, offset, limit));
+            set.addAll(getGatewaysByBuffer(b.getUid(), deleteOnGet, offset, limit));
         }
-        List<MessageBLM> rMessageBLMs = new ArrayList<>(set);
+        List<GatewayBLM> rGatewayBLMs = new ArrayList<>(set);
 
-        rMessageBLMs = rMessageBLMs.stream()
+        rGatewayBLMs = rGatewayBLMs.stream()
                 .sorted((x, y) -> x.getCreatedAt().compareTo(y.getCreatedAt()))
                 .toList()
-                .subList(offset, Math.min(offset + limit, rMessageBLMs.size()));
+                .subList(offset, Math.min(offset + limit, rGatewayBLMs.size()));
 
         if (deleteOnGet)
-            rMessageBLMs.forEach(this::deleteMessage);
+            rGatewayBLMs.forEach(this::deleteGateway);
 
-        return rMessageBLMs;
+        return rGatewayBLMs;
     }
 
     @Override
@@ -2282,7 +2282,7 @@ public class MessageServiceImpl implements MessageService {
 
             return Map.of(
                     "status", "OK",
-                    "service", "message-service",
+                    "service", "gateway-service",
                     "timestamp", String.valueOf(System.currentTimeMillis()),
                     "auth-service", authHealth!= null ? "AVAILABLE" : "UNAVAILABLE",
                     "buffer-service", buufferHealth!= null ? "AVAILABLE" : "UNAVAILABLE",
@@ -2294,9 +2294,9 @@ public class MessageServiceImpl implements MessageService {
             log.error("Health check error: ", e);
             return Map.of(
                     "status", "DEGRADED",
-                    "service", "message-service",
+                    "service", "gateway-service",
                     "timestamp", String.valueOf(System.currentTimeMillis()),
-                    "error", e.getMessage());
+                    "error", e.getGateway());
         }
     }
 
@@ -2325,7 +2325,7 @@ public class MessageServiceImpl implements MessageService {
             return deviceExistsAndBelongsToClient(bufferBLM.getDeviceUid(), clientUid);
 
         } catch (Exception e) {
-            log.error("Error checking client buffer access: {}", e.getMessage());
+            log.error("Error checking client buffer access: {}", e.getGateway());
             return false;
         }
     }
@@ -2336,7 +2336,7 @@ public class MessageServiceImpl implements MessageService {
             BufferBLM bufferBLM = bufferClient.getBufferByUid(bufferUuid);
             return deviceUid.equals(bufferBLM.getDeviceUid());
         } catch (Exception e) {
-            log.error("Error checking device buffer access: {}", e.getMessage());
+            log.error("Error checking device buffer access: {}", e.getGateway());
             return false;
         }
     }
@@ -2349,7 +2349,7 @@ public class MessageServiceImpl implements MessageService {
             // Если у устройства есть буферы, связанные с этой схемой - доступ разрешен
             return !schemeBuffers.isEmpty();
         } catch (Exception e) {
-            log.error("Error checking device scheme access: {}", e.getMessage());
+            log.error("Error checking device scheme access: {}", e.getGateway());
             return false;
         }
     }
@@ -2371,16 +2371,16 @@ public class MessageServiceImpl implements MessageService {
             return schemeBuffers;
 
         } catch (Exception e) {
-            log.error("Error getting buffer schemes for device: {}", e.getMessage());
+            log.error("Error getting buffer schemes for device: {}", e.getGateway());
             return List.of();
         }
     }
 
-    private void processMessageMovement(MessageBLM messageBLM) {
-        if (!"OUTGOING".equals(messageBLM.getContentType())) {
+    private void processGatewayMovement(GatewayBLM gatewayBLM) {
+        if (!"OUTGOING".equals(gatewayBLM.getContentType())) {
             return;
         }
-        List<ConnectionSchemeBLM> connectionSchemeBLMs = getBufferSchemes(messageBLM.getBufferUid());
+        List<ConnectionSchemeBLM> connectionSchemeBLMs = getBufferSchemes(gatewayBLM.getBufferUid());
         Map<UUID, List<UUID>> bufferTransitions = new HashMap<>();
         for (ConnectionSchemeBLM cs : connectionSchemeBLMs) {
             cs.getBufferTransitions().forEach((key, value) -> bufferTransitions.merge(key, value, (oldList, newList) -> {
@@ -2390,27 +2390,27 @@ public class MessageServiceImpl implements MessageService {
             }));
         }
 
-        List<UUID> targetBuffers = bufferTransitions.get(messageBLM.getBufferUid());
+        List<UUID> targetBuffers = bufferTransitions.get(gatewayBLM.getBufferUid());
         if (targetBuffers != null) {
             for (UUID b : targetBuffers) {
-                MessageBLM messageBLMn = MessageBLM.builder().bufferUid(b)
-                        .content(messageBLM.getContent())
+                GatewayBLM gatewayBLMn = GatewayBLM.builder().bufferUid(b)
+                        .content(gatewayBLM.getContent())
                         .contentType("INCOMING")
                         .createdAt(new Date())
                         .uid(UUID.randomUUID())
                         .build();
-                messageValidator.validate(messageBLMn);
-                messageRepository.add(messageBLMn);
+                gatewayValidator.validate(gatewayBLMn);
+                gatewayRepository.add(gatewayBLMn);
             }
         }
     }
 
-    private void deleteMessage(UUID messageUuid) {
-        messageRepository.deleteByUid(messageUuid);
+    private void deleteGateway(UUID gatewayUuid) {
+        gatewayRepository.deleteByUid(gatewayUuid);
     }
 
-    private void deleteMessage(MessageBLM messageBLM) {
-        deleteMessage(messageBLM.getUid());
+    private void deleteGateway(GatewayBLM gatewayBLM) {
+        deleteGateway(gatewayBLM.getUid());
     }
 
     protected boolean deviceExistsAndBelongsToClient(UUID deviceUuid, UUID clientUuid){
@@ -2433,21 +2433,21 @@ public class MessageServiceImpl implements MessageService {
     private List<BufferBLM> getDeviceBuffers(UUID deviceUuid) {
         return bufferClient.getBuffersByDevice(deviceUuid);
     }
-}package com.connection.message;
+}package com.connection.gateway;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.connection.message.model.MessageBLM;
+import com.connection.gateway.model.GatewayBLM;
 
-public interface MessageService {
-    void addMessage(MessageBLM messageBLM);
-    List<MessageBLM> getMessagesByBuffer(UUID bufferUuid, boolean deleteOnGet, int offset, int limit);
-    List<MessageBLM> getMessagesByScheme(UUID schemeUuid, boolean deleteOnGet, int offset, int limit);
-    List<MessageBLM> getMessagesByDevice(UUID devicUuid, boolean deleteOnGet, int offset, int limit);
+public interface GatewayService {
+    void addGateway(GatewayBLM gatewayBLM);
+    List<GatewayBLM> getGatewaysByBuffer(UUID bufferUuid, boolean deleteOnGet, int offset, int limit);
+    List<GatewayBLM> getGatewaysByScheme(UUID schemeUuid, boolean deleteOnGet, int offset, int limit);
+    List<GatewayBLM> getGatewaysByDevice(UUID devicUuid, boolean deleteOnGet, int offset, int limit);
     Map<String, String> health();
-}package com.connection.message.client;
+}package com.connection.gateway.client;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -2496,7 +2496,7 @@ public class DeviceAuthenticationFilter extends OncePerRequestFilter {
         try {
             authenticateWithToken(jwtToken, request);
         } catch (Exception e) {
-            log.error("Authentication failed for token: {}", e.getMessage());
+            log.error("Authentication failed for token: {}", e.getGateway());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
@@ -2525,10 +2525,10 @@ public class DeviceAuthenticationFilter extends OncePerRequestFilter {
 
             log.info("Successfully authenticated device: {}", deviceTokenBLM.getDeviceUid());
         } catch (Exception e) {
-            throw new SecurityException("Authentication failed: " + e.getMessage());
+            throw new SecurityException("Authentication failed: " + e.getGateway());
         }
     }
-}package com.connection.message.client;
+}package com.connection.gateway.client;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -2576,7 +2576,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         try {
             authenticateWithToken(jwtToken, request);
         } catch (Exception e) {
-            log.error("Authentication failed for token: {}", e.getMessage());
+            log.error("Authentication failed for token: {}", e.getGateway());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
@@ -2603,19 +2603,19 @@ public class AuthenticationFilter extends OncePerRequestFilter {
 
             log.info("Successfully authenticated client: {}", accessTokenBLM.getClientUID());
         } catch (Exception e) {
-            throw new SecurityException("Authentication failed: " + e.getMessage());
+            throw new SecurityException("Authentication failed: " + e.getGateway());
         }
     }
-}// MessageServiceApplication.java
-package com.connection.message;
+}// GatewayServiceApplication.java
+package com.connection.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class MessageServiceApplication {
+public class GatewayServiceApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(MessageServiceApplication.class, args);
+        SpringApplication.run(GatewayServiceApplication.class, args);
     }
 }

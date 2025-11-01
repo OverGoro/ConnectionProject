@@ -8,9 +8,9 @@ create table if not exists processing.connection_scheme(
 create table if not exists processing.buffer(
     uid uuid primary key, 
     device_uid uuid not null references core.device(uid) on delete cascade,
-    max_messages_number integer not null CHECK (max_messages_number > 0),
-    max_message_size integer not null CHECK ( max_message_size > 0 ),
-    message_prototype varchar
+    max_gateways_number integer not null CHECK (max_gateways_number > 0),
+    max_gateway_size integer not null CHECK ( max_gateway_size > 0 ),
+    gateway_prototype varchar
 );
 
 
@@ -20,7 +20,7 @@ create table if not exists processing.connection_scheme_buffer(
     buffer_uid uuid not null references processing.buffer(uid) on delete cascade
 );
 
-create table if not exists processing.message(
+create table if not exists processing.gateway(
     uid uuid primary key, 
     buffer_uid uuid not null references processing.buffer(uid) on delete cascade,
     content jsonb not null, 

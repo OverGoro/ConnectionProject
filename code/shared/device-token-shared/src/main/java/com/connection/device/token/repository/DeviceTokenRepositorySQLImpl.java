@@ -18,7 +18,7 @@ import com.connection.device.token.model.DeviceTokenBLM;
 import com.connection.device.token.model.DeviceTokenDALM;
 import com.connection.device.token.validator.DeviceTokenValidator;
 
-@Repository
+
 public class DeviceTokenRepositorySQLImpl implements DeviceTokenRepository {
 
     private static final String SELECT_DEVICE_TOKEN = "SELECT uid, device_uid, token, created_at, expires_at";

@@ -12,8 +12,8 @@ plugins {
 
 // ========== CONFIGURATION ==========
 ext {
-    SERVICE_NAME = 'message-service'
-    K8S_DIR = new File(System.getProperty('user.home') + "/GitHub/ConnectionProject/kubernetes/message-service").toString()
+    SERVICE_NAME = 'gateway-service'
+    K8S_DIR = new File(System.getProperty('user.home') + "/GitHub/ConnectionProject/kubernetes/gateway-service").toString()
     ALLURE_RESULTS_DIR = "${buildDir}/allure-results"
     ALLURE_REPORT_DIR =  "${buildDir}/reports/allure-report"
     ALLURE_HISTORY_DIR = "${projectDir}/allure-history"
@@ -21,7 +21,7 @@ ext {
 
 group = 'com.connection'
 version = '1.0.0'
-description = 'Message Service'
+description = 'Gateway Service'
 
 java {
     toolchain {
@@ -111,7 +111,7 @@ dependencies {
         implementation 'com.connection:connection-scheme-shared:1.0.0'
         implementation 'com.connection:device-shared:1.0.0'
         implementation 'com.connection:device-token-shared:1.0.0'
-        implementation 'com.connection:message-shared:1.0.0'
+        implementation 'com.connection:gateway-shared:1.0.0'
         implementation 'com.connection:token-shared:1.0.0'
 
         implementation 'com.connection:auth-service:1.0.0'
@@ -125,7 +125,7 @@ dependencies {
         implementation project(':shared:connection-scheme-shared')
         implementation project(':shared:device-shared')
         implementation project(':shared:device-token-shared')
-        implementation project(':shared:message-shared')
+        implementation project(':shared:gateway-shared')
         implementation project(':shared:token-shared')
         
         implementation project(':service:auth-service')
@@ -547,8 +547,8 @@ publishing {
         mavenJava(MavenPublication) {
             from components.java
             pom {
-                name = 'message-service Shared Module'
-                description = 'Shared components of message-service'
+                name = 'gateway-service Shared Module'
+                description = 'Shared components of gateway-service'
                 url = 'http://www.example.com'
                 licenses {
                     license {

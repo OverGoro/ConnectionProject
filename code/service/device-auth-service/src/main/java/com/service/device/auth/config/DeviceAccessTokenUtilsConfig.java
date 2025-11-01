@@ -23,7 +23,7 @@ public class DeviceAccessTokenUtilsConfig {
     DeviceAccessTokenGenerator deviceAccessTokenGenerator(
             SecretKey jwtSecretKey,
             @Qualifier("appName") String appNameString,
-            @Qualifier("jwtSubject") String subjectString) {
+            @Qualifier("deviceJwtSubject") String subjectString) {
         return new DeviceAccessTokenGenerator(jwtSecretKey, appNameString, subjectString);
     }
 

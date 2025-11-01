@@ -2,6 +2,7 @@ package com.connection.message.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import com.connection.message.converter.MessageConverter;
 import com.connection.message.validator.MessageValidator;
@@ -13,11 +14,13 @@ import com.connection.scheme.converter.ConnectionSchemeConverter;
 public class MessageUtilsConfig {
     
     @Bean("MessageConverter")
+    @Primary
     MessageConverter messageConverter(){
         return new MessageConverter();
     }
 
     @Bean("MessageValidator")
+    @Primary
     MessageValidator messageValidator(){
         return new MessageValidator();
     }

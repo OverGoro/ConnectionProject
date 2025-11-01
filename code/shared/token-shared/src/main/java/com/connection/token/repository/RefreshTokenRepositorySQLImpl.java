@@ -15,7 +15,7 @@ import com.connection.token.exception.RefreshTokenAlreadyExisistsException;
 import com.connection.token.exception.RefreshTokenNotFoundException;
 import com.connection.token.model.RefreshTokenDALM;
 
-@Repository
+
 public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
 
     private static final String SELECT_REFRESH_TOKEN = "SELECT uid, client_id, token, created_at, expires_at";

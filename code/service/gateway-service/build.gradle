@@ -12,8 +12,8 @@ plugins {
 
 // ========== CONFIGURATION ==========
 ext {
-    SERVICE_NAME = 'message-service'
-    K8S_DIR = new File(System.getProperty('user.home') + "/GitHub/ConnectionProject/kubernetes/message-service").toString()
+    SERVICE_NAME = 'gateway-service'
+    K8S_DIR = new File(System.getProperty('user.home') + "/GitHub/ConnectionProject/kubernetes/gateway-service").toString()
     ALLURE_RESULTS_DIR = "${buildDir}/allure-results"
     ALLURE_REPORT_DIR =  "${buildDir}/reports/allure-report"
     ALLURE_HISTORY_DIR = "${projectDir}/allure-history"
@@ -21,7 +21,7 @@ ext {
 
 group = 'com.connection'
 version = '1.0.0'
-description = 'Message Service'
+description = 'Gateway Service'
 
 java {
     toolchain {
@@ -119,6 +119,7 @@ dependencies {
         implementation 'com.connection:connection-scheme-service:1.0.0'
         implementation 'com.connection:device-service:1.0.0'
         implementation 'com.connection:device-auth-service:1.0.0'
+        implementation 'com.connection:message-service:1.0.0'
     } else {
         implementation project(':shared:buffer-shared')
         implementation project(':shared:client-shared')
@@ -133,6 +134,7 @@ dependencies {
         implementation project(':service:connection-scheme-service')
         implementation project(':service:device-service')
         implementation project(':service:device-auth-service')
+        implementation project(':service:message-service')
     }
 
 
@@ -547,8 +549,8 @@ publishing {
         mavenJava(MavenPublication) {
             from components.java
             pom {
-                name = 'message-service Shared Module'
-                description = 'Shared components of message-service'
+                name = 'gateway-service Shared Module'
+                description = 'Shared components of gateway-service'
                 url = 'http://www.example.com'
                 licenses {
                     license {

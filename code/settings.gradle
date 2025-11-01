@@ -23,4 +23,5 @@ include 'service:connection-scheme-service'
 include 'service:device-auth-service'
 include 'service:device-service'
 include 'service:message-service'
+include 'service:gateway-service'
 

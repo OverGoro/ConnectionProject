@@ -1,0 +1,83 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.connection",
+    "module": "common-buffer-events",
+    "version": "1.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.13"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "common-buffer-events-1.0.0.jar",
+          "url": "common-buffer-events-1.0.0.jar",
+          "size": 46741,
+          "sha512": "1800ae369c479b60f0770e93d6e555d2a6d8e054d42cb28f46b361d547f66acc8db3777780da8e76562b79005f1661eedd848c04fd6271dec852e114ae347136",
+          "sha256": "18f8f7dcc4d05bd1e68647ab47e22b933bf190a0059b570d3f8b05f45b5ecbd3",
+          "sha1": "73e11d40d4d9b2bd15fdafa3ee3b82b14846a8e5",
+          "md5": "769e7df91c413c5f314a2f441d2ffcd1"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "com.connection",
+          "module": "common-events",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "buffer-shared",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.fasterxml.jackson.datatype",
+          "module": "jackson-datatype-jsr310",
+          "version": {
+            "requires": "2.18.4"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "common-buffer-events-1.0.0.jar",
+          "url": "common-buffer-events-1.0.0.jar",
+          "size": 46741,
+          "sha512": "1800ae369c479b60f0770e93d6e555d2a6d8e054d42cb28f46b361d547f66acc8db3777780da8e76562b79005f1661eedd848c04fd6271dec852e114ae347136",
+          "sha256": "18f8f7dcc4d05bd1e68647ab47e22b933bf190a0059b570d3f8b05f45b5ecbd3",
+          "sha1": "73e11d40d4d9b2bd15fdafa3ee3b82b14846a8e5",
+          "md5": "769e7df91c413c5f314a2f441d2ffcd1"
+        }
+      ]
+    }
+  ]
+}

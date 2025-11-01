@@ -1,1 +1,1 @@
-{"total":1,"items":[{"uid":"9119479ff922ceac89a0ab2901c5e43b","name":"Connection Scheme Service Implementation Tests - Kafka Version","statistic":{"failed":0,"broken":0,"skipped":0,"passed":12,"unknown":0,"total":12}}]}
+{"total":1,"items":[{"uid":"5cf5c267e15a5f71032121a2f3b10fa7","name":"Connection Scheme Service Integration Tests","statistic":{"failed":0,"broken":0,"skipped":0,"passed":16,"unknown":0,"total":16}}]}

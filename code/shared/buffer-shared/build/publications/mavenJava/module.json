@@ -1,0 +1,69 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.connection",
+    "module": "buffer-shared",
+    "version": "1.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.13"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "buffer-shared-1.0.0.jar",
+          "url": "buffer-shared-1.0.0.jar",
+          "size": 21546,
+          "sha512": "8ce36d5e19d28d621f88d91292444424779e813b7a688dd75598b0dc830828673086bf5638c07d08c3b3465a7fe98b069dd5780ab9f711860a769c375e8b1c72",
+          "sha256": "88cd866b93a8929418b301ff9da64a4a8d2da90255eb3ac5bd628af300a73085",
+          "sha1": "a4f8422bc970591873e2d551e0247b87623df288",
+          "md5": "6338996f501e9aa50a834c5eab67d61c"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-data-jpa",
+          "version": {
+            "requires": "3.5.3"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "buffer-shared-1.0.0.jar",
+          "url": "buffer-shared-1.0.0.jar",
+          "size": 21546,
+          "sha512": "8ce36d5e19d28d621f88d91292444424779e813b7a688dd75598b0dc830828673086bf5638c07d08c3b3465a7fe98b069dd5780ab9f711860a769c375e8b1c72",
+          "sha256": "88cd866b93a8929418b301ff9da64a4a8d2da90255eb3ac5bd628af300a73085",
+          "sha1": "a4f8422bc970591873e2d551e0247b87623df288",
+          "md5": "6338996f501e9aa50a834c5eab67d61c"
+        }
+      ]
+    }
+  ]
+}
