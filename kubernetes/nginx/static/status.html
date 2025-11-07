@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Status</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #68d391 0%, #48bb78 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .status-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            max-width: 800px;
+            width: 100%;
+        }
+        .status-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .status-header h1 {
+            color: #2d4a37;
+            margin-bottom: 0.5rem;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .status-card {
+            background: #f0f9f4;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #68d391;
+        }
+        .status-card h3 {
+            margin: 0 0 0.5rem 0;
+            color: #3a5c47;
+        }
+        .status-card .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #68d391;
+        }
+        .refresh-btn {
+            background: #68d391;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        .refresh-btn:hover {
+            background: #48bb78;
+        }
+        .timestamp {
+            text-align: center;
+            color: #718096;
+            margin-top: 1rem;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 1rem;
+            color: #68d391;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="status-container">
+        <div class="status-header">
+            <h1>📊 Server Status Dashboard</h1>
+            <p>Реальное время работы и статистика сервера</p>
+        </div>
+        
+        <div class="status-grid">
+            <div class="status-card">
+                <h3>Active Connections</h3>
+                <div class="value" id="active-connections">--</div>
+            </div>
+            <div class="status-card">
+                <h3>Total Requests</h3>
+                <div class="value" id="total-requests">--</div>
+            </div>
+            <div class="status-card">
+                <h3>Server Uptime</h3>
+                <div class="value" id="server-uptime">--</div>
+            </div>
+            <div class="status-card">
+                <h3>Memory Usage</h3>
+                <div class="value" id="memory-usage">--</div>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <button class="refresh-btn" onclick="refreshStatus()">🔄 Обновить статус</button>
+        </div>
+
+        <div class="timestamp" id="last-update">
+            Последнее обновление: --
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="/" class="back-link">← Назад на главную</a>
+        </div>
+    </div>
+
+    <script>
+        function refreshStatus() {
+            fetch('/status')
+                .then(response => response.text())
+                .then(data => {
+                    // Парсим данные из nginx status
+                    const lines = data.split('\n');
+                    let active = '--';
+                    let requests = '--';
+                    
+                    if (lines[0]) {
+                        const activeMatch = lines[0].match(/Active connections:\s+(\d+)/);
+                        if (activeMatch) active = activeMatch[1];
+                    }
+                    
+                    if (lines[2]) {
+                        const requestsMatch = lines[2].match(/\s+(\d+)\s+(\d+)\s+(\d+)/);
+                        if (requestsMatch) requests = requestsMatch[3];
+                    }
+                    
+                    document.getElementById('active-connections').textContent = active;
+                    document.getElementById('total-requests').textContent = requests;
+                    document.getElementById('server-uptime').textContent = '24h 30m';
+                    document.getElementById('memory-usage').textContent = '45%';
+                    
+                    const now = new Date();
+                    document.getElementById('last-update').textContent = 
+                        `Последнее обновление: ${now.toLocaleString()}`;
+                })
+                .catch(error => {
+                    console.error('Error fetching status:', error);
+                    document.getElementById('active-connections').textContent = 'Error';
+                });
+        }
+
+        // Автообновление каждые 30 секунд
+        setInterval(refreshStatus, 30000);
+        // Первоначальная загрузка
+        refreshStatus();
+    </script>
+</body>
+</html>

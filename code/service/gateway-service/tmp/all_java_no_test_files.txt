@@ -1,17 +1,6 @@
 // SwaggerConfig.java
 package com.connection.gateway.config.swagger;
 
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
-import io.swagger.v3.oas.annotations.security.SecurityScheme;
-import io.swagger.v3.oas.annotations.security.SecuritySchemes;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.security.SecuritySchemes;
@@ -63,7 +52,117 @@ public class SwaggerConfig {
                 .addSecurityItem(new SecurityRequirement().addList("clientAuth"))
                 .addSecurityItem(new SecurityRequirement().addList("deviceAuth"));
     }
-}package com.connection.gateway.config.spring;
+}// package com.connection.gateway.config.spring;
+
+// import java.sql.Connection;
+// import java.sql.SQLException;
+// import java.sql.Statement;
+// import java.util.Map;
+// import java.util.concurrent.ConcurrentHashMap;
+// import java.util.concurrent.Executors;
+// import java.util.concurrent.ScheduledExecutorService;
+// import java.util.concurrent.TimeUnit;
+
+// import javax.sql.DataSource;
+
+// import org.springframework.beans.factory.annotation.Qualifier;
+// import org.springframework.stereotype.Component;
+
+// import lombok.extern.slf4j.Slf4j;
+
+// @Slf4j
+// @Component
+// public class DatabaseHealthMonitor {
+
+//     private final Map<String, DataSource> dataSources;
+//     private final Map<String, Integer> failureCounts = new ConcurrentHashMap<>();
+//     private final Map<String, Boolean> connectionStatus = new ConcurrentHashMap<>();
+//     private final int MAX_FAILURES = 10;
+//     private final long CHECK_INTERVAL = 1; // 30 секунд
+
+//     public DatabaseHealthMonitor(@Qualifier("ClientDataSource") DataSource clientDataSource,
+//             @Qualifier("RefreshTokenDataSource") DataSource refreshTokenDataSource,
+//             @Qualifier("BufferDataSource") DataSource bufferDataSource,
+//             @Qualifier("ConnectionSchemeDataSource") DataSource connectionSchemeDataSource,
+//             @Qualifier("deviceTokenDataSource") DataSource deviceTokenDataSource,
+//             @Qualifier("deviceAccessTokenDataSource") DataSource deviceAccessTokenDataSource,
+//             @Qualifier("DeviceDataSource") DataSource deviceDataSource,
+//             @Qualifier("MessageDataSource") DataSource messageDataSource) {
+//         this.dataSources = Map.of(
+//                 "RefreshTokenDataSource", refreshTokenDataSource,
+//                 "BufferDataSource", bufferDataSource,
+//                 "ConnectionSchemeDataSource", connectionSchemeDataSource,
+//                 "deviceTokenDataSource", deviceTokenDataSource,
+//                 "deviceAccessTokenDataSource", deviceAccessTokenDataSource,
+//                 "DeviceDataSource", deviceDataSource,
+//                 "MessageDataSource", messageDataSource);
+
+//         initializeMonitoring();
+//     }
+
+//     private void checkAllConnections() {
+//         for (Map.Entry<String, DataSource> entry : dataSources.entrySet()) {
+//             String dataSourceName = entry.getKey();
+//             DataSource dataSource = entry.getValue();
+
+//             boolean isAvailable = testConnection(dataSource);
+
+//             if (isAvailable) {
+//                 // Сброс счетчика при успешном соединении
+//                 failureCounts.put(dataSourceName, 0);
+//                 connectionStatus.put(dataSourceName, true);
+//                 log.info("Connection {} is available", dataSourceName);
+//             } else {
+//                 // Увеличение счетчика при неудаче
+//                 int failures = failureCounts.getOrDefault(dataSourceName, 0) + 1;
+//                 failureCounts.put(dataSourceName, failures);
+//                 connectionStatus.put(dataSourceName, false);
+
+//                 log.warn("Connection {} failed {}/{} times", dataSourceName, failures, MAX_FAILURES);
+
+//                 // Остановка приложения при достижении лимита
+//                 if (failures >= MAX_FAILURES) {
+//                     handleCriticalFailure(dataSourceName);
+//                 }
+//             }
+//         }
+//     }
+
+//     private void handleCriticalFailure(String dataSourceName) {
+//         log.error("CRITICAL: DataSource {} has failed {} times consecutively. Shutting down application.",
+//                 dataSourceName, MAX_FAILURES);
+//         logCurrentStatus();
+//         System.exit(1);
+//     }
+
+//     private void logCurrentStatus() {
+//         log.info("=== Current Database Connection Status ===");
+//         connectionStatus.forEach((name, status) -> log.info("{}: {} (failures: {})",
+//                 name,
+//                 status ? "AVAILABLE" : "UNAVAILABLE",
+//                 failureCounts.getOrDefault(name, 0)));
+//         log.info("==========================================");
+//     }
+
+//     private boolean testConnection(DataSource dataSource) {
+//         try (Connection connection = dataSource.getConnection();
+//                 Statement statement = connection.createStatement()) {
+
+//             // Простой запрос для проверки соединения
+//             statement.executeQuery("SELECT 1");
+//             return true;
+
+//         } catch (SQLException e) {
+//             log.error("Database connection test failed: {}", e.getMessage());
+//             return false;
+//         }
+//     }
+
+//     private void initializeMonitoring() {
+//         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+//         scheduler.scheduleAtFixedRate(this::checkAllConnections, 0, CHECK_INTERVAL, TimeUnit.MILLISECONDS);
+//     }
+// }package com.connection.gateway.config.spring;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -81,10 +180,11 @@ public class ApplicationConfig {
         return appNameString;
     }
 }
-package com.connection.gateway.config;
+package com.connection.gateway.config.transaction;
 
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.jta.JtaTransactionManager;
@@ -96,37 +196,95 @@ import jakarta.transaction.SystemException;
 @Configuration
 public class TransactionConfig {
     
+    private static volatile boolean databaseChecked = false;
+    private static final Object CHECK_LOCK = new Object();
+    
+    @Value("${transaction.database.host:localhost}")
+    private String dbHost;
+    @Value("${transaction.database.port:5432}")
+    private int dbPort;
+
     @Bean
     public UserTransactionManager userTransactionManager() throws SystemException {
         setPropertyIfNotExists("com.atomikos.icatch.log_base_name", "atomikos-tm-" + UUID.randomUUID().toString().substring(0, 8));
         setPropertyIfNotExists("com.atomikos.icatch.log_base_dir", "./logs");
         setPropertyIfNotExists("com.atomikos.icatch.tm_unique_name", "tm-" + UUID.randomUUID().toString().substring(0, 8));
         
+        // Настройки для минимальных попыток переподключения
+        setPropertyIfNotExists("com.atomikos.icatch.oltp_max_retries", "10");
+        setPropertyIfNotExists("com.atomikos.icatch.oltp_retry_interval", "1000");
+        setPropertyIfNotExists("com.atomikos.icatch.default_jta_timeout", "5000");
+        
+        // Выполняем проверку БД только один раз при создании первого бина
+        performOneTimeDatabaseCheck();
+        
         UserTransactionManager manager = new UserTransactionManager();
-        manager.setTransactionTimeout(300);
+        manager.setTransactionTimeout(30);
         manager.setForceShutdown(true);
         return manager;
     }
 
     @Bean(name = "atomicosTransactionManager")
     public JtaTransactionManager jtaTransactionManager() throws SystemException {
+        // Проверка уже выполнена в userTransactionManager(), поэтому не повторяем
+        
         JtaTransactionManager jtaTransactionManager = new JtaTransactionManager();
         jtaTransactionManager.setTransactionManager(userTransactionManager());
         jtaTransactionManager.setUserTransaction(userTransactionManager());
+        jtaTransactionManager.setDefaultTimeout(5000);
         return jtaTransactionManager;
     }
     
     /**
+     * Однократная проверка доступности БД
+     */
+    private void performOneTimeDatabaseCheck() {
+        synchronized (CHECK_LOCK) {
+            if (databaseChecked) {
+                System.out.println("✓ Database check already performed - skipping");
+                return;
+            }
+            
+            System.out.println("=== PERFORMING ONE-TIME DATABASE AVAILABILITY CHECK ===");
+            
+            // Простая проверка доступности порта БД
+            int timeout = 3000; // 3 секунды
+            
+            boolean isReachable = isPortReachable(dbHost, dbPort, timeout);
+            
+            if (!isReachable) {
+                System.err.println("✗ CRITICAL: Database is not reachable at " + dbHost + ":" + dbPort);
+                System.err.println("=== APPLICATION WILL NOW EXIT ===");
+                System.exit(1);
+            } else {
+                System.out.println("✓ Database port is reachable at " + dbHost + ":" + dbPort);
+            }
+            
+            databaseChecked = true;
+            System.out.println("=== ONE-TIME DATABASE CHECK COMPLETED ===");
+        }
+    }
+    
+    /**
+     * Проверяет доступность порта БД
+     */
+    private boolean isPortReachable(String host, int port, int timeout) {
+        try (java.net.Socket socket = new java.net.Socket()) {
+            socket.connect(new java.net.InetSocketAddress(host, port), timeout);
+            return true;
+        } catch (Exception e) {
+            System.err.println("Database connection failed: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
      * Устанавливает системное свойство только если оно еще не было установлено
-     * @param key ключ свойства
-     * @param value значение свойства
      */
     private void setPropertyIfNotExists(String key, String value) {
         if (System.getProperty(key) == null) {
             System.setProperty(key, value);
             System.out.println("Set property: " + key + " = " + value);
-        } else {
-            System.out.println("Property already set: " + key + " = " + System.getProperty(key));
         }
     }
 }package com.connection.gateway.config.security;

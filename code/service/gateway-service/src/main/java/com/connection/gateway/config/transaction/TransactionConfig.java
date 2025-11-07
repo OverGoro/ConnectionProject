@@ -2,6 +2,7 @@ package com.connection.gateway.config.transaction;
 
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.jta.JtaTransactionManager;
@@ -16,6 +17,11 @@ public class TransactionConfig {
     private static volatile boolean databaseChecked = false;
     private static final Object CHECK_LOCK = new Object();
     
+    @Value("${transaction.database.host:localhost}")
+    private String dbHost;
+    @Value("${transaction.database.port:5432}")
+    private int dbPort;
+
     @Bean
     public UserTransactionManager userTransactionManager() throws SystemException {
         setPropertyIfNotExists("com.atomikos.icatch.log_base_name", "atomikos-tm-" + UUID.randomUUID().toString().substring(0, 8));
@@ -23,7 +29,7 @@ public class TransactionConfig {
         setPropertyIfNotExists("com.atomikos.icatch.tm_unique_name", "tm-" + UUID.randomUUID().toString().substring(0, 8));
         
         // Настройки для минимальных попыток переподключения
-        setPropertyIfNotExists("com.atomikos.icatch.oltp_max_retries", "1");
+        setPropertyIfNotExists("com.atomikos.icatch.oltp_max_retries", "10");
         setPropertyIfNotExists("com.atomikos.icatch.oltp_retry_interval", "1000");
         setPropertyIfNotExists("com.atomikos.icatch.default_jta_timeout", "5000");
         
@@ -31,7 +37,7 @@ public class TransactionConfig {
         performOneTimeDatabaseCheck();
         
         UserTransactionManager manager = new UserTransactionManager();
-        manager.setTransactionTimeout(5000);
+        manager.setTransactionTimeout(30);
         manager.setForceShutdown(true);
         return manager;
     }
@@ -60,8 +66,6 @@ public class TransactionConfig {
             System.out.println("=== PERFORMING ONE-TIME DATABASE AVAILABILITY CHECK ===");
             
             // Простая проверка доступности порта БД
-            String dbHost = "localhost";
-            int dbPort = 5434;
             int timeout = 3000; // 3 секунды
             
             boolean isReachable = isPortReachable(dbHost, dbPort, timeout);
