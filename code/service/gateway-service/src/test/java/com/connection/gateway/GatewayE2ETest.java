@@ -12,9 +12,9 @@ import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-// @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-// @TestPropertySource(properties = {"server.port=18081"})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+// @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestPropertySource(properties = {"server.port=18081"})
 @ActiveProfiles("test")
 public class GatewayE2ETest {
 
