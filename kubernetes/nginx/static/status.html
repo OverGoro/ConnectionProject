@@ -3,162 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Server Status</title>
+    <title>Статус сервера - Connection Project</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #68d391 0%, #48bb78 100%);
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #68d391 0%, #48bb78 100%);
             min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
         .status-container {
             background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
             max-width: 800px;
             width: 100%;
         }
-        .status-header {
+        .header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 40px;
         }
-        .status-header h1 {
-            color: #2d4a37;
-            margin-bottom: 0.5rem;
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
         }
-        .status-grid {
+        .header p {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+        .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
+            gap: 20px;
+            margin-bottom: 30px;
         }
-        .status-card {
-            background: #f0f9f4;
-            padding: 1rem;
-            border-radius: 8px;
-            border-left: 4px solid #68d391;
+        .stat-card {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
         }
-        .status-card h3 {
-            margin: 0 0 0.5rem 0;
-            color: #3a5c47;
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: #68d391;
         }
-        .status-card .value {
-            font-size: 1.5rem;
+        .stat-value {
+            font-size: 2.5rem;
             font-weight: bold;
             color: #68d391;
+            margin-bottom: 10px;
         }
-        .refresh-btn {
+        .stat-label {
+            color: #4a5568;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .details {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .details h3 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .details pre {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            overflow-x: auto;
+            font-family: "Courier New", monospace;
+            color: #2d3748;
+        }
+        .navigation {
+            text-align: center;
+        }
+        .nav-button {
+            display: inline-block;
+            padding: 12px 30px;
             background: #68d391;
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background 0.3s;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 0 10px;
         }
-        .refresh-btn:hover {
+        .nav-button:hover {
             background: #48bb78;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(72, 187, 120, 0.4);
         }
         .timestamp {
             text-align: center;
             color: #718096;
-            margin-top: 1rem;
+            font-size: 0.9rem;
+            margin-top: 20px;
         }
-        .back-link {
+        .status-badge {
             display: inline-block;
-            margin-top: 1rem;
-            color: #68d391;
-            text-decoration: none;
-        }
-        .back-link:hover {
-            text-decoration: underline;
+            padding: 5px 15px;
+            background: #48bb78;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 10px;
         }
     </style>
 </head>
 <body>
     <div class="status-container">
-        <div class="status-header">
-            <h1>📊 Server Status Dashboard</h1>
-            <p>Реальное время работы и статистика сервера</p>
+        <div class="header">
+            <h1>Статус сервера <span class="status-badge">Online</span></h1>
+            <p>Мониторинг производительности nginx в реальном времени</p>
         </div>
         
-        <div class="status-grid">
-            <div class="status-card">
-                <h3>Active Connections</h3>
-                <div class="value" id="active-connections">--</div>
-            </div>
-            <div class="status-card">
-                <h3>Total Requests</h3>
-                <div class="value" id="total-requests">--</div>
-            </div>
-            <div class="status-card">
-                <h3>Server Uptime</h3>
-                <div class="value" id="server-uptime">--</div>
-            </div>
-            <div class="status-card">
-                <h3>Memory Usage</h3>
-                <div class="value" id="memory-usage">--</div>
-            </div>
+        <div class="stats-grid" id="statsGrid">
+            <!-- Статистика будет обновлена JavaScript -->
         </div>
-
-        <div style="text-align: center;">
-            <button class="refresh-btn" onclick="refreshStatus()">🔄 Обновить статус</button>
+        
+        <div class="details">
+            <h3>Детальная статистика</h3>
+            <pre id="statusDetails">Загрузка...</pre>
         </div>
-
-        <div class="timestamp" id="last-update">
-            Последнее обновление: --
+        
+        <div class="navigation">
+            <a href="/" class="nav-button">Главная страница</a>
+            <a href="/management" class="nav-button">Панель управления</a>
+            <button onclick="refreshStats()" class="nav-button">Обновить</button>
         </div>
-
-        <div style="text-align: center; margin-top: 2rem;">
-            <a href="/" class="back-link">← Назад на главную</a>
-        </div>
+        
+        <div class="timestamp" id="timestamp"></div>
     </div>
 
     <script>
-        function refreshStatus() {
+        function parseStatusText(text) {
+            const lines = text.trim().split('\n');
+            const data = {};
+            
+            lines.forEach(line => {
+                if (line.includes('Active connections:')) {
+                    data.activeConnections = line.match(/\d+/)[0];
+                } else if (line.includes('server accepts handled requests')) {
+                    const nextLine = lines[lines.indexOf(line) + 1];
+                    const numbers = nextLine.match(/\d+/g);
+                    if (numbers) {
+                        data.accepts = numbers[0];
+                        data.handled = numbers[1];
+                        data.requests = numbers[2];
+                    }
+                } else if (line.includes('Reading:')) {
+                    const matches = line.match(/Reading: (\d+).*Writing: (\d+).*Waiting: (\d+)/);
+                    if (matches) {
+                        data.reading = matches[1];
+                        data.writing = matches[2];
+                        data.waiting = matches[3];
+                    }
+                }
+            });
+            
+            return data;
+        }
+        
+        function updateStats() {
             fetch('/status')
                 .then(response => response.text())
                 .then(data => {
-                    // Парсим данные из nginx status
-                    const lines = data.split('\n');
-                    let active = '--';
-                    let requests = '--';
+                    const statusData = parseStatusText(data);
+                    document.getElementById('statusDetails').textContent = data;
                     
-                    if (lines[0]) {
-                        const activeMatch = lines[0].match(/Active connections:\s+(\d+)/);
-                        if (activeMatch) active = activeMatch[1];
-                    }
+                    const statsGrid = document.getElementById('statsGrid');
+                    statsGrid.innerHTML = `
+                        <div class="stat-card">
+                            <div class="stat-value">${statusData.activeConnections || '0'}</div>
+                            <div class="stat-label">Активные подключения</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${statusData.requests || '0'}</div>
+                            <div class="stat-label">Всего запросов</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${statusData.reading || '0'}</div>
+                            <div class="stat-label">Чтение</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${statusData.writing || '0'}</div>
+                            <div class="stat-label">Запись</div>
+                        </div>
+                    `;
                     
-                    if (lines[2]) {
-                        const requestsMatch = lines[2].match(/\s+(\d+)\s+(\d+)\s+(\d+)/);
-                        if (requestsMatch) requests = requestsMatch[3];
-                    }
-                    
-                    document.getElementById('active-connections').textContent = active;
-                    document.getElementById('total-requests').textContent = requests;
-                    document.getElementById('server-uptime').textContent = '24h 30m';
-                    document.getElementById('memory-usage').textContent = '45%';
-                    
-                    const now = new Date();
-                    document.getElementById('last-update').textContent = 
-                        `Последнее обновление: ${now.toLocaleString()}`;
+                    document.getElementById('timestamp').textContent = 'Обновлено: ' + new Date().toLocaleString('ru-RU');
                 })
                 .catch(error => {
                     console.error('Error fetching status:', error);
-                    document.getElementById('active-connections').textContent = 'Error';
+                    document.getElementById('statusDetails').textContent = 'Ошибка загрузки статистики';
                 });
         }
-
-        // Автообновление каждые 30 секунд
-        setInterval(refreshStatus, 30000);
-        // Первоначальная загрузка
-        refreshStatus();
+        
+        function refreshStats() {
+            updateStats();
+        }
+        
+        // Обновляем статистику каждые 5 секунд
+        updateStats();
+        setInterval(updateStats, 5000);
     </script>
 </body>
 </html>
