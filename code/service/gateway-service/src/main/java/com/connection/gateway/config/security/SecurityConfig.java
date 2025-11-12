@@ -51,8 +51,11 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/v1/buffer/health").permitAll()
                         .requestMatchers("/api/v1/buffer/**").hasAuthority("ROLE_CLIENT")
+
+                        .requestMatchers("/actuator/**").permitAll()
                         
-                        .anyRequest().denyAll()
+                        // УБРАТЬ!!!!
+                        .anyRequest().permitAll()
                 )
                 // Оставляем только один фильтр
                 .addFilterBefore(clientAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

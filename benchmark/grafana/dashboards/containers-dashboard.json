@@ -1,0 +1,53 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+      "id": 2,
+      "options": {},
+      "targets": [
+        {
+          "expr": "sum by (container_label_com_docker_compose_service) (rate(container_cpu_usage_seconds_total[1m])) * 100",
+          "format": "time_series",
+          "legendFormat": "{{container_label_com_docker_compose_service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU usage (cores/sec) by compose service",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+      "id": 4,
+      "options": {},
+      "targets": [
+        {
+          "expr": "sum by (container_label_com_docker_compose_service) (container_memory_usage_bytes)",
+          "format": "time_series",
+          "legendFormat": "{{container_label_com_docker_compose_service}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Memory usage (bytes) by compose service",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 30,
+  "style": "dark",
+  "tags": [],
+  "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "title": "Containers overview",
+  "uid": "containers-overview",
+  "version": 1
+}
