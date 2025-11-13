@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @EnableAutoConfiguration(exclude = {
         JpaRepositoriesAutoConfiguration.class
 })
-@Transactional("atomicosTransactionManager")
+//@Transaction("atomicosTransactionManager")
 public class DeviceServiceApiImpl implements DeviceService {
 
     private final DeviceRepository deviceRepository;

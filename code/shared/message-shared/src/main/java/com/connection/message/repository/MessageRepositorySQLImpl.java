@@ -62,7 +62,7 @@ public class MessageRepositorySQLImpl implements MessageRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void add(MessageBLM messageBLM) throws MessageAddException {
         // Валидация BLM модели
         validator.validate(messageBLM);
@@ -90,7 +90,7 @@ public class MessageRepositorySQLImpl implements MessageRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public MessageBLM findByUid(UUID uuid) throws MessageNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uuid);
@@ -104,7 +104,7 @@ public class MessageRepositorySQLImpl implements MessageRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public List<MessageBLM> findByBufferUid(UUID bufferUid) throws MessageNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("buffer_uid", bufferUid);
@@ -123,7 +123,7 @@ public class MessageRepositorySQLImpl implements MessageRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public List<MessageBLM> findByBufferUidAndTimeRange(UUID bufferUid, Date startTime, Date endTime)
             throws MessageNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -149,7 +149,7 @@ public class MessageRepositorySQLImpl implements MessageRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void deleteByUid(UUID uuid) throws MessageNotFoundException {
         // Проверяем существование сообщения перед удалением
         findByUid(uuid);
@@ -161,7 +161,7 @@ public class MessageRepositorySQLImpl implements MessageRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void deleteByBufferUid(UUID bufferUid) throws MessageNotFoundException {
         // Проверяем существование сообщений перед удалением
         findByBufferUid(bufferUid);

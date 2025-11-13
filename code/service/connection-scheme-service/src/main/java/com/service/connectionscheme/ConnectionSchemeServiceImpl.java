@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 @EnableAutoConfiguration(exclude = {
         JpaRepositoriesAutoConfiguration.class
 })
-@Transactional("atomicosTransactionManager")
+//@Transaction("atomicosTransactionManager")
 public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
 
     private final ConnectionSchemeRepository schemeRepository;

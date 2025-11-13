@@ -1,0 +1,104 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.connection",
+    "module": "token-shared",
+    "version": "1.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.14.3"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "token-shared-1.0.0.jar",
+          "url": "token-shared-1.0.0.jar",
+          "size": 42996,
+          "sha512": "6dc8e57386b839c9f3ea4160495bd03d6027c3cb569bb711a76fcdb7babd2efe3b643d33ad05ad2b6e300f087d85309d6603de427f908ebaa0fc9f545d4554f0",
+          "sha256": "34bbb03c9001bc72e5c6d7f07e850a100d870592af74037442c29a084c812e09",
+          "sha1": "88c8b18762344663f2ad0d79755cb0bef068055a",
+          "md5": "75be5b253c2d4163b7396ce9378468a3"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter-data-jpa",
+          "version": {
+            "requires": "3.5.3"
+          }
+        },
+        {
+          "group": "io.jsonwebtoken",
+          "module": "jjwt-api",
+          "version": {
+            "requires": "0.12.6"
+          }
+        },
+        {
+          "group": "io.jsonwebtoken",
+          "module": "jjwt-impl",
+          "version": {
+            "requires": "0.12.6"
+          }
+        },
+        {
+          "group": "io.jsonwebtoken",
+          "module": "jjwt-jackson",
+          "version": {
+            "requires": "0.12.6"
+          }
+        },
+        {
+          "group": "io.r2dbc",
+          "module": "r2dbc-postgresql",
+          "version": {
+            "requires": "0.8.13.RELEASE"
+          }
+        },
+        {
+          "group": "io.projectreactor",
+          "module": "reactor-core",
+          "version": {
+            "requires": "3.6.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "token-shared-1.0.0.jar",
+          "url": "token-shared-1.0.0.jar",
+          "size": 42996,
+          "sha512": "6dc8e57386b839c9f3ea4160495bd03d6027c3cb569bb711a76fcdb7babd2efe3b643d33ad05ad2b6e300f087d85309d6603de427f908ebaa0fc9f545d4554f0",
+          "sha256": "34bbb03c9001bc72e5c6d7f07e850a100d870592af74037442c29a084c812e09",
+          "sha1": "88c8b18762344663f2ad0d79755cb0bef068055a",
+          "md5": "75be5b253c2d4163b7396ce9378468a3"
+        }
+      ]
+    }
+  ]
+}

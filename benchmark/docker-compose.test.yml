@@ -1,13 +1,24 @@
 version: '3.8'
 
 services:
-  gateway-service:
+  auth-service-common:
     build:
-      context: ./gateway-service
+      context: ./auth-service-common
       dockerfile: Dockerfile
-    container_name: gateway-service
+    container_name: auth-service-common
     ports:
-      - "8080:8080"
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
+    networks:
+      - app-network
+  auth-service-reactive:
+    build:
+      context: ./auth-service-reactive
+      dockerfile: Dockerfile
+    container_name: auth-service-reactive
+    ports:
+      - "8082:8082"
     environment:
       SPRING_DATASOURCE_BUFFER_URL: jdbc:postgresql://postgres:5432/test_db
     networks:

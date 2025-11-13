@@ -430,6 +430,7 @@ import com.atomikos.icatch.jta.UserTransactionManager;
 import jakarta.transaction.SystemException;
 
 @Configuration
+@ConditionalOnProperty(name = "app.transaction.mode", havingValue = "atomikos")
 public class TransactionConfig {
 
     @Bean

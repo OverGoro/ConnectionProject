@@ -402,6 +402,7 @@ import com.atomikos.icatch.jta.UserTransactionManager;
 import jakarta.transaction.SystemException;
 
 @Configuration
+@ConditionalOnProperty(name = "app.transaction.mode", havingValue = "atomikos")
 public class TransactionConfig {
 
     @Bean
@@ -1126,7 +1127,7 @@ import lombok.extern.slf4j.Slf4j;
 @EnableAutoConfiguration(exclude = {
         JpaRepositoriesAutoConfiguration.class
 })
-@Transactional("atomicosTransactionManager")
+//@Transaction("atomicosTransactionManager")
 public class DeviceServiceApiImpl implements DeviceService {
 
     private final DeviceRepository deviceRepository;

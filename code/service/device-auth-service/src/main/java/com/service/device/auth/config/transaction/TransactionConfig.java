@@ -2,6 +2,7 @@ package com.service.device.auth.config.transaction;
 
 import java.util.UUID;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.jta.JtaTransactionManager;
@@ -11,6 +12,7 @@ import com.atomikos.icatch.jta.UserTransactionManager;
 import jakarta.transaction.SystemException;
 
 @Configuration
+@ConditionalOnProperty(name = "app.transaction.mode", havingValue = "atomikos")
 public class TransactionConfig {
 
     @Bean

@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 @EnableAutoConfiguration(exclude = {
         JpaRepositoriesAutoConfiguration.class
 })
-@EnableTransactionManagement
+//@EnableTransactionManagement
 public class DeviceAuthServiceImpl implements DeviceAuthService {
 
     private final AuthService authService;
@@ -55,7 +55,7 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     private final Duration deviceAccessTokenDuration;
 
     @Override
-    @Transactional
+    //@Transaction
     public DeviceTokenBLM createDeviceToken(UUID deviceUid) {
         log.info("Creating device token for device: {}", deviceUid);
 
@@ -90,7 +90,7 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public DeviceTokenBLM getDeviceToken(UUID deviceUid) {
         log.info("Getting device token for device: {}", deviceUid);
 
@@ -101,7 +101,7 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void revokeDeviceToken(UUID deviceUid) {
         log.info("Revoking device token for device: {}", deviceUid);
 
@@ -122,7 +122,7 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public Pair<DeviceAccessTokenBLM, DeviceTokenBLM> createDeviceAccessToken(DeviceTokenBLM deviceToken) {
         log.info("Creating device access token for device token: {}", deviceToken.getUid());
 
@@ -161,7 +161,7 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public DeviceAccessTokenBLM refreshDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
         log.info("Refreshing device access token: {}", deviceAccessToken.getUid());
 

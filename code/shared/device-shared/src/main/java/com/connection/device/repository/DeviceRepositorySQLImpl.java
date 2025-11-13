@@ -51,7 +51,7 @@ public class DeviceRepositorySQLImpl implements DeviceRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void add(DeviceBLM device) throws DeviceAlreadyExistsException {
         // Валидация BLM модели
         validator.validate(device);
@@ -73,7 +73,7 @@ public class DeviceRepositorySQLImpl implements DeviceRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void update(DeviceBLM device) throws DeviceNotFoundException {
         // Валидация BLM модели
         validator.validate(device);
@@ -94,7 +94,7 @@ public class DeviceRepositorySQLImpl implements DeviceRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void delete(UUID uid) throws DeviceNotFoundException {
         if (!exists(uid)) {
             throw new DeviceNotFoundException("Device with UID " + uid + " not found");
@@ -107,7 +107,7 @@ public class DeviceRepositorySQLImpl implements DeviceRepository {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public DeviceBLM findByUid(UUID uid) throws DeviceNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -121,7 +121,7 @@ public class DeviceRepositorySQLImpl implements DeviceRepository {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public List<DeviceBLM> findByClientUuid(UUID clientUuid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("client_uuid", clientUuid);
@@ -134,7 +134,7 @@ public class DeviceRepositorySQLImpl implements DeviceRepository {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public boolean exists(UUID uid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -147,7 +147,7 @@ public class DeviceRepositorySQLImpl implements DeviceRepository {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public boolean existsByClientAndName(UUID clientUuid, String deviceName) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("client_uuid", clientUuid);

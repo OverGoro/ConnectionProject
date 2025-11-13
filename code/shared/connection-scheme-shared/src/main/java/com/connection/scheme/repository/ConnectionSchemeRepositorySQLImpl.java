@@ -77,7 +77,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void add(ConnectionSchemeBLM scheme) throws ConnectionSchemeAlreadyExistsException {
         // Валидация BLM модели
         validator.validate(scheme);
@@ -109,7 +109,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void update(ConnectionSchemeBLM scheme) throws ConnectionSchemeNotFoundException {
         // Валидация BLM модели
         validator.validate(scheme);
@@ -138,7 +138,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void delete(UUID uid) throws ConnectionSchemeNotFoundException {
         if (!exists(uid)) {
             throw new ConnectionSchemeNotFoundException("Scheme with UID " + uid + " not found");
@@ -157,7 +157,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public ConnectionSchemeBLM findByUid(UUID uid) throws ConnectionSchemeNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -171,7 +171,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public List<ConnectionSchemeBLM> findByClientUid(UUID clientUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("client_uid", clientUid);
@@ -185,7 +185,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public List<ConnectionSchemeBLM> findByBufferUid(UUID bufferUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("buffer_uid", bufferUid);
@@ -199,7 +199,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public boolean exists(UUID uid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);

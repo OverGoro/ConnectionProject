@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @EnableAutoConfiguration(exclude = {
         JpaRepositoriesAutoConfiguration.class
 })
-@Transactional("atomicosTransactionManager")
+//@Transaction("atomicosTransactionManager")
 public class ApiBufferServiceImpl implements BufferService {
 
     private final BufferRepository bufferRepository;

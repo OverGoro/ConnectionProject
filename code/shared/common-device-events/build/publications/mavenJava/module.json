@@ -1,0 +1,83 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.connection",
+    "module": "common-device-events",
+    "version": "1.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.13"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "common-device-events-1.0.0.jar",
+          "url": "common-device-events-1.0.0.jar",
+          "size": 30007,
+          "sha512": "46b189f36160eb0550466ecbf6385a36a3e1ca0ce6ebeae957ee64d967f3d17c9a4e45716204d641cfb6c106b2bbfded9f4f6fb4aa6d198fe81ab83f4fbdb2e8",
+          "sha256": "6510da5625c104a48a2ed806e1a6a4b638f9f745a4ab0c3712e72eb28d5cede5",
+          "sha1": "88dececf4c21db8fd5156f65de913899d1d312b4",
+          "md5": "5f4dc45514f98d0a5346a45b4f72d534"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "com.connection",
+          "module": "common-events",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.connection",
+          "module": "device-shared",
+          "version": {
+            "requires": "1.0.0"
+          }
+        },
+        {
+          "group": "com.fasterxml.jackson.datatype",
+          "module": "jackson-datatype-jsr310",
+          "version": {
+            "requires": "2.18.4"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "common-device-events-1.0.0.jar",
+          "url": "common-device-events-1.0.0.jar",
+          "size": 30007,
+          "sha512": "46b189f36160eb0550466ecbf6385a36a3e1ca0ce6ebeae957ee64d967f3d17c9a4e45716204d641cfb6c106b2bbfded9f4f6fb4aa6d198fe81ab83f4fbdb2e8",
+          "sha256": "6510da5625c104a48a2ed806e1a6a4b638f9f745a4ab0c3712e72eb28d5cede5",
+          "sha1": "88dececf4c21db8fd5156f65de913899d1d312b4",
+          "md5": "5f4dc45514f98d0a5346a45b4f72d534"
+        }
+      ]
+    }
+  ]
+}

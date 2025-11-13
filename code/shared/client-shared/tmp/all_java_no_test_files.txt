@@ -399,7 +399,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void add(ClientBLM clientBLM) throws ClientAlreadyExisistsException {
         // Валидация BLM модели
         validator.validate(clientBLM);
@@ -436,7 +436,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public ClientBLM findByUid(UUID uuid) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uuid);
@@ -450,7 +450,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public ClientBLM findByEmail(String emailString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("email", emailString);
@@ -464,7 +464,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public ClientBLM findByUsername(String usernameString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("username", usernameString);
@@ -478,7 +478,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public ClientBLM findByEmailPassword(String emailString, String passwordString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("email", emailString);
@@ -493,7 +493,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public ClientBLM findByUsernamePassword(String usernameString, String passwordString)
             throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -510,7 +510,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void deleteByUid(UUID uuid) throws ClientNotFoundException {
         // Проверяем существование клиента перед удалением
         findByUid(uuid);

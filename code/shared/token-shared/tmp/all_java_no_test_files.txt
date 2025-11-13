@@ -106,6 +106,7 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
+import com.connection.token.exception.AccessTokenValidateException;
 import com.connection.token.model.AccessTokenBLM;
 
 import io.jsonwebtoken.Claims;
@@ -138,6 +139,7 @@ public class AccessTokenGenerator {
     }
 
     public AccessTokenBLM getAccessTokenBLM(String token) {
+        try{
         Jws<Claims> jws = Jwts.parser()
                 .verifyWith(jwtSecretKey)
                 .build()
@@ -155,6 +157,10 @@ public class AccessTokenGenerator {
 
         return new AccessTokenBLM(token, clientUid, issuedAt, expiration);
     }
+    catch (RuntimeException e){
+        throw new AccessTokenValidateException(token, "Invalid jwt");
+    }
+    }
 }
 package com.connection.token.generator;
 
@@ -163,6 +169,7 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
+import com.connection.token.exception.RefreshTokenValidateException;
 import com.connection.token.model.RefreshTokenBLM;
 import com.connection.token.model.RefreshTokenDALM;
 
@@ -210,6 +217,7 @@ public class RefreshTokenGenerator {
     }
 
     public RefreshTokenBLM getRefreshToken(String token) {
+        try{
         Jws<Claims> jws = Jwts.parser()
                 .verifyWith(jwtSecretKey)
                 .build()
@@ -228,6 +236,10 @@ public class RefreshTokenGenerator {
 
         return new RefreshTokenBLM(token, uid, clientUid, issuedAt, expiration);
     }
+    catch (RuntimeException e){
+        throw new RefreshTokenValidateException(token, "Invalid jwt");
+    }
+    }
 }
 package com.connection.token.model;
 
@@ -237,6 +249,7 @@ import java.util.UUID;
 import jakarta.persistence.Entity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -247,6 +260,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Builder
+@EqualsAndHashCode
 public class RefreshTokenBLM {
     protected String token;
     protected UUID uid;
@@ -263,6 +277,7 @@ import java.util.UUID;
 import jakarta.persistence.Entity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -273,6 +288,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Builder
+@EqualsAndHashCode
 public class RefreshTokenDALM {
     protected String token;
 
@@ -289,6 +305,7 @@ package com.connection.token.model;
 import jakarta.persistence.Entity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -299,6 +316,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Builder
+@EqualsAndHashCode
 public class AccessTokenDTO {
     protected String token;
 }
@@ -307,6 +325,7 @@ package com.connection.token.model;
 import jakarta.persistence.Entity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -317,6 +336,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Builder
+@EqualsAndHashCode
 public class RefreshTokenDTO {
     protected String token;
 }
@@ -328,6 +348,7 @@ import java.util.UUID;
 import jakarta.persistence.Entity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -338,6 +359,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Builder
+@EqualsAndHashCode
 public class AccessTokenBLM {
     protected String token;
     protected UUID clientUID;
@@ -352,6 +374,7 @@ import java.util.UUID;
 import jakarta.persistence.Entity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -362,6 +385,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Builder
+@EqualsAndHashCode
 public class AccessTokenDALM {
     protected UUID clientUID;
     protected Date createdAt;
@@ -677,7 +701,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
             "VALUES (:uid, :client_id, :token, :created_at, :expires_at)";
 
     private static final String UPDATE_TOKEN = "UPDATE \"access\".refresh_token SET token = :new_token, expires_at = :new_expires_at, created_at = :new_created_at " +
-            "WHERE uid = :uid";
+            "WHERE token = :old_token";
 
     private static final String REVOKE_TOKEN = "DELETE FROM \"access\".refresh_token WHERE uid = :uid";
     private static final String REVOKE_ALL_CLIENT_TOKENS = "DELETE FROM \"access\".refresh_token WHERE client_id = :client_id";
@@ -700,7 +724,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void add(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenAlreadyExisistsException {
         // Проверяем существование по token
         if (tokenExists(refreshTokenDALM.getToken())) {
@@ -723,12 +747,12 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void updateToken(RefreshTokenDALM refreshTokenDALM, RefreshTokenDALM newRefreshTokenDALM) 
             throws RefreshTokenNotFoundException {
         // Проверяем существование старого токена
-        if (!uidExists(refreshTokenDALM.getUid())) {
-            throw new RefreshTokenNotFoundException("Refresh token with UID " + refreshTokenDALM.getUid() + " not found");
+        if (!tokenExists(refreshTokenDALM.getToken())) {
+            throw new RefreshTokenNotFoundException("Refresh token not found");
         }
 
         // Проверяем что новый токен не существует
@@ -737,7 +761,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
 
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", refreshTokenDALM.getUid());
+        params.addValue("old_token", refreshTokenDALM.getToken());
         params.addValue("new_token", newRefreshTokenDALM.getToken());
         params.addValue("new_created_at", new Timestamp(newRefreshTokenDALM.getCreatedAt().getTime()));
         params.addValue("new_expires_at", new Timestamp(newRefreshTokenDALM.getExpiresAt().getTime()));
@@ -746,7 +770,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void revoke(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenNotFoundException {
         // Проверяем существование токена
         if (!uidExists(refreshTokenDALM.getUid())) {
@@ -760,7 +784,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void revokeAll(UUID clientUUID) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("client_id", clientUUID);
@@ -769,13 +793,13 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void cleanUpExpired() {
         jdbcTemplate.update(CLEANUP_EXPIRED_TOKENS, new MapSqlParameterSource());
     }
 
     // Вспомогательные методы
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     boolean uidExists(UUID uid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -787,7 +811,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     boolean tokenExists(String token) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("token", token);
@@ -800,7 +824,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     // Дополнительные методы для внутреннего использования
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     RefreshTokenDALM findByUid(UUID uid) throws RefreshTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -811,7 +835,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     RefreshTokenDALM findByToken(String token) throws RefreshTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("token", token);
@@ -822,7 +846,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     boolean isTokenValid(String token) {
         try {
             RefreshTokenDALM refreshToken = findByToken(token);
@@ -1018,7 +1042,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void add(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenAlreadyExisistsException {
         // Проверяем существование по token
         if (tokenExists(refreshTokenDALM.getToken())) {
@@ -1042,7 +1066,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void updateToken(RefreshTokenDALM refreshTokenDALM, RefreshTokenDALM newRefreshTokenDALM) 
             throws RefreshTokenNotFoundException {
         // Проверяем существование старого токена
@@ -1065,7 +1089,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void revoke(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenNotFoundException {
         // Проверяем существование токена
         if (!uidExists(refreshTokenDALM.getUid())) {
@@ -1079,7 +1103,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void revokeAll(UUID clientUUID) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("client_id", clientUUID);
@@ -1088,13 +1112,13 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void cleanUpExpired() {
         jdbcTemplate.update(CLEANUP_EXPIRED_TOKENS, new MapSqlParameterSource());
     }
 
     // Вспомогательные методы
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     boolean uidExists(UUID uid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -1106,7 +1130,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     boolean tokenExists(String token) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("token", token);
@@ -1119,7 +1143,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     // Дополнительные методы для внутреннего использования
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     RefreshTokenDALM findByUid(UUID uid) throws RefreshTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -1130,7 +1154,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     RefreshTokenDALM findByToken(String token) throws RefreshTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("token", token);
@@ -1141,7 +1165,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     boolean isTokenValid(String token) {
         try {
             RefreshTokenDALM refreshToken = findByToken(token);

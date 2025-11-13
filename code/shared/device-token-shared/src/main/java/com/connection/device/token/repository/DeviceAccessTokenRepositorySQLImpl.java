@@ -58,7 +58,7 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void add(DeviceAccessTokenBLM deviceAccessTokenBLM) throws DeviceAccessTokenExistsException {
         // Валидация BLM модели
         validator.validate(deviceAccessTokenBLM);
@@ -97,7 +97,7 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public DeviceAccessTokenBLM findByUid(UUID uid) throws DeviceAccessTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -111,7 +111,7 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public DeviceAccessTokenBLM findByToken(String token) throws DeviceAccessTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("token", token);
@@ -125,7 +125,7 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public DeviceAccessTokenBLM findByDeviceTokenUid(UUID deviceTokenUid) throws DeviceAccessTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("device_token_uid", deviceTokenUid);
@@ -139,7 +139,7 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void revoke(UUID uid) throws DeviceAccessTokenNotFoundException {
         // Проверяем существование токена
         if (!uidExists(uid)) {
@@ -153,7 +153,7 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void revokeByDeviceTokenUid(UUID deviceTokenUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("device_token_uid", deviceTokenUid);
@@ -162,13 +162,13 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void revokeAllExpired() {
         jdbcTemplate.update(CLEANUP_EXPIRED_TOKENS, new MapSqlParameterSource());
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public boolean hasDeviceAccessToken(UUID deviceTokenUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("device_token_uid", deviceTokenUid);
@@ -177,7 +177,7 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
     }
 
     // Вспомогательные методы
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     boolean deviceTokenExists(UUID deviceTokenUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("device_token_uid", deviceTokenUid);
@@ -185,7 +185,7 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
         return count != null && count > 0;
     }
 
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     boolean uidExists(UUID uid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -197,7 +197,7 @@ public class DeviceAccessTokenRepositorySQLImpl implements DeviceAccessTokenRepo
         }
     }
 
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     boolean tokenExists(String token) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("token", token);

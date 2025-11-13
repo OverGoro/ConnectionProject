@@ -15,7 +15,8 @@ import com.connection.client.model.ClientBLM;
 import com.connection.client.model.ClientDALM;
 import com.connection.client.validator.ClientValidator;
 
-import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class ClientRepositorySQLImpl implements ClientRepository {
 
@@ -61,125 +62,168 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
-    public void add(ClientBLM clientBLM) throws ClientAlreadyExisistsException {
-        // Валидация BLM модели
-        validator.validate(clientBLM);
-        
-        try {
-            // Проверяем существование по email
-            findByEmail(clientBLM.getEmail());
-            throw new ClientAlreadyExisistsException("Client with email " + clientBLM.getEmail() + " already exists");
-        } catch (ClientNotFoundException e) {
-            // Клиент не найден по email - продолжаем
-        }
+    public Mono<Void> add(ClientBLM clientBLM) throws ClientAlreadyExisistsException {
+        return Mono.fromCallable(() -> {
+            // Валидация BLM модели
+            validator.validate(clientBLM);
+            
+            try {
+                // Проверяем существование по email
+                findByEmailSync(clientBLM.getEmail());
+                throw new ClientAlreadyExisistsException("Client with email " + clientBLM.getEmail() + " already exists");
+            } catch (ClientNotFoundException e) {
+                // Клиент не найден по email - продолжаем
+            }
 
-        try {
-            // Проверяем существование по username
-            findByUsername(clientBLM.getUsername());
-            throw new ClientAlreadyExisistsException(
-                    "Client with username " + clientBLM.getUsername() + " already exists");
-        } catch (ClientNotFoundException e) {
-            // Клиент не найден по username - продолжаем
-        }
+            try {
+                // Проверяем существование по username
+                findByUsernameSync(clientBLM.getUsername());
+                throw new ClientAlreadyExisistsException(
+                        "Client with username " + clientBLM.getUsername() + " already exists");
+            } catch (ClientNotFoundException e) {
+                // Клиент не найден по username - продолжаем
+            }
 
-        // Конвертация BLM в DALM
-        ClientDALM clientDALM = converter.toDALM(clientBLM);
+            // Конвертация BLM в DALM
+            ClientDALM clientDALM = converter.toDALM(clientBLM);
 
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", clientDALM.getUid() != null ? clientDALM.getUid() : UUID.randomUUID());
-        params.addValue("email", clientDALM.getEmail());
-        params.addValue("birth_date",
-                clientDALM.getBirthDate() != null ? new Date(clientDALM.getBirthDate().getTime()) : null);
-        params.addValue("username", clientDALM.getUsername());
-        params.addValue("password", clientDALM.getPassword());
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", clientDALM.getUid() != null ? clientDALM.getUid() : UUID.randomUUID());
+            params.addValue("email", clientDALM.getEmail());
+            params.addValue("birth_date",
+                    clientDALM.getBirthDate() != null ? new Date(clientDALM.getBirthDate().getTime()) : null);
+            params.addValue("username", clientDALM.getUsername());
+            params.addValue("password", clientDALM.getPassword());
 
-        jdbcTemplate.update(INSERT_CLIENT, params);
+            jdbcTemplate.update(INSERT_CLIENT, params);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
     @Override
-    @Transactional
-    public ClientBLM findByUid(UUID uuid) throws ClientNotFoundException {
+    public Mono<ClientBLM> findByUid(UUID uuid) throws ClientNotFoundException {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", uuid);
+            try {
+                ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_UID, params, clientRowMapper);
+                // Конвертация DALM в BLM
+                return converter.toBLM(dalClient);
+            } catch (EmptyResultDataAccessException e) {
+                throw new ClientNotFoundException("Client with UID " + uuid + " not found");
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<ClientBLM> findByEmail(String emailString) throws ClientNotFoundException {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("email", emailString);
+            try {
+                ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL, params, clientRowMapper);
+                // Конвертация DALM в BLM
+                return converter.toBLM(dalClient);
+            } catch (EmptyResultDataAccessException e) {
+                throw new ClientNotFoundException("Client with email " + emailString + " not found");
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<ClientBLM> findByUsername(String usernameString) throws ClientNotFoundException {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("username", usernameString);
+            try {
+                ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME, params, clientRowMapper);
+                // Конвертация DALM в BLM
+                return converter.toBLM(dalClient);
+            } catch (EmptyResultDataAccessException e) {
+                throw new ClientNotFoundException("Client with username " + usernameString + " not found");
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<ClientBLM> findByEmailPassword(String emailString, String passwordString) throws ClientNotFoundException {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("email", emailString);
+            params.addValue("password", passwordString);
+            try {
+                ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL_PASSWORD, params, clientRowMapper);
+                // Конвертация DALM в BLM
+                return converter.toBLM(dalClient);
+            } catch (EmptyResultDataAccessException e) {
+                throw new ClientNotFoundException("Client with email " + emailString + " and provided password not found");
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<ClientBLM> findByUsernamePassword(String usernameString, String passwordString)
+            throws ClientNotFoundException {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("username", usernameString);
+            params.addValue("password", passwordString);
+            try {
+                ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME_PASSWORD, params, clientRowMapper);
+                // Конвертация DALM в BLM
+                return converter.toBLM(dalClient);
+            } catch (EmptyResultDataAccessException e) {
+                throw new ClientNotFoundException(
+                        "Client with username " + usernameString + " and provided password not found");
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<Void> deleteByUid(UUID uuid) throws ClientNotFoundException {
+        return Mono.fromCallable(() -> {
+            // Проверяем существование клиента перед удалением
+            findByUidSync(uuid);
+
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", uuid);
+
+            jdbcTemplate.update(DELETE_CLIENT_BY_UID, params);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
+    }
+
+    // Синхронные методы для внутреннего использования
+    private ClientBLM findByUidSync(UUID uuid) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uuid);
         try {
             ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_UID, params, clientRowMapper);
-            // Конвертация DALM в BLM
             return converter.toBLM(dalClient);
         } catch (EmptyResultDataAccessException e) {
             throw new ClientNotFoundException("Client with UID " + uuid + " not found");
         }
     }
 
-    @Override
-    @Transactional
-    public ClientBLM findByEmail(String emailString) throws ClientNotFoundException {
+    private ClientBLM findByEmailSync(String emailString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("email", emailString);
         try {
             ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL, params, clientRowMapper);
-            // Конвертация DALM в BLM
             return converter.toBLM(dalClient);
         } catch (EmptyResultDataAccessException e) {
             throw new ClientNotFoundException("Client with email " + emailString + " not found");
         }
     }
 
-    @Override
-    @Transactional
-    public ClientBLM findByUsername(String usernameString) throws ClientNotFoundException {
+    private ClientBLM findByUsernameSync(String usernameString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("username", usernameString);
         try {
             ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME, params, clientRowMapper);
-            // Конвертация DALM в BLM
             return converter.toBLM(dalClient);
         } catch (EmptyResultDataAccessException e) {
             throw new ClientNotFoundException("Client with username " + usernameString + " not found");
         }
-    }
-
-    @Override
-    @Transactional
-    public ClientBLM findByEmailPassword(String emailString, String passwordString) throws ClientNotFoundException {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("email", emailString);
-        params.addValue("password", passwordString);
-        try {
-            ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL_PASSWORD, params, clientRowMapper);
-            // Конвертация DALM в BLM
-            return converter.toBLM(dalClient);
-        } catch (EmptyResultDataAccessException e) {
-            throw new ClientNotFoundException("Client with email " + emailString + " and provided password not found");
-        }
-    }
-
-    @Override
-    @Transactional
-    public ClientBLM findByUsernamePassword(String usernameString, String passwordString)
-            throws ClientNotFoundException {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("username", usernameString);
-        params.addValue("password", passwordString);
-        try {
-            ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME_PASSWORD, params, clientRowMapper);
-            // Конвертация DALM в BLM
-            return converter.toBLM(dalClient);
-        } catch (EmptyResultDataAccessException e) {
-            throw new ClientNotFoundException(
-                    "Client with username " + usernameString + " and provided password not found");
-        }
-    }
-
-    @Override
-    @Transactional
-    public void deleteByUid(UUID uuid) throws ClientNotFoundException {
-        // Проверяем существование клиента перед удалением
-        findByUid(uuid);
-
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", uuid);
-
-        jdbcTemplate.update(DELETE_CLIENT_BY_UID, params);
     }
 }

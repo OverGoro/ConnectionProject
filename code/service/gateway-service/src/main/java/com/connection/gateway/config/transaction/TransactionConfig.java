@@ -2,6 +2,7 @@ package com.connection.gateway.config.transaction;
 
 import java.util.UUID;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +13,7 @@ import com.atomikos.icatch.jta.UserTransactionManager;
 import jakarta.transaction.SystemException;
 
 @Configuration
+@ConditionalOnProperty(name = "app.transaction.mode", havingValue = "atomikos")
 public class TransactionConfig {
     
     private static volatile boolean databaseChecked = false;

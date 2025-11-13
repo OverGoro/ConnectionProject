@@ -6,26 +6,28 @@ import com.connection.client.exception.ClientAlreadyExisistsException;
 import com.connection.client.exception.ClientNotFoundException;
 import com.connection.client.model.ClientBLM;
 
+import reactor.core.publisher.Mono;
+
 public interface ClientRepository {
-    public void add(ClientBLM clientBLM)
+    public Mono<Void> add(ClientBLM clientBLM)
             throws ClientAlreadyExisistsException;
 
-    public ClientBLM findByUid(UUID uuid)
+    public Mono<ClientBLM> findByUid(UUID uuid)
             throws ClientNotFoundException;
 
-    public ClientBLM findByEmail(String emailString)
+    public Mono<ClientBLM> findByEmail(String emailString)
             throws ClientNotFoundException;
 
-    public ClientBLM findByUsername(String usernameString)
+    public Mono<ClientBLM> findByUsername(String usernameString)
             throws ClientNotFoundException;
 
-    public ClientBLM findByEmailPassword(String emailString, String passwordString)
+    public Mono<ClientBLM> findByEmailPassword(String emailString, String passwordString)
             throws ClientNotFoundException;
 
-    public ClientBLM findByUsernamePassword(String usernameString, String passwordString)
+    public Mono<ClientBLM> findByUsernamePassword(String usernameString, String passwordString)
             throws ClientNotFoundException;
     
-    public void deleteByUid(UUID uuid)
+    public Mono<Void> deleteByUid(UUID uuid)
         throws ClientNotFoundException;
     
 }

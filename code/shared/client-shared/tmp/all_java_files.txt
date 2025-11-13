@@ -395,7 +395,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void add(ClientDALM clientDALM) throws ClientAlreadyExisistsException {
         try {
             // Проверяем существование по email
@@ -426,7 +426,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public ClientDALM findByUid(UUID uuid) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uuid);
@@ -438,7 +438,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public ClientDALM findByEmail(String emailString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("email", emailString);
@@ -450,7 +450,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public ClientDALM findByUsername(String usernameString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("username", usernameString);
@@ -462,7 +462,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public ClientDALM findByEmailPassword(String emailString, String passwordString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("email", emailString);
@@ -475,7 +475,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public ClientDALM findByUsernamePassword(String usernameString, String passwordString)
             throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -490,7 +490,7 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void deleteByUid(UUID uuid) throws ClientNotFoundException {
         // Проверяем существование клиента перед удалением
         findByUid(uuid);
@@ -885,221 +885,4 @@ public class ClientObjectMother {
                 .build();
     }
 
-    public static ClientDTO createClientDTOWithFutureBirthDate() {
-        return ClientDTO.builder()
-                .uid(DEFAULT_UID)
-                .birthDate(new Date(System.currentTimeMillis() + 365L * 24 * 60 * 60 * 1000))
-                .email(DEFAULT_EMAIL)
-                .password(DEFAULT_PASSWORD)
-                .username(DEFAULT_USERNAME)
-                .build();
-    }
-
-    public static ClientBLM createClientBLMWithNullFields() {
-        return ClientBLM.builder()
-                .uid(null)
-                .birthDate(null)
-                .email(null)
-                .password(null)
-                .username(null)
-                .build();
-    }
-
-    public static ClientDALM createClientForEmail(String email) {
-        return ClientDALM.builder()
-                .uid(UUID.randomUUID())
-                .birthDate(DEFAULT_BIRTH_DATE)
-                .email(email)
-                .password(DEFAULT_PASSWORD)
-                .username("user_" + email.split("@")[0])
-                .build();
-    }
-
-    public static ClientDALM createClientForUsername(String username) {
-        return ClientDALM.builder()
-                .uid(UUID.randomUUID())
-                .birthDate(DEFAULT_BIRTH_DATE)
-                .email(username + "@example.com")
-                .password(DEFAULT_PASSWORD)
-                .username(username)
-                .build();
-    }
-}package com.connection.client.repository;
-
-import static com.connection.client.mother.ClientObjectMother.createValidClientDALM;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import com.connection.client.exception.ClientAlreadyExisistsException;
-import com.connection.client.exception.ClientNotFoundException;
-import com.connection.client.model.ClientDALM;
-
-@TestMethodOrder(MethodOrderer.DisplayName.class)
-@DisplayName("Client Repository Tests - SQL implementation tests")
-class ClientRepositorySQLImplTest {
-
-        @Mock
-        private NamedParameterJdbcTemplate jdbcTemplate;
-
-        @InjectMocks
-        private ClientRepositorySQLImpl repository;
-
-        private ClientDALM testClient;
-
-        @BeforeEach
-        void setUp() {
-                MockitoAnnotations.openMocks(this);
-                testClient = createValidClientDALM();
-        }
-
-        @SuppressWarnings("unchecked")
-        @Test
-        @DisplayName("Add client - Positive")
-        void testAddClient_Positive() {
-                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenThrow(new EmptyResultDataAccessException(1));
-                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
-
-                repository.add(testClient);
-
-                verify(jdbcTemplate, times(2)).queryForObject(anyString(), any(MapSqlParameterSource.class),
-                                any(RowMapper.class));
-                verify(jdbcTemplate, times(1)).update(anyString(), any(MapSqlParameterSource.class));
-        }
-
-        @SuppressWarnings("unchecked")
-        @Test
-        @DisplayName("Add client with existing email - Negative")
-        void testAddClientWithExistingEmail_Negative() {
-                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(testClient);
-
-                assertThatThrownBy(() -> repository.add(testClient))
-                                .isInstanceOf(ClientAlreadyExisistsException.class);
-
-                verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
-        }
-
-        @SuppressWarnings("unchecked")
-        @Test
-        @DisplayName("Find client by UID - Positive")
-        void testFindByUid_Positive() {
-                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(testClient);
-
-                ClientDALM result = repository.findByUid(testClient.getUid());
-
-                assertThat(result).isEqualTo(testClient);
-                verify(jdbcTemplate, times(1)).queryForObject(
-                                eq("SELECT uid, email, birth_date, username, password FROM core.client WHERE uid = :uid"),
-                                any(MapSqlParameterSource.class),
-                                any(RowMapper.class));
-        }
-
-        @SuppressWarnings("unchecked")
-        @Test
-        @DisplayName("Find non-existent client by UID - Negative")
-        void testFindByUid_Negative() {
-                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenThrow(new EmptyResultDataAccessException(1));
-
-                assertThatThrownBy(() -> repository.findByUid(testClient.getUid()))
-                                .isInstanceOf(ClientNotFoundException.class);
-        }
-
-        @SuppressWarnings("unchecked")
-        @Test
-        @DisplayName("Find client by email - Positive")
-        void testFindByEmail_Positive() {
-                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(testClient);
-
-                ClientDALM result = repository.findByEmail(testClient.getEmail());
-
-                assertThat(result).isEqualTo(testClient);
-                verify(jdbcTemplate, times(1)).queryForObject(
-                                eq("SELECT uid, email, birth_date, username, password FROM core.client WHERE email = :email"),
-                                any(MapSqlParameterSource.class),
-                                any(RowMapper.class));
-        }
-
-        @SuppressWarnings("unchecked")
-        @Test
-        @DisplayName("Find client by username - Positive")
-        void testFindByUsername_Positive() {
-                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(testClient);
-
-                ClientDALM result = repository.findByUsername(testClient.getUsername());
-
-                assertThat(result).isEqualTo(testClient);
-                verify(jdbcTemplate, times(1)).queryForObject(
-                                eq("SELECT uid, email, birth_date, username, password FROM core.client WHERE username = :username"),
-                                any(MapSqlParameterSource.class),
-                                any(RowMapper.class));
-        }
-
-        @SuppressWarnings("unchecked")
-        @Test
-        @DisplayName("Find client by email and password - Positive")
-        void testFindByEmailPassword_Positive() {
-                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(testClient);
-
-                ClientDALM result = repository.findByEmailPassword(testClient.getEmail(), testClient.getPassword());
-
-                assertThat(result).isEqualTo(testClient);
-                verify(jdbcTemplate, times(1)).queryForObject(
-                                eq("SELECT uid, email, birth_date, username, password FROM core.client WHERE email = :email AND password = :password"),
-                                any(MapSqlParameterSource.class),
-                                any(RowMapper.class));
-        }
-
-        @SuppressWarnings("unchecked")
-        @Test
-        @DisplayName("Delete client by UID - Positive")
-        void testDeleteByUid_Positive() {
-                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(testClient);
-                when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
-
-                repository.deleteByUid(testClient.getUid());
-
-                verify(jdbcTemplate, times(1)).update(
-                                eq("DELETE FROM core.client WHERE uid = :uid"),
-                                any(MapSqlParameterSource.class));
-        }
-
-        @SuppressWarnings("unchecked")
-        @Test
-        @DisplayName("Delete non-existent client by UID - Negative")
-        void testDeleteByUid_Negative() {
-                when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenThrow(new EmptyResultDataAccessException(1));
-
-                assertThatThrownBy(() -> repository.deleteByUid(testClient.getUid()))
-                                .isInstanceOf(ClientNotFoundException.class);
-
-                verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
-        }
-}
+    public static ClientDTO cr

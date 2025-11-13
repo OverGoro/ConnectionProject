@@ -3,19 +3,18 @@ set -euo pipefail
 
 # Настройки (можно переопределить через переменные окружения)
 RPS_START=${RPS_START:-100}
-RPS_END=${RPS_END:-1000}
+RPS_END=${RPS_END:-500}
 RPS_STEP=${RPS_STEP:-100}
-DURATION=${DURATION:-120} # сек
+DURATION=${DURATION:-60} # сек
 USE_DOCKER=${USE_DOCKER:-true}
 DOCKER_IMAGE=${DOCKER_IMAGE:-denvazh/gatling:latest}
 COMPOSE_FILE=${COMPOSE_FILE:-docker-compose.test.yml}
 RESULTS_DIR=${RESULTS_DIR:-./gatling-results}
 GATLING_USER_FILES_DIR=${GATLING_USER_FILES_DIR:-./gatling/user-files}
-TARGET_HOST=${TARGET_HOST:-localhost}
-TARGET_PORT=${TARGET_PORT:-8080}
-TARGET_PATH=${TARGET_PATH:-/actuator/health}
-# Список сервисов для тестирования (только gateway-service)
-TARGET_SERVICES=${TARGET_SERVICES:-"gateway-service"}
+
+# Список сервисов для тестирования
+TARGET_SERVICES=${TARGET_SERVICES:-"auth-service-common auth-service-reactive"}
+SERVICE_PORTS=${SERVICE_PORTS:-"auth-service-common:8081 auth-service-reactive:8082"}
 
 # Monitoring config
 MONITOR=${MONITOR:-true}
@@ -53,6 +52,7 @@ collect_metrics_for_run() {
   local out_prefix="$4"
 
   echo "Collecting Prometheus metrics for service $svc (start=$start_ts end=$end_ts)"
+  
   # detect whether Prometheus has the compose service label
   label_values=$(curl -sS "${PROM_URL}/api/v1/label/container_label_com_docker_compose_service/values" || echo "")
   if echo "$label_values" | grep -q "\"$svc\""; then
@@ -120,6 +120,64 @@ print(res[0]['value'][1] if res else '0')" 2>/dev/null || echo 0)
   echo "Saved ${out_prefix}_${svc}_cpu.json and ${out_prefix}_${svc}_mem.json"
 }
 
+# helper: get port for service
+get_port_for_service() {
+  local svc="$1"
+  for service_port in $SERVICE_PORTS; do
+    local service=$(echo "$service_port" | cut -d':' -f1)
+    local port=$(echo "$service_port" | cut -d':' -f2)
+    if [ "$service" = "$svc" ]; then
+      echo "$port"
+      return 0
+    fi
+  done
+  echo "8080" # default port
+}
+
+# helper: wait for service to be ready
+wait_for_service() {
+  local svc="$1"
+  local port="$2"
+  local path="$3"
+  
+  echo "Waiting for service $svc at http://localhost:${port}${path}"
+  timeout=60
+  start=$(date +%s)
+  
+  while true; do
+    if curl --silent --max-time 2 -f "http://localhost:${port}${path}" >/dev/null 2>&1; then
+      echo "Service $svc is ready"
+      break
+    fi
+    sleep 1
+    if [ $(( $(date +%s) - start )) -ge $timeout ]; then
+      echo "Service $svc did not become ready in $timeout seconds"
+      return 1
+    fi
+  done
+  return 0
+}
+
+# Start the application stack
+echo "Starting application stack..."
+docker-compose -f "$COMPOSE_FILE" down
+docker-compose -f "$COMPOSE_FILE" up -d
+
+# Wait for PostgreSQL to be ready
+echo "Waiting for PostgreSQL to be ready..."
+sleep 10
+
+# Wait for all services to be ready
+for svc in $TARGET_SERVICES; do
+  port=$(get_port_for_service "$svc")
+  # Use health check endpoint or root path
+  if ! wait_for_service "$svc" "$port" "/actuator/health"; then
+    if ! wait_for_service "$svc" "$port" "/"; then
+      echo "Failed to connect to service $svc, but continuing..."
+    fi
+  fi
+done
+
 # start monitoring once if requested
 if [ "$MONITOR" = "true" ]; then
   echo "Starting monitoring stack..."
@@ -133,117 +191,90 @@ fi
 mkdir -p "$RESULTS_DIR"
 
 for (( rps=RPS_START; rps<=RPS_END; rps+=RPS_STEP )); do
-  docker-compose -f "$COMPOSE_FILE" up -d
   echo "=== Run for RPS=${rps} ==="
 
-  # Ждём, пока сервис станет доступным по HTTP
-  echo "Waiting for target HTTP endpoints to be available on host..."
-  timeout=60
-  start=$(date +%s)
-  
-  # Для gateway-service проверяем порт 8080
+  # record start timestamp for Prometheus queries
+  START_TS=$(date -u +%s)
+
+  # Запуск Gatling для каждого сервиса в параллельных контейнерах
+  pids=()
+  run_dirs=()
+  run_svcs=()
+
   for svc in $TARGET_SERVICES; do
-    port=8080  # gateway-service всегда на 8080
-    echo "Checking http://localhost:${port}${TARGET_PATH} for service $svc"
-    while true; do
-      if curl --silent --max-time 2 -f "http://localhost:${port}${TARGET_PATH}" >/dev/null 2>&1; then
-        break
-      fi
-      sleep 1
-      if [ $(( $(date +%s) - start )) -ge $timeout ]; then
-        echo "Service $svc did not become ready in $timeout seconds"
-        exit 1
-      fi
-    done
-  done
-
-  # Запуск Gatling (Docker image)
-  if [ "$USE_DOCKER" = "true" ]; then
-    # Узнаём docker-compose сеть
-    first_svc=$(echo $TARGET_SERVICES | awk '{print $1}')
-    cid=$(docker-compose -f "$COMPOSE_FILE" ps -q "$first_svc" || true)
-    if [ -n "$cid" ]; then
-      network=$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}' "$cid" 2>/dev/null || true)
-    else
-      network=""
-    fi
-
-    if [ -n "$network" ]; then
-      echo "Detected docker-compose network: $network"
-      DOCKER_NET_ARG=(--network "$network")
-      FALLBACK_HOST=service
-    else
-      echo "Could not detect docker-compose network; will address services via host.docker.internal"
-      DOCKER_NET_ARG=()
-      FALLBACK_HOST=host.docker.internal
-    fi
-
-    # Запуск Gatling для каждого сервиса
-    pids=()
-    run_dirs=()
-    run_svcs=()
-
-    # record start timestamp for Prometheus queries
-    START_TS=$(date -u +%s)
+    port=$(get_port_for_service "$svc")
     
-    for svc in $TARGET_SERVICES; do
-      port=8080  # gateway-service всегда на 8080
-      if [ "$FALLBACK_HOST" = "service" ]; then
-        docker_target_host=$svc
-      else
-        docker_target_host=$FALLBACK_HOST
-      fi
+    timestamp=$(date +%Y%m%dT%H%M%S)
+    run_dir="$RESULTS_DIR/${svc}-results-${rps}-${timestamp}"
+    mkdir -p "$run_dir"
+    run_dirs+=("$run_dir")
+    run_svcs+=("$svc")
 
-      timestamp=$(date +%Y%m%dT%H%M%S)
-      run_dir="$RESULTS_DIR/${svc}-results-${rps}-${timestamp}"
-      mkdir -p "$run_dir"
-      run_dirs+=("$run_dir")
-      run_svcs+=("$svc")
-
-      echo "Starting Gatling for $svc -> host=${docker_target_host} port=${port}; results -> $run_dir"
-      docker run --rm "${DOCKER_NET_ARG[@]}" \
+    echo "Starting Gatling for $svc -> host=localhost port=${port}; results -> $run_dir"
+    
+    if [ "$USE_DOCKER" = "true" ]; then
+      # Run Gatling in Docker container
+      docker run --rm \
+        --network host \
         -v "$(pwd)/gatling/user-files":/opt/gatling/user-files \
         -v "$run_dir":/opt/gatling/results \
-        -e "JAVA_OPTS=-DtargetRps=${rps} -DtargetHost=${docker_target_host} -DtargetPort=${port} -DtargetPath=${TARGET_PATH} -DdurationSec=${DURATION}" \
+        -e "JAVA_OPTS=-DtargetRps=${rps} -DtargetHost=localhost -DtargetPort=${port} -DtargetPath=/ -DdurationSec=${DURATION} -DserviceName=${svc}" \
         "${DOCKER_IMAGE}" \
-        -sf /opt/gatling/user-files -rf /opt/gatling/results -s simulations.GatewaySimulation &
+        -sf /opt/gatling/user-files -rf /opt/gatling/results -s simulations.AuthServiceSimulation &
       pids+=("$!")
-    done
+    else
+      if [ -z "${GATLING_HOME:-}" ]; then
+        echo "GATLING_HOME not set. Set to local Gatling installation or set USE_DOCKER=true"
+        exit 1
+      fi
+      # Run local Gatling
+      JAVA_OPTS="-DtargetRps=${rps} -DtargetHost=localhost -DtargetPort=${port} -DtargetPath=/ -DdurationSec=${DURATION} -DserviceName=${svc}" \
+      "$GATLING_HOME"/bin/gatling.sh -sf ./gatling/user-files -rf "$run_dir" -s simulations.AuthServiceSimulation &
+      pids+=("$!")
+    fi
+  done
 
-    # wait for all runs to finish and capture exit codes
-    exit_code=0
-    for pid in "${pids[@]}"; do
-      wait "$pid" || exit_code=$?
-    done
-    if [ $exit_code -ne 0 ]; then
-      echo "One or more Gatling runs failed (exit code $exit_code)"
-    fi
-
-    # record end timestamp and collect Prometheus metrics for this run
-    END_TS=$(date -u +%s)
-    if [ "$MONITOR" = "true" ]; then
-      for idx in "${!run_dirs[@]}"; do
-        svc=${run_svcs[$idx]}
-        run_dir=${run_dirs[$idx]}
-        run_base=$(basename "$run_dir")
-        out_prefix="${PROM_OUT_DIR}/${run_base}"
-        collect_metrics_for_run "$svc" "$START_TS" "$END_TS" "$out_prefix"
-        # copy the JSON results into the run directory for convenience
-        cp "${out_prefix}_${svc}_cpu.json" "$run_dir/" 2>/dev/null || true
-        cp "${out_prefix}_${svc}_mem.json" "$run_dir/" 2>/dev/null || true
-      done
-    fi
-  else
-    if [ -z "${GATLING_HOME:-}" ]; then
-      echo "GATLING_HOME not set. Set to local Gatling installation or set USE_DOCKER=true"
-      exit 1
-    fi
-    "$GATLING_HOME"/bin/gatling.sh -sf ./gatling/user-files -rf ./gatling-results -s simulations.GatewaySimulation
+  # wait for all runs to finish and capture exit codes
+  exit_code=0
+  for pid in "${pids[@]}"; do
+    wait "$pid" || exit_code=$?
+  done
+  if [ $exit_code -ne 0 ]; then
+    echo "One or more Gatling runs failed (exit code $exit_code)"
   fi
 
-  # Результаты каждого запуска сохраняются в папках внутри $RESULTS_DIR
+  # record end timestamp and collect Prometheus metrics for this run
+  END_TS=$(date -u +%s)
+  if [ "$MONITOR" = "true" ]; then
+    for idx in "${!run_dirs[@]}"; do
+      svc=${run_svcs[$idx]}
+      run_dir=${run_dirs[$idx]}
+      run_base=$(basename "$run_dir")
+      out_prefix="${PROM_OUT_DIR}/${run_base}"
+      collect_metrics_for_run "$svc" "$START_TS" "$END_TS" "$out_prefix"
+      # copy the JSON results into the run directory for convenience
+      cp "${out_prefix}_${svc}_cpu.json" "$run_dir/" 2>/dev/null || true
+      cp "${out_prefix}_${svc}_mem.json" "$run_dir/" 2>/dev/null || true
+    done
+  fi
+
   echo "Saved results for this step under directories matching: $RESULTS_DIR/*-results-${rps}-*"
-  docker-compose -f "$COMPOSE_FILE" down
+  
+  # Short pause between runs
+  sleep 10
 done
 
 echo "All runs finished. Results are in $RESULTS_DIR"
+
+# Cleanup
+if [ "$MONITOR" = "true" ]; then
+  docker compose -f "$MONITOR_COMPOSE" down
+fi
+docker-compose -f "$COMPOSE_FILE" down
+
+echo "Benchmark completed!"
+
+echo "Fixing permissions..."
+sudo chown -R $(id -u):$(id -g) "$RESULTS_DIR"
+sudo chmod -R 755 "$RESULTS_DIR"
+

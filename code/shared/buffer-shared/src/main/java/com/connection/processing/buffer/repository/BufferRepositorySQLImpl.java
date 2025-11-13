@@ -72,7 +72,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void add(BufferBLM buffer) throws BufferAlreadyExistsException {
         // Валидация BLM модели
         validator.validate(buffer);
@@ -95,7 +95,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void update(BufferBLM buffer) throws BufferNotFoundException {
         // Валидация BLM модели
         validator.validate(buffer);
@@ -118,7 +118,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void delete(UUID uid) throws BufferNotFoundException {
         if (!exists(uid)) {
             throw new BufferNotFoundException("Buffer with UID " + uid + " not found");
@@ -136,7 +136,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     }
 
     @Override
-    @Transactional
+    //@Transaction
     public void deleteByDeviceUid(UUID deviceUid) {
         // Сначала находим все буферы устройства
         List<BufferBLM> deviceBuffers = findByDeviceUid(deviceUid);
@@ -155,7 +155,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public BufferBLM findByUid(UUID uid) throws BufferNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -169,7 +169,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public List<BufferBLM> findByDeviceUid(UUID deviceUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("device_uid", deviceUid);
@@ -182,7 +182,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public List<BufferBLM> findByConnectionSchemeUid(UUID connectionSchemeUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("scheme_uid", connectionSchemeUid);
@@ -195,7 +195,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public boolean exists(UUID uid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
@@ -212,7 +212,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
      * Привязать конкретный буфер к схеме соединений
      */
     @Override
-    @Transactional
+    //@Transaction
     public void addBufferToConnectionScheme(UUID bufferUid, UUID connectionSchemeUid) {
         // Проверяем существование буфера
         if (!exists(bufferUid)) {
@@ -237,7 +237,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
      * Отвязать конкретный буфер от схемы соединений
      */
     @Override
-    @Transactional
+    //@Transaction
     public void removeBufferFromConnectionScheme(UUID bufferUid, UUID connectionSchemeUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("scheme_uid", connectionSchemeUid);
@@ -250,7 +250,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     /**
      * Получить все UID буферов, привязанных к схеме соединений
      */
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public List<UUID> findBufferUidsByConnectionScheme(UUID connectionSchemeUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("scheme_uid", connectionSchemeUid);
@@ -262,7 +262,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     /**
      * Проверить, привязан ли буфер к схеме соединений
      */
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public boolean isBufferLinkedToScheme(UUID bufferUid, UUID connectionSchemeUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("scheme_uid", connectionSchemeUid);
@@ -275,7 +275,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     /**
      * Получить количество буферов, привязанных к схеме соединений
      */
-    @Transactional(readOnly = true)
+    //@Transaction(readOnly = true)
     public int countByConnectionScheme(UUID connectionSchemeUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("scheme_uid", connectionSchemeUid);
@@ -288,7 +288,7 @@ public class BufferRepositorySQLImpl implements BufferRepository {
     /**
      * Очистить все связи буфера со схемами соединений
      */
-    @Transactional
+    //@Transaction
     public void clearBufferSchemeLinks(UUID bufferUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("buffer_uid", bufferUid);

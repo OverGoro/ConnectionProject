@@ -6,77 +6,78 @@ import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.atomikos.jdbc.AtomikosDataSourceBean;
+import com.zaxxer.hikari.HikariDataSource;
 
 @Configuration
+@ConditionalOnProperty(name = "app.controller.mode", havingValue = "mvc", matchIfMissing = true)
 public class RefreshTokenJDBCConfig {
     
-    @Value("${app.datasource.refresh-token.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
-    private String xaDataSourceClassName;
+    @Value("${app.datasource.refresh-token.driver-class-name:org.postgresql.Driver}")
+    private String driverClassName;
 
-    @Value("${app.datasource.refresh-token.xa-properties.url}")
+    @Value("${app.datasource.refresh-token.jdbc-url}")
     private String jdbcUrl;
 
-    @Value("${app.datasource.refresh-token.xa-properties.user}")
+    @Value("${app.datasource.refresh-token.username}")
     private String username;
 
-    @Value("${app.datasource.refresh-token.xa-properties.password}")
+    @Value("${app.datasource.refresh-token.password}")
     private String password;
 
-    @Value("${app.datasource.refresh-token.pool-size:5}")
-    private int poolSize;
+    @Value("${app.datasource.refresh-token.maximum-pool-size:10}")
+    private int maximumPoolSize;
 
-    @Value("${app.datasource.refresh-token.max-pool-size:10}")
-    private int maxPoolSize;
+    @Value("${app.datasource.refresh-token.minimum-idle:2}")
+    private int minimumIdle;
 
-    @Value("${app.datasource.refresh-token.min-pool-size:2}")
-    private int minPoolSize;
+    @Value("${app.datasource.refresh-token.connection-timeout:30000}")
+    private int connectionTimeout;
 
-    @Value("${app.datasource.refresh-token.borrow-connection-timeout:30000}")
-    private int borrowConnectionTimeout;
+    @Value("${app.datasource.refresh-token.idle-timeout:60000}")
+    private int idleTimeout;
 
-    @Value("${app.datasource.refresh-token.max-idle-time:60}")
-    private int maxIdleTime;
-
-    @Value("${app.datasource.refresh-token.max-lifetime:120}")
+    @Value("${app.datasource.refresh-token.max-lifetime:120000}")
     private int maxLifetime;
 
-    @Value("${app.datasource.refresh-token.test-query:SELECT 1}")
-    private String testQuery;
+    @Value("${app.datasource.refresh-token.connection-test-query:SELECT 1}")
+    private String connectionTestQuery;
 
-    @Value("${app.datasource.refresh-token.maintenance-interval:60}")
-    private int maintenanceInterval;
+    @Value("${app.datasource.refresh-token.pool-name:refresh-token-ds}")
+    private String poolName;
 
-    @Value("${app.datasource.refresh-token.unique-resource-name:refreshTokenXADataSource}")
-    private String uniqueResourceName;
+    @Value("${app.datasource.refresh-token.leak-detection-threshold:60000}")
+    private long leakDetectionThreshold;
 
     @Bean("RefreshTokenDataSource")
     DataSource refreshTokenDataSource() {
-        AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
+        HikariDataSource dataSource = new HikariDataSource();
 
-        dataSource.setUniqueResourceName(uniqueResourceName);
-        dataSource.setXaDataSourceClassName(xaDataSourceClassName);
+        // Базовые настройки подключения
+        dataSource.setDriverClassName(driverClassName);
+        dataSource.setJdbcUrl(jdbcUrl);
+        dataSource.setUsername(username);
+        dataSource.setPassword(password);
 
-        Properties xaProperties = new Properties();
-        xaProperties.setProperty("url", jdbcUrl);
-        xaProperties.setProperty("user", username);
-        xaProperties.setProperty("password", password);
-
-        dataSource.setXaProperties(xaProperties);
-
-        dataSource.setPoolSize(poolSize);
-        dataSource.setMaxPoolSize(maxPoolSize);
-        dataSource.setMinPoolSize(minPoolSize);
-        dataSource.setBorrowConnectionTimeout(borrowConnectionTimeout);
-        dataSource.setMaxIdleTime(maxIdleTime);
+        // Настройки пула
+        dataSource.setPoolName(poolName);
+        dataSource.setMaximumPoolSize(maximumPoolSize);
+        dataSource.setMinimumIdle(minimumIdle);
+        dataSource.setConnectionTimeout(connectionTimeout);
+        dataSource.setIdleTimeout(idleTimeout);
         dataSource.setMaxLifetime(maxLifetime);
+        
+        // Настройки валидации
+        dataSource.setConnectionTestQuery(connectionTestQuery);
+        dataSource.setValidationTimeout(5000);
 
-        dataSource.setTestQuery(testQuery);
-        dataSource.setMaintenanceInterval(maintenanceInterval);
+        // Дополнительные настройки
+        dataSource.setLeakDetectionThreshold(leakDetectionThreshold);
+        dataSource.setInitializationFailTimeout(1);
 
         return dataSource;
     }

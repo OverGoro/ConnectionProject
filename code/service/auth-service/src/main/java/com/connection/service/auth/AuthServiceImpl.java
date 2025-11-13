@@ -11,8 +11,6 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.connection.client.model.ClientBLM;
 import com.connection.client.repository.ClientRepository;
@@ -29,6 +27,7 @@ import com.connection.token.validator.RefreshTokenValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -36,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 @EnableAutoConfiguration(exclude = {
         JpaRepositoriesAutoConfiguration.class
 })
-@EnableTransactionManagement
 public class AuthServiceImpl implements AuthService {
     private final RefreshTokenConverter refreshTokenConverter;
 
@@ -57,66 +55,67 @@ public class AuthServiceImpl implements AuthService {
     private final Duration jwtRefreshTokenDuration;
 
     @Override
-    @Transactional("atomicosTransactionManager")
-    public Pair<AccessTokenBLM, RefreshTokenBLM> authorizeByEmail(String email, String password) {
+    public Mono<Pair<AccessTokenBLM, RefreshTokenBLM>> authorizeByEmail(String email, String password) {
+        // Валидация email
         clientValidator.validateEmail(email);
 
-        ClientBLM clientBLM = clientRepository.findByEmail(email);
+        return clientRepository.findByEmail(email)
+                .flatMap(clientBLM -> {
+                    // Проверка пароля
+                    if (!clientBLM.getPassword().equals(password)) {
+                        return Mono.error(new SecurityException("Invalid email or password"));
+                    }
 
-        if (!clientBLM.getPassword().equals(password)) {
-            throw new SecurityException("Invalid email or password");
-        }
+                    // Инициализация общих полей
+                    UUID newClientUuid = clientBLM.getUid();
+                    Date newCreatedAt = new Date();
 
-        // Инициалаизация общих полей
-        UUID newClientUuid = clientBLM.getUid();
-        Date newCreatedAt = new Date();
+                    // Инициализация нового refreshToken
+                    UUID newRefreshUID = UUID.randomUUID();
+                    Date newRefreshExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
+                    String newRefreshTokenString = refreshTokenGenerator.generateRefreshToken(newRefreshUID, newClientUuid,
+                            newCreatedAt, newRefreshExpiresAt);
 
-        // Инициализация нового refreshToken
-        UUID newRefreshUID = UUID.randomUUID();
+                    RefreshTokenBLM newRefreshTokenBLM = new RefreshTokenBLM(newRefreshTokenString, newRefreshUID, newClientUuid,
+                            newCreatedAt, newRefreshExpiresAt);
 
-        Date newRefreshExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
-        String newRefreshTokenString = refreshTokenGenerator.generateRefreshToken(newRefreshUID, newClientUuid,
-                newCreatedAt, newRefreshExpiresAt);
+                    // Валидация refresh token
+                    refreshTokenValidator.validate(newRefreshTokenBLM);
 
-        RefreshTokenBLM newRefreshTokenBLM = new RefreshTokenBLM(newRefreshTokenString, newRefreshUID, newClientUuid,
-                newCreatedAt, newRefreshExpiresAt);
+                    // Инициализация нового accessToken
+                    Date newAccessExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
+                    String newAccessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
+                            newAccessExpiresAt);
+                    AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAccessTokenString, newClientUuid, newCreatedAt,
+                            newAccessExpiresAt);
+                    accessTokenValidator.validate(newAccessTokenBLM);
 
-        refreshTokenValidator.validate(newRefreshTokenBLM);
-
-        // Инициалищация нового accessToken
-        Date newAccessExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
-        String newAcessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
-                newAccessExpiresAt);
-        AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAcessTokenString, newClientUuid, newCreatedAt,
-                newAccessExpiresAt);
-        accessTokenValidator.validate(newAccessTokenBLM);
-
-        // Добавление нового refreshToken в БД
-        RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
-        refreshTokenRepository.add(newRefreshTokenDALM);
-
-        // Возварты пары токенов
-        return Pair.of(newAccessTokenBLM, newRefreshTokenBLM);
-
+                    // Добавление нового refreshToken в БД
+                    RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
+                    
+                    return refreshTokenRepository.add(newRefreshTokenDALM)
+                            .thenReturn(Pair.of(newAccessTokenBLM, newRefreshTokenBLM));
+                });
     }
 
     @Override
-    @Transactional("atomicosTransactionManager")
-    public void register(ClientBLM clientBLM) {
+    public Mono<Void> register(ClientBLM clientBLM) {
+        // Валидация клиента
         clientValidator.validate(clientBLM);
-        clientRepository.add(clientBLM);
+        
+        // Регистрация клиента
+        return clientRepository.add(clientBLM);
     }
 
     @Override
-    @Transactional("atomicosTransactionManager")
-    public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(
-            RefreshTokenBLM refreshTokenBLM) {
-
+    public Mono<Pair<AccessTokenBLM, RefreshTokenBLM>> refresh(RefreshTokenBLM refreshTokenBLM) {
         log.info("Validating refresh token");
+        
+        // Валидация refresh token
         refreshTokenValidator.validate(refreshTokenBLM);
         log.info("Validated refresh token");
 
-        // Инициалаизация общих полей
+        // Инициализация общих полей
         UUID newClientUuid = refreshTokenBLM.getClientUID();
         Date newCreatedAt = new Date();
 
@@ -128,52 +127,62 @@ public class AuthServiceImpl implements AuthService {
 
         RefreshTokenBLM newRefreshTokenBLM = new RefreshTokenBLM(newRefreshTokenString, newRefreshUID, newClientUuid,
                 newCreatedAt, newRefreshExpiresAt);
+        
         log.info("Validating new refresh token");
         refreshTokenValidator.validate(newRefreshTokenBLM);
         log.info("Validated new refresh token");
 
-        // Инициалищация нового accessToken
+        // Инициализация нового accessToken
         Date newAccessExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
-        String newAcessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
+        String newAccessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
                 newAccessExpiresAt);
         log.info("Generated new access token");
-        AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAcessTokenString, newClientUuid, newCreatedAt,
+        
+        AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAccessTokenString, newClientUuid, newCreatedAt,
                 newAccessExpiresAt);
         accessTokenValidator.validate(newAccessTokenBLM);
         log.info("Validated new access token");
 
-        // Обновление RefreshToken в репозитории
+        // Конвертация токенов и обновление в репозитории
         RefreshTokenDALM refreshTokenDALM = refreshTokenConverter.toDALM(refreshTokenBLM);
         log.info("Converted refresh token");
+        
         RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
         log.info("Converted new refresh token");
-        refreshTokenRepository.updateToken(refreshTokenDALM, newRefreshTokenDALM);
-        log.info("Updated by repo refresh token");
-        // Возвращат новых токенов
-        return Pair.of(newAccessTokenBLM, newRefreshTokenBLM);
+
+        // Обновление RefreshToken в репозитории и возврат новых токенов
+        return refreshTokenRepository.updateToken(refreshTokenDALM, newRefreshTokenDALM)
+                .thenReturn(Pair.of(newAccessTokenBLM, newRefreshTokenBLM))
+                .doOnSuccess(tokens -> log.info("Updated by repo refresh token"));
     }
 
     @Override
-    public void validateAccessToken(AccessTokenBLM accessTokenBLM) {
-        accessTokenValidator.validate(accessTokenBLM);
+    public Mono<Void> validateAccessToken(AccessTokenBLM accessTokenBLM) {
+        return Mono.fromRunnable(() -> accessTokenValidator.validate(accessTokenBLM));
     }
 
     @Override
-    public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM) {
-        refreshTokenValidator.validate(refreshTokenBLM);
+    public Mono<Void> validateRefreshToken(RefreshTokenBLM refreshTokenBLM) {
+        return Mono.fromRunnable(() -> refreshTokenValidator.validate(refreshTokenBLM));
     }
 
     @Override
-    public Map<String, Object> getHealthStatus() {
-        Map<String, Object> map = new HashMap<>();
-        map.put("status", "OK");
-        return map;
+    public Mono<Map<String, Object>> getHealthStatus() {
+        return Mono.fromCallable(() -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("status", "OK");
+            map.put("service", "auth-service");
+            map.put("timestamp", System.currentTimeMillis());
+            return map;
+        });
     }
 
     @Override
-    public AccessTokenBLM validateAccessToken(String token) {
-        AccessTokenBLM accessTokenBLM = accessTokenGenerator.getAccessTokenBLM(token);
-        accessTokenValidator.validate(accessTokenBLM);
-        return accessTokenBLM;
+    public Mono<AccessTokenBLM> validateAccessToken(String token) {
+        return Mono.fromCallable(() -> {
+            AccessTokenBLM accessTokenBLM = accessTokenGenerator.getAccessTokenBLM(token);
+            accessTokenValidator.validate(accessTokenBLM);
+            return accessTokenBLM;
+        });
     }
 }

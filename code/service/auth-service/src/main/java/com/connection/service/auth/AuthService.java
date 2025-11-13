@@ -8,16 +8,14 @@ import com.connection.client.model.ClientBLM;
 import com.connection.token.model.AccessTokenBLM;
 import com.connection.token.model.RefreshTokenBLM;
 
-
+import reactor.core.publisher.Mono;
 
 public interface AuthService {
-    public Pair<AccessTokenBLM, RefreshTokenBLM> authorizeByEmail(String email, String password);
-    public void register(ClientBLM clientBLM);
-    public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(RefreshTokenBLM refreshTokenBLM);
-    public void validateAccessToken(AccessTokenBLM accessTokenBLM);
-    public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM);
-
-    public AccessTokenBLM validateAccessToken(String token);
-
-    public Map<String, Object> getHealthStatus();
+    Mono<Pair<AccessTokenBLM, RefreshTokenBLM>> authorizeByEmail(String email, String password);
+    Mono<Void> register(ClientBLM clientBLM);
+    Mono<Pair<AccessTokenBLM, RefreshTokenBLM>> refresh(RefreshTokenBLM refreshTokenBLM);
+    Mono<Void> validateAccessToken(AccessTokenBLM accessTokenBLM);
+    Mono<Void> validateRefreshToken(RefreshTokenBLM refreshTokenBLM);
+    Mono<AccessTokenBLM> validateAccessToken(String token);
+    Mono<Map<String, Object>> getHealthStatus();
 }

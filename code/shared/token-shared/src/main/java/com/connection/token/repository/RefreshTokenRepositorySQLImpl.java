@@ -4,8 +4,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.util.Date;
@@ -15,6 +13,8 @@ import com.connection.token.exception.RefreshTokenAlreadyExisistsException;
 import com.connection.token.exception.RefreshTokenNotFoundException;
 import com.connection.token.model.RefreshTokenDALM;
 
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
 
@@ -51,83 +51,92 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     @Override
-    @Transactional
-    public void add(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenAlreadyExisistsException {
-        // Проверяем существование по token
-        if (tokenExists(refreshTokenDALM.getToken())) {
-            throw new RefreshTokenAlreadyExisistsException("Refresh token already exists");
-        }
+    public Mono<Void> add(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenAlreadyExisistsException {
+        return Mono.fromCallable(() -> {
+            // Проверяем существование по token
+            if (tokenExistsSync(refreshTokenDALM.getToken())) {
+                throw new RefreshTokenAlreadyExisistsException("Refresh token already exists");
+            }
 
-        // Проверяем существование по uid
-        if (uidExists(refreshTokenDALM.getUid())) {
-            throw new RefreshTokenAlreadyExisistsException("Refresh token with UID " + refreshTokenDALM.getUid() + " already exists");
-        }
+            // Проверяем существование по uid
+            if (uidExistsSync(refreshTokenDALM.getUid())) {
+                throw new RefreshTokenAlreadyExisistsException("Refresh token with UID " + refreshTokenDALM.getUid() + " already exists");
+            }
 
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", refreshTokenDALM.getUid());
-        params.addValue("client_id", refreshTokenDALM.getClientUID());
-        params.addValue("token", refreshTokenDALM.getToken());
-        params.addValue("created_at", new Timestamp(refreshTokenDALM.getCreatedAt().getTime()));
-        params.addValue("expires_at", new Timestamp(refreshTokenDALM.getExpiresAt().getTime()));
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", refreshTokenDALM.getUid());
+            params.addValue("client_id", refreshTokenDALM.getClientUID());
+            params.addValue("token", refreshTokenDALM.getToken());
+            params.addValue("created_at", new Timestamp(refreshTokenDALM.getCreatedAt().getTime()));
+            params.addValue("expires_at", new Timestamp(refreshTokenDALM.getExpiresAt().getTime()));
 
-        jdbcTemplate.update(INSERT_REFRESH_TOKEN, params);
+            jdbcTemplate.update(INSERT_REFRESH_TOKEN, params);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
     @Override
-    @Transactional
-    public void updateToken(RefreshTokenDALM refreshTokenDALM, RefreshTokenDALM newRefreshTokenDALM) 
+    public Mono<Void> updateToken(RefreshTokenDALM refreshTokenDALM, RefreshTokenDALM newRefreshTokenDALM) 
             throws RefreshTokenNotFoundException {
-        // Проверяем существование старого токена
-        if (!tokenExists(refreshTokenDALM.getToken())) {
-            throw new RefreshTokenNotFoundException("Refresh token not found");
-        }
+        return Mono.fromCallable(() -> {
+            // Проверяем существование старого токена
+            if (!tokenExistsSync(refreshTokenDALM.getToken())) {
+                throw new RefreshTokenNotFoundException("Refresh token not found");
+            }
 
-        // Проверяем что новый токен не существует
-        if (tokenExists(newRefreshTokenDALM.getToken())) {
-            throw new RefreshTokenAlreadyExisistsException("Refresh token already exists");
-        }
+            // Проверяем что новый токен не существует
+            if (tokenExistsSync(newRefreshTokenDALM.getToken())) {
+                throw new RefreshTokenAlreadyExisistsException("Refresh token already exists");
+            }
 
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("old_token", refreshTokenDALM.getToken());
-        params.addValue("new_token", newRefreshTokenDALM.getToken());
-        params.addValue("new_created_at", new Timestamp(newRefreshTokenDALM.getCreatedAt().getTime()));
-        params.addValue("new_expires_at", new Timestamp(newRefreshTokenDALM.getExpiresAt().getTime()));
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("old_token", refreshTokenDALM.getToken());
+            params.addValue("new_token", newRefreshTokenDALM.getToken());
+            params.addValue("new_created_at", new Timestamp(newRefreshTokenDALM.getCreatedAt().getTime()));
+            params.addValue("new_expires_at", new Timestamp(newRefreshTokenDALM.getExpiresAt().getTime()));
 
-        jdbcTemplate.update(UPDATE_TOKEN, params);
+            jdbcTemplate.update(UPDATE_TOKEN, params);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
     @Override
-    @Transactional
-    public void revoke(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenNotFoundException {
-        // Проверяем существование токена
-        if (!uidExists(refreshTokenDALM.getUid())) {
-            throw new RefreshTokenNotFoundException("Refresh token with UID " + refreshTokenDALM.getUid() + " not found");
-        }
+    public Mono<Void> revoke(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenNotFoundException {
+        return Mono.fromCallable(() -> {
+            // Проверяем существование токена
+            if (!uidExistsSync(refreshTokenDALM.getUid())) {
+                throw new RefreshTokenNotFoundException("Refresh token with UID " + refreshTokenDALM.getUid() + " not found");
+            }
 
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", refreshTokenDALM.getUid());
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", refreshTokenDALM.getUid());
 
-        jdbcTemplate.update(REVOKE_TOKEN, params);
+            jdbcTemplate.update(REVOKE_TOKEN, params);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
     @Override
-    @Transactional
-    public void revokeAll(UUID clientUUID) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("client_id", clientUUID);
+    public Mono<Void> revokeAll(UUID clientUUID) {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("client_id", clientUUID);
 
-        jdbcTemplate.update(REVOKE_ALL_CLIENT_TOKENS, params);
+            jdbcTemplate.update(REVOKE_ALL_CLIENT_TOKENS, params);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
     @Override
-    @Transactional
-    public void cleanUpExpired() {
-        jdbcTemplate.update(CLEANUP_EXPIRED_TOKENS, new MapSqlParameterSource());
+    public Mono<Void> cleanUpExpired() {
+        return Mono.fromCallable(() -> {
+            jdbcTemplate.update(CLEANUP_EXPIRED_TOKENS, new MapSqlParameterSource());
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
-    // Вспомогательные методы
-    @Transactional(readOnly = true)
-    boolean uidExists(UUID uid) {
+    // Синхронные вспомогательные методы для внутреннего использования
+    private boolean uidExistsSync(UUID uid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
         try {
@@ -138,8 +147,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    @Transactional(readOnly = true)
-    boolean tokenExists(String token) {
+    private boolean tokenExistsSync(String token) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("token", token);
         try {
@@ -150,9 +158,8 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    // Дополнительные методы для внутреннего использования
-    @Transactional(readOnly = true)
-    RefreshTokenDALM findByUid(UUID uid) throws RefreshTokenNotFoundException {
+    // Дополнительные методы для внутреннего использования (синхронные)
+    private RefreshTokenDALM findByUidSync(UUID uid) throws RefreshTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
         try {
@@ -162,8 +169,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    @Transactional(readOnly = true)
-    RefreshTokenDALM findByToken(String token) throws RefreshTokenNotFoundException {
+    private RefreshTokenDALM findByTokenSync(String token) throws RefreshTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("token", token);
         try {
@@ -173,13 +179,28 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    @Transactional(readOnly = true)
-    boolean isTokenValid(String token) {
+    private boolean isTokenValidSync(String token) {
         try {
-            RefreshTokenDALM refreshToken = findByToken(token);
+            RefreshTokenDALM refreshToken = findByTokenSync(token);
             return refreshToken.getExpiresAt().after(new Date());
         } catch (RefreshTokenNotFoundException e) {
             return false;
         }
+    }
+
+    // Реактивные версии дополнительных методов (если нужны)
+    public Mono<RefreshTokenDALM> findByUid(UUID uid) throws RefreshTokenNotFoundException {
+        return Mono.fromCallable(() -> findByUidSync(uid))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    public Mono<RefreshTokenDALM> findByToken(String token) throws RefreshTokenNotFoundException {
+        return Mono.fromCallable(() -> findByTokenSync(token))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    public Mono<Boolean> isTokenValid(String token) {
+        return Mono.fromCallable(() -> isTokenValidSync(token))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 }

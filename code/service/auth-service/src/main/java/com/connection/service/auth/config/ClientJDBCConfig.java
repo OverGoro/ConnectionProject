@@ -6,77 +6,75 @@ import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.atomikos.jdbc.AtomikosDataSourceBean;
+import com.zaxxer.hikari.HikariDataSource;
 
 @Configuration
+@ConditionalOnProperty(name = "app.controller.mode", havingValue = "mvc", matchIfMissing = true)
 public class ClientJDBCConfig {
     
-    @Value("${app.datasource.client.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
-    private String xaDataSourceClassName;
+    @Value("${app.datasource.client.driver-class-name:org.postgresql.Driver}")
+    private String driverClassName;
 
-    @Value("${app.datasource.client.xa-properties.url}")
+    @Value("${app.datasource.client.jdbc-url}")
     private String jdbcUrl;
 
-    @Value("${app.datasource.client.xa-properties.user}")
+    @Value("${app.datasource.client.username}")
     private String username;
 
-    @Value("${app.datasource.client.xa-properties.password}")
+    @Value("${app.datasource.client.password}")
     private String password;
 
-    @Value("${app.datasource.client.pool-size:5}")
-    private int poolSize;
+    @Value("${app.datasource.client.maximum-pool-size:10}")
+    private int maximumPoolSize;
 
-    @Value("${app.datasource.client.max-pool-size:10}")
-    private int maxPoolSize;
+    @Value("${app.datasource.client.minimum-idle:2}")
+    private int minimumIdle;
 
-    @Value("${app.datasource.client.min-pool-size:2}")
-    private int minPoolSize;
+    @Value("${app.datasource.client.connection-timeout:30000}")
+    private int connectionTimeout;
 
-    @Value("${app.datasource.client.borrow-connection-timeout:30000}")
-    private int borrowConnectionTimeout;
+    @Value("${app.datasource.client.idle-timeout:600000}")
+    private int idleTimeout;
 
-    @Value("${app.datasource.client.max-idle-time:60}")
-    private int maxIdleTime;
-
-    @Value("${app.datasource.client.max-lifetime:120}")
+    @Value("${app.datasource.client.max-lifetime:1200000}")
     private int maxLifetime;
 
-    @Value("${app.datasource.client.test-query:SELECT 1}")
-    private String testQuery;
+    @Value("${app.datasource.client.connection-test-query:SELECT 1}")
+    private String connectionTestQuery;
 
-    @Value("${app.datasource.client.maintenance-interval:60}")
-    private int maintenanceInterval;
-
-    @Value("${app.datasource.client.unique-resource-name:clientXADataSource}")
-    private String uniqueResourceName;
+    @Value("${app.datasource.client.pool-name:client-ds}")
+    private String poolName;
 
     @Bean("ClientDataSource")
     DataSource clientDataSource() {
-        AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
+        HikariDataSource dataSource = new HikariDataSource();
 
-        dataSource.setUniqueResourceName(uniqueResourceName);
-        dataSource.setXaDataSourceClassName(xaDataSourceClassName);
-        
-        Properties xaProperties = new Properties();
-        xaProperties.setProperty("url", jdbcUrl);
-        xaProperties.setProperty("user", username);
-        xaProperties.setProperty("password", password);
+        // Базовые настройки подключения
+        dataSource.setDriverClassName(driverClassName);
+        dataSource.setJdbcUrl(jdbcUrl);
+        dataSource.setUsername(username);
+        dataSource.setPassword(password);
 
-        dataSource.setXaProperties(xaProperties);
-
-        dataSource.setPoolSize(poolSize);
-        dataSource.setMaxPoolSize(maxPoolSize);
-        dataSource.setMinPoolSize(minPoolSize);
-        dataSource.setBorrowConnectionTimeout(borrowConnectionTimeout);
-        dataSource.setMaxIdleTime(maxIdleTime);
+        // Настройки пула
+        dataSource.setPoolName(poolName);
+        dataSource.setMaximumPoolSize(maximumPoolSize);
+        dataSource.setMinimumIdle(minimumIdle);
+        dataSource.setConnectionTimeout(connectionTimeout);
+        dataSource.setIdleTimeout(idleTimeout);
         dataSource.setMaxLifetime(maxLifetime);
+        
+        // Настройки валидации
+        dataSource.setConnectionTestQuery(connectionTestQuery);
+        dataSource.setValidationTimeout(5000);
 
-        dataSource.setTestQuery(testQuery);
-        dataSource.setMaintenanceInterval(maintenanceInterval);
+        // Дополнительные настройки
+        dataSource.setLeakDetectionThreshold(60000);
+        dataSource.setInitializationFailTimeout(1);
 
         return dataSource;
     }
