@@ -1,9 +1,9 @@
 package com.connection.service.auth.controller;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
 
 import com.connection.client.converter.ClientConverter;
 import com.connection.client.model.ClientBLM;
@@ -32,11 +32,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.controller.mode", havingValue = "webflux")
+@ConditionalOnProperty(name = "app.controller.mode", havingValue = "webflux", matchIfMissing = true)
 @RequestMapping("/api/v1/auth")
 @Tag(name = "Auth Service", description = "Authentication and Authorization APIs (WebFlux)")
 public class AuthServiceWebFluxController implements AuthController {
@@ -49,17 +50,18 @@ public class AuthServiceWebFluxController implements AuthController {
 
     @Operation(summary = "Register new client", description = "Register a new client in the system")
     @ApiResponse(responseCode = "200", description = "Client registered successfully", content = @Content(schema = @Schema(implementation = RegistrationResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Invalid client data")
     @PostMapping("/register")
     public Mono<ResponseEntity<RegistrationResponse>> register(
             @Parameter(description = "Client data", required = true) @RequestBody ClientDTO clientDTO) {
-
+        
         log.info("Registration attempt for email: {}", clientDTO.getEmail());
 
         return Mono.fromCallable(() -> {
             clientValidator.validate(clientDTO);
             return clientConverter.toBLM(clientDTO);
         })
-        .flatMap(clientBLM -> authService.register(clientBLM))
+        .flatMap(authService::register)
         .then(Mono.fromCallable(() -> {
             log.info("Client registered successfully: {}", clientDTO.getUid());
             return ResponseEntity.ok(new RegistrationResponse(
@@ -73,11 +75,12 @@ public class AuthServiceWebFluxController implements AuthController {
     }
 
     @Operation(summary = "Login by email", description = "Authenticate client using email and password")
-    @ApiResponse(responseCode = "201", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Invalid credentials")
     @PostMapping("/login")
     public Mono<ResponseEntity<LoginResponse>> loginByEmail(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Login credentials", required = true, content = @Content(schema = @Schema(implementation = LoginRequest.class))) @RequestBody LoginRequest loginRequest) {
-
+        
         log.info("Login attempt by email: {}", loginRequest.getEmail());
 
         return authService.authorizeByEmail(loginRequest.getEmail(), loginRequest.getPassword())
@@ -97,22 +100,19 @@ public class AuthServiceWebFluxController implements AuthController {
     }
 
     @Operation(summary = "Refresh tokens", description = "Get new access and refresh tokens using refresh token")
-    @ApiResponse(responseCode = "201", description = "Tokens refreshed successfully", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @ApiResponse(responseCode = "200", description = "Tokens refreshed successfully", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Invalid refresh token")
     @PostMapping("/refresh")
     public Mono<ResponseEntity<LoginResponse>> refreshToken(
             @Parameter(description = "Refresh token request", required = true) @RequestBody RefreshTokenRequest refreshRequest) {
-
+        
         log.info("Token refresh attempt");
 
         return Mono.fromCallable(() -> {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshRequest.getRefreshToken());
             return refreshTokenConverter.toBLM(refreshTokenDTO);
         })
-        .flatMap(refreshTokenBLM -> {
-            log.info("Refresh token: {}", refreshTokenBLM.getToken());
-            log.info("Client UID: {}", refreshTokenBLM.getClientUID());
-            return authService.refresh(refreshTokenBLM);
-        })
+        .flatMap(authService::refresh)
         .map(newTokens -> {
             log.info("Token refresh successful");
             return ResponseEntity.ok(new LoginResponse(
@@ -125,10 +125,6 @@ public class AuthServiceWebFluxController implements AuthController {
         .onErrorResume(BaseTokenException.class, e -> {
             log.error("Token refresh failed", e);
             return Mono.just(ResponseEntity.badRequest().build());
-        })
-        .onErrorResume(throwable -> {
-            log.error("Unexpected error during token refresh", throwable);
-            return Mono.just(ResponseEntity.internalServerError().build());
         });
     }
 
@@ -138,26 +134,22 @@ public class AuthServiceWebFluxController implements AuthController {
     public Mono<ResponseEntity<HealthResponse>> healthCheck() {
         return authService.getHealthStatus()
                 .map(healthMap -> {
-                    log.info("Health check: status: {}, service: {}, timestamp: {}", 
-                            healthMap.get("status"), healthMap.get("service"), healthMap.get("timestamp"));
+                    log.info("Health check: status: OK, service: auth-service, timestamp: {}",
+                            System.currentTimeMillis());
                     return ResponseEntity.ok(new HealthResponse(
-                            (String) healthMap.get("status"),
-                            (String) healthMap.get("service"),
-                            (Long) healthMap.get("timestamp")));
-                })
-                .onErrorResume(throwable -> {
-                    log.error("Health check failed", throwable);
-                    return Mono.just(ResponseEntity.internalServerError()
-                            .body(new HealthResponse("ERROR", "auth-service", System.currentTimeMillis())));
+                            "OK",
+                            "auth-service",
+                            System.currentTimeMillis()));
                 });
     }
 
     @Operation(summary = "Validate access token", description = "Check if access token is valid")
     @ApiResponse(responseCode = "200", description = "Token is valid", content = @Content(schema = @Schema(implementation = ValidationResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Invalid access token")
     @PostMapping("/validate/access")
     public Mono<ResponseEntity<ValidationResponse>> validateAccessToken(
             @Parameter(description = "Access token to validate", required = true) @RequestParam String accessToken) {
-
+        
         log.info("Validating access token");
 
         return authService.validateAccessToken(accessToken)
@@ -168,26 +160,23 @@ public class AuthServiceWebFluxController implements AuthController {
                 .onErrorResume(BaseTokenException.class, e -> {
                     log.error("Access token validation failed", e);
                     return Mono.just(ResponseEntity.badRequest().build());
-                })
-                .onErrorResume(throwable -> {
-                    log.error("Unexpected error during access token validation", throwable);
-                    return Mono.just(ResponseEntity.internalServerError().build());
                 });
     }
 
     @Operation(summary = "Validate refresh token", description = "Check if refresh token is valid")
     @ApiResponse(responseCode = "200", description = "Token is valid", content = @Content(schema = @Schema(implementation = ValidationResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Invalid refresh token")
     @PostMapping("/validate/refresh")
     public Mono<ResponseEntity<ValidationResponse>> validateRefreshToken(
             @Parameter(description = "Refresh token to validate", required = true) @RequestParam String refreshToken) {
-
+        
         log.info("Validating refresh token");
 
         return Mono.fromCallable(() -> {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
             return refreshTokenConverter.toBLM(refreshTokenDTO);
         })
-        .flatMap(refreshTokenBLM -> authService.validateRefreshToken(refreshTokenBLM))
+        .flatMap(authService::validateRefreshToken)
         .then(Mono.fromCallable(() -> {
             log.info("Refresh token validation successful");
             return ResponseEntity.ok(new ValidationResponse("OK"));
@@ -195,10 +184,6 @@ public class AuthServiceWebFluxController implements AuthController {
         .onErrorResume(BaseTokenException.class, e -> {
             log.error("Refresh token validation failed", e);
             return Mono.just(ResponseEntity.badRequest().build());
-        })
-        .onErrorResume(throwable -> {
-            log.error("Unexpected error during refresh token validation", throwable);
-            return Mono.just(ResponseEntity.internalServerError().build());
         });
     }
 }

@@ -27,11 +27,11 @@
         {
           "name": "token-shared-1.0.0.jar",
           "url": "token-shared-1.0.0.jar",
-          "size": 42996,
-          "sha512": "6dc8e57386b839c9f3ea4160495bd03d6027c3cb569bb711a76fcdb7babd2efe3b643d33ad05ad2b6e300f087d85309d6603de427f908ebaa0fc9f545d4554f0",
-          "sha256": "34bbb03c9001bc72e5c6d7f07e850a100d870592af74037442c29a084c812e09",
-          "sha1": "88c8b18762344663f2ad0d79755cb0bef068055a",
-          "md5": "75be5b253c2d4163b7396ce9378468a3"
+          "size": 49760,
+          "sha512": "899268653b30cd51bccf3ed10e433bff2e7981d9089b86f79fdfec8dd79dee6f8be306a203d8ca9f168e41810a6ea85e18dab8b06418c6f39134674611037813",
+          "sha256": "d75a531324ca69a2c1ea30c54c309cf530ce6d040b46860533c0b923e8a2cdc4",
+          "sha1": "6d826f0c4123666bf3a80a6533c6cf0f8e63953f",
+          "md5": "a503a5c13f74b71c7ea2d56a893097e0"
         }
       ]
     },
@@ -92,11 +92,11 @@
         {
           "name": "token-shared-1.0.0.jar",
           "url": "token-shared-1.0.0.jar",
-          "size": 42996,
-          "sha512": "6dc8e57386b839c9f3ea4160495bd03d6027c3cb569bb711a76fcdb7babd2efe3b643d33ad05ad2b6e300f087d85309d6603de427f908ebaa0fc9f545d4554f0",
-          "sha256": "34bbb03c9001bc72e5c6d7f07e850a100d870592af74037442c29a084c812e09",
-          "sha1": "88c8b18762344663f2ad0d79755cb0bef068055a",
-          "md5": "75be5b253c2d4163b7396ce9378468a3"
+          "size": 49760,
+          "sha512": "899268653b30cd51bccf3ed10e433bff2e7981d9089b86f79fdfec8dd79dee6f8be306a203d8ca9f168e41810a6ea85e18dab8b06418c6f39134674611037813",
+          "sha256": "d75a531324ca69a2c1ea30c54c309cf530ce6d040b46860533c0b923e8a2cdc4",
+          "sha1": "6d826f0c4123666bf3a80a6533c6cf0f8e63953f",
+          "md5": "a503a5c13f74b71c7ea2d56a893097e0"
         }
       ]
     }
