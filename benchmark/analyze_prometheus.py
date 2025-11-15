@@ -1,392 +1,441 @@
-#!/usr/bin/env python3
-"""
-Анализатор метрик Prometheus для нагрузочного тестирования
-Адаптирован для gateway-service
-"""
-
 import json
-import glob
-import os
-import re
-from datetime import datetime
-import numpy as np
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import pandas as pd
-from pathlib import Path
+import numpy as np
+import os
+from glob import glob
 
-class PrometheusMetricsAnalyzer:
-    def __init__(self, results_dir="./gatling-results", output_dir="./analysis/prometheus"):
-        self.results_dir = Path(results_dir)
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+class BenchmarkRPSAnalyzer:
+    def __init__(self):
+        self.data = {}
         
-        # Цвета для графиков - только gateway-service
-        self.colors = {
-            'gateway-service': '#1f77b4'
+    def load_data(self, file_patterns):
+        """Загрузка данных из JSON файлов"""
+        for pattern in file_patterns:
+            files = glob(pattern)
+            for file_path in files:
+                filename = os.path.basename(file_path)
+                with open(file_path, 'r') as f:
+                    try:
+                        content = json.load(f)
+                        self.data[filename] = {
+                            'raw': content,
+                            'filename': filename
+                        }
+                    except json.JSONDecodeError as e:
+                        print(f"Ошибка чтения {filename}: {e}")
+    
+    def parse_filename(self, filename):
+        """Парсинг имени файла для извлечения метаданных"""
+        parts = filename.split('-')
+        service_type = 'common' if 'common' in filename else 'reactive'
+        metric_type = 'cpu' if '_cpu.json' in filename else 'mem'
+        
+        # Извлекаем нагрузку (100, 200, 300, 400)
+        for part in parts:
+            if part.isdigit() and len(part) == 3:
+                load = int(part)
+                break
+        else:
+            load = 100  # значение по умолчанию
+            
+        return service_type, metric_type, load
+    
+    def extract_aggregated_data(self):
+        """Извлечение и агрегация данных по RPS"""
+        aggregated_data = {}
+        
+        for filename, file_data in self.data.items():
+            service_type, metric_type, load = self.parse_filename(filename)
+            
+            result_data = file_data['raw']['data']['result']
+            if result_data:
+                values = result_data[0]['values']
+                metric_values = [float(point[1]) for point in values]
+                
+                # Конвертируем память в MB для удобства чтения
+                if metric_type == 'mem':
+                    metric_values = [v / 1024 / 1024 for v in metric_values]  # Bytes to MB
+                
+                # Ключ для агрегации
+                key = (service_type, metric_type, load)
+                
+                if key not in aggregated_data:
+                    aggregated_data[key] = []
+                
+                aggregated_data[key].extend(metric_values)
+        
+        # Вычисляем статистики для каждого ключа
+        result = []
+        for (service_type, metric_type, load), values in aggregated_data.items():
+            values_array = np.array(values)
+            
+            result.append({
+                'service_type': service_type,
+                'metric_type': metric_type,
+                'load_rps': load,
+                'mean': np.mean(values_array),
+                'median': np.median(values_array),
+                'std': np.std(values_array),
+                'p95': np.percentile(values_array, 95),
+                'p99': np.percentile(values_array, 99),
+                'min': np.min(values_array),
+                'max': np.max(values_array),
+                'count': len(values_array)
+            })
+        
+        return result
+    
+    def create_rps_comparison_dashboard(self):
+        """Создание дашборда сравнения по RPS"""
+        aggregated_data = self.extract_aggregated_data()
+        df = pd.DataFrame(aggregated_data)
+        
+        # Создаем подграфики
+        fig = make_subplots(
+            rows=2, cols=2,
+            subplot_titles=(
+                'Average CPU Usage vs RPS',
+                'Average Memory Usage vs RPS',
+                'P95 CPU Usage vs RPS', 
+                'P95 Memory Usage vs RPS'
+            ),
+            specs=[
+                [{"secondary_y": False}, {"secondary_y": False}],
+                [{"secondary_y": False}, {"secondary_y": False}]
+            ],
+            vertical_spacing=0.12,
+            horizontal_spacing=0.08
+        )
+        
+        # Цвета для сервисов
+        service_colors = {
+            'common': '#1f77b4',
+            'reactive': '#ff7f0e'
         }
         
-    def parse_directory_structure(self):
-        """Парсит структуру директорий и извлекает RPS из названий папок"""
-        pattern = r"(gateway-service)-results-(\d+)-(\d{8}T\d{6})"
-        results = []
-        
-        for dir_path in self.results_dir.glob("*-results-*"):
-            dir_name = dir_path.name
-            match = re.match(pattern, dir_name)
-            if match:
-                service = match.group(1)
-                rps = int(match.group(2))
-                timestamp = match.group(3)
-                
-                # Ищем JSON файлы с метриками
-                cpu_files = list(dir_path.glob("*_cpu.json"))
-                mem_files = list(dir_path.glob("*_mem.json"))
-                
-                results.append({
-                    'service': service,
-                    'rps': rps,
-                    'timestamp': timestamp,
-                    'dir_path': dir_path,
-                    'cpu_files': cpu_files,
-                    'mem_files': mem_files
-                })
-        
-        return sorted(results, key=lambda x: (x['service'], x['rps']))
-    
-    def load_prometheus_json(self, file_path):
-        """Загружает JSON данные из Prometheus API response"""
-        try:
-            with open(file_path, 'r') as f:
-                data = json.load(f)
-            
-            if data['status'] != 'success':
-                print(f"Warning: Status not success in {file_path}")
-                return None
-            
-            results = data['data']['result']
-            if not results:
-                print(f"Warning: No data in {file_path}")
-                return None
-            
-            # Извлекаем временные ряды
-            timestamps = []
-            values = []
-            
-            for result in results:
-                for value in result['values']:
-                    timestamp = float(value[0])
-                    val = float(value[1])
-                    timestamps.append(timestamp)
-                    values.append(val)
-            
-            return {
-                'timestamps': timestamps,
-                'values': values,
-                'timestamps_datetime': [datetime.fromtimestamp(ts) for ts in timestamps]
-            }
-        except Exception as e:
-            print(f"Error loading {file_path}: {e}")
-            return None
-    
-    def calculate_metrics_stats(self, data):
-        """Вычисляет статистики для временного ряда"""
-        if not data or not data['values']:
-            return None
-        
-        values = data['values']
-        return {
-            'mean': np.mean(values),
-            'max': np.max(values),
-            'min': np.min(values),
-            'p95': np.percentile(values, 95),
-            'p99': np.percentile(values, 99),
-            'std': np.std(values)
+        marker_symbols = {
+            'common': 'circle',
+            'reactive': 'square'
         }
+        
+        # 1. Average CPU Usage vs RPS
+        cpu_data = df[df['metric_type'] == 'cpu']
+        for service in ['common', 'reactive']:
+            service_data = cpu_data[cpu_data['service_type'] == service].sort_values('load_rps')
+            color = service_colors[service]
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=service_data['load_rps'],
+                    y=service_data['mean'],
+                    name=f'{service.title()} - Avg CPU',
+                    mode='lines+markers',
+                    line=dict(color=color, width=3),
+                    marker=dict(
+                        symbol=marker_symbols[service],
+                        size=10,
+                        line=dict(width=2, color='white')
+                    ),
+                    error_y=dict(
+                        type='data',
+                        array=service_data['std'],
+                        visible=True,
+                        color=color,
+                        thickness=1.5,
+                        width=3
+                    )
+                ),
+                row=1, col=1
+            )
+        
+        # 2. Average Memory Usage vs RPS
+        mem_data = df[df['metric_type'] == 'mem']
+        for service in ['common', 'reactive']:
+            service_data = mem_data[mem_data['service_type'] == service].sort_values('load_rps')
+            color = service_colors[service]
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=service_data['load_rps'],
+                    y=service_data['mean'],
+                    name=f'{service.title()} - Avg Memory',
+                    mode='lines+markers',
+                    line=dict(color=color, width=3),
+                    marker=dict(
+                        symbol=marker_symbols[service],
+                        size=10,
+                        line=dict(width=2, color='white')
+                    ),
+                    error_y=dict(
+                        type='data',
+                        array=service_data['std'],
+                        visible=True,
+                        color=color,
+                        thickness=1.5,
+                        width=3
+                    ),
+                    showlegend=False
+                ),
+                row=1, col=2
+            )
+        
+        # 3. P95 CPU Usage vs RPS
+        for service in ['common', 'reactive']:
+            service_data = cpu_data[cpu_data['service_type'] == service].sort_values('load_rps')
+            color = service_colors[service]
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=service_data['load_rps'],
+                    y=service_data['p95'],
+                    name=f'{service.title()} - P95 CPU',
+                    mode='lines+markers',
+                    line=dict(color=color, width=3, dash='dot'),
+                    marker=dict(
+                        symbol=marker_symbols[service],
+                        size=8,
+                        line=dict(width=2, color='white')
+                    ),
+                    showlegend=False
+                ),
+                row=2, col=1
+            )
+        
+        # 4. P95 Memory Usage vs RPS
+        for service in ['common', 'reactive']:
+            service_data = mem_data[mem_data['service_type'] == service].sort_values('load_rps')
+            color = service_colors[service]
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=service_data['load_rps'],
+                    y=service_data['p95'],
+                    name=f'{service.title()} - P95 Memory',
+                    mode='lines+markers',
+                    line=dict(color=color, width=3, dash='dot'),
+                    marker=dict(
+                        symbol=marker_symbols[service],
+                        size=8,
+                        line=dict(width=2, color='white')
+                    ),
+                    showlegend=False
+                ),
+                row=2, col=2
+            )
+        
+        # Обновление layout
+        fig.update_layout(
+            title_text="Benchmark Analysis: Performance vs Request Load (RPS)",
+            height=800,
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
+            template="plotly_white"
+        )
+        
+        # Обновление осей
+        fig.update_xaxes(title_text="Request Load (RPS)", row=1, col=1)
+        fig.update_xaxes(title_text="Request Load (RPS)", row=1, col=2)
+        fig.update_xaxes(title_text="Request Load (RPS)", row=2, col=1)
+        fig.update_xaxes(title_text="Request Load (RPS)", row=2, col=2)
+        
+        fig.update_yaxes(title_text="CPU Usage (%)", row=1, col=1)
+        fig.update_yaxes(title_text="Memory Usage (MB)", row=1, col=2)
+        fig.update_yaxes(title_text="CPU Usage (%)", row=2, col=1)
+        fig.update_yaxes(title_text="Memory Usage (MB)", row=2, col=2)
+        
+        return fig
     
-    def aggregate_metrics_by_rps(self, directory_data):
-        """Агрегирует метрики по RPS и сервисам"""
-        aggregated = {}
+    def create_efficiency_analysis(self):
+        """Анализ эффективности использования ресурсов"""
+        aggregated_data = self.extract_aggregated_data()
+        df = pd.DataFrame(aggregated_data)
         
-        for item in directory_data:
-            service = item['service']
-            rps = item['rps']
+        # Вычисляем эффективность (производительность на единицу ресурсов)
+        efficiency_data = []
+        for service in ['common', 'reactive']:
+            service_data = df[df['service_type'] == service]
             
-            if service not in aggregated:
-                aggregated[service] = {}
-            
-            # Обрабатываем CPU метрики
-            cpu_data = None
-            for cpu_file in item['cpu_files']:
-                data = self.load_prometheus_json(cpu_file)
-                if data:
-                    cpu_data = data
-                    break
-            
-            # Обрабатываем Memory метрики
-            mem_data = None
-            for mem_file in item['mem_files']:
-                data = self.load_prometheus_json(mem_file)
-                if data:
-                    mem_data = data
-                    break
-            
-            aggregated[service][rps] = {
-                'cpu': self.calculate_metrics_stats(cpu_data) if cpu_data else None,
-                'memory': self.calculate_metrics_stats(mem_data) if mem_data else None,
-                'raw_cpu': cpu_data,
-                'raw_memory': mem_data
-            }
-        
-        return aggregated
-    
-    def plot_cpu_comparison(self, aggregated_data):
-        """Строит график сравнения CPU использования"""
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
-        
-        for service in aggregated_data:
-            rps_values = []
-            cpu_mean = []
-            cpu_max = []
-            cpu_p95 = []
-            
-            for rps in sorted(aggregated_data[service].keys()):
-                cpu_stats = aggregated_data[service][rps]['cpu']
-                if cpu_stats:
-                    rps_values.append(rps)
-                    cpu_mean.append(cpu_stats['mean'])
-                    cpu_max.append(cpu_stats['max'])
-                    cpu_p95.append(cpu_stats['p95'])
-            
-            color = self.colors.get(service, 'gray')
-            ax1.plot(rps_values, cpu_mean, 'o-', label=f'{service} (mean)', color=color, linewidth=2)
-            ax1.plot(rps_values, cpu_p95, 's--', label=f'{service} (p95)', color=color, alpha=0.7)
-            ax2.plot(rps_values, cpu_max, '^-', label=f'{service} (max)', color=color, linewidth=2)
-        
-        ax1.set_xlabel('RPS')
-        ax1.set_ylabel('CPU Usage (%)')
-        ax1.set_title('Gateway Service CPU Usage: Mean and P95')
-        ax1.legend()
-        ax1.grid(True, alpha=0.3)
-        
-        ax2.set_xlabel('RPS')
-        ax2.set_ylabel('CPU Usage (%)')
-        ax2.set_title('Gateway Service CPU Usage: Maximum')
-        ax2.legend()
-        ax2.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        plt.savefig(self.output_dir / 'cpu_comparison.png', dpi=300, bbox_inches='tight')
-        plt.close()
-    
-    def plot_memory_comparison(self, aggregated_data):
-        """Строит график сравнения использования памяти"""
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
-        
-        for service in aggregated_data:
-            rps_values = []
-            mem_mean_mb = []
-            mem_max_mb = []
-            
-            for rps in sorted(aggregated_data[service].keys()):
-                mem_stats = aggregated_data[service][rps]['memory']
-                if mem_stats:
-                    rps_values.append(rps)
-                    # Конвертируем байты в мегабайты
-                    mem_mean_mb.append(mem_stats['mean'] / 1024 / 1024)
-                    mem_max_mb.append(mem_stats['max'] / 1024 / 1024)
-            
-            color = self.colors.get(service, 'gray')
-            ax1.plot(rps_values, mem_mean_mb, 'o-', label=f'{service} (mean)', color=color, linewidth=2)
-            ax2.plot(rps_values, mem_max_mb, 's-', label=f'{service} (max)', color=color, linewidth=2)
-        
-        ax1.set_xlabel('RPS')
-        ax1.set_ylabel('Memory Usage (MB)')
-        ax1.set_title('Gateway Service Memory Usage: Mean')
-        ax1.legend()
-        ax1.grid(True, alpha=0.3)
-        
-        ax2.set_xlabel('RPS')
-        ax2.set_ylabel('Memory Usage (MB)')
-        ax2.set_title('Gateway Service Memory Usage: Maximum')
-        ax2.legend()
-        ax2.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        plt.savefig(self.output_dir / 'memory_comparison.png', dpi=300, bbox_inches='tight')
-        plt.close()
-    
-    def plot_time_series_examples(self, aggregated_data, sample_rps=[100, 500, 1000]):
-        """Строит временные ряды для примеров RPS"""
-        for rps in sample_rps:
-            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
-            
-            for service in aggregated_data:
-                if rps in aggregated_data[service]:
-                    color = self.colors.get(service, 'gray')
-                    
-                    # CPU временной ряд
-                    cpu_data = aggregated_data[service][rps]['raw_cpu']
-                    if cpu_data:
-                        ax1.plot(cpu_data['timestamps_datetime'], cpu_data['values'], 
-                                label=f'{service}', color=color, linewidth=1.5)
-                    
-                    # Memory временной ряд
-                    mem_data = aggregated_data[service][rps]['raw_memory']
-                    if mem_data:
-                        # Конвертируем в MB
-                        mem_values_mb = [v / 1024 / 1024 for v in mem_data['values']]
-                        ax2.plot(mem_data['timestamps_datetime'], mem_values_mb,
-                                label=f'{service}', color=color, linewidth=1.5)
-            
-            ax1.set_ylabel('CPU Usage (%)')
-            ax1.set_title(f'Gateway Service CPU Usage Over Time - {rps} RPS')
-            ax1.legend()
-            ax1.grid(True, alpha=0.3)
-            
-            ax2.set_ylabel('Memory Usage (MB)')
-            ax2.set_xlabel('Time')
-            ax2.set_title(f'Gateway Service Memory Usage Over Time - {rps} RPS')
-            ax2.legend()
-            ax2.grid(True, alpha=0.3)
-            
-            plt.tight_layout()
-            plt.savefig(self.output_dir / f'time_series_{rps}_rps.png', dpi=300, bbox_inches='tight')
-            plt.close()
-    
-    def create_summary_table(self, aggregated_data):
-        """Создает сводную таблицу с метриками"""
-        rows = []
-        
-        for service in aggregated_data:
-            for rps in sorted(aggregated_data[service].keys()):
-                cpu_stats = aggregated_data[service][rps]['cpu']
-                mem_stats = aggregated_data[service][rps]['memory']
-                
-                row = {
-                    'service': service,
-                    'rps': rps
-                }
-                
-                if cpu_stats:
-                    row.update({
-                        'cpu_mean': f"{cpu_stats['mean']:.2f}%",
-                        'cpu_p95': f"{cpu_stats['p95']:.2f}%",
-                        'cpu_max': f"{cpu_stats['max']:.2f}%"
+            for _, row in service_data.iterrows():
+                if row['metric_type'] == 'cpu':
+                    # Эффективность CPU: RPS / CPU usage
+                    efficiency = row['load_rps'] / max(row['mean'], 0.1)  # избегаем деления на 0
+                    efficiency_data.append({
+                        'service_type': service,
+                        'load_rps': row['load_rps'],
+                        'metric': 'cpu_efficiency',
+                        'value': efficiency,
+                        'label': f"RPS/CPU%"
                     })
-                else:
-                    row.update({
-                        'cpu_mean': 'N/A',
-                        'cpu_p95': 'N/A',
-                        'cpu_max': 'N/A'
+                elif row['metric_type'] == 'mem':
+                    # Эффективность памяти: RPS / Memory MB
+                    efficiency = row['load_rps'] / max(row['mean'], 1)  # избегаем деления на 0
+                    efficiency_data.append({
+                        'service_type': service,
+                        'load_rps': row['load_rps'],
+                        'metric': 'memory_efficiency',
+                        'value': efficiency,
+                        'label': f"RPS/MemoryMB"
                     })
-                
-                if mem_stats:
-                    row.update({
-                        'mem_mean': f"{mem_stats['mean'] / 1024 / 1024:.2f} MB",
-                        'mem_max': f"{mem_stats['max'] / 1024 / 1024:.2f} MB"
-                    })
-                else:
-                    row.update({
-                        'mem_mean': 'N/A',
-                        'mem_max': 'N/A'
-                    })
-                
-                rows.append(row)
         
-        # Сохраняем как CSV
-        df = pd.DataFrame(rows)
-        csv_path = self.output_dir / 'metrics_summary.csv'
-        df.to_csv(csv_path, index=False)
+        efficiency_df = pd.DataFrame(efficiency_data)
         
-        # Создаем текстовый отчет
-        report_path = self.output_dir / 'metrics_report.txt'
-        with open(report_path, 'w') as f:
-            f.write("Gateway Service Prometheus Metrics Analysis Report\n")
-            f.write("=" * 60 + "\n\n")
+        # Создаем график эффективности
+        fig = make_subplots(
+            rows=1, cols=2,
+            subplot_titles=(
+                'CPU Efficiency (RPS per 1% CPU)',
+                'Memory Efficiency (RPS per 1MB Memory)'
+            )
+        )
+        
+        service_colors = {'common': '#1f77b4', 'reactive': '#ff7f0e'}
+        
+        # CPU Efficiency
+        for service in ['common', 'reactive']:
+            service_data = efficiency_df[
+                (efficiency_df['service_type'] == service) & 
+                (efficiency_df['metric'] == 'cpu_efficiency')
+            ].sort_values('load_rps')
             
-            for service in aggregated_data:
-                f.write(f"Service: {service}\n")
-                f.write("-" * 40 + "\n")
-                
-                for rps in sorted(aggregated_data[service].keys()):
-                    cpu_stats = aggregated_data[service][rps]['cpu']
-                    mem_stats = aggregated_data[service][rps]['memory']
-                    
-                    f.write(f"RPS: {rps}\n")
-                    if cpu_stats:
-                        f.write(f"  CPU - Mean: {cpu_stats['mean']:.2f}%, P95: {cpu_stats['p95']:.2f}%, Max: {cpu_stats['max']:.2f}%\n")
-                    if mem_stats:
-                        f.write(f"  Memory - Mean: {mem_stats['mean'] / 1024 / 1024:.2f} MB, Max: {mem_stats['max'] / 1024 / 1024:.2f} MB\n")
-                    f.write("\n")
+            color = service_colors[service]
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=service_data['load_rps'],
+                    y=service_data['value'],
+                    name=f'{service.title()} CPU Eff.',
+                    mode='lines+markers',
+                    line=dict(color=color, width=3),
+                    marker=dict(size=10)
+                ),
+                row=1, col=1
+            )
         
-        return df
+        # Memory Efficiency
+        for service in ['common', 'reactive']:
+            service_data = efficiency_df[
+                (efficiency_df['service_type'] == service) & 
+                (efficiency_df['metric'] == 'memory_efficiency')
+            ].sort_values('load_rps')
+            
+            color = service_colors[service]
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=service_data['load_rps'],
+                    y=service_data['value'],
+                    name=f'{service.title()} Memory Eff.',
+                    mode='lines+markers',
+                    line=dict(color=color, width=3),
+                    marker=dict(size=10),
+                    showlegend=False
+                ),
+                row=1, col=2
+            )
+        
+        fig.update_layout(
+            title_text="Resource Efficiency Analysis",
+            height=500,
+            showlegend=True
+        )
+        
+        fig.update_xaxes(title_text="Request Load (RPS)", row=1, col=1)
+        fig.update_xaxes(title_text="Request Load (RPS)", row=1, col=2)
+        fig.update_yaxes(title_text="RPS per 1% CPU", row=1, col=1)
+        fig.update_yaxes(title_text="RPS per 1MB Memory", row=1, col=2)
+        
+        return fig
     
-    def plot_efficiency_comparison(self, aggregated_data):
-        """Строит график эффективности (RPS на процент CPU)"""
-        plt.figure(figsize=(10, 6))
+    def create_statistics_table(self):
+        """Создание таблицы со статистикой"""
+        aggregated_data = self.extract_aggregated_data()
+        df = pd.DataFrame(aggregated_data)
         
-        for service in aggregated_data:
-            rps_values = []
-            efficiency = []
-            
-            for rps in sorted(aggregated_data[service].keys()):
-                cpu_stats = aggregated_data[service][rps]['cpu']
-                if cpu_stats and cpu_stats['mean'] > 0:
-                    rps_values.append(rps)
-                    efficiency.append(rps / cpu_stats['mean'])  # RPS на 1% CPU
-            
-            color = self.colors.get(service, 'gray')
-            plt.plot(rps_values, efficiency, 'o-', label=service, color=color, linewidth=2)
+        # Форматируем данные для таблицы
+        table_data = []
+        for _, row in df.iterrows():
+            if row['metric_type'] == 'cpu':
+                unit = '%'
+            else:
+                unit = 'MB'
+                
+            table_data.append({
+                'Service': row['service_type'].title(),
+                'Metric': row['metric_type'].upper(),
+                'Load RPS': row['load_rps'],
+                f'Mean ({unit})': f"{row['mean']:.2f}",
+                f'P95 ({unit})': f"{row['p95']:.2f}",
+                f'Std Dev ({unit})': f"{row['std']:.2f}",
+                'Samples': row['count']
+            })
         
-        plt.xlabel('RPS')
-        plt.ylabel('RPS per 1% CPU')
-        plt.title('Gateway Service Efficiency: RPS per CPU Percentage')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
+        table_df = pd.DataFrame(table_data)
         
-        plt.tight_layout()
-        plt.savefig(self.output_dir / 'efficiency_comparison.png', dpi=300, bbox_inches='tight')
-        plt.close()
-    
-    def analyze(self):
-        """Основной метод анализа"""
-        print("Analyzing Prometheus metrics for Gateway Service...")
+        fig = go.Figure(data=[go.Table(
+            header=dict(
+                values=list(table_df.columns),
+                fill_color='#2E86AB',
+                align='left',
+                font=dict(color='white', size=12)
+            ),
+            cells=dict(
+                values=[table_df[col] for col in table_df.columns],
+                fill_color='#F5F5F5',
+                align='left',
+                font=dict(size=11)
+            ))
+        ])
         
-        # Парсим структуру директорий
-        directory_data = self.parse_directory_structure()
-        print(f"Found {len(directory_data)} test runs")
+        fig.update_layout(
+            title="Performance Statistics by Request Load",
+            height=400,
+            margin=dict(l=10, r=10, t=60, b=10)
+        )
         
-        # Агрегируем данные
-        aggregated_data = self.aggregate_metrics_by_rps(directory_data)
-        
-        if not aggregated_data:
-            print("No data found for analysis")
-            return
-        
-        # Строим графики
-        print("Creating comparison plots...")
-        self.plot_cpu_comparison(aggregated_data)
-        self.plot_memory_comparison(aggregated_data)
-        self.plot_time_series_examples(aggregated_data)
-        self.plot_efficiency_comparison(aggregated_data)
-        
-        # Создаем отчеты
-        print("Generating reports...")
-        summary_df = self.create_summary_table(aggregated_data)
-        
-        print(f"Analysis complete! Results saved to {self.output_dir}")
-        print(f"Summary: {len(summary_df)} data points analyzed")
-        
-        return aggregated_data, summary_df
+        return fig
 
-def main():
-    analyzer = PrometheusMetricsAnalyzer()
-    aggregated_data, summary_df = analyzer.analyze()
-    
-    # Выводим краткую сводку в консоль
-    if summary_df is not None:
-        print("\nBrief Summary:")
-        print(summary_df[['service', 'rps', 'cpu_mean', 'mem_mean']].to_string(index=False))
-
+# Использование
 if __name__ == "__main__":
-    main()
+    analyzer = BenchmarkRPSAnalyzer()
+    
+    # Загрузка данных
+    file_patterns = [
+        "analysis/prometheus/*.json",
+        "auth-service-*-results-*.json"
+    ]
+    
+    analyzer.load_data(file_patterns)
+    
+    print("Создание дашборда сравнения по RPS...")
+    rps_dashboard = analyzer.create_rps_comparison_dashboard()
+    rps_dashboard.show()
+    
+    print("Создание анализа эффективности...")
+    efficiency_chart = analyzer.create_efficiency_analysis()
+    efficiency_chart.show()
+    
+    print("Создание таблицы статистики...")
+    stats_table = analyzer.create_statistics_table()
+    stats_table.show()
+    
+    # Дополнительный анализ: тренды роста
+    aggregated_data = analyzer.extract_aggregated_data()
+    df = pd.DataFrame(aggregated_data)
+    
+    print("\n=== АНАЛИЗ ТРЕНДОВ ===")
+    for service in ['common', 'reactive']:
+        service_data = df[df['service_type'] == service]
+        cpu_data = service_data[service_data['metric_type'] == 'cpu'].sort_values('load_rps')
+        mem_data = service_data[service_data['metric_type'] == 'mem'].sort_values('load_rps')
+        
+        print(f"\n{service.upper()} Service:")
+        print(f"CPU рост от 100 до 400 RPS: {cpu_data['mean'].iloc[-1] / cpu_data['mean'].iloc[0]:.1f}x")
+        print(f"Memory рост от 100 до 400 RPS: {mem_data['mean'].iloc[-1] / mem_data['mean'].iloc[0]:.1f}x")

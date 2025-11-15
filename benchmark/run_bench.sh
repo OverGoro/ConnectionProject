@@ -4,8 +4,8 @@ set -euo pipefail
 # Настройки (можно переопределить через переменные окружения)
 RPS_START=${RPS_START:-100}
 RPS_END=${RPS_END:-500}
-RPS_STEP=${RPS_STEP:-100}
-DURATION=${DURATION:-60} # сек
+RPS_STEP=${RPS_STEP:-50}
+DURATION=${DURATION:-30} # сек
 USE_DOCKER=${USE_DOCKER:-true}
 DOCKER_IMAGE=${DOCKER_IMAGE:-denvazh/gatling:latest}
 COMPOSE_FILE=${COMPOSE_FILE:-docker-compose.test.yml}
@@ -158,25 +158,82 @@ wait_for_service() {
   return 0
 }
 
+# helper: wait for PostgreSQL to be ready
+wait_for_postgres() {
+  echo "Waiting for PostgreSQL to be ready..."
+  local timeout=30
+  local start=$(date +%s)
+  
+  while true; do
+    if docker-compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U test_user -d test_db >/dev/null 2>&1; then
+      echo "PostgreSQL is ready"
+      break
+    fi
+    sleep 2
+    if [ $(( $(date +%s) - start )) -ge $timeout ]; then
+      echo "PostgreSQL did not become ready in $timeout seconds"
+      return 1
+    fi
+  done
+  return 0
+}
+
+# helper: cleanup PostgreSQL data and restart
+cleanup_postgres() {
+  echo "Cleaning up PostgreSQL data..."
+  
+  # Останавливаем и удаляем контейнеры с volume
+  docker-compose -f "$COMPOSE_FILE" down -v
+  
+  # Удаляем volume вручную (на случай если down -v не сработал)
+  docker volume rm -f $(docker volume ls -q | grep postgres_data) 2>/dev/null || true
+  docker volume rm -f $(docker volume ls -q | grep $(basename $(pwd))_postgres_data) 2>/dev/null || true
+  
+  # Запускаем заново
+  docker-compose -f "$COMPOSE_FILE" up -d postgres
+  
+  # Ждем готовности PostgreSQL
+  if ! wait_for_postgres; then
+    echo "Failed to start PostgreSQL after cleanup"
+    return 1
+  fi
+  
+  echo "PostgreSQL cleaned up and restarted successfully"
+  return 0
+}
+
+# Функция для полной очистки и перезапуска приложения
+restart_application_stack() {
+  echo "Restarting application stack with clean PostgreSQL..."
+  
+  # Полная очистка
+  docker-compose -f "$COMPOSE_FILE" down -v
+  
+  # Убедимся, что все volumes удалены
+  docker volume prune -f 2>/dev/null || true
+  
+  # Запускаем заново
+  docker-compose -f "$COMPOSE_FILE" up -d
+  
+  # Ждем PostgreSQL
+  if ! wait_for_postgres; then
+    echo "Warning: PostgreSQL startup check failed, but continuing..."
+  fi
+  
+  # Ждем сервисы
+  for svc in $TARGET_SERVICES; do
+    port=$(get_port_for_service "$svc")
+    if ! wait_for_service "$svc" "$port" "/api/v1/auth/health"; then
+      echo "Warning: Service $svc health check failed, but continuing..."
+    fi
+  done
+  
+  echo "Application stack restarted with clean database"
+}
+
 # Start the application stack
 echo "Starting application stack..."
-docker-compose -f "$COMPOSE_FILE" down
-docker-compose -f "$COMPOSE_FILE" up -d
-
-# Wait for PostgreSQL to be ready
-echo "Waiting for PostgreSQL to be ready..."
-sleep 10
-
-# Wait for all services to be ready
-for svc in $TARGET_SERVICES; do
-  port=$(get_port_for_service "$svc")
-  # Use health check endpoint or root path
-  if ! wait_for_service "$svc" "$port" "/actuator/health"; then
-    if ! wait_for_service "$svc" "$port" "/"; then
-      echo "Failed to connect to service $svc, but continuing..."
-    fi
-  fi
-done
+restart_application_stack
 
 # start monitoring once if requested
 if [ "$MONITOR" = "true" ]; then
@@ -191,7 +248,11 @@ fi
 mkdir -p "$RESULTS_DIR"
 
 for (( rps=RPS_START; rps<=RPS_END; rps+=RPS_STEP )); do
-  echo "=== Run for RPS=${rps} ==="
+  echo -e "\033[31m=== Run for RPS=${rps} / ${RPS_END} ===\033[0m"
+
+  # Перезапускаем приложение с чистой БД перед каждым тестом
+  echo "Restarting application with clean database for RPS=$rps..."
+  restart_application_stack
 
   # record start timestamp for Prometheus queries
   START_TS=$(date -u +%s)
@@ -220,8 +281,8 @@ for (( rps=RPS_START; rps<=RPS_END; rps+=RPS_STEP )); do
         -v "$run_dir":/opt/gatling/results \
         -e "JAVA_OPTS=-DtargetRps=${rps} -DtargetHost=localhost -DtargetPort=${port} -DtargetPath=/ -DdurationSec=${DURATION} -DserviceName=${svc}" \
         "${DOCKER_IMAGE}" \
-        -sf /opt/gatling/user-files -rf /opt/gatling/results -s simulations.AuthServiceSimulation &
-      pids+=("$!")
+        -sf /opt/gatling/user-files -rf /opt/gatling/results -s simulations.AuthServiceSimulation 
+      # pids+=("$!")
     else
       if [ -z "${GATLING_HOME:-}" ]; then
         echo "GATLING_HOME not set. Set to local Gatling installation or set USE_DOCKER=true"
@@ -229,19 +290,19 @@ for (( rps=RPS_START; rps<=RPS_END; rps+=RPS_STEP )); do
       fi
       # Run local Gatling
       JAVA_OPTS="-DtargetRps=${rps} -DtargetHost=localhost -DtargetPort=${port} -DtargetPath=/ -DdurationSec=${DURATION} -DserviceName=${svc}" \
-      "$GATLING_HOME"/bin/gatling.sh -sf ./gatling/user-files -rf "$run_dir" -s simulations.AuthServiceSimulation &
-      pids+=("$!")
+      "$GATLING_HOME"/bin/gatling.sh -sf ./gatling/user-files -rf "$run_dir" -s simulations.AuthServiceSimulation 
+      # pids+=("$!")
     fi
   done
 
   # wait for all runs to finish and capture exit codes
-  exit_code=0
-  for pid in "${pids[@]}"; do
-    wait "$pid" || exit_code=$?
-  done
-  if [ $exit_code -ne 0 ]; then
-    echo "One or more Gatling runs failed (exit code $exit_code)"
-  fi
+  # exit_code=0
+  # for pid in "${pids[@]}"; do
+  #   wait "$pid" || exit_code=$?
+  # done
+  # if [ $exit_code -ne 0 ]; then
+  #   echo "One or more Gatling runs failed (exit code $exit_code)"
+  # fi
 
   # record end timestamp and collect Prometheus metrics for this run
   END_TS=$(date -u +%s)
@@ -260,21 +321,33 @@ for (( rps=RPS_START; rps<=RPS_END; rps+=RPS_STEP )); do
 
   echo "Saved results for this step under directories matching: $RESULTS_DIR/*-results-${rps}-*"
   
+  # Останавливаем приложение после каждого теста для очистки
+  echo "Stopping application stack after RPS=$rps test..."
+  docker-compose -f "$COMPOSE_FILE" down -v
+  
   # Short pause between runs
+  echo "Waiting before next test..."
   sleep 10
 done
 
 echo "All runs finished. Results are in $RESULTS_DIR"
 
-# Cleanup
+# Final cleanup
+echo "Performing final cleanup..."
 if [ "$MONITOR" = "true" ]; then
   docker compose -f "$MONITOR_COMPOSE" down
 fi
-docker-compose -f "$COMPOSE_FILE" down
+
+# Полная очистка volumes
+docker-compose -f "$COMPOSE_FILE" down -v
+docker volume prune -f 2>/dev/null || true
+
+echo "Fixing permissions..."
+sudo chown -R $(id -u):$(id -g) "$RESULTS_DIR" 2>/dev/null || true
+sudo chmod -R 755 "$RESULTS_DIR" 2>/dev/null || true
 
 echo "Benchmark completed!"
 
 echo "Fixing permissions..."
 sudo chown -R $(id -u):$(id -g) "$RESULTS_DIR"
 sudo chmod -R 755 "$RESULTS_DIR"
-
