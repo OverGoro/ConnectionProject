@@ -4,11 +4,13 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
+import io.r2dbc.spi.ConnectionFactory;
 
 import java.time.Duration;
 
@@ -33,8 +35,9 @@ public class R2DBCConfig {
     @Value("${app.datasource.refresh-token.password}")
     private String refreshTokenPassword;
 
-    @Bean("clientConnectionFactory")
-    public PostgresqlConnectionFactory clientConnectionFactory() {
+    @Bean
+    @Primary
+    public ConnectionFactory clientConnectionFactory() {
         PostgresqlConnectionConfiguration config = PostgresqlConnectionConfiguration.builder()
                 .host(extractHost(clientJdbcUrl))
                 .port(extractPort(clientJdbcUrl))
@@ -45,47 +48,32 @@ public class R2DBCConfig {
                 
         return new PostgresqlConnectionFactory(config);
     }
-
-    @Bean("clientConnectionPool")
-    public ConnectionPool clientConnectionPool(
-            @Qualifier("clientConnectionFactory") PostgresqlConnectionFactory connectionFactory) {
-        
-        ConnectionPoolConfiguration poolConfig = ConnectionPoolConfiguration.builder(connectionFactory)
-                .maxIdleTime(Duration.ofMinutes(30))
-                .maxSize(20)
-                .maxCreateConnectionTime(Duration.ofSeconds(10))
-                .initialSize(5)
-                .build();
+    // @Bean("clientConnectionFactory")
+    // public PostgresqlConnectionFactory clientConnectionFactory() {
+    //     PostgresqlConnectionConfiguration config = PostgresqlConnectionConfiguration.builder()
+    //             .host(extractHost(clientJdbcUrl))
+    //             .port(extractPort(clientJdbcUrl))
+    //             .database(extractDatabase(clientJdbcUrl))
+    //             .username(clientUsername)
+    //             .password(clientPassword)
+    //             .build();
                 
-        return new ConnectionPool(poolConfig);
-    }
+    //     return new PostgresqlConnectionFactory(config);
+    // }
 
-    @Bean("refreshTokenConnectionFactory")
-    public PostgresqlConnectionFactory refreshTokenConnectionFactory() {
-        PostgresqlConnectionConfiguration config = PostgresqlConnectionConfiguration.builder()
-                .host(extractHost(refreshTokenJdbcUrl))
-                .port(extractPort(refreshTokenJdbcUrl))
-                .database(extractDatabase(refreshTokenJdbcUrl))
-                .username(refreshTokenUsername)
-                .password(refreshTokenPassword)
-                .build();
-                
-        return new PostgresqlConnectionFactory(config);
-    }
 
-    @Bean("refreshTokenConnectionPool")
-    public ConnectionPool refreshTokenConnectionPool(
-            @Qualifier("refreshTokenConnectionFactory") PostgresqlConnectionFactory connectionFactory) {
-        
-        ConnectionPoolConfiguration poolConfig = ConnectionPoolConfiguration.builder(connectionFactory)
-                .maxIdleTime(Duration.ofMinutes(30))
-                .maxSize(20)
-                .maxCreateConnectionTime(Duration.ofSeconds(10))
-                .initialSize(5)
-                .build();
+    // @Bean("refreshTokenConnectionFactory")
+    // public PostgresqlConnectionFactory refreshTokenConnectionFactory() {
+    //     PostgresqlConnectionConfiguration config = PostgresqlConnectionConfiguration.builder()
+    //             .host(extractHost(refreshTokenJdbcUrl))
+    //             .port(extractPort(refreshTokenJdbcUrl))
+    //             .database(extractDatabase(refreshTokenJdbcUrl))
+    //             .username(refreshTokenUsername)
+    //             .password(refreshTokenPassword)
+    //             .build();
                 
-        return new ConnectionPool(poolConfig);
-    }
+    //     return new PostgresqlConnectionFactory(config);
+    // }
 
     private String extractHost(String jdbcUrl) {
         // jdbc:postgresql://localhost:5432/database
@@ -101,5 +89,37 @@ public class R2DBCConfig {
     private String extractDatabase(String jdbcUrl) {
         String[] parts = jdbcUrl.split("://")[1].split("/");
         return parts[1];
+    }
+
+    @Bean("clientConnectionPool")
+    public ConnectionPool clientConnectionPool(
+            ConnectionFactory connectionFactory) {
+        
+        ConnectionPoolConfiguration poolConfig = ConnectionPoolConfiguration.builder(connectionFactory)
+                .maxIdleTime(Duration.ofMinutes(30))
+                .maxSize(50) // Увеличьте максимальный размер пула
+                .maxAcquireTime(Duration.ofSeconds(30)) // Увеличьте время ожидания соединения
+                .maxCreateConnectionTime(Duration.ofSeconds(10))
+                .initialSize(10) // Увеличьте начальный размер
+                .acquireRetry(3) // Добавьте повторные попытки
+                .build();
+                
+        return new ConnectionPool(poolConfig);
+    }
+
+    @Bean("refreshTokenConnectionPool")
+    public ConnectionPool refreshTokenConnectionPool(
+            ConnectionFactory connectionFactory) {
+        
+        ConnectionPoolConfiguration poolConfig = ConnectionPoolConfiguration.builder(connectionFactory)
+                .maxIdleTime(Duration.ofMinutes(30))
+                .maxSize(50) // Увеличьте максимальный размер пула
+                .maxAcquireTime(Duration.ofSeconds(30))
+                .maxCreateConnectionTime(Duration.ofSeconds(10))
+                .initialSize(10)
+                .acquireRetry(3)
+                .build();
+                
+        return new ConnectionPool(poolConfig);
     }
 }

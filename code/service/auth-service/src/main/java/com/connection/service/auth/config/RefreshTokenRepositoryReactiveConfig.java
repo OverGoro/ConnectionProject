@@ -11,6 +11,7 @@ import com.connection.token.repository.RefreshTokenReactiveRepositoryImpl;
 import com.connection.token.repository.RefreshTokenRepository;
 import com.connection.token.repository.RefreshTokenRepositorySQLImpl;
 
+import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.spi.ConnectionFactory;
 
 @Configuration
@@ -18,8 +19,9 @@ import io.r2dbc.spi.ConnectionFactory;
 public class RefreshTokenRepositoryReactiveConfig {
 
     @Bean("RefreshTokenRepository")
-        RefreshTokenRepository refreshTokenRepository(@Qualifier("refreshTokenConnectionFactory")ConnectionFactory connectionFactory){
-        return new RefreshTokenReactiveRepositoryImpl(connectionFactory);
+    RefreshTokenRepository refreshTokenRepository(
+        @Qualifier("refreshTokenConnectionPool") ConnectionPool connectionPool // Используем пул
+    ){
+        return new RefreshTokenReactiveRepositoryImpl(connectionPool);
     }
-
 }

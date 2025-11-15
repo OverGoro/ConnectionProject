@@ -677,8 +677,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.util.Date;
@@ -688,6 +686,8 @@ import com.connection.token.exception.RefreshTokenAlreadyExisistsException;
 import com.connection.token.exception.RefreshTokenNotFoundException;
 import com.connection.token.model.RefreshTokenDALM;
 
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
 
@@ -724,83 +724,92 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
     }
 
     @Override
-    //@Transaction
-    public void add(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenAlreadyExisistsException {
-        // Проверяем существование по token
-        if (tokenExists(refreshTokenDALM.getToken())) {
-            throw new RefreshTokenAlreadyExisistsException("Refresh token already exists");
-        }
+    public Mono<Void> add(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenAlreadyExisistsException {
+        return Mono.fromCallable(() -> {
+            // Проверяем существование по token
+            if (tokenExistsSync(refreshTokenDALM.getToken())) {
+                throw new RefreshTokenAlreadyExisistsException("Refresh token already exists");
+            }
 
-        // Проверяем существование по uid
-        if (uidExists(refreshTokenDALM.getUid())) {
-            throw new RefreshTokenAlreadyExisistsException("Refresh token with UID " + refreshTokenDALM.getUid() + " already exists");
-        }
+            // Проверяем существование по uid
+            if (uidExistsSync(refreshTokenDALM.getUid())) {
+                throw new RefreshTokenAlreadyExisistsException("Refresh token with UID " + refreshTokenDALM.getUid() + " already exists");
+            }
 
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", refreshTokenDALM.getUid());
-        params.addValue("client_id", refreshTokenDALM.getClientUID());
-        params.addValue("token", refreshTokenDALM.getToken());
-        params.addValue("created_at", new Timestamp(refreshTokenDALM.getCreatedAt().getTime()));
-        params.addValue("expires_at", new Timestamp(refreshTokenDALM.getExpiresAt().getTime()));
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", refreshTokenDALM.getUid());
+            params.addValue("client_id", refreshTokenDALM.getClientUID());
+            params.addValue("token", refreshTokenDALM.getToken());
+            params.addValue("created_at", new Timestamp(refreshTokenDALM.getCreatedAt().getTime()));
+            params.addValue("expires_at", new Timestamp(refreshTokenDALM.getExpiresAt().getTime()));
 
-        jdbcTemplate.update(INSERT_REFRESH_TOKEN, params);
+            jdbcTemplate.update(INSERT_REFRESH_TOKEN, params);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
     @Override
-    //@Transaction
-    public void updateToken(RefreshTokenDALM refreshTokenDALM, RefreshTokenDALM newRefreshTokenDALM) 
+    public Mono<Void> updateToken(RefreshTokenDALM refreshTokenDALM, RefreshTokenDALM newRefreshTokenDALM) 
             throws RefreshTokenNotFoundException {
-        // Проверяем существование старого токена
-        if (!tokenExists(refreshTokenDALM.getToken())) {
-            throw new RefreshTokenNotFoundException("Refresh token not found");
-        }
+        return Mono.fromCallable(() -> {
+            // Проверяем существование старого токена
+            if (!tokenExistsSync(refreshTokenDALM.getToken())) {
+                throw new RefreshTokenNotFoundException("Refresh token not found");
+            }
 
-        // Проверяем что новый токен не существует
-        if (tokenExists(newRefreshTokenDALM.getToken())) {
-            throw new RefreshTokenAlreadyExisistsException("Refresh token already exists");
-        }
+            // Проверяем что новый токен не существует
+            if (tokenExistsSync(newRefreshTokenDALM.getToken())) {
+                throw new RefreshTokenAlreadyExisistsException("Refresh token already exists");
+            }
 
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("old_token", refreshTokenDALM.getToken());
-        params.addValue("new_token", newRefreshTokenDALM.getToken());
-        params.addValue("new_created_at", new Timestamp(newRefreshTokenDALM.getCreatedAt().getTime()));
-        params.addValue("new_expires_at", new Timestamp(newRefreshTokenDALM.getExpiresAt().getTime()));
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("old_token", refreshTokenDALM.getToken());
+            params.addValue("new_token", newRefreshTokenDALM.getToken());
+            params.addValue("new_created_at", new Timestamp(newRefreshTokenDALM.getCreatedAt().getTime()));
+            params.addValue("new_expires_at", new Timestamp(newRefreshTokenDALM.getExpiresAt().getTime()));
 
-        jdbcTemplate.update(UPDATE_TOKEN, params);
+            jdbcTemplate.update(UPDATE_TOKEN, params);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
     @Override
-    //@Transaction
-    public void revoke(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenNotFoundException {
-        // Проверяем существование токена
-        if (!uidExists(refreshTokenDALM.getUid())) {
-            throw new RefreshTokenNotFoundException("Refresh token with UID " + refreshTokenDALM.getUid() + " not found");
-        }
+    public Mono<Void> revoke(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenNotFoundException {
+        return Mono.fromCallable(() -> {
+            // Проверяем существование токена
+            if (!uidExistsSync(refreshTokenDALM.getUid())) {
+                throw new RefreshTokenNotFoundException("Refresh token with UID " + refreshTokenDALM.getUid() + " not found");
+            }
 
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", refreshTokenDALM.getUid());
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", refreshTokenDALM.getUid());
 
-        jdbcTemplate.update(REVOKE_TOKEN, params);
+            jdbcTemplate.update(REVOKE_TOKEN, params);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
     @Override
-    //@Transaction
-    public void revokeAll(UUID clientUUID) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("client_id", clientUUID);
+    public Mono<Void> revokeAll(UUID clientUUID) {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("client_id", clientUUID);
 
-        jdbcTemplate.update(REVOKE_ALL_CLIENT_TOKENS, params);
+            jdbcTemplate.update(REVOKE_ALL_CLIENT_TOKENS, params);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
     @Override
-    //@Transaction
-    public void cleanUpExpired() {
-        jdbcTemplate.update(CLEANUP_EXPIRED_TOKENS, new MapSqlParameterSource());
+    public Mono<Void> cleanUpExpired() {
+        return Mono.fromCallable(() -> {
+            jdbcTemplate.update(CLEANUP_EXPIRED_TOKENS, new MapSqlParameterSource());
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
-    // Вспомогательные методы
-    //@Transaction(readOnly = true)
-    boolean uidExists(UUID uid) {
+    // Синхронные вспомогательные методы для внутреннего использования
+    private boolean uidExistsSync(UUID uid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
         try {
@@ -811,8 +820,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    //@Transaction(readOnly = true)
-    boolean tokenExists(String token) {
+    private boolean tokenExistsSync(String token) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("token", token);
         try {
@@ -823,9 +831,8 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    // Дополнительные методы для внутреннего использования
-    //@Transaction(readOnly = true)
-    RefreshTokenDALM findByUid(UUID uid) throws RefreshTokenNotFoundException {
+    // Дополнительные методы для внутреннего использования (синхронные)
+    private RefreshTokenDALM findByUidSync(UUID uid) throws RefreshTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uid);
         try {
@@ -835,8 +842,7 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    //@Transaction(readOnly = true)
-    RefreshTokenDALM findByToken(String token) throws RefreshTokenNotFoundException {
+    private RefreshTokenDALM findByTokenSync(String token) throws RefreshTokenNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("token", token);
         try {
@@ -846,14 +852,29 @@ public class RefreshTokenRepositorySQLImpl implements RefreshTokenRepository {
         }
     }
 
-    //@Transaction(readOnly = true)
-    boolean isTokenValid(String token) {
+    private boolean isTokenValidSync(String token) {
         try {
-            RefreshTokenDALM refreshToken = findByToken(token);
+            RefreshTokenDALM refreshToken = findByTokenSync(token);
             return refreshToken.getExpiresAt().after(new Date());
         } catch (RefreshTokenNotFoundException e) {
             return false;
         }
+    }
+
+    // Реактивные версии дополнительных методов (если нужны)
+    public Mono<RefreshTokenDALM> findByUid(UUID uid) throws RefreshTokenNotFoundException {
+        return Mono.fromCallable(() -> findByUidSync(uid))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    public Mono<RefreshTokenDALM> findByToken(String token) throws RefreshTokenNotFoundException {
+        return Mono.fromCallable(() -> findByTokenSync(token))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    public Mono<Boolean> isTokenValid(String token) {
+        return Mono.fromCallable(() -> isTokenValidSync(token))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 }package com.connection.token.repository;
 
@@ -863,46 +884,493 @@ import com.connection.token.exception.RefreshTokenAlreadyExisistsException;
 import com.connection.token.exception.RefreshTokenNotFoundException;
 import com.connection.token.model.RefreshTokenDALM;
 
+import reactor.core.publisher.Mono;
+
 public interface RefreshTokenRepository {
     /**
-     * Лобавить новый refreshToken
-     * 
-     * @param refreshTokenDALM Новый токен
+     * Добавить новый refreshToken
      */
-    public void add(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenAlreadyExisistsException;
+    Mono<Void> add(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenAlreadyExisistsException;
 
     /**
      * Обновить токен
-     * Создается новый токен взамен старого, старый отзывается
-     * 
-     * @param refreshTokenDALM Старый токен
-     * @return Новый сохраненный токен
-     * @throws RefreshTokenNotFoundException Если токен с таким uid не существует
      */
-    public void updateToken(RefreshTokenDALM refreshTokenDALM, RefreshTokenDALM newRefreshTokenDALM)
+    Mono<Void> updateToken(RefreshTokenDALM refreshTokenDALM, RefreshTokenDALM newRefreshTokenDALM)
             throws RefreshTokenNotFoundException;
 
     /**
      * Отозвать токен
-     * 
-     * @param refreshTokenDALM Токен для отзыва
-     * @throws RefreshTokenNotFoundException Если токен с таким uid не существует
      */
-    public void revoke(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenNotFoundException;
+    Mono<Void> revoke(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenNotFoundException;
 
     /**
      * Отозвать все токены клиента
-     * 
-     * @param clientDALM Клиент
      */
-    public void revokeAll(UUID clientUUID);
+    Mono<Void> revokeAll(UUID clientUUID);
 
     /**
      * Отозвать все закончившиеся токены
      */
-    public void cleanUpExpired();
-}
-package com.connection.token.mother;
+    Mono<Void> cleanUpExpired();
+}package com.connection.token.repository;
+
+import io.r2dbc.spi.Connection;
+import io.r2dbc.spi.ConnectionFactory;
+import io.r2dbc.spi.Row;
+import io.r2dbc.spi.Statement;
+
+import com.connection.token.exception.RefreshTokenAlreadyExisistsException;
+import com.connection.token.exception.RefreshTokenNotFoundException;
+import com.connection.token.model.RefreshTokenDALM;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.UUID;
+
+@Slf4j
+@RequiredArgsConstructor
+public class RefreshTokenReactiveRepositoryImpl implements RefreshTokenRepository {
+
+    private final ConnectionFactory refreshTokenConnectionFactory;
+
+    @Override
+    public Mono<Void> add(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenAlreadyExisistsException {
+        log.info("Attempting to add new refresh token for client UID: {}", refreshTokenDALM.getClientUID());
+        
+        return Mono.usingWhen(
+            refreshTokenConnectionFactory.create(),
+            connection -> {
+                log.debug("Starting transaction for token addition");
+                return Mono.from(connection.beginTransaction())
+                        .then(Mono.defer(() -> {
+                            log.trace("Checking if token already exists: {}", refreshTokenDALM.getToken());
+                            return checkTokenExists(connection, refreshTokenDALM.getToken(), refreshTokenDALM.getUid());
+                        }))
+                        .filter(exists -> !exists)
+                        .switchIfEmpty(Mono.defer(() -> {
+                            log.warn("Refresh token already exists for token: {} or UID: {}", 
+                                    refreshTokenDALM.getToken(), refreshTokenDALM.getUid());
+                            return Mono.error(new RefreshTokenAlreadyExisistsException("Refresh token already exists"));
+                        }))
+                        .then(Mono.defer(() -> {
+                            log.debug("Proceeding with token insertion");
+                            return insertToken(connection, refreshTokenDALM);
+                        }))
+                        .then(Mono.defer(() -> {
+                            log.debug("Committing transaction for token addition");
+                            return Mono.from(connection.commitTransaction());
+                        }))
+                        .onErrorResume(error -> {
+                            log.error("Error during token addition for client: {} - {}. Rolling back transaction.", 
+                                    refreshTokenDALM.getClientUID(), error.getMessage());
+                            return Mono.from(connection.rollbackTransaction())
+                                    .then(Mono.error(error));
+                        })
+                        .doOnSuccess(v -> log.info("Successfully added refresh token with UID: {} for client: {}", 
+                                refreshTokenDALM.getUid(), refreshTokenDALM.getClientUID()));
+            },
+            Connection::close,
+            (connection, error) -> {
+                log.error("Async error cleanup for token addition: {}", error.getMessage());
+                return Mono.from(connection.close());
+            },
+            Connection::close
+        );
+    }
+
+    @Override
+    public Mono<Void> updateToken(RefreshTokenDALM oldToken, RefreshTokenDALM newToken) 
+            throws RefreshTokenNotFoundException {
+        log.info("Attempting to update token from: {} to: {}", oldToken.getToken(), newToken.getToken());
+        
+        return Mono.usingWhen(
+            refreshTokenConnectionFactory.create(),
+            connection -> {
+                log.debug("Starting transaction for token update");
+                return Mono.from(connection.beginTransaction())
+                        .then(Mono.defer(() -> {
+                            log.trace("Checking if old token exists: {}", oldToken.getToken());
+                            return checkTokenExistsByToken(connection, oldToken.getToken());
+                        }))
+                        .filter(exists -> exists)
+                        .switchIfEmpty(Mono.defer(() -> {
+                            log.warn("Old refresh token not found: {}", oldToken.getToken());
+                            return Mono.error(new RefreshTokenNotFoundException("Refresh token not found"));
+                        }))
+                        .then(Mono.defer(() -> {
+                            log.trace("Checking if new token already exists: {}", newToken.getToken());
+                            return checkTokenExistsByToken(connection, newToken.getToken());
+                        }))
+                        .filter(newExists -> !newExists)
+                        .switchIfEmpty(Mono.defer(() -> {
+                            log.warn("New refresh token already exists: {}", newToken.getToken());
+                            return Mono.error(new RefreshTokenAlreadyExisistsException("Refresh token already exists"));
+                        }))
+                        .then(Mono.defer(() -> {
+                            log.debug("Proceeding with token update");
+                            return updateTokenInDb(connection, oldToken.getToken(), newToken);
+                        }))
+                        .then(Mono.defer(() -> {
+                            log.debug("Committing transaction for token update");
+                            return Mono.from(connection.commitTransaction());
+                        }))
+                        .onErrorResume(error -> {
+                            log.error("Error during token update from {} to {} - {}. Rolling back transaction.", 
+                                    oldToken.getToken(), newToken.getToken(), error.getMessage());
+                            return Mono.from(connection.rollbackTransaction())
+                                    .then(Mono.error(error));
+                        })
+                        .doOnSuccess(v -> log.info("Successfully updated token from {} to {}", 
+                                oldToken.getToken(), newToken.getToken()));
+            },
+            Connection::close,
+            (connection, error) -> {
+                log.error("Async error cleanup for token update: {}", error.getMessage());
+                return Mono.from(connection.close());
+            },
+            Connection::close
+        );
+    }
+
+    @Override
+    public Mono<Void> revoke(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenNotFoundException {
+        log.info("Attempting to revoke token with UID: {}", refreshTokenDALM.getUid());
+        
+        return Mono.usingWhen(
+            refreshTokenConnectionFactory.create(),
+            connection -> {
+                log.debug("Starting transaction for token revocation");
+                return Mono.from(connection.beginTransaction())
+                        .then(Mono.defer(() -> {
+                            log.trace("Checking if UID exists: {}", refreshTokenDALM.getUid());
+                            return checkUidExists(connection, refreshTokenDALM.getUid());
+                        }))
+                        .filter(exists -> exists)
+                        .switchIfEmpty(Mono.defer(() -> {
+                            log.warn("Refresh token with UID {} not found", refreshTokenDALM.getUid());
+                            return Mono.error(new RefreshTokenNotFoundException(
+                                "Refresh token with UID " + refreshTokenDALM.getUid() + " not found"));
+                        }))
+                        .then(Mono.defer(() -> {
+                            log.debug("Proceeding with token revocation");
+                            return revokeToken(connection, refreshTokenDALM.getUid());
+                        }))
+                        .then(Mono.defer(() -> {
+                            log.debug("Committing transaction for token revocation");
+                            return Mono.from(connection.commitTransaction());
+                        }))
+                        .onErrorResume(error -> {
+                            log.error("Error during token revocation for UID: {} - {}. Rolling back transaction.", 
+                                    refreshTokenDALM.getUid(), error.getMessage());
+                            return Mono.from(connection.rollbackTransaction())
+                                    .then(Mono.error(error));
+                        })
+                        .doOnSuccess(v -> log.info("Successfully revoked token with UID: {}", refreshTokenDALM.getUid()));
+            },
+            Connection::close,
+            (connection, error) -> {
+                log.error("Async error cleanup for token revocation: {}", error.getMessage());
+                return Mono.from(connection.close());
+            },
+            Connection::close
+        );
+    }
+
+    @Override
+    public Mono<Void> revokeAll(UUID clientUUID) {
+        log.info("Attempting to revoke all tokens for client: {}", clientUUID);
+        
+        return Mono.usingWhen(
+            refreshTokenConnectionFactory.create(),
+            connection -> {
+                log.debug("Starting transaction for revoke all tokens");
+                return Mono.from(connection.beginTransaction())
+                        .then(Mono.defer(() -> {
+                            String sql = "DELETE FROM \"access\".refresh_token WHERE client_id = $1";
+                            log.trace("Executing revoke all query for client: {}", clientUUID);
+                            return Mono.from(connection.createStatement(sql)
+                                .bind("$1", clientUUID)
+                                .execute());
+                        }))
+                        .flatMap(result -> Mono.from(result.getRowsUpdated()))
+                        .doOnNext(rowsDeleted -> log.debug("Revoked {} tokens for client: {}", rowsDeleted, clientUUID))
+                        .then(Mono.defer(() -> {
+                            log.debug("Committing transaction for revoke all");
+                            return Mono.from(connection.commitTransaction());
+                        }))
+                        .onErrorResume(error -> {
+                            log.error("Error during revoke all for client: {} - {}. Rolling back transaction.", 
+                                    clientUUID, error.getMessage());
+                            return Mono.from(connection.rollbackTransaction())
+                                    .then(Mono.error(error));
+                        })
+                        .doOnSuccess(v -> log.info("Successfully revoked all tokens for client: {}", clientUUID));
+            },
+            Connection::close,
+            (connection, error) -> {
+                log.error("Async error cleanup for revoke all: {}", error.getMessage());
+                return Mono.from(connection.close());
+            },
+            Connection::close
+        );
+    }
+
+    @Override
+    public Mono<Void> cleanUpExpired() {
+        log.info("Attempting to clean up expired tokens");
+        
+        return Mono.usingWhen(
+            refreshTokenConnectionFactory.create(),
+            connection -> {
+                log.debug("Starting transaction for cleanup expired tokens");
+                return Mono.from(connection.beginTransaction())
+                        .then(Mono.defer(() -> {
+                            String sql = "DELETE FROM \"access\".refresh_token WHERE expires_at < NOW()";
+                            log.trace("Executing cleanup expired tokens query");
+                            return Mono.from(connection.createStatement(sql).execute());
+                        }))
+                        .flatMap(result -> Mono.from(result.getRowsUpdated()))
+                        .doOnNext(rowsDeleted -> log.info("Cleaned up {} expired tokens", rowsDeleted))
+                        .then(Mono.defer(() -> {
+                            log.debug("Committing transaction for cleanup");
+                            return Mono.from(connection.commitTransaction());
+                        }))
+                        .onErrorResume(error -> {
+                            log.error("Error during cleanup expired tokens - {}. Rolling back transaction.", 
+                                    error.getMessage());
+                            return Mono.from(connection.rollbackTransaction())
+                                    .then(Mono.error(error));
+                        })
+                        .doOnSuccess(v -> log.info("Successfully cleaned up expired tokens"));
+            },
+            Connection::close,
+            (connection, error) -> {
+                log.error("Async error cleanup for cleanup: {}", error.getMessage());
+                return Mono.from(connection.close());
+            },
+            Connection::close
+        );
+    }
+
+    // Вспомогательные методы
+    private Mono<Boolean> checkTokenExists(Connection connection, String token, UUID uid) {
+        log.trace("Checking token existence for token: {} and UID: {}", token, uid);
+        
+        String sql = "SELECT COUNT(*) as count FROM \"access\".refresh_token WHERE token = $1 OR uid = $2";
+        
+        return Mono.from(connection.createStatement(sql)
+            .bind("$1", token)
+            .bind("$2", uid)
+            .execute())
+            .flatMap(result -> 
+                Mono.from(result.map((row, metadata) -> row.get("count", Long.class)))
+            )
+            .map(count -> count > 0)
+            .defaultIfEmpty(false)
+            .doOnNext(exists -> log.trace("Token existence check result: {}", exists));
+    }
+
+    private Mono<Boolean> checkTokenExistsByToken(Connection connection, String token) {
+        log.trace("Checking token existence by token: {}", token);
+        
+        String sql = "SELECT COUNT(*) as count FROM \"access\".refresh_token WHERE token = $1";
+        
+        return Mono.from(connection.createStatement(sql)
+            .bind("$1", token)
+            .execute())
+            .flatMap(result -> 
+                Mono.from(result.map((row, metadata) -> row.get("count", Long.class)))
+            )
+            .map(count -> count > 0)
+            .defaultIfEmpty(false)
+            .doOnNext(exists -> log.trace("Token existence by token check result: {}", exists));
+    }
+
+    private Mono<Boolean> checkUidExists(Connection connection, UUID uid) {
+        log.trace("Checking token existence by UID: {}", uid);
+        
+        String sql = "SELECT COUNT(*) as count FROM \"access\".refresh_token WHERE uid = $1";
+        
+        return Mono.from(connection.createStatement(sql)
+            .bind("$1", uid)
+            .execute())
+            .flatMap(result -> 
+                Mono.from(result.map((row, metadata) -> row.get("count", Long.class)))
+            )
+            .map(count -> count > 0)
+            .defaultIfEmpty(false)
+            .doOnNext(exists -> log.trace("Token existence by UID check result: {}", exists));
+    }
+
+    private Mono<Void> insertToken(Connection connection, RefreshTokenDALM token) {
+        log.debug("Inserting new token with UID: {} for client: {}", token.getUid(), token.getClientUID());
+        
+        String sql = "INSERT INTO \"access\".refresh_token (uid, client_id, token, created_at, expires_at) " +
+                    "VALUES ($1, $2, $3, $4, $5)";
+        
+        Statement stmt = connection.createStatement(sql)
+            .bind("$1", token.getUid())
+            .bind("$2", token.getClientUID())
+            .bind("$3", token.getToken())
+            .bind("$4", toLocalDateTime(token.getCreatedAt()))
+            .bind("$5", toLocalDateTime(token.getExpiresAt()));
+
+        return Mono.from(stmt.execute())
+                .flatMap(result -> Mono.from(result.getRowsUpdated()))
+                .doOnNext(rowsUpdated -> log.debug("Token insert executed, rows affected: {}", rowsUpdated))
+                .then()
+                .doOnSuccess(v -> log.info("Token inserted successfully with UID: {}", token.getUid()))
+                .doOnError(error -> log.error("Failed to insert token with UID: {} - {}", token.getUid(), error.getMessage()));
+    }
+
+    private Mono<Void> updateTokenInDb(Connection connection, String oldToken, RefreshTokenDALM newToken) {
+        log.debug("Updating token from: {} to: {}", oldToken, newToken.getToken());
+        
+        String sql = "UPDATE \"access\".refresh_token SET token = $1, expires_at = $2, created_at = $3 " +
+                    "WHERE token = $4";
+        
+        Statement stmt = connection.createStatement(sql)
+            .bind("$1", newToken.getToken())
+            .bind("$2", toLocalDateTime(newToken.getExpiresAt()))
+            .bind("$3", toLocalDateTime(newToken.getCreatedAt()))
+            .bind("$4", oldToken);
+
+        return Mono.from(stmt.execute())
+                .flatMap(result -> Mono.from(result.getRowsUpdated()))
+                .doOnNext(rowsUpdated -> log.debug("Token update executed, rows affected: {}", rowsUpdated))
+                .then()
+                .doOnSuccess(v -> log.info("Token updated successfully from {} to {}", oldToken, newToken.getToken()))
+                .doOnError(error -> log.error("Failed to update token from {} - {}", oldToken, error.getMessage()));
+    }
+
+    private Mono<Void> revokeToken(Connection connection, UUID uid) {
+        log.debug("Revoking token with UID: {}", uid);
+        
+        String sql = "DELETE FROM \"access\".refresh_token WHERE uid = $1";
+        return Mono.from(connection.createStatement(sql)
+            .bind("$1", uid)
+            .execute())
+            .flatMap(result -> Mono.from(result.getRowsUpdated()))
+            .doOnNext(rowsDeleted -> log.debug("Token revocation executed, rows affected: {}", rowsDeleted))
+            .then()
+            .doOnSuccess(v -> log.info("Token revoked successfully with UID: {}", uid))
+            .doOnError(error -> log.error("Failed to revoke token with UID: {} - {}", uid, error.getMessage()));
+    }
+
+    // Дополнительные реактивные методы
+    public Mono<RefreshTokenDALM> findByUid(UUID uid) throws RefreshTokenNotFoundException {
+        log.debug("Searching for token by UID: {}", uid);
+        
+        return Mono.usingWhen(
+            refreshTokenConnectionFactory.create(),
+            connection -> {
+                String sql = "SELECT uid, client_id, token, created_at, expires_at " +
+                           "FROM \"access\".refresh_token WHERE uid = $1";
+                
+                return Mono.from(connection.createStatement(sql)
+                    .bind("$1", uid)
+                    .execute())
+                    .flatMap(result -> 
+                        Mono.from(result.map((row, metadata) -> mapRowToRefreshTokenDALM(row)))
+                    )
+                    .doOnSuccess(token -> log.debug("Found token by UID: {}", uid))
+                    .doOnError(error -> log.warn("Token not found by UID: {} - {}", uid, error.getMessage()))
+                    .switchIfEmpty(Mono.error(new RefreshTokenNotFoundException(
+                        "Refresh token with UID " + uid + " not found")));
+            },
+            Connection::close,
+            (connection, error) -> Mono.from(connection.close()),
+            Connection::close
+        );
+    }
+
+    public Mono<RefreshTokenDALM> findByToken(String token) throws RefreshTokenNotFoundException {
+        log.debug("Searching for token by token string: {}", token);
+        
+        return Mono.usingWhen(
+            refreshTokenConnectionFactory.create(),
+            connection -> {
+                String sql = "SELECT uid, client_id, token, created_at, expires_at " +
+                           "FROM \"access\".refresh_token WHERE token = $1";
+                
+                return Mono.from(connection.createStatement(sql)
+                    .bind("$1", token)
+                    .execute())
+                    .flatMap(result -> 
+                        Mono.from(result.map((row, metadata) -> mapRowToRefreshTokenDALM(row)))
+                    )
+                    .doOnSuccess(foundToken -> log.debug("Found token by token string: {}", token))
+                    .doOnError(error -> log.warn("Token not found by token string: {} - {}", token, error.getMessage()))
+                    .switchIfEmpty(Mono.error(new RefreshTokenNotFoundException("Refresh token not found")));
+            },
+            Connection::close,
+            (connection, error) -> Mono.from(connection.close()),
+            Connection::close
+        );
+    }
+
+    public Mono<Boolean> isTokenValid(String token) {
+        log.trace("Checking token validity: {}", token);
+        
+        return findByToken(token)
+            .map(refreshToken -> {
+                boolean isValid = refreshToken.getExpiresAt().after(new Date());
+                log.trace("Token validity check for {}: {}", token, isValid);
+                return isValid;
+            })
+            .onErrorReturn(RefreshTokenNotFoundException.class, false)
+            .doOnError(error -> log.warn("Error during token validity check for {}: {}", token, error.getMessage()));
+    }
+
+    // Маппинг Row -> RefreshTokenDALM
+    private RefreshTokenDALM mapRowToRefreshTokenDALM(Row row) {
+        log.trace("Mapping row to RefreshTokenDALM");
+        
+        LocalDateTime createdAtLocal = row.get("created_at", LocalDateTime.class);
+        LocalDateTime expiresAtLocal = row.get("expires_at", LocalDateTime.class);
+
+        return RefreshTokenDALM.builder()
+            .uid(row.get("uid", UUID.class))
+            .clientUID(row.get("client_id", UUID.class))
+            .token(row.get("token", String.class))
+            .createdAt(toDate(createdAtLocal))
+            .expiresAt(toDate(expiresAtLocal))
+            .build();
+    }
+
+    // Утилиты для конвертации Date <-> LocalDateTime
+    private LocalDateTime toLocalDateTime(Date date) {
+        return date != null ? 
+            date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime() : null;
+    }
+
+    private Date toDate(LocalDateTime localDateTime) {
+        return localDateTime != null ? 
+            Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant()) : null;
+    }
+
+    // Метод для проверки соединения с БД
+    public Mono<Boolean> testConnection() {
+        return Mono.usingWhen(
+                refreshTokenConnectionFactory.create(),
+                connection -> {
+                    log.info("Testing database connection for tokens");
+                    return Mono.from(connection.createStatement("SELECT 1").execute())
+                            .flatMap(result -> Mono.from(result.map((row, metadata) -> true)))
+                            .doOnSuccess(v -> log.info("Database connection test successful for tokens"))
+                            .doOnError(error -> log.error("Database connection test failed for tokens: {}", error.getMessage()));
+                },
+                Connection::close,
+                (connection, error) -> Mono.from(connection.close()),
+                Connection::close
+        );
+    }
+}package com.connection.token.mother;
 
 import java.util.Date;
 import java.util.UUID;

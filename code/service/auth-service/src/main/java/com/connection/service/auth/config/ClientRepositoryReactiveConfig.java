@@ -11,15 +11,17 @@ import com.connection.client.repository.ClientReactiveRepositoryImpl;
 import com.connection.client.repository.ClientRepository;
 import com.connection.client.repository.ClientRepositorySQLImpl;
 
-
+import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.spi.ConnectionFactory;
 
 @Configuration
 @ConditionalOnProperty(name = "app.controller.mode", havingValue = "webflux")
 public class ClientRepositoryReactiveConfig {
+    
     @Bean("ClientRepository")
-    ClientRepository clientWebFluxRepository(@Qualifier("clientConnectionFactory")ConnectionFactory connectionFactory,
-                                            @Qualifier("ClientConverter") ClientConverter clientConverter){
-        return new ClientReactiveRepositoryImpl(connectionFactory, clientConverter);
+    ClientRepository clientWebFluxRepository(
+        @Qualifier("clientConnectionPool") ConnectionPool connectionPool // Используем пул
+    ){
+        return new ClientReactiveRepositoryImpl(connectionPool);
     }
 }

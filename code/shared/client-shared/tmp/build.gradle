@@ -61,6 +61,8 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok:1.18.38'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
 
+    implementation 'io.r2dbc:r2dbc-postgresql:0.8.13.RELEASE'
+    implementation 'io.projectreactor:reactor-core:3.6.0'
 
     // Тестовые зависимости
     testImplementation 'org.junit.jupiter:junit-jupiter:5.12.2'

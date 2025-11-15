@@ -314,26 +314,28 @@ import com.connection.client.exception.ClientAlreadyExisistsException;
 import com.connection.client.exception.ClientNotFoundException;
 import com.connection.client.model.ClientBLM;
 
+import reactor.core.publisher.Mono;
+
 public interface ClientRepository {
-    public void add(ClientBLM clientBLM)
+    public Mono<Void> add(ClientBLM clientBLM)
             throws ClientAlreadyExisistsException;
 
-    public ClientBLM findByUid(UUID uuid)
+    public Mono<ClientBLM> findByUid(UUID uuid)
             throws ClientNotFoundException;
 
-    public ClientBLM findByEmail(String emailString)
+    public Mono<ClientBLM> findByEmail(String emailString)
             throws ClientNotFoundException;
 
-    public ClientBLM findByUsername(String usernameString)
+    public Mono<ClientBLM> findByUsername(String usernameString)
             throws ClientNotFoundException;
 
-    public ClientBLM findByEmailPassword(String emailString, String passwordString)
+    public Mono<ClientBLM> findByEmailPassword(String emailString, String passwordString)
             throws ClientNotFoundException;
 
-    public ClientBLM findByUsernamePassword(String usernameString, String passwordString)
+    public Mono<ClientBLM> findByUsernamePassword(String usernameString, String passwordString)
             throws ClientNotFoundException;
     
-    public void deleteByUid(UUID uuid)
+    public Mono<Void> deleteByUid(UUID uuid)
         throws ClientNotFoundException;
     
 }package com.connection.client.repository;
@@ -353,7 +355,8 @@ import com.connection.client.model.ClientBLM;
 import com.connection.client.model.ClientDALM;
 import com.connection.client.validator.ClientValidator;
 
-import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class ClientRepositorySQLImpl implements ClientRepository {
 
@@ -399,126 +402,500 @@ public class ClientRepositorySQLImpl implements ClientRepository {
     }
 
     @Override
-    //@Transaction
-    public void add(ClientBLM clientBLM) throws ClientAlreadyExisistsException {
-        // Валидация BLM модели
-        validator.validate(clientBLM);
-        
-        try {
-            // Проверяем существование по email
-            findByEmail(clientBLM.getEmail());
-            throw new ClientAlreadyExisistsException("Client with email " + clientBLM.getEmail() + " already exists");
-        } catch (ClientNotFoundException e) {
-            // Клиент не найден по email - продолжаем
-        }
+    public Mono<Void> add(ClientBLM clientBLM) throws ClientAlreadyExisistsException {
+        return Mono.fromCallable(() -> {
+            // Валидация BLM модели
+            validator.validate(clientBLM);
+            
+            try {
+                // Проверяем существование по email
+                findByEmailSync(clientBLM.getEmail());
+                throw new ClientAlreadyExisistsException("Client with email " + clientBLM.getEmail() + " already exists");
+            } catch (ClientNotFoundException e) {
+                // Клиент не найден по email - продолжаем
+            }
 
-        try {
-            // Проверяем существование по username
-            findByUsername(clientBLM.getUsername());
-            throw new ClientAlreadyExisistsException(
-                    "Client with username " + clientBLM.getUsername() + " already exists");
-        } catch (ClientNotFoundException e) {
-            // Клиент не найден по username - продолжаем
-        }
+            try {
+                // Проверяем существование по username
+                findByUsernameSync(clientBLM.getUsername());
+                throw new ClientAlreadyExisistsException(
+                        "Client with username " + clientBLM.getUsername() + " already exists");
+            } catch (ClientNotFoundException e) {
+                // Клиент не найден по username - продолжаем
+            }
 
-        // Конвертация BLM в DALM
-        ClientDALM clientDALM = converter.toDALM(clientBLM);
+            // Конвертация BLM в DALM
+            ClientDALM clientDALM = converter.toDALM(clientBLM);
 
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", clientDALM.getUid() != null ? clientDALM.getUid() : UUID.randomUUID());
-        params.addValue("email", clientDALM.getEmail());
-        params.addValue("birth_date",
-                clientDALM.getBirthDate() != null ? new Date(clientDALM.getBirthDate().getTime()) : null);
-        params.addValue("username", clientDALM.getUsername());
-        params.addValue("password", clientDALM.getPassword());
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", clientDALM.getUid() != null ? clientDALM.getUid() : UUID.randomUUID());
+            params.addValue("email", clientDALM.getEmail());
+            params.addValue("birth_date",
+                    clientDALM.getBirthDate() != null ? new Date(clientDALM.getBirthDate().getTime()) : null);
+            params.addValue("username", clientDALM.getUsername());
+            params.addValue("password", clientDALM.getPassword());
 
-        jdbcTemplate.update(INSERT_CLIENT, params);
+            jdbcTemplate.update(INSERT_CLIENT, params);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
     @Override
-    //@Transaction
-    public ClientBLM findByUid(UUID uuid) throws ClientNotFoundException {
+    public Mono<ClientBLM> findByUid(UUID uuid) throws ClientNotFoundException {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", uuid);
+            try {
+                ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_UID, params, clientRowMapper);
+                // Конвертация DALM в BLM
+                return converter.toBLM(dalClient);
+            } catch (EmptyResultDataAccessException e) {
+                throw new ClientNotFoundException("Client with UID " + uuid + " not found");
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<ClientBLM> findByEmail(String emailString) throws ClientNotFoundException {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("email", emailString);
+            try {
+                ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL, params, clientRowMapper);
+                // Конвертация DALM в BLM
+                return converter.toBLM(dalClient);
+            } catch (EmptyResultDataAccessException e) {
+                throw new ClientNotFoundException("Client with email " + emailString + " not found");
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<ClientBLM> findByUsername(String usernameString) throws ClientNotFoundException {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("username", usernameString);
+            try {
+                ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME, params, clientRowMapper);
+                // Конвертация DALM в BLM
+                return converter.toBLM(dalClient);
+            } catch (EmptyResultDataAccessException e) {
+                throw new ClientNotFoundException("Client with username " + usernameString + " not found");
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<ClientBLM> findByEmailPassword(String emailString, String passwordString) throws ClientNotFoundException {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("email", emailString);
+            params.addValue("password", passwordString);
+            try {
+                ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL_PASSWORD, params, clientRowMapper);
+                // Конвертация DALM в BLM
+                return converter.toBLM(dalClient);
+            } catch (EmptyResultDataAccessException e) {
+                throw new ClientNotFoundException("Client with email " + emailString + " and provided password not found");
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<ClientBLM> findByUsernamePassword(String usernameString, String passwordString)
+            throws ClientNotFoundException {
+        return Mono.fromCallable(() -> {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("username", usernameString);
+            params.addValue("password", passwordString);
+            try {
+                ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME_PASSWORD, params, clientRowMapper);
+                // Конвертация DALM в BLM
+                return converter.toBLM(dalClient);
+            } catch (EmptyResultDataAccessException e) {
+                throw new ClientNotFoundException(
+                        "Client with username " + usernameString + " and provided password not found");
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<Void> deleteByUid(UUID uuid) throws ClientNotFoundException {
+        return Mono.fromCallable(() -> {
+            // Проверяем существование клиента перед удалением
+            findByUidSync(uuid);
+
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("uid", uuid);
+
+            jdbcTemplate.update(DELETE_CLIENT_BY_UID, params);
+            return null;
+        }).subscribeOn(Schedulers.boundedElastic()).then();
+    }
+
+    // Синхронные методы для внутреннего использования
+    private ClientBLM findByUidSync(UUID uuid) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("uid", uuid);
         try {
             ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_UID, params, clientRowMapper);
-            // Конвертация DALM в BLM
             return converter.toBLM(dalClient);
         } catch (EmptyResultDataAccessException e) {
             throw new ClientNotFoundException("Client with UID " + uuid + " not found");
         }
     }
 
-    @Override
-    //@Transaction
-    public ClientBLM findByEmail(String emailString) throws ClientNotFoundException {
+    private ClientBLM findByEmailSync(String emailString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("email", emailString);
         try {
             ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL, params, clientRowMapper);
-            // Конвертация DALM в BLM
             return converter.toBLM(dalClient);
         } catch (EmptyResultDataAccessException e) {
             throw new ClientNotFoundException("Client with email " + emailString + " not found");
         }
     }
 
-    @Override
-    //@Transaction
-    public ClientBLM findByUsername(String usernameString) throws ClientNotFoundException {
+    private ClientBLM findByUsernameSync(String usernameString) throws ClientNotFoundException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("username", usernameString);
         try {
             ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME, params, clientRowMapper);
-            // Конвертация DALM в BLM
             return converter.toBLM(dalClient);
         } catch (EmptyResultDataAccessException e) {
             throw new ClientNotFoundException("Client with username " + usernameString + " not found");
         }
     }
+}package com.connection.client.repository;
+
+import io.r2dbc.spi.Connection;
+import io.r2dbc.spi.ConnectionFactory;
+import io.r2dbc.spi.Row;
+import io.r2dbc.spi.Statement;
+
+import com.connection.client.converter.ClientConverter;
+import com.connection.client.exception.ClientAlreadyExisistsException;
+import com.connection.client.exception.ClientNotFoundException;
+import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientDALM;
+import com.connection.client.validator.ClientValidator;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.UUID;
+
+@Slf4j
+@RequiredArgsConstructor
+public class ClientReactiveRepositoryImpl implements ClientRepository {
+
+    private final ConnectionFactory clientConnectionFactory;
+    private final ClientConverter converter;
+    private final ClientValidator validator = new ClientValidator();
+
+    private static final String SELECT_CLIENT = "SELECT uid, email, birth_date, username, password";
+    private static final String SELECT_CLIENT_BY_UID = SELECT_CLIENT +
+            " FROM core.client WHERE uid = $1";
+    private static final String SELECT_CLIENT_BY_EMAIL = SELECT_CLIENT +
+            " FROM core.client WHERE email = $1";
+    private static final String SELECT_CLIENT_BY_USERNAME = SELECT_CLIENT +
+            " FROM core.client WHERE username = $1";
+    private static final String SELECT_CLIENT_BY_EMAIL_PASSWORD = SELECT_CLIENT +
+            " FROM core.client WHERE email = $1 AND password = $2";
+    private static final String SELECT_CLIENT_BY_USERNAME_PASSWORD = SELECT_CLIENT +
+            " FROM core.client WHERE username = $1 AND password = $2";
+    private static final String INSERT_CLIENT = "INSERT INTO core.client (uid, email, birth_date, username, password) " +
+            "VALUES ($1, $2, $3, $4, $5)";
+    private static final String DELETE_CLIENT_BY_UID = "DELETE FROM core.client WHERE uid = $1";
 
     @Override
-    //@Transaction
-    public ClientBLM findByEmailPassword(String emailString, String passwordString) throws ClientNotFoundException {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("email", emailString);
-        params.addValue("password", passwordString);
-        try {
-            ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_EMAIL_PASSWORD, params, clientRowMapper);
-            // Конвертация DALM в BLM
-            return converter.toBLM(dalClient);
-        } catch (EmptyResultDataAccessException e) {
-            throw new ClientNotFoundException("Client with email " + emailString + " and provided password not found");
-        }
+    public Mono<Void> add(ClientBLM clientBLM) {
+        log.info("Attempting to add new client with email: {} and username: {}", 
+                clientBLM.getEmail(), clientBLM.getUsername());
+        
+        validator.validate(clientBLM);
+        ClientDALM clientDALM = converter.toDALM(clientBLM);
+        
+        return Mono.usingWhen(
+                clientConnectionFactory.create(),
+                connection -> {
+                    log.debug("Starting transaction for client addition");
+                    return Mono.from(connection.beginTransaction())
+                            .then(Mono.defer(() -> {
+                                log.trace("Checking client existence by email: {}", clientDALM.getEmail());
+                                return checkClientExistsByEmail(connection, clientDALM.getEmail());
+                            }))
+                            .filter(exists -> !exists)
+                            .switchIfEmpty(Mono.defer(() -> {
+                                log.warn("Client with email {} already exists", clientDALM.getEmail());
+                                return Mono.error(new ClientAlreadyExisistsException("Email already exists"));
+                            }))
+                            .then(Mono.defer(() -> {
+                                log.trace("Checking client existence by username: {}", clientDALM.getUsername());
+                                return checkClientExistsByUsername(connection, clientDALM.getUsername());
+                            }))
+                            .filter(exists -> !exists)
+                            .switchIfEmpty(Mono.defer(() -> {
+                                log.warn("Client with username {} already exists", clientDALM.getUsername());
+                                return Mono.error(new ClientAlreadyExisistsException("Username already exists"));
+                            }))
+                            .then(Mono.defer(() -> {
+                                log.debug("Proceeding with client insertion");
+                                return insertClient(connection, clientDALM);
+                            }))
+                            .then(Mono.defer(() -> {
+                                log.debug("Committing transaction");
+                                return Mono.from(connection.commitTransaction());
+                            }))
+                            .onErrorResume(error -> {
+                                log.error("Error during client addition with email: {} - {}. Rolling back transaction.", 
+                                        clientDALM.getEmail(), error.getMessage());
+                                return Mono.from(connection.rollbackTransaction())
+                                        .then(Mono.error(error));
+                            })
+                            .doOnSuccess(v -> log.info("Successfully added client with UID: {}, email: {}", 
+                                    clientDALM.getUid(), clientDALM.getEmail()));
+                },
+                Connection::close,
+                (connection, error) -> {
+                    log.error("Async error cleanup for client addition: {}", error.getMessage());
+                    return Mono.from(connection.close());
+                },
+                Connection::close
+        );
     }
 
     @Override
-    //@Transaction
-    public ClientBLM findByUsernamePassword(String usernameString, String passwordString)
+    public Mono<ClientBLM> findByUid(UUID uuid) throws ClientNotFoundException {
+        log.debug("Searching for client by UID: {}", uuid);
+        
+        return Mono.usingWhen(
+                clientConnectionFactory.create(),
+                connection -> findClientByQuery(connection, SELECT_CLIENT_BY_UID, uuid)
+                        .doOnSuccess(client -> log.debug("Found client by UID: {}", uuid))
+                        .doOnError(error -> log.warn("Client not found by UID: {} - {}", uuid, error.getMessage())),
+                Connection::close,
+                (connection, error) -> Mono.from(connection.close()),
+                Connection::close
+        );
+    }
+
+    @Override
+    public Mono<ClientBLM> findByEmail(String emailString) throws ClientNotFoundException {
+        log.debug("Searching for client by email: {}", emailString);
+        
+        return Mono.usingWhen(
+                clientConnectionFactory.create(),
+                connection -> findClientByQuery(connection, SELECT_CLIENT_BY_EMAIL, emailString)
+                        .doOnSuccess(client -> log.debug("Found client by email: {}", emailString))
+                        .doOnError(error -> log.warn("Client not found by email: {} - {}", emailString, error.getMessage())),
+                Connection::close,
+                (connection, error) -> Mono.from(connection.close()),
+                Connection::close
+        );
+    }
+
+    @Override
+    public Mono<ClientBLM> findByUsername(String usernameString) throws ClientNotFoundException {
+        log.debug("Searching for client by username: {}", usernameString);
+        
+        return Mono.usingWhen(
+                clientConnectionFactory.create(),
+                connection -> findClientByQuery(connection, SELECT_CLIENT_BY_USERNAME, usernameString)
+                        .doOnSuccess(client -> log.debug("Found client by username: {}", usernameString))
+                        .doOnError(error -> log.warn("Client not found by username: {} - {}", usernameString, error.getMessage())),
+                Connection::close,
+                (connection, error) -> Mono.from(connection.close()),
+                Connection::close
+        );
+    }
+
+    @Override
+    public Mono<ClientBLM> findByEmailPassword(String emailString, String passwordString)
             throws ClientNotFoundException {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("username", usernameString);
-        params.addValue("password", passwordString);
-        try {
-            ClientDALM dalClient = jdbcTemplate.queryForObject(SELECT_CLIENT_BY_USERNAME_PASSWORD, params, clientRowMapper);
-            // Конвертация DALM в BLM
-            return converter.toBLM(dalClient);
-        } catch (EmptyResultDataAccessException e) {
-            throw new ClientNotFoundException(
-                    "Client with username " + usernameString + " and provided password not found");
-        }
+        log.debug("Attempting authentication by email: {}", emailString);
+        
+        return Mono.usingWhen(
+                clientConnectionFactory.create(),
+                connection -> {
+                    return Mono.from(connection.createStatement(SELECT_CLIENT_BY_EMAIL_PASSWORD)
+                            .bind("$1", emailString)
+                            .bind("$2", passwordString)
+                            .execute())
+                            .flatMap(result -> Mono.from(result.map((row, metadata) -> mapRowToClientDALM(row))))
+                            .map(converter::toBLM)
+                            .doOnSuccess(client -> log.info("Successful authentication by email: {}", emailString))
+                            .doOnError(error -> log.warn("Failed authentication by email: {} - {}", emailString, error.getMessage()))
+                            .switchIfEmpty(Mono.error(new ClientNotFoundException(
+                                    "Client with email " + emailString + " and provided password not found")));
+                },
+                Connection::close,
+                (connection, error) -> Mono.from(connection.close()),
+                Connection::close
+        );
     }
 
     @Override
-    //@Transaction
-    public void deleteByUid(UUID uuid) throws ClientNotFoundException {
-        // Проверяем существование клиента перед удалением
-        findByUid(uuid);
+    public Mono<ClientBLM> findByUsernamePassword(String usernameString, String passwordString)
+            throws ClientNotFoundException {
+        log.debug("Attempting authentication by username: {}", usernameString);
+        
+        return Mono.usingWhen(
+                clientConnectionFactory.create(),
+                connection -> {
+                    return Mono.from(connection.createStatement(SELECT_CLIENT_BY_USERNAME_PASSWORD)
+                            .bind("$1", usernameString)
+                            .bind("$2", passwordString)
+                            .execute())
+                            .flatMap(result -> Mono.from(result.map((row, metadata) -> mapRowToClientDALM(row))))
+                            .map(converter::toBLM)
+                            .doOnSuccess(client -> log.info("Successful authentication by username: {}", usernameString))
+                            .doOnError(error -> log.warn("Failed authentication by username: {} - {}", usernameString, error.getMessage()))
+                            .switchIfEmpty(Mono.error(new ClientNotFoundException(
+                                    "Client with username " + usernameString + " and provided password not found")));
+                },
+                Connection::close,
+                (connection, error) -> Mono.from(connection.close()),
+                Connection::close
+        );
+    }
 
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("uid", uuid);
+    @Override
+    public Mono<Void> deleteByUid(UUID uuid) throws ClientNotFoundException {
+        log.info("Attempting to delete client by UID: {}", uuid);
+        
+        return findByUid(uuid)
+                .flatMap(client -> Mono.usingWhen(
+                        clientConnectionFactory.create(),
+                        connection -> {
+                            log.debug("Starting transaction for client deletion");
+                            return Mono.from(connection.beginTransaction())
+                                    .then(Mono.from(connection.createStatement(DELETE_CLIENT_BY_UID)
+                                            .bind("$1", uuid)
+                                            .execute()))
+                                    .flatMap(result -> Mono.from(result.getRowsUpdated()))
+                                    .doOnNext(rows -> log.debug("Deleted {} rows for UID: {}", rows, uuid))
+                                    .then(Mono.from(connection.commitTransaction()))
+                                    .onErrorResume(error -> {
+                                        log.error("Error during client deletion for UID: {} - {}. Rolling back transaction.", 
+                                                uuid, error.getMessage());
+                                        return Mono.from(connection.rollbackTransaction())
+                                                .then(Mono.error(error));
+                                    })
+                                    .doOnSuccess(v -> log.info("Successfully deleted client with UID: {}", uuid));
+                        },
+                        Connection::close,
+                        (connection, error) -> {
+                            log.error("Async error cleanup for client deletion: {}", error.getMessage());
+                            return Mono.from(connection.close());
+                        },
+                        Connection::close
+                ))
+                .doOnError(error -> log.warn("Cannot delete client - client not found by UID: {}", uuid));
+    }
 
-        jdbcTemplate.update(DELETE_CLIENT_BY_UID, params);
+    private Mono<Boolean> checkClientExistsByEmail(Connection connection, String email) {
+        log.trace("Checking if client exists by email: {}", email);
+        
+        String sql = "SELECT COUNT(*) as count FROM core.client WHERE email = $1";
+
+        return Mono.from(connection.createStatement(sql)
+                .bind("$1", email)
+                .execute())
+                .flatMap(result -> Mono.from(result.map((row, metadata) -> row.get("count", Long.class))))
+                .map(count -> count > 0)
+                .defaultIfEmpty(false)
+                .doOnNext(exists -> log.trace("Client existence check by email {}: {}", email, exists));
+    }
+
+    private Mono<Boolean> checkClientExistsByUsername(Connection connection, String username) {
+        log.trace("Checking if client exists by username: {}", username);
+        
+        String sql = "SELECT COUNT(*) as count FROM core.client WHERE username = $1";
+
+        return Mono.from(connection.createStatement(sql)
+                .bind("$1", username)
+                .execute())
+                .flatMap(result -> Mono.from(result.map((row, metadata) -> row.get("count", Long.class))))
+                .map(count -> count > 0)
+                .defaultIfEmpty(false)
+                .doOnNext(exists -> log.trace("Client existence check by username {}: {}", username, exists));
+    }
+
+    private Mono<Void> insertClient(Connection connection, ClientDALM clientDALM) {
+        UUID uid = clientDALM.getUid() != null ? clientDALM.getUid() : UUID.randomUUID();
+        clientDALM.setUid(uid);
+        
+        log.debug("Inserting new client with UID: {}, email: {}", uid, clientDALM.getEmail());
+
+        Statement stmt = connection.createStatement(INSERT_CLIENT)
+                .bind("$1", uid)
+                .bind("$2", clientDALM.getEmail())
+                .bind("$3",
+                        clientDALM.getBirthDate() != null
+                                ? clientDALM.getBirthDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                                : null)
+                .bind("$4", clientDALM.getUsername())
+                .bind("$5", clientDALM.getPassword());
+
+        return Mono.from(stmt.execute())
+                .flatMap(result -> Mono.from(result.getRowsUpdated()))
+                .doOnNext(rowsUpdated -> log.debug("Insert executed, rows affected: {}", rowsUpdated))
+                .then()
+                .doOnSuccess(v -> log.info("Client inserted successfully with UID: {}", uid))
+                .doOnError(error -> log.error("Failed to insert client with UID: {} - {}", uid, error.getMessage()));
+    }
+
+    private Mono<ClientBLM> findClientByQuery(Connection connection, String sql, Object value) {
+        log.trace("Executing query: {} with value: {}", sql, value);
+        
+        return Mono.from(connection.createStatement(sql)
+                .bind("$1", value)
+                .execute())
+                .flatMap(result -> Mono.from(result.map((row, metadata) -> mapRowToClientDALM(row))))
+                .map(converter::toBLM)
+                .doOnNext(client -> log.trace("Query executed successfully: {}", sql))
+                .doOnError(error -> log.trace("Query failed: {} - {}", sql, error.getMessage()))
+                .switchIfEmpty(Mono.error(new ClientNotFoundException(
+                        "Client not found for query: " + sql + " with value: " + value)));
+    }
+
+    private ClientDALM mapRowToClientDALM(Row row) {
+        log.trace("Mapping row to ClientDALM");
+        
+        LocalDate birthDateLocal = row.get("birth_date", LocalDate.class);
+        Date birthDate = birthDateLocal != null
+                ? Date.from(birthDateLocal.atStartOfDay(ZoneId.systemDefault()).toInstant())
+                : null;
+
+        return ClientDALM.builder()
+                .uid(row.get("uid", UUID.class))
+                .email(row.get("email", String.class))
+                .birthDate(birthDate)
+                .username(row.get("username", String.class))
+                .password(row.get("password", String.class))
+                .build();
+    }
+
+    // Метод для проверки соединения с БД
+    public Mono<Boolean> testConnection() {
+        return Mono.usingWhen(
+                clientConnectionFactory.create(),
+                connection -> {
+                    log.info("Testing database connection");
+                    return Mono.from(connection.createStatement("SELECT 1").execute())
+                            .flatMap(result -> Mono.from(result.map((row, metadata) -> true)))
+                            .doOnSuccess(v -> log.info("Database connection test successful"))
+                            .doOnError(error -> log.error("Database connection test failed: {}", error.getMessage()));
+                },
+                Connection::close,
+                (connection, error) -> Mono.from(connection.close()),
+                Connection::close
+        );
     }
 }package com.connection.client.mother;
 

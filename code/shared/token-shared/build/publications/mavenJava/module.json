@@ -27,11 +27,11 @@
         {
           "name": "token-shared-1.0.0.jar",
           "url": "token-shared-1.0.0.jar",
-          "size": 49760,
-          "sha512": "899268653b30cd51bccf3ed10e433bff2e7981d9089b86f79fdfec8dd79dee6f8be306a203d8ca9f168e41810a6ea85e18dab8b06418c6f39134674611037813",
-          "sha256": "d75a531324ca69a2c1ea30c54c309cf530ce6d040b46860533c0b923e8a2cdc4",
-          "sha1": "6d826f0c4123666bf3a80a6533c6cf0f8e63953f",
-          "md5": "a503a5c13f74b71c7ea2d56a893097e0"
+          "size": 44033,
+          "sha512": "3c2edd234d651b8e6b403b3deb898a8d65b7c34e0feb83e11fb0cda6d20329ceef21ce7fa0955d6a9fbde646adb7ce816d33d98df457d71ff21927f74b8423c6",
+          "sha256": "0c2e57d6e6ec755d4e7853ab94f6d1af662b3a07cf3770dcae9864dad7a95835",
+          "sha1": "7a6b91bd9d4e643b77940ccaac67bfbf34b6aab3",
+          "md5": "3b8684addb46695de1caaa5378350eb0"
         }
       ]
     },
@@ -81,6 +81,13 @@
           }
         },
         {
+          "group": "io.r2dbc",
+          "module": "r2dbc-pool",
+          "version": {
+            "requires": "1.0.2.RELEASE"
+          }
+        },
+        {
           "group": "io.projectreactor",
           "module": "reactor-core",
           "version": {
@@ -92,11 +99,11 @@
         {
           "name": "token-shared-1.0.0.jar",
           "url": "token-shared-1.0.0.jar",
-          "size": 49760,
-          "sha512": "899268653b30cd51bccf3ed10e433bff2e7981d9089b86f79fdfec8dd79dee6f8be306a203d8ca9f168e41810a6ea85e18dab8b06418c6f39134674611037813",
-          "sha256": "d75a531324ca69a2c1ea30c54c309cf530ce6d040b46860533c0b923e8a2cdc4",
-          "sha1": "6d826f0c4123666bf3a80a6533c6cf0f8e63953f",
-          "md5": "a503a5c13f74b71c7ea2d56a893097e0"
+          "size": 44033,
+          "sha512": "3c2edd234d651b8e6b403b3deb898a8d65b7c34e0feb83e11fb0cda6d20329ceef21ce7fa0955d6a9fbde646adb7ce816d33d98df457d71ff21927f74b8423c6",
+          "sha256": "0c2e57d6e6ec755d4e7853ab94f6d1af662b3a07cf3770dcae9864dad7a95835",
+          "sha1": "7a6b91bd9d4e643b77940ccaac67bfbf34b6aab3",
+          "md5": "3b8684addb46695de1caaa5378350eb0"
         }
       ]
     }
