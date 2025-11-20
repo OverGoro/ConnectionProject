@@ -1,9 +1,0 @@
-FROM denvazh/gatling
-
-# USER root
-
-# Устанавливаем curl для скачивания зависимостей
-RUN apk add --no-cache curl
-
-# Создаем директорию для дополнительных библиотек
-RUN mkdir -p /opt/gatling/lib
