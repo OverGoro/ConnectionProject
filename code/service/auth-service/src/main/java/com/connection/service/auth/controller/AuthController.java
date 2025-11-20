@@ -1,5 +1,7 @@
 package com.connection.service.auth.controller;
 
+import java.util.UUID;
+
 import org.springframework.http.ResponseEntity;
 
 import com.connection.client.model.ClientDTO;
@@ -19,4 +21,5 @@ public interface AuthController {
     Mono<ResponseEntity<HealthResponse>> healthCheck();
     Mono<ResponseEntity<ValidationResponse>> validateAccessToken(String accessToken);
     Mono<ResponseEntity<ValidationResponse>> validateRefreshToken(String refreshToken);
+    Mono<ResponseEntity<Void>> deleteUserData(UUID client_uid);
 }

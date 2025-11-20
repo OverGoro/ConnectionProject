@@ -5,14 +5,13 @@ import io.gatling.http.Predef._
 import scala.concurrent.duration._
 import java.util.UUID
 
-class AuthServiceSimulation extends Simulation {
+class GatewaySimulation extends Simulation { 
 
   val targetRps = System.getProperty("targetRps", "100").toInt
   val targetHost = System.getProperty("targetHost", "localhost")
   val targetPort = System.getProperty("targetPort", "8081")
-  val durationSec = System.getProperty("durationSec", "60").toInt
+  val durationSec = System.getProperty("durationSec", "80").toInt // 20 + 60 = 80 секунд
   val serviceName = System.getProperty("serviceName", "auth-service")
-  val refreshDelayMs = System.getProperty("refreshDelayMs", "1000").toInt // Задержка перед refresh
 
   val httpProtocol = http
     .baseUrl(s"http://${targetHost}:${targetPort}")
@@ -27,7 +26,6 @@ class AuthServiceSimulation extends Simulation {
   val testPassword = "TestPassword123!"
   val testBirthDate = "1990-01-01T00:00:00.000Z"
 
-  // Основной сценарий: полный цикл аутентификации для каждого пользователя
   val authFlowScenario = scenario("Complete Auth Flow")
     .exec(session => {
       // Генерация уникальных данных для каждого пользователя
@@ -54,7 +52,7 @@ class AuthServiceSimulation extends Simulation {
             |  "username": "${username}"
             |}""".stripMargin
         )).asJson
-        .check(status.in(200, 201)) // 200 - успех, 400 - ошибка, 409 - уже существует
+        .check(status.in(200, 201, 409)) // Добавлен 409 для случая, когда пользователь уже существует
         .check(jsonPath("$.message").optional.saveAs("registerMessage"))
     )
     // 2. Логин для получения токенов
@@ -67,93 +65,76 @@ class AuthServiceSimulation extends Simulation {
             |  "password": "${password}"
             |}""".stripMargin
         )).asJson
-        .check(status.in(200, 201)) // Ожидаем 201 для успешного логина
+        .check(status.in(200, 201))
         .check(
           jsonPath("$.accessToken").saveAs("accessToken"),
           jsonPath("$.refreshToken").saveAs("refreshToken"),
           jsonPath("$.clientUid").saveAs("clientUid")
         )
     )
-    // // 3. Обновление токенов
-    // .exec(
-    //   http("refresh")
-    //     .post("/api/v1/auth/refresh")
-    //     .body(StringBody(
-    //       """{
-    //         |  "refreshToken": "${refreshToken}"
-    //         |}""".stripMargin
-    //     )).asJson
-    //     .check(status.is(200)) // Ожидаем 201 для успешного обновления
-    //     .check(
-    //       jsonPath("$.accessToken").saveAs("newAccessToken"),
-    //       jsonPath("$.refreshToken").saveAs("newRefreshToken")
-    //     )
-    // )
-    // 4. Валидация access token (используем новый токен после refresh)
+    // 3. Валидация access token
     .exec(
       http("validate_access")
         .post("/api/v1/auth/validate/access")
         .queryParam("accessToken", "${accessToken}")
         .check(status.in(200, 201))
     )
-    // 5. Валидация refresh token (используем новый токен после refresh)
+    // 4. Валидация refresh token
     .exec(
       http("validate_refresh")
         .post("/api/v1/auth/validate/refresh")
         .queryParam("refreshToken", "${refreshToken}")
         .check(status.in(200, 201))
     )
-
-  // Health check scenario (отдельный сценарий для проверки здоровья)
-  val healthCheckScenario = scenario("Health Check")
+    // 5. Очистка данных после теста
     .exec(
-      http("health_check")
-        .get("/api/v1/auth/health")
-        .check(status.in(200, 201))
-        .check(jsonPath("$.status").is("OK"))
+      http("delete_user_data")
+        .delete("/api/v1/auth/user/${clientUid}")
+        .check(status.in(200, 404, 400)) 
     )
 
   // Расчет нагрузки
-  // Каждый пользователь делает 5 запросов: register + login + refresh + validate_access + validate_refresh
-  val requestsPerUser = 4
+  val requestsPerUser = 5
   
   // Для достижения targetRps нужно: targetRps / requestsPerUser пользователей в секунду
   val usersPerSec = (targetRps.toDouble / requestsPerUser).max(1.0)
 
+  // Время подъема нагрузки и стабильной фазы
+  val rampUpTimeSeconds = usersPerSec.toInt / 10 //(targetRps.toInt / 25)
+  val steadyStateDurationSeconds = durationSec
+  val totalDurationSeconds = rampUpTimeSeconds + steadyStateDurationSeconds
+
   println(s"=== Gatling Configuration ===")
   println(s"Target RPS: $targetRps")
-  println(s"Duration: $durationSec seconds") 
+  println(s"Ramp-up time: $rampUpTimeSeconds seconds")
+  println(s"Steady-state duration: $steadyStateDurationSeconds seconds") 
+  println(s"Total test duration: $totalDurationSeconds seconds")
   println(s"Users per second: $usersPerSec")
   println(s"Requests per user: $requestsPerUser")
-  println(s"Expected total requests: ${targetRps * durationSec}")
+  println(s"Expected total requests: ${targetRps * totalDurationSeconds}")
   println(s"Service name: $serviceName")
+  println(s"Response time threshold: 500 ms")
 
-  // Настройка тестов в зависимости от serviceName
-  val setUpConfig = serviceName match {
-    case "auth-service-common" | "auth-service-reactive" =>
-      // Распределяем нагрузку: 80% на auth flow, 20% на health checks
-      val authFlowUsers = (usersPerSec * 1).max(1.0)
-      // val healthCheckUsers = (targetRps * 0.2).max(1.0)
-      
-      List(
-        authFlowScenario.inject(
-          constantUsersPerSec(authFlowUsers).during(durationSec.seconds)
-        )
-        // ,
-        // healthCheckScenario.inject(
-        //   constantUsersPerSec(healthCheckUsers).during(durationSec.seconds)
-        // )
-      )
-    case _ =>
-      // По умолчанию - только основной сценарий аутентификации
-      List(
-        authFlowScenario.inject(
-          constantUsersPerSec(usersPerSec).during(durationSec.seconds)
-        )
-      )
-  }
+  // Настройка инъекции с плавным подъемом и стабильной нагрузкой
+  val injectionSteps = Seq(
+    constantUsersPerSec(0).during(rampUpTimeSeconds.seconds),
+    constantUsersPerSec(1).during(rampUpTimeSeconds.seconds),
+    
+    rampUsersPerSec(0).to(usersPerSec).during((rampUpTimeSeconds * 3).seconds),
+    constantUsersPerSec(usersPerSec).during(steadyStateDurationSeconds.seconds),
 
-  setUp(setUpConfig: _*)
-    .protocols(httpProtocol)
-    .maxDuration(durationSec.seconds + 30.seconds) // Добавляем запас времени
+    constantUsersPerSec(100).during((steadyStateDurationSeconds * 2).seconds),
+  )
+
+  // Настройка теста
+  setUp(
+    authFlowScenario.inject(injectionSteps).protocols(httpProtocol)
+  )
+  .maxDuration((steadyStateDurationSeconds * 8 + rampUpTimeSeconds * (2 + 3 * 7)).seconds) // +10 секунд буфер
+  // .assertions(
+  //   global.responseTime.percentile(95).lt(500),
+  //   global.failedRequests.percent.lt(5.0)
+  // )
+
+  def simulationName: String = s"GatewaySimulation-${serviceName}-${targetRps}rps"
 }

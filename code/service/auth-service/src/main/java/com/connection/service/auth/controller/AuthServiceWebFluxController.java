@@ -34,6 +34,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+// import java.util.concurrent//.timeoutException;
+import java.util.UUID;
+
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -51,36 +55,46 @@ public class AuthServiceWebFluxController implements AuthController {
     @Operation(summary = "Register new client", description = "Register a new client in the system")
     @ApiResponse(responseCode = "200", description = "Client registered successfully", content = @Content(schema = @Schema(implementation = RegistrationResponse.class)))
     @ApiResponse(responseCode = "400", description = "Invalid client data")
+    @ApiResponse(responseCode = "408", description = "Request timeout")
     @PostMapping("/register")
     public Mono<ResponseEntity<RegistrationResponse>> register(
             @Parameter(description = "Client data", required = true) @RequestBody ClientDTO clientDTO) {
-        
+
         log.info("Registration attempt for email: {}", clientDTO.getEmail());
 
         return Mono.fromCallable(() -> {
             clientValidator.validate(clientDTO);
             return clientConverter.toBLM(clientDTO);
         })
-        .flatMap(authService::register)
-        .then(Mono.fromCallable(() -> {
-            log.info("Client registered successfully: {}", clientDTO.getUid());
-            return ResponseEntity.ok(new RegistrationResponse(
-                    "User registered successfully",
-                    clientDTO.getEmail()));
-        }))
-        .onErrorResume(throwable -> {
-            log.error("Registration failed for email: {}", clientDTO.getEmail(), throwable);
-            return Mono.just(ResponseEntity.badRequest().build());
-        });
+                .flatMap(authService::register)
+                .then(Mono.fromCallable(() -> {
+                    log.info("Client registered successfully: {}", clientDTO.getUid());
+                    return ResponseEntity.ok(new RegistrationResponse(
+                            "User registered successfully",
+                            clientDTO.getEmail()));
+                }))
+                // .timeout(Duration.ofMillis(500))
+                // .onErrorResume(TimeoutException.class, e -> {
+                // log.error("Registration timeout for email: {} after 500ms",
+                // clientDTO.getEmail());
+                // return Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT)
+                // .body(new RegistrationResponse("Registration timeout - service unavailable",
+                // clientDTO.getEmail())));
+                // })
+                .onErrorResume(throwable -> {
+                    log.error("Registration failed for email: {}", clientDTO.getEmail(), throwable);
+                    return Mono.just(ResponseEntity.badRequest().build());
+                });
     }
 
     @Operation(summary = "Login by email", description = "Authenticate client using email and password")
     @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
     @ApiResponse(responseCode = "400", description = "Invalid credentials")
+    @ApiResponse(responseCode = "408", description = "Request timeout")
     @PostMapping("/login")
     public Mono<ResponseEntity<LoginResponse>> loginByEmail(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Login credentials", required = true, content = @Content(schema = @Schema(implementation = LoginRequest.class))) @RequestBody LoginRequest loginRequest) {
-        
+
         log.info("Login attempt by email: {}", loginRequest.getEmail());
 
         return authService.authorizeByEmail(loginRequest.getEmail(), loginRequest.getPassword())
@@ -93,6 +107,12 @@ public class AuthServiceWebFluxController implements AuthController {
                             tokens.getSecond().getExpiresAt(),
                             tokens.getFirst().getClientUID()));
                 })
+                // .timeout(Duration.ofMillis(500))
+                // .onErrorResume(TimeoutException.class, e -> {
+                // log.error("Login timeout for email: {} after 500ms",
+                // loginRequest.getEmail());
+                // return Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build());
+                // })
                 .onErrorResume(throwable -> {
                     log.error("Login failed for email: {}", loginRequest.getEmail(), throwable);
                     return Mono.just(ResponseEntity.badRequest().build());
@@ -102,34 +122,41 @@ public class AuthServiceWebFluxController implements AuthController {
     @Operation(summary = "Refresh tokens", description = "Get new access and refresh tokens using refresh token")
     @ApiResponse(responseCode = "200", description = "Tokens refreshed successfully", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
     @ApiResponse(responseCode = "400", description = "Invalid refresh token")
+    @ApiResponse(responseCode = "408", description = "Request timeout")
     @PostMapping("/refresh")
     public Mono<ResponseEntity<LoginResponse>> refreshToken(
             @Parameter(description = "Refresh token request", required = true) @RequestBody RefreshTokenRequest refreshRequest) {
-        
+
         log.info("Token refresh attempt");
 
         return Mono.fromCallable(() -> {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshRequest.getRefreshToken());
             return refreshTokenConverter.toBLM(refreshTokenDTO);
         })
-        .flatMap(authService::refresh)
-        .map(newTokens -> {
-            log.info("Token refresh successful");
-            return ResponseEntity.ok(new LoginResponse(
-                    newTokens.getFirst().getToken(),
-                    newTokens.getSecond().getToken(),
-                    newTokens.getFirst().getExpiresAt(),
-                    newTokens.getSecond().getExpiresAt(),
-                    newTokens.getFirst().getClientUID()));
-        })
-        .onErrorResume(BaseTokenException.class, e -> {
-            log.error("Token refresh failed", e);
-            return Mono.just(ResponseEntity.badRequest().build());
-        });
+                .flatMap(authService::refresh)
+                .map(newTokens -> {
+                    log.info("Token refresh successful");
+                    return ResponseEntity.ok(new LoginResponse(
+                            newTokens.getFirst().getToken(),
+                            newTokens.getSecond().getToken(),
+                            newTokens.getFirst().getExpiresAt(),
+                            newTokens.getSecond().getExpiresAt(),
+                            newTokens.getFirst().getClientUID()));
+                })
+                // .timeout(Duration.ofMillis(500))
+                // .onErrorResume(TimeoutException.class, e -> {
+                // log.error("Token refresh timeout after 500ms");
+                // return Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build());
+                // })
+                .onErrorResume(BaseTokenException.class, e -> {
+                    log.error("Token refresh failed", e);
+                    return Mono.just(ResponseEntity.badRequest().build());
+                });
     }
 
     @Operation(summary = "Health check", description = "Check service health")
     @ApiResponse(responseCode = "200", description = "Service is healthy", content = @Content(schema = @Schema(implementation = HealthResponse.class)))
+    @ApiResponse(responseCode = "408", description = "Request timeout")
     @GetMapping("/health")
     public Mono<ResponseEntity<HealthResponse>> healthCheck() {
         return authService.getHealthStatus()
@@ -140,16 +167,25 @@ public class AuthServiceWebFluxController implements AuthController {
                             "OK",
                             "auth-service",
                             System.currentTimeMillis()));
-                });
+                })
+        // .timeout(Duration.ofMillis(500))
+        // .onErrorResume(TimeoutException.class, e -> {
+        // log.error("Health check timeout after 500ms");
+        // return Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT)
+        // .body(new HealthResponse("TIMEOUT", "auth-service",
+        // System.currentTimeMillis())));
+        // });
+        ;
     }
 
     @Operation(summary = "Validate access token", description = "Check if access token is valid")
     @ApiResponse(responseCode = "200", description = "Token is valid", content = @Content(schema = @Schema(implementation = ValidationResponse.class)))
     @ApiResponse(responseCode = "400", description = "Invalid access token")
+    @ApiResponse(responseCode = "408", description = "Request timeout")
     @PostMapping("/validate/access")
     public Mono<ResponseEntity<ValidationResponse>> validateAccessToken(
             @Parameter(description = "Access token to validate", required = true) @RequestParam String accessToken) {
-        
+
         log.info("Validating access token");
 
         return authService.validateAccessToken(accessToken)
@@ -157,6 +193,11 @@ public class AuthServiceWebFluxController implements AuthController {
                     log.info("Access token validation successful for client: {}", accessTokenBLM.getClientUID());
                     return ResponseEntity.ok(new ValidationResponse("OK"));
                 })
+                // .timeout(Duration.ofMillis(500))
+                // .onErrorResume(TimeoutException.class, e -> {
+                // log.error("Access token validation timeout after 500ms");
+                // return Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build());
+                // })
                 .onErrorResume(BaseTokenException.class, e -> {
                     log.error("Access token validation failed", e);
                     return Mono.just(ResponseEntity.badRequest().build());
@@ -166,24 +207,42 @@ public class AuthServiceWebFluxController implements AuthController {
     @Operation(summary = "Validate refresh token", description = "Check if refresh token is valid")
     @ApiResponse(responseCode = "200", description = "Token is valid", content = @Content(schema = @Schema(implementation = ValidationResponse.class)))
     @ApiResponse(responseCode = "400", description = "Invalid refresh token")
+    @ApiResponse(responseCode = "408", description = "Request timeout")
     @PostMapping("/validate/refresh")
     public Mono<ResponseEntity<ValidationResponse>> validateRefreshToken(
             @Parameter(description = "Refresh token to validate", required = true) @RequestParam String refreshToken) {
-        
+
         log.info("Validating refresh token");
 
         return Mono.fromCallable(() -> {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
             return refreshTokenConverter.toBLM(refreshTokenDTO);
         })
-        .flatMap(authService::validateRefreshToken)
-        .then(Mono.fromCallable(() -> {
-            log.info("Refresh token validation successful");
-            return ResponseEntity.ok(new ValidationResponse("OK"));
-        }))
-        .onErrorResume(BaseTokenException.class, e -> {
-            log.error("Refresh token validation failed", e);
-            return Mono.just(ResponseEntity.badRequest().build());
-        });
+                .flatMap(authService::validateRefreshToken)
+                .then(Mono.fromCallable(() -> {
+                    log.info("Refresh token validation successful");
+                    return ResponseEntity.ok(new ValidationResponse("OK"));
+                }))
+                // .timeout(Duration.ofMillis(500))
+                // .onErrorResume(TimeoutException.class, e -> {
+                // log.error("Refresh token validation timeout after 500ms");
+                // return Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build());
+                // })
+                .onErrorResume(BaseTokenException.class, e -> {
+                    log.error("Refresh token validation failed", e);
+                    return Mono.just(ResponseEntity.badRequest().build());
+                });
+    }
+
+    @Operation(summary = "Delete user data", description = "Delete all user data including client and refresh tokens")
+    @ApiResponse(responseCode = "200", description = "User data deleted successfully")
+    @ApiResponse(responseCode = "400", description = "Invalid client UID")
+    @ApiResponse(responseCode = "404", description = "User not found")
+    @DeleteMapping("/user/{clientUid}")
+    public Mono<ResponseEntity<Void>> deleteUserData(
+            @Parameter(description = "Client UID", required = true) @PathVariable UUID clientUid) {
+
+        return authService.deleteUserData(clientUid)
+                .thenReturn(ResponseEntity.ok().build());
     }
 }

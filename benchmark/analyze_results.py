@@ -35,10 +35,10 @@ class GatlingResponseTimeAnalyzer:
             load = None
             parts = test_dir.split('-')
             for i, part in enumerate(parts):
-                if part.isdigit() and len(part) in [2, 3]:
+                if part.isdigit() and len(part) in [2, 3, 4]:                    
                     # Проверяем, что это число RPS (100, 150, 200, etc.)
                     potential_rps = int(part)
-                    if potential_rps >= 100 and potential_rps <= 500:
+                    if potential_rps >= 1:
                         load = potential_rps
                         break
             

@@ -260,6 +260,7 @@ import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
+import io.r2dbc.spi.ConnectionFactory;
 
 import java.time.Duration;
 
@@ -286,7 +287,7 @@ public class R2DBCConfig {
 
     @Bean
     @Primary
-    public PostgresqlConnectionFactory clientConnectionFactory() {
+    public ConnectionFactory clientConnectionFactory() {
         PostgresqlConnectionConfiguration config = PostgresqlConnectionConfiguration.builder()
                 .host(extractHost(clientJdbcUrl))
                 .port(extractPort(clientJdbcUrl))
@@ -297,32 +298,6 @@ public class R2DBCConfig {
                 
         return new PostgresqlConnectionFactory(config);
     }
-    // @Bean("clientConnectionFactory")
-    // public PostgresqlConnectionFactory clientConnectionFactory() {
-    //     PostgresqlConnectionConfiguration config = PostgresqlConnectionConfiguration.builder()
-    //             .host(extractHost(clientJdbcUrl))
-    //             .port(extractPort(clientJdbcUrl))
-    //             .database(extractDatabase(clientJdbcUrl))
-    //             .username(clientUsername)
-    //             .password(clientPassword)
-    //             .build();
-                
-    //     return new PostgresqlConnectionFactory(config);
-    // }
-
-
-    // @Bean("refreshTokenConnectionFactory")
-    // public PostgresqlConnectionFactory refreshTokenConnectionFactory() {
-    //     PostgresqlConnectionConfiguration config = PostgresqlConnectionConfiguration.builder()
-    //             .host(extractHost(refreshTokenJdbcUrl))
-    //             .port(extractPort(refreshTokenJdbcUrl))
-    //             .database(extractDatabase(refreshTokenJdbcUrl))
-    //             .username(refreshTokenUsername)
-    //             .password(refreshTokenPassword)
-    //             .build();
-                
-    //     return new PostgresqlConnectionFactory(config);
-    // }
 
     private String extractHost(String jdbcUrl) {
         // jdbc:postgresql://localhost:5432/database
@@ -340,37 +315,37 @@ public class R2DBCConfig {
         return parts[1];
     }
 
-    // @Bean("clientConnectionPool")
-    // public ConnectionPool clientConnectionPool(
-    //         @Qualifier("clientConnectionFactory") PostgresqlConnectionFactory connectionFactory) {
+    @Bean("clientConnectionPool")
+    public ConnectionPool clientConnectionPool(
+            ConnectionFactory connectionFactory) {
         
-    //     ConnectionPoolConfiguration poolConfig = ConnectionPoolConfiguration.builder(connectionFactory)
-    //             .maxIdleTime(Duration.ofMinutes(30))
-    //             .maxSize(50) // Увеличьте максимальный размер пула
-    //             .maxAcquireTime(Duration.ofSeconds(30)) // Увеличьте время ожидания соединения
-    //             .maxCreateConnectionTime(Duration.ofSeconds(10))
-    //             .initialSize(10) // Увеличьте начальный размер
-    //             .acquireRetry(3) // Добавьте повторные попытки
-    //             .build();
+        ConnectionPoolConfiguration poolConfig = ConnectionPoolConfiguration.builder(connectionFactory)
+                .maxIdleTime(Duration.ofMinutes(30))
+                .maxSize(50) // Увеличьте максимальный размер пула
+                .maxAcquireTime(Duration.ofSeconds(30)) // Увеличьте время ожидания соединения
+                .maxCreateConnectionTime(Duration.ofSeconds(10))
+                .initialSize(10) // Увеличьте начальный размер
+                .acquireRetry(3) // Добавьте повторные попытки
+                .build();
                 
-    //     return new ConnectionPool(poolConfig);
-    // }
+        return new ConnectionPool(poolConfig);
+    }
 
-    // @Bean("refreshTokenConnectionPool")
-    // public ConnectionPool refreshTokenConnectionPool(
-    //         @Qualifier("refreshTokenConnectionFactory") PostgresqlConnectionFactory connectionFactory) {
+    @Bean("refreshTokenConnectionPool")
+    public ConnectionPool refreshTokenConnectionPool(
+            ConnectionFactory connectionFactory) {
         
-    //     ConnectionPoolConfiguration poolConfig = ConnectionPoolConfiguration.builder(connectionFactory)
-    //             .maxIdleTime(Duration.ofMinutes(30))
-    //             .maxSize(50) // Увеличьте максимальный размер пула
-    //             .maxAcquireTime(Duration.ofSeconds(30))
-    //             .maxCreateConnectionTime(Duration.ofSeconds(10))
-    //             .initialSize(10)
-    //             .acquireRetry(3)
-    //             .build();
+        ConnectionPoolConfiguration poolConfig = ConnectionPoolConfiguration.builder(connectionFactory)
+                .maxIdleTime(Duration.ofMinutes(30))
+                .maxSize(50) // Увеличьте максимальный размер пула
+                .maxAcquireTime(Duration.ofSeconds(30))
+                .maxCreateConnectionTime(Duration.ofSeconds(10))
+                .initialSize(10)
+                .acquireRetry(3)
+                .build();
                 
-    //     return new ConnectionPool(poolConfig);
-    // }
+        return new ConnectionPool(poolConfig);
+    }
 }package com.connection.service.auth.config;
 
 import java.util.Properties;
@@ -634,12 +609,11 @@ import io.r2dbc.spi.ConnectionFactory;
 @Configuration
 @ConditionalOnProperty(name = "app.controller.mode", havingValue = "webflux")
 public class ClientRepositoryReactiveConfig {
+    
     @Bean("ClientRepository")
     ClientRepository clientWebFluxRepository(
-        // @Qualifier("clientConnectionPool")ConnectionPool connectionPool,
-                                            ConnectionFactory connectionPool
-                                            // @Qualifier("ClientConverter") ClientConverter clientConverter
-                                            ){
+        @Qualifier("clientConnectionPool") ConnectionPool connectionPool // Используем пул
+    ){
         return new ClientReactiveRepositoryImpl(connectionPool);
     }
 }
@@ -722,12 +696,11 @@ import io.r2dbc.spi.ConnectionFactory;
 public class RefreshTokenRepositoryReactiveConfig {
 
     @Bean("RefreshTokenRepository")
-        RefreshTokenRepository refreshTokenRepository(
-            // @Qualifier("refreshTokenConnectionPool")ConnectionPool connectionPool
-            ConnectionFactory connectionPool){
+    RefreshTokenRepository refreshTokenRepository(
+        @Qualifier("refreshTokenConnectionPool") ConnectionPool connectionPool // Используем пул
+    ){
         return new RefreshTokenReactiveRepositoryImpl(connectionPool);
     }
-
 }
 package com.connection.service.auth.controller;
 
@@ -929,6 +902,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+// import java.util.concurrent//.timeoutException;
+
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -946,6 +922,7 @@ public class AuthServiceWebFluxController implements AuthController {
     @Operation(summary = "Register new client", description = "Register a new client in the system")
     @ApiResponse(responseCode = "200", description = "Client registered successfully", content = @Content(schema = @Schema(implementation = RegistrationResponse.class)))
     @ApiResponse(responseCode = "400", description = "Invalid client data")
+    @ApiResponse(responseCode = "408", description = "Request timeout")
     @PostMapping("/register")
     public Mono<ResponseEntity<RegistrationResponse>> register(
             @Parameter(description = "Client data", required = true) @RequestBody ClientDTO clientDTO) {
@@ -963,6 +940,12 @@ public class AuthServiceWebFluxController implements AuthController {
                     "User registered successfully",
                     clientDTO.getEmail()));
         }))
+        //.timeout(Duration.ofMillis(500))
+        // .onErrorResume(TimeoutException.class, e -> {
+        //     log.error("Registration timeout for email: {} after 500ms", clientDTO.getEmail());
+        //     return Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT)
+        //             .body(new RegistrationResponse("Registration timeout - service unavailable", clientDTO.getEmail())));
+        // })
         .onErrorResume(throwable -> {
             log.error("Registration failed for email: {}", clientDTO.getEmail(), throwable);
             return Mono.just(ResponseEntity.badRequest().build());
@@ -972,6 +955,7 @@ public class AuthServiceWebFluxController implements AuthController {
     @Operation(summary = "Login by email", description = "Authenticate client using email and password")
     @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
     @ApiResponse(responseCode = "400", description = "Invalid credentials")
+    @ApiResponse(responseCode = "408", description = "Request timeout")
     @PostMapping("/login")
     public Mono<ResponseEntity<LoginResponse>> loginByEmail(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Login credentials", required = true, content = @Content(schema = @Schema(implementation = LoginRequest.class))) @RequestBody LoginRequest loginRequest) {
@@ -988,6 +972,11 @@ public class AuthServiceWebFluxController implements AuthController {
                             tokens.getSecond().getExpiresAt(),
                             tokens.getFirst().getClientUID()));
                 })
+                //.timeout(Duration.ofMillis(500))
+                // .onErrorResume(TimeoutException.class, e -> {
+                //     log.error("Login timeout for email: {} after 500ms", loginRequest.getEmail());
+                //     return Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build());
+                // })
                 .onErrorResume(throwable -> {
                     log.error("Login failed for email: {}", loginRequest.getEmail(), throwable);
                     return Mono.just(ResponseEntity.badRequest().build());
@@ -997,6 +986,7 @@ public class AuthServiceWebFluxController implements AuthController {
     @Operation(summary = "Refresh tokens", description = "Get new access and refresh tokens using refresh token")
     @ApiResponse(responseCode = "200", description = "Tokens refreshed successfully", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
     @ApiResponse(responseCode = "400", description = "Invalid refresh token")
+    @ApiResponse(responseCode = "408", description = "Request timeout")
     @PostMapping("/refresh")
     public Mono<ResponseEntity<LoginResponse>> refreshToken(
             @Parameter(description = "Refresh token request", required = true) @RequestBody RefreshTokenRequest refreshRequest) {
@@ -1017,6 +1007,11 @@ public class AuthServiceWebFluxController implements AuthController {
                     newTokens.getSecond().getExpiresAt(),
                     newTokens.getFirst().getClientUID()));
         })
+        //.timeout(Duration.ofMillis(500))
+        // .onErrorResume(TimeoutException.class, e -> {
+        //     log.error("Token refresh timeout after 500ms");
+        //     return Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build());
+        // })
         .onErrorResume(BaseTokenException.class, e -> {
             log.error("Token refresh failed", e);
             return Mono.just(ResponseEntity.badRequest().build());
@@ -1025,6 +1020,7 @@ public class AuthServiceWebFluxController implements AuthController {
 
     @Operation(summary = "Health check", description = "Check service health")
     @ApiResponse(responseCode = "200", description = "Service is healthy", content = @Content(schema = @Schema(implementation = HealthResponse.class)))
+    @ApiResponse(responseCode = "408", description = "Request timeout")
     @GetMapping("/health")
     public Mono<ResponseEntity<HealthResponse>> healthCheck() {
         return authService.getHealthStatus()
@@ -1035,12 +1031,20 @@ public class AuthServiceWebFluxController implements AuthController {
                             "OK",
                             "auth-service",
                             System.currentTimeMillis()));
-                });
+                })
+                //.timeout(Duration.ofMillis(500))
+                // .onErrorResume(TimeoutException.class, e -> {
+                //     log.error("Health check timeout after 500ms");
+                //     return Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT)
+                //             .body(new HealthResponse("TIMEOUT", "auth-service", System.currentTimeMillis())));
+                // });
+                ;
     }
 
     @Operation(summary = "Validate access token", description = "Check if access token is valid")
     @ApiResponse(responseCode = "200", description = "Token is valid", content = @Content(schema = @Schema(implementation = ValidationResponse.class)))
     @ApiResponse(responseCode = "400", description = "Invalid access token")
+    @ApiResponse(responseCode = "408", description = "Request timeout")
     @PostMapping("/validate/access")
     public Mono<ResponseEntity<ValidationResponse>> validateAccessToken(
             @Parameter(description = "Access token to validate", required = true) @RequestParam String accessToken) {
@@ -1052,6 +1056,11 @@ public class AuthServiceWebFluxController implements AuthController {
                     log.info("Access token validation successful for client: {}", accessTokenBLM.getClientUID());
                     return ResponseEntity.ok(new ValidationResponse("OK"));
                 })
+                //.timeout(Duration.ofMillis(500))
+                // .onErrorResume(TimeoutException.class, e -> {
+                //     log.error("Access token validation timeout after 500ms");
+                //     return Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build());
+                // })
                 .onErrorResume(BaseTokenException.class, e -> {
                     log.error("Access token validation failed", e);
                     return Mono.just(ResponseEntity.badRequest().build());
@@ -1061,6 +1070,7 @@ public class AuthServiceWebFluxController implements AuthController {
     @Operation(summary = "Validate refresh token", description = "Check if refresh token is valid")
     @ApiResponse(responseCode = "200", description = "Token is valid", content = @Content(schema = @Schema(implementation = ValidationResponse.class)))
     @ApiResponse(responseCode = "400", description = "Invalid refresh token")
+    @ApiResponse(responseCode = "408", description = "Request timeout")
     @PostMapping("/validate/refresh")
     public Mono<ResponseEntity<ValidationResponse>> validateRefreshToken(
             @Parameter(description = "Refresh token to validate", required = true) @RequestParam String refreshToken) {
@@ -1076,6 +1086,11 @@ public class AuthServiceWebFluxController implements AuthController {
             log.info("Refresh token validation successful");
             return ResponseEntity.ok(new ValidationResponse("OK"));
         }))
+        //.timeout(Duration.ofMillis(500))
+        // .onErrorResume(TimeoutException.class, e -> {
+        //     log.error("Refresh token validation timeout after 500ms");
+        //     return Mono.just(ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build());
+        // })
         .onErrorResume(BaseTokenException.class, e -> {
             log.error("Refresh token validation failed", e);
             return Mono.just(ResponseEntity.badRequest().build());

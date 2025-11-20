@@ -1,0 +1,10 @@
+{
+  "simulation": "simulations.GatewaySimulation",
+  "simulationId": "gatewaysimulation",
+  "start": 1763628197196,
+  "description": "",
+  "scenarios": ["Complete Auth Flow"],
+  "assertions": [
+
+  ]
+}

@@ -1,6 +1,7 @@
 package com.connection.service.auth;
 
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.data.util.Pair;
 
@@ -18,4 +19,6 @@ public interface AuthService {
     Mono<Void> validateRefreshToken(RefreshTokenBLM refreshTokenBLM);
     Mono<AccessTokenBLM> validateAccessToken(String token);
     Mono<Map<String, Object>> getHealthStatus();
+
+    Mono<Void> deleteUserData(UUID clientUid);
 }

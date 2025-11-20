@@ -1,0 +1,27 @@
+{
+  "simulation": "simulations.AuthServiceRecoverySimulation",
+  "simulationId": "authservicerecoverysimulation",
+  "start": 1763545827311,
+  "description": "",
+  "scenarios": ["Complete Auth Flow"],
+  "assertions": [
+{
+  "path": "Global",
+  "target": "95th percentile of response time",
+  "condition": "is less than",
+  "expectedValues": [500.0],
+  "result": true,
+  "message": "Global: 95th percentile of response time is less than 500.0",
+  "actualValue": [6.0]
+},
+{
+  "path": "Global",
+  "target": "percentage of failed events",
+  "condition": "is less than",
+  "expectedValues": [5.0],
+  "result": true,
+  "message": "Global: percentage of failed events is less than 5.0",
+  "actualValue": [0.002483947489350075]
+}
+  ]
+}

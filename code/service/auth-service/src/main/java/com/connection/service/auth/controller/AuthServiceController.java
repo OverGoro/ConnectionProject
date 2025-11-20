@@ -1,5 +1,7 @@
 package com.connection.service.auth.controller;
 
+import java.util.UUID;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -52,22 +54,22 @@ public class AuthServiceController implements AuthController {
     @PostMapping("/register")
     public Mono<ResponseEntity<RegistrationResponse>> register(
             @Parameter(description = "Client data", required = true) @RequestBody ClientDTO clientDTO) {
-        
+
         return Mono.fromCallable(() -> {
             clientValidator.validate(clientDTO);
             return clientConverter.toBLM(clientDTO);
         })
-        .flatMap(authService::register)
-        .then(Mono.fromCallable(() -> {
-            log.info("Client registered successfully: {}", clientDTO.getUid());
-            return ResponseEntity.ok(new RegistrationResponse(
-                    "User registered successfully",
-                    clientDTO.getEmail()));
-        }))
-        .onErrorResume(throwable -> {
-            log.error("Registration failed for email: {}", clientDTO.getEmail(), throwable);
-            return Mono.just(ResponseEntity.badRequest().build());
-        });
+                .flatMap(authService::register)
+                .then(Mono.fromCallable(() -> {
+                    log.info("Client registered successfully: {}", clientDTO.getUid());
+                    return ResponseEntity.ok(new RegistrationResponse(
+                            "User registered successfully",
+                            clientDTO.getEmail()));
+                }))
+                .onErrorResume(throwable -> {
+                    log.error("Registration failed for email: {}", clientDTO.getEmail(), throwable);
+                    return Mono.just(ResponseEntity.badRequest().build());
+                });
     }
 
     @Operation(summary = "Login by email", description = "Authenticate client using email and password")
@@ -75,7 +77,7 @@ public class AuthServiceController implements AuthController {
     @PostMapping("/login")
     public Mono<ResponseEntity<LoginResponse>> loginByEmail(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Login credentials", required = true, content = @Content(schema = @Schema(implementation = LoginRequest.class))) @RequestBody LoginRequest loginRequest) {
-        
+
         return authService.authorizeByEmail(loginRequest.getEmail(), loginRequest.getPassword())
                 .map(tokens -> {
                     log.info("Login successful for email: {}", loginRequest.getEmail());
@@ -97,25 +99,25 @@ public class AuthServiceController implements AuthController {
     @PostMapping("/refresh")
     public Mono<ResponseEntity<LoginResponse>> refreshToken(
             @Parameter(description = "Refresh token request", required = true) @RequestBody RefreshTokenRequest refreshRequest) {
-        
+
         return Mono.fromCallable(() -> {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshRequest.getRefreshToken());
             return refreshTokenConverter.toBLM(refreshTokenDTO);
         })
-        .flatMap(authService::refresh)
-        .map(newTokens -> {
-            log.info("Token refresh successful");
-            return ResponseEntity.ok(new LoginResponse(
-                    newTokens.getFirst().getToken(),
-                    newTokens.getSecond().getToken(),
-                    newTokens.getFirst().getExpiresAt(),
-                    newTokens.getSecond().getExpiresAt(),
-                    newTokens.getFirst().getClientUID()));
-        })
-        .onErrorResume(BaseTokenException.class, e -> {
-            log.error("Token refresh failed", e);
-            return Mono.just(ResponseEntity.badRequest().build());
-        });
+                .flatMap(authService::refresh)
+                .map(newTokens -> {
+                    log.info("Token refresh successful");
+                    return ResponseEntity.ok(new LoginResponse(
+                            newTokens.getFirst().getToken(),
+                            newTokens.getSecond().getToken(),
+                            newTokens.getFirst().getExpiresAt(),
+                            newTokens.getSecond().getExpiresAt(),
+                            newTokens.getFirst().getClientUID()));
+                })
+                .onErrorResume(BaseTokenException.class, e -> {
+                    log.error("Token refresh failed", e);
+                    return Mono.just(ResponseEntity.badRequest().build());
+                });
     }
 
     @Operation(summary = "Health check", description = "Check service health")
@@ -138,12 +140,10 @@ public class AuthServiceController implements AuthController {
     @PostMapping("/validate/access")
     public Mono<ResponseEntity<ValidationResponse>> validateAccessToken(
             @Parameter(description = "Access token to validate", required = true) @RequestParam String accessToken) {
-        
+
         return authService.validateAccessToken(accessToken)
                 .map(accessTokenBLM -> ResponseEntity.ok(new ValidationResponse("OK")))
-                .onErrorResume(BaseTokenException.class, e -> 
-                    Mono.just(ResponseEntity.badRequest().build())
-                );
+                .onErrorResume(BaseTokenException.class, e -> Mono.just(ResponseEntity.badRequest().build()));
     }
 
     @Operation(summary = "Validate refresh token", description = "Check if refresh token is valid")
@@ -151,15 +151,25 @@ public class AuthServiceController implements AuthController {
     @PostMapping("/validate/refresh")
     public Mono<ResponseEntity<ValidationResponse>> validateRefreshToken(
             @Parameter(description = "Refresh token to validate", required = true) @RequestParam String refreshToken) {
-        
+
         return Mono.fromCallable(() -> {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(refreshToken);
             return refreshTokenConverter.toBLM(refreshTokenDTO);
         })
-        .flatMap(authService::validateRefreshToken)
-        .then(Mono.fromCallable(() -> ResponseEntity.ok(new ValidationResponse("OK"))))
-        .onErrorResume(BaseTokenException.class, e -> 
-            Mono.just(ResponseEntity.badRequest().build())
-        );
+                .flatMap(authService::validateRefreshToken)
+                .then(Mono.fromCallable(() -> ResponseEntity.ok(new ValidationResponse("OK"))))
+                .onErrorResume(BaseTokenException.class, e -> Mono.just(ResponseEntity.badRequest().build()));
+    }
+
+    @Operation(summary = "Delete user data", description = "Delete all user data including client and refresh tokens")
+    @ApiResponse(responseCode = "200", description = "User data deleted successfully")
+    @ApiResponse(responseCode = "400", description = "Invalid client UID")
+    @ApiResponse(responseCode = "404", description = "User not found")
+    @DeleteMapping("/user/{clientUid}")
+    public Mono<ResponseEntity<Void>> deleteUserData(
+            @Parameter(description = "Client UID", required = true) @PathVariable UUID clientUid) {
+
+        return authService.deleteUserData(clientUid)
+                .thenReturn(ResponseEntity.ok().build());
     }
 }

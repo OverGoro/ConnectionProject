@@ -19,19 +19,19 @@ public class R2DBCConfig {
 
     @Value("${app.datasource.client.jdbc-url}")
     private String clientJdbcUrl;
-    
+
     @Value("${app.datasource.client.username}")
     private String clientUsername;
-    
+
     @Value("${app.datasource.client.password}")
     private String clientPassword;
-    
+
     @Value("${app.datasource.refresh-token.jdbc-url}")
     private String refreshTokenJdbcUrl;
-    
+
     @Value("${app.datasource.refresh-token.username}")
     private String refreshTokenUsername;
-    
+
     @Value("${app.datasource.refresh-token.password}")
     private String refreshTokenPassword;
 
@@ -45,35 +45,9 @@ public class R2DBCConfig {
                 .username(clientUsername)
                 .password(clientPassword)
                 .build();
-                
+
         return new PostgresqlConnectionFactory(config);
     }
-    // @Bean("clientConnectionFactory")
-    // public PostgresqlConnectionFactory clientConnectionFactory() {
-    //     PostgresqlConnectionConfiguration config = PostgresqlConnectionConfiguration.builder()
-    //             .host(extractHost(clientJdbcUrl))
-    //             .port(extractPort(clientJdbcUrl))
-    //             .database(extractDatabase(clientJdbcUrl))
-    //             .username(clientUsername)
-    //             .password(clientPassword)
-    //             .build();
-                
-    //     return new PostgresqlConnectionFactory(config);
-    // }
-
-
-    // @Bean("refreshTokenConnectionFactory")
-    // public PostgresqlConnectionFactory refreshTokenConnectionFactory() {
-    //     PostgresqlConnectionConfiguration config = PostgresqlConnectionConfiguration.builder()
-    //             .host(extractHost(refreshTokenJdbcUrl))
-    //             .port(extractPort(refreshTokenJdbcUrl))
-    //             .database(extractDatabase(refreshTokenJdbcUrl))
-    //             .username(refreshTokenUsername)
-    //             .password(refreshTokenPassword)
-    //             .build();
-                
-    //     return new PostgresqlConnectionFactory(config);
-    // }
 
     private String extractHost(String jdbcUrl) {
         // jdbc:postgresql://localhost:5432/database
@@ -94,32 +68,33 @@ public class R2DBCConfig {
     @Bean("clientConnectionPool")
     public ConnectionPool clientConnectionPool(
             ConnectionFactory connectionFactory) {
-        
+
         ConnectionPoolConfiguration poolConfig = ConnectionPoolConfiguration.builder(connectionFactory)
-                .maxIdleTime(Duration.ofMinutes(30))
-                .maxSize(50) // Увеличьте максимальный размер пула
-                .maxAcquireTime(Duration.ofSeconds(30)) // Увеличьте время ожидания соединения
-                .maxCreateConnectionTime(Duration.ofSeconds(10))
-                .initialSize(10) // Увеличьте начальный размер
-                .acquireRetry(3) // Добавьте повторные попытки
+                .maxIdleTime(Duration.ofMinutes(10))
+                .maxSize(20) // Уменьшить максимальный размер
+                .initialSize(5) // Уменьшить начальный размер
+                .maxAcquireTime(Duration.ofSeconds(5)) // Уменьшить время ожидания
+                .maxCreateConnectionTime(Duration.ofSeconds(3))
+                .acquireRetry(2)
+                .validationQuery("SELECT 1")
                 .build();
-                
         return new ConnectionPool(poolConfig);
     }
 
     @Bean("refreshTokenConnectionPool")
     public ConnectionPool refreshTokenConnectionPool(
             ConnectionFactory connectionFactory) {
-        
+
         ConnectionPoolConfiguration poolConfig = ConnectionPoolConfiguration.builder(connectionFactory)
-                .maxIdleTime(Duration.ofMinutes(30))
-                .maxSize(50) // Увеличьте максимальный размер пула
-                .maxAcquireTime(Duration.ofSeconds(30))
-                .maxCreateConnectionTime(Duration.ofSeconds(10))
-                .initialSize(10)
-                .acquireRetry(3)
+                .maxIdleTime(Duration.ofMinutes(10))
+                .maxSize(20) // Уменьшить максимальный размер
+                .initialSize(5) // Уменьшить начальный размер
+                .maxAcquireTime(Duration.ofSeconds(5)) // Уменьшить время ожидания
+                .maxCreateConnectionTime(Duration.ofSeconds(3))
+                .acquireRetry(2)
+                .validationQuery("SELECT 1")
                 .build();
-                
+
         return new ConnectionPool(poolConfig);
     }
 }

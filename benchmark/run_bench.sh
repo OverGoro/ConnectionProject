@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Настройки (можно переопределить через переменные окружения)
-RPS_START=${RPS_START:-100}
-RPS_END=${RPS_END:-500}
-RPS_STEP=${RPS_STEP:-50}
-DURATION=${DURATION:-30} # сек
+RPS_START=${RPS_START:-2500}
+RPS_END=${RPS_END:-2500}
+RPS_STEP=${RPS_STEP:-500}
+DURATION=${DURATION:-40} # сек
 USE_DOCKER=${USE_DOCKER:-true}
 DOCKER_IMAGE=${DOCKER_IMAGE:-denvazh/gatling:latest}
 COMPOSE_FILE=${COMPOSE_FILE:-docker-compose.test.yml}
@@ -13,8 +13,8 @@ RESULTS_DIR=${RESULTS_DIR:-./gatling-results}
 GATLING_USER_FILES_DIR=${GATLING_USER_FILES_DIR:-./gatling/user-files}
 
 # Список сервисов для тестирования
-TARGET_SERVICES=${TARGET_SERVICES:-"auth-service-common auth-service-reactive"}
-SERVICE_PORTS=${SERVICE_PORTS:-"auth-service-common:8081 auth-service-reactive:8082"}
+TARGET_SERVICES=${TARGET_SERVICES:-"auth-service-common"}
+SERVICE_PORTS=${SERVICE_PORTS:-"auth-service-common:8081"}
 
 # Monitoring config
 MONITOR=${MONITOR:-true}
@@ -143,7 +143,6 @@ wait_for_service() {
   echo "Waiting for service $svc at http://localhost:${port}${path}"
   timeout=60
   start=$(date +%s)
-  
   while true; do
     if curl --silent --max-time 2 -f "http://localhost:${port}${path}" >/dev/null 2>&1; then
       echo "Service $svc is ready"
@@ -273,36 +272,35 @@ for (( rps=RPS_START; rps<=RPS_END; rps+=RPS_STEP )); do
 
     echo "Starting Gatling for $svc -> host=localhost port=${port}; results -> $run_dir"
     
+    # Проверяем существование директорий
+    if [ ! -d "$(pwd)/gatling/user-files" ]; then
+        echo "ERROR: Directory $(pwd)/gatling/user-files does not exist"
+        exit 1
+    fi
+    
+    if [ ! -d "$run_dir" ]; then
+        echo "ERROR: Directory $run_dir does not exist"
+        exit 1
+    fi
+
     if [ "$USE_DOCKER" = "true" ]; then
       # Run Gatling in Docker container
       docker run --rm \
         --network host \
-        -v "$(pwd)/gatling/user-files":/opt/gatling/user-files \
-        -v "$run_dir":/opt/gatling/results \
-        -e "JAVA_OPTS=-DtargetRps=${rps} -DtargetHost=localhost -DtargetPort=${port} -DtargetPath=/ -DdurationSec=${DURATION} -DserviceName=${svc}" \
-        "${DOCKER_IMAGE}" \
-        -sf /opt/gatling/user-files -rf /opt/gatling/results -s simulations.AuthServiceSimulation 
-      # pids+=("$!")
+        -v "$(pwd)/gatling/user-files:/opt/gatling/user-files:ro" \
+        -v "$run_dir:/opt/gatling/results:rw" \
+        -e "JAVA_OPTS=-DtargetRps=${rps} -DtargetHost=localhost -DtargetPort=${port} -DdurationSec=${DURATION} -DserviceName=${svc}" \
+        denvazh/gatling:latest \
+        -sf /opt/gatling/user-files -rf /opt/gatling/results -s simulations.GatewaySimulation
     else
       if [ -z "${GATLING_HOME:-}" ]; then
         echo "GATLING_HOME not set. Set to local Gatling installation or set USE_DOCKER=true"
         exit 1
       fi
-      # Run local Gatling
       JAVA_OPTS="-DtargetRps=${rps} -DtargetHost=localhost -DtargetPort=${port} -DtargetPath=/ -DdurationSec=${DURATION} -DserviceName=${svc}" \
-      "$GATLING_HOME"/bin/gatling.sh -sf ./gatling/user-files -rf "$run_dir" -s simulations.AuthServiceSimulation 
-      # pids+=("$!")
+      "$GATLING_HOME"/bin/gatling.sh -sf ./gatling/user-files -rf "$run_dir" -s simulations.GatewaySimulation 
     fi
   done
-
-  # wait for all runs to finish and capture exit codes
-  # exit_code=0
-  # for pid in "${pids[@]}"; do
-  #   wait "$pid" || exit_code=$?
-  # done
-  # if [ $exit_code -ne 0 ]; then
-  #   echo "One or more Gatling runs failed (exit code $exit_code)"
-  # fi
 
   # record end timestamp and collect Prometheus metrics for this run
   END_TS=$(date -u +%s)
@@ -327,7 +325,7 @@ for (( rps=RPS_START; rps<=RPS_END; rps+=RPS_STEP )); do
   
   # Short pause between runs
   echo "Waiting before next test..."
-  sleep 10
+  sleep 3
 done
 
 echo "All runs finished. Results are in $RESULTS_DIR"

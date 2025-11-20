@@ -98,6 +98,18 @@ public class AuthServiceImpl implements AuthService {
                 });
     }
 
+    // В AuthServiceImpl добавить реализацию
+    @Override
+    public Mono<Void> deleteUserData(UUID clientUid) {
+        log.info("Deleting all user data for clientUid: {}", clientUid);
+        
+        // Сначала удаляем все refresh токены, затем клиента
+        return refreshTokenRepository.revokeAll(clientUid)
+                .then(clientRepository.deleteByUid(clientUid))
+                .doOnSuccess(v -> log.info("Successfully deleted all data for clientUid: {}", clientUid))
+                .doOnError(e -> log.error("Failed to delete user data for clientUid: {}", clientUid, e));
+    }
+
     @Override
     public Mono<Void> register(ClientBLM clientBLM) {
         // Валидация клиента
