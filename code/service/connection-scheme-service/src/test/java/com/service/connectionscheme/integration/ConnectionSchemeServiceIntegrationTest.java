@@ -18,7 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.connection.scheme.exception.ConnectionSchemeValidateException;
-import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeBlm;
 import com.connection.service.auth.AuthService;
 import com.service.connectionscheme.ConnectionSchemeService;
 
@@ -59,13 +59,13 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         UUID testBufferUid1 = getTestBufferUid(1);
         UUID testBufferUid2 = getTestBufferUid(2);
         
-        ConnectionSchemeBLM schemeBLM = createTestSchemeBLM(testSchemeUid, testBufferUid1, testBufferUid2);
+        ConnectionSchemeBlm schemeBlm = createTestSchemeBlm(testSchemeUid, testBufferUid1, testBufferUid2);
 
         // Устанавливаем аутентификацию перед вызовом сервиса
         setupAuthentication();
 
         // When
-        ConnectionSchemeBLM createdScheme = connectionSchemeService.createScheme(schemeBLM);
+        ConnectionSchemeBlm createdScheme = connectionSchemeService.createScheme(schemeBlm);
 
         // Then
         assertThat(createdScheme).isNotNull();
@@ -84,14 +84,14 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         UUID testBufferUid1 = getTestBufferUid(1);
         UUID testBufferUid2 = getTestBufferUid(2);
         
-        ConnectionSchemeBLM schemeBLM = createTestSchemeBLM(testSchemeUid, testBufferUid1, testBufferUid2);
+        ConnectionSchemeBlm schemeBlm = createTestSchemeBlm(testSchemeUid, testBufferUid1, testBufferUid2);
 
         // Создаем схему с аутентификацией
         setupAuthentication();
-        connectionSchemeService.createScheme(schemeBLM);
+        connectionSchemeService.createScheme(schemeBlm);
 
         // Получаем схему с той же аутентификацией
-        ConnectionSchemeBLM foundScheme = connectionSchemeService.getSchemeByUid(testSchemeUid);
+        ConnectionSchemeBlm foundScheme = connectionSchemeService.getSchemeByUid(testSchemeUid);
 
         // Then
         assertThat(foundScheme).isNotNull();
@@ -109,29 +109,29 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         UUID testBufferUid1 = getTestBufferUid(1);
         UUID testBufferUid2 = getTestBufferUid(2);
         
-        ConnectionSchemeBLM schemeBLM1 = createTestSchemeBLM(testSchemeUid1, testBufferUid1, testBufferUid2);
+        ConnectionSchemeBlm schemeBlm1 = createTestSchemeBlm(testSchemeUid1, testBufferUid1, testBufferUid2);
 
         setupAuthentication();
-        connectionSchemeService.createScheme(schemeBLM1);
+        connectionSchemeService.createScheme(schemeBlm1);
 
         // Создаем вторую схему для того же клиента
         UUID testSchemeUid2 = UUID.randomUUID();
         UUID testBufferUid3 = getTestBufferUid(3);
-        ConnectionSchemeBLM schemeBLM2 = new ConnectionSchemeBLM(
+        ConnectionSchemeBlm schemeBlm2 = new ConnectionSchemeBlm(
             testSchemeUid2,
             getTestClientUid(),
             "{\"" + testBufferUid1 + "\":[]}",
             List.of(testBufferUid1),
             Map.of(testBufferUid1, List.of())
         );
-        connectionSchemeService.createScheme(schemeBLM2);
+        connectionSchemeService.createScheme(schemeBlm2);
 
         // When
-        List<ConnectionSchemeBLM> schemes = connectionSchemeService.getSchemesByClient(getTestClientUid());
+        List<ConnectionSchemeBlm> schemes = connectionSchemeService.getSchemesByClient(getTestClientUid());
 
         // Then
         assertThat(schemes).hasSize(2);
-        assertThat(schemes).extracting(ConnectionSchemeBLM::getUid)
+        assertThat(schemes).extracting(ConnectionSchemeBlm::getUid)
                 .containsExactlyInAnyOrder(testSchemeUid1, testSchemeUid2);
 
         log.info("Successfully retrieved {} connection schemes for client: {}", schemes.size(), getTestClientUid());
@@ -145,13 +145,13 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         UUID testBufferUid1 = getTestBufferUid(1);
         UUID testBufferUid2 = getTestBufferUid(2);
         
-        ConnectionSchemeBLM schemeBLM = createTestSchemeBLM(testSchemeUid, testBufferUid1, testBufferUid2);
+        ConnectionSchemeBlm schemeBlm = createTestSchemeBlm(testSchemeUid, testBufferUid1, testBufferUid2);
 
         setupAuthentication();
-        connectionSchemeService.createScheme(schemeBLM);
+        connectionSchemeService.createScheme(schemeBlm);
 
         // When
-        List<ConnectionSchemeBLM> schemes = connectionSchemeService.getSchemesByBuffer(testBufferUid1);
+        List<ConnectionSchemeBlm> schemes = connectionSchemeService.getSchemesByBuffer(testBufferUid1);
 
         // Then
         assertThat(schemes).isNotEmpty();
@@ -169,14 +169,14 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         UUID testBufferUid1 = getTestBufferUid(1);
         UUID testBufferUid2 = getTestBufferUid(2);
         
-        ConnectionSchemeBLM originalSchemeBLM = createTestSchemeBLM(testSchemeUid, testBufferUid1, testBufferUid2);
+        ConnectionSchemeBlm originalSchemeBlm = createTestSchemeBlm(testSchemeUid, testBufferUid1, testBufferUid2);
 
         setupAuthentication();
-        connectionSchemeService.createScheme(originalSchemeBLM);
+        connectionSchemeService.createScheme(originalSchemeBlm);
 
-        // Обновляем BLM с новыми данными
+        // Обновляем Blm с новыми данными
         UUID testBufferUid3 = getTestBufferUid(3);
-        ConnectionSchemeBLM updatedSchemeBLM = new ConnectionSchemeBLM(
+        ConnectionSchemeBlm updatedSchemeBlm = new ConnectionSchemeBlm(
             testSchemeUid,
             getTestClientUid(),
             "{\"" + testBufferUid3 + "\":[]}",
@@ -185,7 +185,7 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         );
 
         // When
-        ConnectionSchemeBLM updatedScheme = connectionSchemeService.updateScheme(testSchemeUid, updatedSchemeBLM);
+        ConnectionSchemeBlm updatedScheme = connectionSchemeService.updateScheme(testSchemeUid, updatedSchemeBlm);
 
         // Then
         assertThat(updatedScheme).isNotNull();
@@ -203,13 +203,13 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         UUID testBufferUid1 = getTestBufferUid(1);
         UUID testBufferUid2 = getTestBufferUid(2);
         
-        ConnectionSchemeBLM schemeBLM = createTestSchemeBLM(testSchemeUid, testBufferUid1, testBufferUid2);
+        ConnectionSchemeBlm schemeBlm = createTestSchemeBlm(testSchemeUid, testBufferUid1, testBufferUid2);
 
         setupAuthentication();
-        connectionSchemeService.createScheme(schemeBLM);
+        connectionSchemeService.createScheme(schemeBlm);
 
         // Verify scheme exists
-        ConnectionSchemeBLM foundScheme = connectionSchemeService.getSchemeByUid(testSchemeUid);
+        ConnectionSchemeBlm foundScheme = connectionSchemeService.getSchemeByUid(testSchemeUid);
         assertThat(foundScheme).isNotNull();
 
         // When
@@ -230,7 +230,7 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         UUID testBufferUid1 = getTestBufferUid(1);
         UUID testBufferUid2 = getTestBufferUid(2);
         
-        ConnectionSchemeBLM schemeBLM = createTestSchemeBLM(testSchemeUid, testBufferUid1, testBufferUid2);
+        ConnectionSchemeBlm schemeBlm = createTestSchemeBlm(testSchemeUid, testBufferUid1, testBufferUid2);
 
         // When & Then - Before creation
         setupAuthentication();
@@ -238,7 +238,7 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         assertThat(existsBefore).isFalse();
 
         // When & Then - After creation
-        connectionSchemeService.createScheme(schemeBLM);
+        connectionSchemeService.createScheme(schemeBlm);
         boolean existsAfter = connectionSchemeService.schemeExists(testSchemeUid);
         assertThat(existsAfter).isTrue();
 
@@ -308,13 +308,13 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         UUID testBufferUid1 = getTestBufferUid(1);
         UUID testBufferUid2 = getTestBufferUid(2);
         
-        ConnectionSchemeBLM schemeBLM = createTestSchemeBLM(testSchemeUid, testBufferUid1, testBufferUid2);
+        ConnectionSchemeBlm schemeBlm = createTestSchemeBlm(testSchemeUid, testBufferUid1, testBufferUid2);
 
         // Очищаем аутентификацию
         clearAuthentication();
 
         // When & Then
-        assertThatThrownBy(() -> connectionSchemeService.createScheme(schemeBLM))
+        assertThatThrownBy(() -> connectionSchemeService.createScheme(schemeBlm))
                 .isInstanceOf(SecurityException.class)
                 .hasMessageContaining("User not authenticated");
 
@@ -329,11 +329,11 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         UUID testBufferUid1 = getTestBufferUid(1);
         UUID testBufferUid2 = getTestBufferUid(2);
         
-        ConnectionSchemeBLM schemeBLM = createTestSchemeBLM(testSchemeUid, testBufferUid1, testBufferUid2);
+        ConnectionSchemeBlm schemeBlm = createTestSchemeBlm(testSchemeUid, testBufferUid1, testBufferUid2);
 
         // Создаем схему от имени первого клиента
         setupAuthentication();
-        connectionSchemeService.createScheme(schemeBLM);
+        connectionSchemeService.createScheme(schemeBlm);
 
         // Пытаемся получить схему от имени другого клиента
         UUID differentClientUid = UUID.randomUUID();
@@ -355,27 +355,27 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         UUID testBufferUid1 = getTestBufferUid(1);
         UUID testBufferUid2 = getTestBufferUid(2);
         
-        ConnectionSchemeBLM schemeBLM1 = createTestSchemeBLM(testSchemeUid1, testBufferUid1, testBufferUid2);
+        ConnectionSchemeBlm schemeBlm1 = createTestSchemeBlm(testSchemeUid1, testBufferUid1, testBufferUid2);
         setupAuthentication();
-        connectionSchemeService.createScheme(schemeBLM1);
+        connectionSchemeService.createScheme(schemeBlm1);
 
         UUID testSchemeUid2 = UUID.randomUUID();
-        ConnectionSchemeBLM schemeBLM2 = new ConnectionSchemeBLM(
+        ConnectionSchemeBlm schemeBlm2 = new ConnectionSchemeBlm(
             testSchemeUid2,
             getTestClientUid(),
             "{\"" + testBufferUid1 + "\":[]}",
             List.of(testBufferUid1),
             Map.of(testBufferUid1, List.of())
         );
-        connectionSchemeService.createScheme(schemeBLM2);
+        connectionSchemeService.createScheme(schemeBlm2);
 
         // When
-        List<ConnectionSchemeBLM> schemes = connectionSchemeService.getSchemeByUid(
+        List<ConnectionSchemeBlm> schemes = connectionSchemeService.getSchemeByUid(
                 List.of(testSchemeUid1, testSchemeUid2));
 
         // Then
         assertThat(schemes).hasSize(2);
-        assertThat(schemes).extracting(ConnectionSchemeBLM::getUid)
+        assertThat(schemes).extracting(ConnectionSchemeBlm::getUid)
                 .containsExactlyInAnyOrder(testSchemeUid1, testSchemeUid2);
 
         log.info("Successfully retrieved multiple connection schemes by UIDs");
@@ -389,12 +389,12 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         UUID testBufferUid1 = getTestBufferUid(1);
         UUID testBufferUid2 = getTestBufferUid(2);
         
-        ConnectionSchemeBLM schemeBLM = createTestSchemeBLM(testSchemeUid, testBufferUid1, testBufferUid2);
+        ConnectionSchemeBlm schemeBlm = createTestSchemeBlm(testSchemeUid, testBufferUid1, testBufferUid2);
         setupAuthentication();
-        connectionSchemeService.createScheme(schemeBLM);
+        connectionSchemeService.createScheme(schemeBlm);
 
         // When
-        List<ConnectionSchemeBLM> schemes = connectionSchemeService.getSchemesByBuffer(
+        List<ConnectionSchemeBlm> schemes = connectionSchemeService.getSchemesByBuffer(
                 List.of(testBufferUid1, testBufferUid2));
 
         // Then
@@ -412,7 +412,7 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         UUID testSchemeUid = UUID.randomUUID();
         UUID testBufferUid = getTestBufferUid(1);
         
-        ConnectionSchemeBLM schemeBLM = new ConnectionSchemeBLM(
+        ConnectionSchemeBlm schemeBlm = new ConnectionSchemeBlm(
             testSchemeUid,
             getTestClientUid(),
             "{\"" + testBufferUid + "\":[]}",
@@ -424,7 +424,7 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         setupAuthentication();
 
         // When
-        ConnectionSchemeBLM createdScheme = connectionSchemeService.createScheme(schemeBLM);
+        ConnectionSchemeBlm createdScheme = connectionSchemeService.createScheme(schemeBlm);
 
         // Then
         assertThat(createdScheme).isNotNull();
@@ -441,7 +441,7 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         // Given
         UUID testSchemeUid = UUID.randomUUID();
         
-        ConnectionSchemeBLM schemeBLM = new ConnectionSchemeBLM(
+        ConnectionSchemeBlm schemeBlm = new ConnectionSchemeBlm(
             testSchemeUid,
             getTestClientUid(),
             "{}",
@@ -452,14 +452,14 @@ public class ConnectionSchemeServiceIntegrationTest extends BaseConnectionScheme
         // Устанавливаем аутентификацию перед вызовом сервиса
         setupAuthentication();
 
-        assertThatThrownBy(() -> connectionSchemeService.createScheme(schemeBLM))
+        assertThatThrownBy(() -> connectionSchemeService.createScheme(schemeBlm))
             .isInstanceOf(ConnectionSchemeValidateException.class);
 
         log.info("Successfully created connection scheme with empty transitions: {}", testSchemeUid);
     }
 
-    private ConnectionSchemeBLM createTestSchemeBLM(UUID schemeUid, UUID bufferUid1, UUID bufferUid2) {
-        return new ConnectionSchemeBLM(
+    private ConnectionSchemeBlm createTestSchemeBlm(UUID schemeUid, UUID bufferUid1, UUID bufferUid2) {
+        return new ConnectionSchemeBlm(
                 schemeUid,
                 getTestClientUid(),
                 "{\"" + bufferUid1 + "\":[\"" + bufferUid2 + "\"]}",

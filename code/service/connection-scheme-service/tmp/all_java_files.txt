@@ -1,4 +1,4 @@
-// ConnectionSchemeServiceApplication.java
+
 package com.service.connectionscheme;
 
 import org.springframework.boot.SpringApplication;
@@ -10,7 +10,7 @@ public class ConnectionSchemeServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(ConnectionSchemeServiceApplication.class, args);
     }
-}// ConnectionSchemeUtilsConfig.java
+}
 package com.service.connectionscheme.config;
 
 import org.springframework.context.annotation.Bean;
@@ -30,7 +30,7 @@ public class ConnectionSchemeUtilsConfig {
     ConnectionSchemeValidator connectionSchemeValidator(){
         return new ConnectionSchemeValidator();
     }
-}// ConnectionSchemeRepositoryConfig.java
+}
 package com.service.connectionscheme.config;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -211,7 +211,7 @@ public class ConnectionSchemeKafkaConfig {
     public KafkaTemplate<String, Object> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
-}// ConnectionSchemeJDBCConfig.java
+}
 package com.service.connectionscheme.config;
 
 import java.util.Properties;
@@ -226,7 +226,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import com.atomikos.jdbc.AtomikosDataSourceBean;
 
 @Configuration
-public class ConnectionSchemeJDBCConfig {
+public class ConnectionSchemeJdbcConfig {
     
     @Value("${app.datasource.connection-scheme.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
     private String xaDataSourceClassName;
@@ -892,7 +892,7 @@ public class JwtKafkaAuthenticationFilter extends OncePerRequestFilter {
             throw new SecurityException("Authentication failed: " + e.getMessage());
         }
     }
-}// ConnectionSchemeService.java
+}
 package com.service.connectionscheme;
 
 import java.util.List;
@@ -910,7 +910,7 @@ public interface ConnectionSchemeService {
     void deleteScheme(UUID clientUuid, UUID schemeUid);
     boolean schemeExists(UUID clientUuid, UUID schemeUid);
     Map<String, Object> getHealthStatus();
-}// ConnectionSchemeController.java
+}
 package com.service.connectionscheme;
 
 import java.util.List;
