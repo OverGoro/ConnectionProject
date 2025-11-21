@@ -1,0 +1,1 @@
+{"uuid":"7a071d23-e9a7-4d42-bb6f-89d1c6eccef2","name":"Delete device - Positive","children":["c82fe3fa-9fab-4ce9-ba11-b456dcdcf9c3"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1763749502707,"stop":1763749502718}],"afters":[],"start":1763749501200,"stop":1763749503706}

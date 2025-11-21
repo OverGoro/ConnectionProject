@@ -1,0 +1,1 @@
+{"uuid":"5f9440a0-3c73-4719-9b2b-2ff59e8beb78","name":"Find schemes by client UID - Positive","children":["6d9ce523-f9eb-469e-8e11-fb05e5ba183c"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1763749532552,"stop":1763749532553}],"afters":[],"start":1763749532551,"stop":1763749532555}

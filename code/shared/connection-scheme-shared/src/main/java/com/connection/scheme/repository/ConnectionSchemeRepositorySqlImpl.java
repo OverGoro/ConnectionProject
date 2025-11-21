@@ -38,25 +38,25 @@ public class ConnectionSchemeRepositorySqlImpl
             "SELECT csb.buffer_uid FROM processing.connection_scheme_buffer csb "
                     + "WHERE csb.scheme_uid = :scheme_uid";
 
-    // // Операции со схемами - ИСПРАВЛЕНО: добавлено ::jsonb для преобразования типа
-    // private static final String INSERT_SCHEME =
-    //         "INSERT INTO processing.connection_scheme (uid, client_uid, scheme_json) "
-    //                 + "VALUES (:uid, :client_uid, :scheme_json::jsonb)";
+    // Операции со схемами - РАСКОММЕНТИРОВАНО
+    private static final String INSERT_SCHEME =
+            "INSERT INTO processing.connection_scheme (uid, client_uid, scheme_json) "
+                    + "VALUES (:uid, :client_uid, :scheme_json::jsonb)";
 
-    // private static final String UPDATE_SCHEME =
-    //         "UPDATE processing.connection_scheme SET scheme_json = :scheme_json::jsonb "
-    //                 + "WHERE uid = :uid";
+    private static final String UPDATE_SCHEME =
+            "UPDATE processing.connection_scheme SET scheme_json = :scheme_json::jsonb "
+                    + "WHERE uid = :uid";
 
-    // private static final String DELETE_SCHEME =
-    //         "DELETE FROM processing.connection_scheme WHERE uid = :uid";
+    private static final String DELETE_SCHEME =
+            "DELETE FROM processing.connection_scheme WHERE uid = :uid";
 
     // Операции со связующей таблицей буферов
     private static final String INSERT_SCHEME_BUFFER =
             "INSERT INTO processing.connection_scheme_buffer (uid, scheme_uid, buffer_uid) "
                     + "VALUES (:uid, :scheme_uid, :buffer_uid)";
 
-    // private static final String DELETE_SCHEME_BUFFERS =
-    //         "DELETE FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid";
+    private static final String DELETE_SCHEME_BUFFERS =
+            "DELETE FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid";
 
     private final ConnectionSchemeConverter converter =
             new ConnectionSchemeConverter();
@@ -101,13 +101,13 @@ public class ConnectionSchemeRepositorySqlImpl
             // Конвертация Blm в Dalm
             ConnectionSchemeDalm dalScheme = converter.toDalm(scheme);
 
-            // Сохраняем основную схему
+            // Сохраняем основную схему - РАСКОММЕНТИРОВАНО
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("uid", dalScheme.getUid());
             params.addValue("client_uid", dalScheme.getClientUid());
             params.addValue("scheme_json", dalScheme.getSchemeJson());
 
-            // int rowsAffected = jdbcTemplate.update(INSERT_SCHEME, params);
+            jdbcTemplate.update(INSERT_SCHEME, params);
 
             // Сохраняем связи с буферами
             if (dalScheme.getUsedBuffers() != null
@@ -138,12 +138,12 @@ public class ConnectionSchemeRepositorySqlImpl
             // Конвертация Blm в Dalm
             ConnectionSchemeDalm dalScheme = converter.toDalm(scheme);
 
-            // Обновляем основную схему
+            // Обновляем основную схему - РАСКОММЕНТИРОВАНО
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("uid", dalScheme.getUid());
             params.addValue("scheme_json", dalScheme.getSchemeJson());
 
-            // int rowsAffected = jdbcTemplate.update(UPDATE_SCHEME, params);
+            jdbcTemplate.update(UPDATE_SCHEME, params);
 
             // Обновляем связи с буферами
             updateSchemeBuffers(dalScheme.getUid(), dalScheme.getUsedBuffers());
@@ -163,11 +163,11 @@ public class ConnectionSchemeRepositorySqlImpl
         }
 
         try {
-            // Удаляем схему (связи с буферами удалятся каскадом благодаря FOREIGN KEY constraint)
+            // Удаляем схему - РАСКОММЕНТИРОВАНО
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("uid", uid);
 
-            // int rowsAffected = jdbcTemplate.update(DELETE_SCHEME, params);
+            jdbcTemplate.update(DELETE_SCHEME, params);
 
         } catch (Exception e) {
             throw new ConnectionSchemeNotFoundException(
@@ -272,12 +272,11 @@ public class ConnectionSchemeRepositorySqlImpl
      * Обновляет связи схемы с буферами.
      */
     private void updateSchemeBuffers(UUID schemeUid, List<UUID> usedBuffers) {
-        // Удаляем старые связи
+        // Удаляем старые связи - РАСКОММЕНТИРОВАНО
         MapSqlParameterSource deleteParams = new MapSqlParameterSource();
         deleteParams.addValue("scheme_uid", schemeUid);
 
-        // int deletedRows =
-        // jdbcTemplate.update(DELETE_SCHEME_BUFFERS, deleteParams);
+        jdbcTemplate.update(DELETE_SCHEME_BUFFERS, deleteParams);
 
         // Сохраняем новые связи
         saveSchemeBuffers(schemeUid, usedBuffers);

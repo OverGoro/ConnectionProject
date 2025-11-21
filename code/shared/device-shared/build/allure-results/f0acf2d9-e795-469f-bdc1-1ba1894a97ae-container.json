@@ -1,0 +1,1 @@
+{"uuid":"f0acf2d9-e795-469f-bdc1-1ba1894a97ae","name":"Check device exists - Positive","children":["4fc44cef-8578-4e31-9763-4f03dbcf1ca3"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1763749537504,"stop":1763749537505}],"afters":[],"start":1763749537502,"stop":1763749537506}

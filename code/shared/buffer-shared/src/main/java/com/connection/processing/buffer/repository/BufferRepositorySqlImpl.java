@@ -17,10 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 /** . */
 public class BufferRepositorySqlImpl implements BufferRepository {
 
+    // Fixed SQL strings with consistent spacing
     private static final String SELECT_BUFFER =
-        "SELECT b.uid, b.device_uid,"
-        +
-        "b.max_messages_number, b.max_message_size, b.message_prototype";
+            "SELECT b.uid, b.device_uid,"
+            + " b.max_messages_number, b.max_message_size, b.message_prototype";
     private static final String FROM_BUFFER = " FROM processing.buffer b";
 
     private static final String SELECT_BUFFER_BY_UID =
@@ -32,16 +32,16 @@ public class BufferRepositorySqlImpl implements BufferRepository {
             + " INNER JOIN processing.connection_scheme_buffer csb ON b.uid = csb.buffer_uid"
             + " WHERE csb.scheme_uid = :scheme_uid";
 
-    private static final String INSERT_BUFFER =
-            "INSERT INTO processing.buffer "
+    private static final String INSERT_BUFFER = "INSERT INTO processing.buffer "
             + "(uid, device_uid, max_messages_number, max_message_size, message_prototype) "
             + "VALUES (:uid, :device_uid,"
             + " :max_messages_number, :max_message_size, :message_prototype)";
 
     private static final String UPDATE_BUFFER =
             "UPDATE processing.buffer SET device_uid = :device_uid, "
-            + "max_messages_number = :max_messages_number, max_message_size = :max_message_size, "
-            + "message_prototype = :message_prototype WHERE uid = :uid";
+                    + "max_messages_number = :max_messages_number,"
+                    + " max_message_size = :max_message_size, "
+                    + "message_prototype = :message_prototype WHERE uid = :uid";
 
     private static final String DELETE_BUFFER =
             "DELETE FROM processing.buffer WHERE uid = :uid";
@@ -55,21 +55,13 @@ public class BufferRepositorySqlImpl implements BufferRepository {
 
     private static final String DELETE_SCHEME_BUFFER_LINKS =
             "DELETE FROM processing.connection_scheme_buffer WHERE buffer_uid = :buffer_uid";
-    // private static final String DELETE_SCHEME_BUFFER_LINKS_BY_SCHEME =
-    //         "DELETE FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid";
-    // private static final String DELETE_SPECIFIC_SCHEME_BUFFER_LINK =
-    //         "DELETE FROM processing.connection_scheme"
-    //         + "_buffer WHERE scheme_uid = :scheme_uid AND buffer_uid = :buffer_uid";
 
     private static final String SELECT_BUFFER_UIDS_BY_SCHEME =
             "SELECT buffer_uid FROM processing.connection_scheme_buffer"
-                + " WHERE scheme_uid = :scheme_uid";
+                    + " WHERE scheme_uid = :scheme_uid";
     private static final String EXISTS_SCHEME_BUFFER_LINK =
             "SELECT COUNT(*) FROM processing.connection_scheme_buffer"
-            + " WHERE scheme_uid = :scheme_uid AND buffer_uid = :buffer_uid";
-    // private static final String EXISTS_BY_DEVICE_AND_NAME =
-    //         "SELECT COUNT(*) FROM processing.buffer "
-    //             + "WHERE device_uid = :device_uid AND message_prototype = :message_prototype";
+                    + " WHERE scheme_uid = :scheme_uid AND buffer_uid = :buffer_uid";
 
     private final BufferConverter converter = new BufferConverter();
     private final BufferValidator validator = new BufferValidator();
@@ -93,7 +85,6 @@ public class BufferRepositorySqlImpl implements BufferRepository {
     @Override
     @Transactional
     public void add(BufferBlm buffer) throws BufferAlreadyExistsException {
-        // Валидация Blm модели
         validator.validate(buffer);
 
         if (exists(buffer.getUid())) {
@@ -101,7 +92,6 @@ public class BufferRepositorySqlImpl implements BufferRepository {
                     "Buffer with UID " + buffer.getUid() + " already exists");
         }
 
-        // Конвертация Blm в Dalm
         BufferDalm dalBuffer = converter.toDalm(buffer);
 
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -118,7 +108,6 @@ public class BufferRepositorySqlImpl implements BufferRepository {
     @Override
     @Transactional
     public void update(BufferBlm buffer) throws BufferNotFoundException {
-        // Валидация Blm модели
         validator.validate(buffer);
 
         if (!exists(buffer.getUid())) {
@@ -126,7 +115,6 @@ public class BufferRepositorySqlImpl implements BufferRepository {
                     "Buffer with UID " + buffer.getUid() + " not found");
         }
 
-        // Конвертация Blm в Dalm
         BufferDalm dalBuffer = converter.toDalm(buffer);
 
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -148,12 +136,10 @@ public class BufferRepositorySqlImpl implements BufferRepository {
                     "Buffer with UID " + uid + " not found");
         }
 
-        // Сначала удаляем связи со схемами соединений
         MapSqlParameterSource deleteLinksParams = new MapSqlParameterSource();
         deleteLinksParams.addValue("buffer_uid", uid);
         jdbcTemplate.update(DELETE_SCHEME_BUFFER_LINKS, deleteLinksParams);
 
-        // Затем удаляем сам буфер
         MapSqlParameterSource deleteParams = new MapSqlParameterSource();
         deleteParams.addValue("uid", uid);
         jdbcTemplate.update(DELETE_BUFFER, deleteParams);
@@ -162,10 +148,8 @@ public class BufferRepositorySqlImpl implements BufferRepository {
     @Override
     @Transactional
     public void deleteByDeviceUid(UUID deviceUid) {
-        // Сначала находим все буферы устройства
         List<BufferBlm> deviceBuffers = findByDeviceUid(deviceUid);
 
-        // Удаляем связи этих буферов со схемами
         for (BufferBlm buffer : deviceBuffers) {
             MapSqlParameterSource deleteLinksParams =
                     new MapSqlParameterSource();
@@ -173,7 +157,6 @@ public class BufferRepositorySqlImpl implements BufferRepository {
             jdbcTemplate.update(DELETE_SCHEME_BUFFER_LINKS, deleteLinksParams);
         }
 
-        // Затем удаляем сами буферы
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("device_uid", deviceUid);
         jdbcTemplate.update(DELETE_BUFFERS_BY_DEVICE, params);
@@ -187,7 +170,6 @@ public class BufferRepositorySqlImpl implements BufferRepository {
         try {
             BufferDalm dalBuffer = jdbcTemplate.queryForObject(
                     SELECT_BUFFER_BY_UID, params, bufferRowMapper);
-            // Конвертация Dalm в Blm
             return converter.toBlm(dalBuffer);
         } catch (EmptyResultDataAccessException e) {
             throw new BufferNotFoundException(
@@ -203,7 +185,6 @@ public class BufferRepositorySqlImpl implements BufferRepository {
         List<BufferDalm> dalBuffers = jdbcTemplate
                 .query(SELECT_BUFFERS_BY_DEVICE, params, bufferRowMapper);
 
-        // Конвертация списка Dalm в Blm
         return dalBuffers.stream().map(converter::toBlm).toList();
     }
 
@@ -215,7 +196,6 @@ public class BufferRepositorySqlImpl implements BufferRepository {
         List<BufferDalm> dalBuffers = jdbcTemplate
                 .query(SELECT_BUFFERS_BY_SCHEME, params, bufferRowMapper);
 
-        // Конвертация списка Dalm в Blm
         return dalBuffers.stream().map(converter::toBlm).toList();
     }
 
@@ -233,21 +213,15 @@ public class BufferRepositorySqlImpl implements BufferRepository {
         }
     }
 
-
-    /**
-     * Привязать конкретный буфер к схеме соединений.
-     */
     @Override
     @Transactional
     public void addBufferToConnectionScheme(UUID bufferUid,
             UUID connectionSchemeUid) {
-        // Проверяем существование буфера
         if (!exists(bufferUid)) {
             throw new BufferNotFoundException(
                     "Buffer with UID " + bufferUid + " not found");
         }
 
-        // Проверяем, не привязан ли уже этот буфер к схеме
         if (isBufferLinkedToScheme(bufferUid, connectionSchemeUid)) {
             throw new IllegalArgumentException("Buffer " + bufferUid
                     + " is already linked to scheme " + connectionSchemeUid);
@@ -261,9 +235,6 @@ public class BufferRepositorySqlImpl implements BufferRepository {
         jdbcTemplate.update(INSERT_SCHEME_BUFFER_LINK, params);
     }
 
-    /**
-     * Отвязать конкретный буфер от схемы соединений.
-     */
     @Override
     @Transactional
     public void removeBufferFromConnectionScheme(UUID bufferUid,
@@ -274,13 +245,12 @@ public class BufferRepositorySqlImpl implements BufferRepository {
 
         String deleteSpecificLink =
                 "DELETE FROM processing.connection_scheme_buffer "
-                + "WHERE scheme_uid = :scheme_uid AND buffer_uid = :buffer_uid";
+                        + "WHERE scheme_uid = :scheme_uid AND buffer_uid = :buffer_uid";
         jdbcTemplate.update(deleteSpecificLink, params);
     }
 
-    /**
-     * Получить все UID буферов, привязанных к схеме соединений.
-     */
+    /** . */
+
     @Transactional(readOnly = true)
     public List<UUID> findBufferUidsByConnectionScheme(
             UUID connectionSchemeUid) {
@@ -291,9 +261,8 @@ public class BufferRepositorySqlImpl implements BufferRepository {
                 (rs, rowNum) -> UUID.fromString(rs.getString("buffer_uid")));
     }
 
-    /**
-     * Проверить, привязан ли буфер к схеме соединений.
-     */
+    /** . */
+
     @Transactional(readOnly = true)
     public boolean isBufferLinkedToScheme(UUID bufferUid,
             UUID connectionSchemeUid) {
@@ -306,9 +275,7 @@ public class BufferRepositorySqlImpl implements BufferRepository {
         return count != null && count > 0;
     }
 
-    /**
-     * Получить количество буферов, привязанных к схеме соединений.
-     */
+    /** . */
     @Transactional(readOnly = true)
     public int countByConnectionScheme(UUID connectionSchemeUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -316,15 +283,14 @@ public class BufferRepositorySqlImpl implements BufferRepository {
 
         String countSql =
                 "SELECT COUNT(*) FROM processing.connection_scheme_buffer"
-                + " WHERE scheme_uid = :scheme_uid";
+                        + " WHERE scheme_uid = :scheme_uid";
         Integer count =
                 jdbcTemplate.queryForObject(countSql, params, Integer.class);
         return count != null ? count : 0;
     }
 
-    /**
-     * Очистить все связи буфера со схемами соединений.
-     */
+    /** . */
+
     @Transactional
     public void clearBufferSchemeLinks(UUID bufferUid) {
         MapSqlParameterSource params = new MapSqlParameterSource();

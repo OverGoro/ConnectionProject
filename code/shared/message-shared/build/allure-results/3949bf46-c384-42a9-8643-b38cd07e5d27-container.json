@@ -1,0 +1,1 @@
+{"uuid":"3949bf46-c384-42a9-8643-b38cd07e5d27","name":"Validate MessageDto with long content type - Negative","children":["abbb08e7-f24e-495f-9525-f331bd9ac213"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1763749546837,"stop":1763749546837}],"afters":[],"start":1763749546834,"stop":1763749546839}
