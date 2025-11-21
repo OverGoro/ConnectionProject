@@ -16,7 +16,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Builder
-public class RefreshTokenBLM {
+public class RefreshTokenBlm {
     protected String token;
     protected UUID uid;
     protected UUID clientUID;

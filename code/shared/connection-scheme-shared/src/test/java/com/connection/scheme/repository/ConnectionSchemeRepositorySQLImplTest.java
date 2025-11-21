@@ -30,28 +30,28 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import com.connection.scheme.converter.ConnectionSchemeConverter;
 import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
 import com.connection.scheme.exception.ConnectionSchemeNotFoundException;
-import com.connection.scheme.model.ConnectionSchemeBLM;
-import com.connection.scheme.model.ConnectionSchemeDALM;
+import com.connection.scheme.model.ConnectionSchemeBlm;
+import com.connection.scheme.model.ConnectionSchemeDalm;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
-@DisplayName("Connection Scheme Repository Tests - SQL implementation tests")
-class ConnectionSchemeRepositorySQLImplTest {
+@DisplayName("Connection Scheme Repository Tests - Sql implementation tests")
+class ConnectionSchemeRepositorySqlImplTest {
 
     @Mock
     private NamedParameterJdbcTemplate jdbcTemplate;
 
     @InjectMocks
-    private ConnectionSchemeRepositorySQLImpl repository;
+    private ConnectionSchemeRepositorySqlImpl repository;
 
-    private ConnectionSchemeDALM testSchemeDALM;
-    private ConnectionSchemeBLM testSchemeBLM;
+    private ConnectionSchemeDalm testSchemeDalm;
+    private ConnectionSchemeBlm testSchemeBlm;
     private ConnectionSchemeConverter converter;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        testSchemeDALM = createValidConnectionSchemeDALM();
-        testSchemeBLM = createValidConnectionSchemeBLM();
+        testSchemeDalm = createValidConnectionSchemeDalm();
+        testSchemeBlm = createValidConnectionSchemeBlm();
         converter = new ConnectionSchemeConverter();
     }
 
@@ -63,7 +63,7 @@ class ConnectionSchemeRepositorySQLImplTest {
                 .thenThrow(new EmptyResultDataAccessException(1));
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
-        repository.add(testSchemeBLM);
+        repository.add(testSchemeBlm);
 
         verify(jdbcTemplate, times(1)).queryForObject(
                 eq("SELECT cs.uid, cs.client_uid, cs.scheme_json FROM processing.connection_scheme cs WHERE cs.uid = :uid"),
@@ -74,7 +74,7 @@ class ConnectionSchemeRepositorySQLImplTest {
                 any(MapSqlParameterSource.class));
         
         // ИСПРАВЛЕНО: Проверяем сохранение связей с буферами в таблицу connection_scheme_buffer
-        verify(jdbcTemplate, times(testSchemeDALM.getUsedBuffers().size())).update(
+        verify(jdbcTemplate, times(testSchemeDalm.getUsedBuffers().size())).update(
                 eq("INSERT INTO processing.connection_scheme_buffer (uid, scheme_uid, buffer_uid) VALUES (:uid, :scheme_uid, :buffer_uid)"),
                 any(MapSqlParameterSource.class));
     }
@@ -83,7 +83,7 @@ class ConnectionSchemeRepositorySQLImplTest {
     @Test
     @DisplayName("Add scheme with empty used buffers - Positive")
     void testAddSchemeWithEmptyUsedBuffers_Positive() {
-        ConnectionSchemeBLM scheme = converter.toBLM(createConnectionSchemeDALMWithEmptyUsedBuffers());
+        ConnectionSchemeBlm scheme = converter.toBlm(createConnectionSchemeDalmWithEmptyUsedBuffers());
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenThrow(new EmptyResultDataAccessException(1));
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
@@ -105,9 +105,9 @@ class ConnectionSchemeRepositorySQLImplTest {
     @DisplayName("Add existing scheme - Negative")
     void testAddExistingScheme_Negative() {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testSchemeDALM);
+                .thenReturn(testSchemeDalm);
 
-        assertThatThrownBy(() -> repository.add(testSchemeBLM))
+        assertThatThrownBy(() -> repository.add(testSchemeBlm))
                 .isInstanceOf(ConnectionSchemeAlreadyExistsException.class);
 
         verify(jdbcTemplate, never()).update(
@@ -123,10 +123,10 @@ class ConnectionSchemeRepositorySQLImplTest {
     @DisplayName("Update scheme - Positive")
     void testUpdateScheme_Positive() {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testSchemeDALM);
+                .thenReturn(testSchemeDalm);
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
-        repository.update(testSchemeBLM);
+        repository.update(testSchemeBlm);
 
         verify(jdbcTemplate, times(1)).update(
                 eq("UPDATE processing.connection_scheme SET scheme_json = :scheme_json::jsonb WHERE uid = :uid"),
@@ -136,7 +136,7 @@ class ConnectionSchemeRepositorySQLImplTest {
         verify(jdbcTemplate, times(1)).update(
                 eq("DELETE FROM processing.connection_scheme_buffer WHERE scheme_uid = :scheme_uid"),
                 any(MapSqlParameterSource.class));
-        verify(jdbcTemplate, times(testSchemeDALM.getUsedBuffers().size())).update(
+        verify(jdbcTemplate, times(testSchemeDalm.getUsedBuffers().size())).update(
                 eq("INSERT INTO processing.connection_scheme_buffer (uid, scheme_uid, buffer_uid) VALUES (:uid, :scheme_uid, :buffer_uid)"),
                 any(MapSqlParameterSource.class));
     }
@@ -145,9 +145,9 @@ class ConnectionSchemeRepositorySQLImplTest {
     @Test
     @DisplayName("Update scheme with empty used buffers - Positive")
     void testUpdateSchemeWithEmptyUsedBuffers_Positive() {
-        ConnectionSchemeBLM scheme = converter.toBLM(createConnectionSchemeDALMWithEmptyUsedBuffers());
+        ConnectionSchemeBlm scheme = converter.toBlm(createConnectionSchemeDalmWithEmptyUsedBuffers());
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(converter.toDALM(scheme));
+                .thenReturn(converter.toDalm(scheme));
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
         repository.update(scheme);
@@ -172,7 +172,7 @@ class ConnectionSchemeRepositorySQLImplTest {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenThrow(new EmptyResultDataAccessException(1));
 
-        assertThatThrownBy(() -> repository.update(testSchemeBLM))
+        assertThatThrownBy(() -> repository.update(testSchemeBlm))
                 .isInstanceOf(ConnectionSchemeNotFoundException.class);
 
         verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
@@ -183,10 +183,10 @@ class ConnectionSchemeRepositorySQLImplTest {
     @DisplayName("Delete scheme - Positive")
     void testDeleteScheme_Positive() {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testSchemeDALM);
+                .thenReturn(testSchemeDalm);
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
-        repository.delete(testSchemeDALM.getUid());
+        repository.delete(testSchemeDalm.getUid());
 
         // ИСПРАВЛЕНО: Связи удаляются каскадно, поэтому проверяем только удаление схемы
         verify(jdbcTemplate, times(1)).update(
@@ -201,7 +201,7 @@ class ConnectionSchemeRepositorySQLImplTest {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenThrow(new EmptyResultDataAccessException(1));
 
-        assertThatThrownBy(() -> repository.delete(testSchemeDALM.getUid()))
+        assertThatThrownBy(() -> repository.delete(testSchemeDalm.getUid()))
                 .isInstanceOf(ConnectionSchemeNotFoundException.class);
 
         verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
@@ -212,22 +212,22 @@ class ConnectionSchemeRepositorySQLImplTest {
     @DisplayName("Find scheme by UID - Positive")
     void testFindByUid_Positive() {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testSchemeDALM);
+                .thenReturn(testSchemeDalm);
         
         // ИСПРАВЛЕНО: Мокаем запрос для получения used buffers из connection_scheme_buffer
         when(jdbcTemplate.query(
                 eq("SELECT csb.buffer_uid FROM processing.connection_scheme_buffer csb WHERE csb.scheme_uid = :scheme_uid"), 
                 any(MapSqlParameterSource.class), 
                 any(RowMapper.class)))
-                .thenReturn(testSchemeDALM.getUsedBuffers());
+                .thenReturn(testSchemeDalm.getUsedBuffers());
 
-        ConnectionSchemeBLM result = repository.findByUid(testSchemeDALM.getUid());
+        ConnectionSchemeBlm result = repository.findByUid(testSchemeDalm.getUid());
 
         assertThat(result).isNotNull();
-        assertThat(result.getUid()).isEqualTo(testSchemeBLM.getUid());
-        assertThat(result.getClientUid()).isEqualTo(testSchemeBLM.getClientUid());
-        assertThat(result.getSchemeJson()).isEqualTo(testSchemeBLM.getSchemeJson());
-        assertThat(result.getUsedBuffers()).isEqualTo(testSchemeBLM.getUsedBuffers());
+        assertThat(result.getUid()).isEqualTo(testSchemeBlm.getUid());
+        assertThat(result.getClientUid()).isEqualTo(testSchemeBlm.getClientUid());
+        assertThat(result.getSchemeJson()).isEqualTo(testSchemeBlm.getSchemeJson());
+        assertThat(result.getUsedBuffers()).isEqualTo(testSchemeBlm.getUsedBuffers());
         
         verify(jdbcTemplate, times(1)).queryForObject(
                 eq("SELECT cs.uid, cs.client_uid, cs.scheme_json FROM processing.connection_scheme cs WHERE cs.uid = :uid"),
@@ -242,7 +242,7 @@ class ConnectionSchemeRepositorySQLImplTest {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenThrow(new EmptyResultDataAccessException(1));
 
-        assertThatThrownBy(() -> repository.findByUid(testSchemeDALM.getUid()))
+        assertThatThrownBy(() -> repository.findByUid(testSchemeDalm.getUid()))
                 .isInstanceOf(ConnectionSchemeNotFoundException.class);
     }
 
@@ -251,22 +251,22 @@ class ConnectionSchemeRepositorySQLImplTest {
     @DisplayName("Find schemes by client UID - Positive")
     void testFindByClientUid_Positive() {
         when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(List.of(testSchemeDALM));
+                .thenReturn(List.of(testSchemeDalm));
         
         // ИСПРАВЛЕНО: Мокаем запрос для получения used buffers для каждой схемы из connection_scheme_buffer
         when(jdbcTemplate.query(
                 eq("SELECT csb.buffer_uid FROM processing.connection_scheme_buffer csb WHERE csb.scheme_uid = :scheme_uid"), 
                 any(MapSqlParameterSource.class), 
                 any(RowMapper.class)))
-                .thenReturn(testSchemeDALM.getUsedBuffers());
+                .thenReturn(testSchemeDalm.getUsedBuffers());
 
-        List<ConnectionSchemeBLM> result = repository.findByClientUid(testSchemeDALM.getClientUid());
+        List<ConnectionSchemeBlm> result = repository.findByClientUid(testSchemeDalm.getClientUid());
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getUid()).isEqualTo(testSchemeDALM.getUid());
-        assertThat(result.get(0).getClientUid()).isEqualTo(testSchemeDALM.getClientUid());
-        assertThat(result.get(0).getSchemeJson()).isEqualTo(testSchemeDALM.getSchemeJson());
-        assertThat(result.get(0).getUsedBuffers()).isEqualTo(testSchemeDALM.getUsedBuffers());
+        assertThat(result.get(0).getUid()).isEqualTo(testSchemeDalm.getUid());
+        assertThat(result.get(0).getClientUid()).isEqualTo(testSchemeDalm.getClientUid());
+        assertThat(result.get(0).getSchemeJson()).isEqualTo(testSchemeDalm.getSchemeJson());
+        assertThat(result.get(0).getUsedBuffers()).isEqualTo(testSchemeDalm.getUsedBuffers());
         
         verify(jdbcTemplate, times(1)).query(
                 eq("SELECT cs.uid, cs.client_uid, cs.scheme_json FROM processing.connection_scheme cs WHERE cs.client_uid = :client_uid"),
@@ -281,7 +281,7 @@ class ConnectionSchemeRepositorySQLImplTest {
         when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenReturn(List.of());
 
-        List<ConnectionSchemeBLM> result = repository.findByClientUid(testSchemeDALM.getClientUid());
+        List<ConnectionSchemeBlm> result = repository.findByClientUid(testSchemeDalm.getClientUid());
 
         assertThat(result).isEmpty();
         verify(jdbcTemplate, times(1)).query(
@@ -295,20 +295,20 @@ class ConnectionSchemeRepositorySQLImplTest {
     @DisplayName("Find schemes by buffer UID - Positive")
     void testFindByBufferUid_Positive() {
         when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(List.of(testSchemeDALM));
+                .thenReturn(List.of(testSchemeDalm));
         
         // ИСПРАВЛЕНО: Мокаем запрос для получения used buffers для каждой схемы
         when(jdbcTemplate.query(
                 eq("SELECT csb.buffer_uid FROM processing.connection_scheme_buffer csb WHERE csb.scheme_uid = :scheme_uid"), 
                 any(MapSqlParameterSource.class), 
                 any(RowMapper.class)))
-                .thenReturn(testSchemeDALM.getUsedBuffers());
+                .thenReturn(testSchemeDalm.getUsedBuffers());
 
-        List<ConnectionSchemeBLM> result = repository.findByBufferUid(UUID.randomUUID());
+        List<ConnectionSchemeBlm> result = repository.findByBufferUid(UUID.randomUUID());
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getUid()).isEqualTo(testSchemeDALM.getUid());
-        assertThat(result.get(0).getClientUid()).isEqualTo(testSchemeDALM.getClientUid());
+        assertThat(result.get(0).getUid()).isEqualTo(testSchemeDalm.getUid());
+        assertThat(result.get(0).getClientUid()).isEqualTo(testSchemeDalm.getClientUid());
         
         verify(jdbcTemplate, times(1)).query(
                 eq("SELECT cs.uid, cs.client_uid, cs.scheme_json FROM processing.connection_scheme cs INNER JOIN processing.connection_scheme_buffer csb ON cs.uid = csb.scheme_uid WHERE csb.buffer_uid = :buffer_uid"),
@@ -321,9 +321,9 @@ class ConnectionSchemeRepositorySQLImplTest {
     @DisplayName("Check scheme exists - Positive")
     void testExists_Positive() {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testSchemeDALM);
+                .thenReturn(testSchemeDalm);
 
-        boolean result = repository.exists(testSchemeDALM.getUid());
+        boolean result = repository.exists(testSchemeDalm.getUid());
 
         assertThat(result).isTrue();
     }
@@ -335,7 +335,7 @@ class ConnectionSchemeRepositorySQLImplTest {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenThrow(new EmptyResultDataAccessException(1));
 
-        boolean result = repository.exists(testSchemeDALM.getUid());
+        boolean result = repository.exists(testSchemeDalm.getUid());
 
         assertThat(result).isFalse();
     }

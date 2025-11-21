@@ -1,13 +1,13 @@
 package com.connection.device.validator;
 
-import static com.connection.device.mother.DeviceObjectMother.createDeviceBLMWithNullFields;
-import static com.connection.device.mother.DeviceObjectMother.createDeviceDTOWithInvalidUid;
-import static com.connection.device.mother.DeviceObjectMother.createDeviceDTOWithLongDescription;
-import static com.connection.device.mother.DeviceObjectMother.createDeviceDTOWithLongName;
-import static com.connection.device.mother.DeviceObjectMother.createDeviceDTOWithNullUid;
-import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBLM;
-import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDALM;
-import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDTO;
+import static com.connection.device.mother.DeviceObjectMother.createDeviceBlmWithNullFields;
+import static com.connection.device.mother.DeviceObjectMother.createDeviceDtoWithInvalidUid;
+import static com.connection.device.mother.DeviceObjectMother.createDeviceDtoWithLongDescription;
+import static com.connection.device.mother.DeviceObjectMother.createDeviceDtoWithLongName;
+import static com.connection.device.mother.DeviceObjectMother.createDeviceDtoWithNullUid;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBlm;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDalm;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDto;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -21,9 +21,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import com.connection.device.exception.DeviceValidateException;
-import com.connection.device.model.DeviceBLM;
-import com.connection.device.model.DeviceDALM;
-import com.connection.device.model.DeviceDTO;
+import com.connection.device.model.DeviceBlm;
+import com.connection.device.model.DeviceDalm;
+import com.connection.device.model.DeviceDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Device Validator Tests")
@@ -39,10 +39,10 @@ class DeviceValidatorTest {
     // Positive tests
     @Test
     @Order(1)
-    @DisplayName("Validate valid DeviceDTO - Positive")
-    void testValidateDeviceDTO_Positive() {
+    @DisplayName("Validate valid DeviceDto - Positive")
+    void testValidateDeviceDto_Positive() {
 
-        DeviceDTO device = createValidDeviceDTO();
+        DeviceDto device = createValidDeviceDto();
 
         assertThat(device).isNotNull();
         validator.validate(device);
@@ -50,10 +50,10 @@ class DeviceValidatorTest {
 
     @Test
     @Order(2)
-    @DisplayName("Validate valid DeviceBLM - Positive")
-    void testValidateDeviceBLM_Positive() {
+    @DisplayName("Validate valid DeviceBlm - Positive")
+    void testValidateDeviceBlm_Positive() {
 
-        DeviceBLM device = createValidDeviceBLM();
+        DeviceBlm device = createValidDeviceBlm();
 
         assertThat(device).isNotNull();
         validator.validate(device);
@@ -61,22 +61,22 @@ class DeviceValidatorTest {
 
     @Test
     @Order(3)
-    @DisplayName("Validate valid DeviceDALM - Positive")
-    void testValidateDeviceDALM_Positive() {
+    @DisplayName("Validate valid DeviceDalm - Positive")
+    void testValidateDeviceDalm_Positive() {
 
-        DeviceDALM device = createValidDeviceDALM();
+        DeviceDalm device = createValidDeviceDalm();
 
         assertThat(device).isNotNull();
         validator.validate(device);
     }
 
-    // Negative tests - DeviceDTO
+    // Negative tests - DeviceDto
     @Test
     @Order(4)
-    @DisplayName("Validate null DeviceDTO - Negative")
-    void testValidateNullDeviceDTO_Negative() {
+    @DisplayName("Validate null DeviceDto - Negative")
+    void testValidateNullDeviceDto_Negative() {
 
-        DeviceDTO device = null;
+        DeviceDto device = null;
 
         assertThatThrownBy(() -> validator.validate(device))
                 .isInstanceOf(DeviceValidateException.class);
@@ -84,10 +84,10 @@ class DeviceValidatorTest {
 
     @Test
     @Order(5)
-    @DisplayName("Validate DeviceDTO with null UID - Negative")
-    void testValidateDeviceDTOWithNullUid_Negative() {
+    @DisplayName("Validate DeviceDto with null UID - Negative")
+    void testValidateDeviceDtoWithNullUid_Negative() {
 
-        DeviceDTO device = createDeviceDTOWithNullUid();
+        DeviceDto device = createDeviceDtoWithNullUid();
 
         assertThatThrownBy(() -> validator.validate(device))
                 .isInstanceOf(DeviceValidateException.class);
@@ -95,10 +95,10 @@ class DeviceValidatorTest {
 
     @Test
     @Order(6)
-    @DisplayName("Validate DeviceDTO with invalid UID - Negative")
-    void testValidateDeviceDTOWithInvalidUid_Negative() {
+    @DisplayName("Validate DeviceDto with invalid UID - Negative")
+    void testValidateDeviceDtoWithInvalidUid_Negative() {
 
-        DeviceDTO device = createDeviceDTOWithInvalidUid();
+        DeviceDto device = createDeviceDtoWithInvalidUid();
 
         assertThatThrownBy(() -> validator.validate(device))
                 .isInstanceOf(DeviceValidateException.class);
@@ -106,10 +106,10 @@ class DeviceValidatorTest {
 
     @Test
     @Order(7)
-    @DisplayName("Validate DeviceDTO with long name - Negative")
-    void testValidateDeviceDTOWithLongName_Negative() {
+    @DisplayName("Validate DeviceDto with long name - Negative")
+    void testValidateDeviceDtoWithLongName_Negative() {
 
-        DeviceDTO device = createDeviceDTOWithLongName();
+        DeviceDto device = createDeviceDtoWithLongName();
 
         assertThatThrownBy(() -> validator.validate(device))
                 .isInstanceOf(DeviceValidateException.class);
@@ -117,22 +117,22 @@ class DeviceValidatorTest {
 
     @Test
     @Order(8)
-    @DisplayName("Validate DeviceDTO with long description - Negative")
-    void testValidateDeviceDTOWithLongDescription_Negative() {
+    @DisplayName("Validate DeviceDto with long description - Negative")
+    void testValidateDeviceDtoWithLongDescription_Negative() {
 
-        DeviceDTO device = createDeviceDTOWithLongDescription();
+        DeviceDto device = createDeviceDtoWithLongDescription();
 
         assertThatThrownBy(() -> validator.validate(device))
                 .isInstanceOf(DeviceValidateException.class);
     }
 
-    // Negative tests - DeviceBLM
+    // Negative tests - DeviceBlm
     @Test
     @Order(9)
-    @DisplayName("Validate null DeviceBLM - Negative")
-    void testValidateNullDeviceBLM_Negative() {
+    @DisplayName("Validate null DeviceBlm - Negative")
+    void testValidateNullDeviceBlm_Negative() {
 
-        DeviceBLM device = null;
+        DeviceBlm device = null;
 
         assertThatThrownBy(() -> validator.validate(device))
                 .isInstanceOf(DeviceValidateException.class);
@@ -140,10 +140,10 @@ class DeviceValidatorTest {
 
     @Test
     @Order(10)
-    @DisplayName("Validate DeviceBLM with null fields - Negative")
-    void testValidateDeviceBLMWithNullFields_Negative() {
+    @DisplayName("Validate DeviceBlm with null fields - Negative")
+    void testValidateDeviceBlmWithNullFields_Negative() {
 
-        DeviceBLM device = createDeviceBLMWithNullFields();
+        DeviceBlm device = createDeviceBlmWithNullFields();
 
         assertThatThrownBy(() -> validator.validate(device))
                 .isInstanceOf(DeviceValidateException.class);
@@ -152,10 +152,10 @@ class DeviceValidatorTest {
     // Edge cases
     @Test
     @Order(11)
-    @DisplayName("Validate DeviceDTO with empty name - Negative")
-    void testValidateDeviceDTOWithEmptyName_Negative() {
+    @DisplayName("Validate DeviceDto with empty name - Negative")
+    void testValidateDeviceDtoWithEmptyName_Negative() {
 
-        DeviceDTO device = DeviceDTO.builder()
+        DeviceDto device = DeviceDto.builder()
                 .uid(UUID.randomUUID().toString())
                 .clientUuid(UUID.randomUUID().toString())
                 .deviceName("")
@@ -168,10 +168,10 @@ class DeviceValidatorTest {
 
     @Test
     @Order(12)
-    @DisplayName("Validate DeviceDTO with whitespace name - Negative")
-    void testValidateDeviceDTOWithWhitespaceName_Negative() {
+    @DisplayName("Validate DeviceDto with whitespace name - Negative")
+    void testValidateDeviceDtoWithWhitespaceName_Negative() {
 
-        DeviceDTO device = DeviceDTO.builder()
+        DeviceDto device = DeviceDto.builder()
                 .uid(UUID.randomUUID().toString())
                 .clientUuid(UUID.randomUUID().toString())
                 .deviceName("   ")

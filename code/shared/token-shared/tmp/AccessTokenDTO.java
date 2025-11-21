@@ -12,6 +12,6 @@ import lombok.Setter;
 @Setter
 @Entity
 @Builder
-public class AccessTokenDTO {
+public class AccessTokenDto {
     protected String token;
 }

@@ -1,4 +1,4 @@
-// ActiveTokenExistsException.java
+
 package com.connection.device.token.exception;
 
 public class DeviceAccessTokenExistsException extends BaseTokenException {
@@ -11,7 +11,7 @@ public class DeviceAccessTokenExistsException extends BaseTokenException {
         res += "\n" + "description: active device access token already exists";
         return res;
     }
-}// DeviceTokenValidateException.java
+}
 package com.connection.device.token.exception;
 
 public class DeviceTokenValidateException extends BaseTokenException {
@@ -28,7 +28,7 @@ public class DeviceTokenValidateException extends BaseTokenException {
         res += "\n" + descriptionString;
         return res;
     }
-}// DeviceAccessTokenNotFoundException.java
+}
 package com.connection.device.token.exception;
 
 public class DeviceAccessTokenNotFoundException extends BaseTokenException {
@@ -41,7 +41,7 @@ public class DeviceAccessTokenNotFoundException extends BaseTokenException {
         res += "\n" + "description: device access token not found";
         return res;
     }
-}// DeviceTokenAlreadyExistsException.java
+}
 package com.connection.device.token.exception;
 
 public class DeviceTokenAlreadyExistsException extends BaseTokenException {
@@ -54,7 +54,7 @@ public class DeviceTokenAlreadyExistsException extends BaseTokenException {
         res += "\n" + "description: device token already exists";
         return res;
     }
-}// DeviceTokenNotFoundException.java
+}
 package com.connection.device.token.exception;
 
 public class DeviceTokenNotFoundException extends BaseTokenException {
@@ -83,7 +83,7 @@ public class BaseTokenException extends RuntimeException{
         return res;
     }
 }
-// DeviceTokenValidateException.java
+
 package com.connection.device.token.exception;
 
 public class DeviceAccessTokenValidateException extends BaseTokenException {
@@ -100,7 +100,7 @@ public class DeviceAccessTokenValidateException extends BaseTokenException {
         res += "\n" + descriptionString;
         return res;
     }
-}// DeviceTokenGenerator.java
+}
 package com.connection.device.token.generator;
 
 import java.util.Date;
@@ -170,7 +170,7 @@ public class DeviceTokenGenerator {
                 .expiresAt(expiration)
                 .build();
     }
-}// DeviceAccessTokenGenerator.java
+}
 package com.connection.device.token.generator;
 
 import java.util.Date;
@@ -238,7 +238,7 @@ public class DeviceAccessTokenGenerator {
                 .expiresAt(expiration)
                 .build();
     }
-}// DeviceAccessTokenDALM.java
+}
 package com.connection.device.token.model;
 
 import java.util.Date;
@@ -263,7 +263,7 @@ public class DeviceAccessTokenDALM {
     protected String token;
     protected Date createdAt;
     protected Date expiresAt;
-}// DeviceAccessTokenBLM.java
+}
 package com.connection.device.token.model;
 
 import java.util.Date;
@@ -288,7 +288,7 @@ public class DeviceAccessTokenBLM {
     protected UUID deviceTokenUid;
     protected Date createdAt;
     protected Date expiresAt;
-}// DeviceTokenBLM.java
+}
 package com.connection.device.token.model;
 
 import java.util.Date;
@@ -313,7 +313,7 @@ public class DeviceTokenBLM {
     protected UUID deviceUid;
     protected Date createdAt;
     protected Date expiresAt;
-}// DeviceAccessTokenDTO.java
+}
 package com.connection.device.token.model;
 
 import lombok.AllArgsConstructor;
@@ -331,7 +331,7 @@ import lombok.Setter;
 @EqualsAndHashCode
 public class DeviceAccessTokenDTO {
     protected String token;
-}// DeviceTokenDALM.java
+}
 package com.connection.device.token.model;
 
 import java.util.Date;
@@ -356,7 +356,7 @@ public class DeviceTokenDALM {
     protected String token;
     protected Date createdAt;
     protected Date expiresAt;
-}// DeviceTokenDTO.java
+}
 package com.connection.device.token.model;
 
 import lombok.AllArgsConstructor;
@@ -702,7 +702,7 @@ public class TokenUtils {
             return "Failed to extract token info: " + e.getMessage();
         }
     }
-}// DeviceAccessTokenConverter.java
+}
 package com.connection.device.token.converter;
 
 import com.connection.device.token.generator.DeviceAccessTokenGenerator;
@@ -714,7 +714,7 @@ import io.jsonwebtoken.JwtException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
-// DeviceAccessTokenConverter.java
+
 @RequiredArgsConstructor
 public class DeviceAccessTokenConverter {
     
@@ -764,7 +764,7 @@ public class DeviceAccessTokenConverter {
                 .expiresAt(blm.getExpiresAt())
                 .build();
     }
-}// DeviceTokenConverter.java
+}
 package com.connection.device.token.converter;
 
 import com.connection.device.token.generator.DeviceTokenGenerator;
@@ -825,7 +825,7 @@ public class DeviceTokenConverter {
                 .expiresAt(blm.getExpiresAt())
                 .build();
     }
-}// DeviceAccessTokenValidator.java
+}
 package com.connection.device.token.validator;
 
 import java.util.Date;
@@ -907,7 +907,7 @@ public class DeviceAccessTokenValidator {
             throw new DeviceTokenValidateException("","Creation date cannot be before creation date");
         }
     }
-}// DeviceTokenValidator.java
+}
 package com.connection.device.token.validator;
 
 import java.util.Date;

@@ -1,30 +1,36 @@
-// Конвертер
 package com.connection.message.converter;
 
+import com.connection.message.model.MessageBlm;
+import com.connection.message.model.MessageDalm;
+import com.connection.message.model.MessageDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import com.connection.message.model.MessageBLM;
-import com.connection.message.model.MessageDALM;
-import com.connection.message.model.MessageDTO;
-
-import lombok.RequiredArgsConstructor;
-
+/** . */
 @Component
 @RequiredArgsConstructor
 public class MessageConverter {
-    public MessageBLM toBLM(MessageDTO dto) {
-        return new MessageBLM(dto.getUid(), dto.getBufferUid(), dto.getContent(), dto.getContentType(), dto.getCreatedAt());
+    /** . */
+    public MessageBlm toBlm(MessageDto dto) {
+        return new MessageBlm(dto.getUid(), dto.getBufferUid(),
+                dto.getContent(), dto.getContentType(), dto.getCreatedAt());
     }
-    
-    public MessageBLM toBLM(MessageDALM dalm) {
-        return new MessageBLM(dalm.getUid(), dalm.getBufferUid(), dalm.getContent(), dalm.getContentType(), dalm.getCreatedAt());
+
+    /** . */
+    public MessageBlm toBlm(MessageDalm dalm) {
+        return new MessageBlm(dalm.getUid(), dalm.getBufferUid(),
+                dalm.getContent(), dalm.getContentType(), dalm.getCreatedAt());
     }
-    
-    public MessageDTO toDTO(MessageBLM blm) {
-        return new MessageDTO(blm.getUid(), blm.getBufferUid(), blm.getContent(), blm.getContentType(), blm.getCreatedAt());
+
+    /** . */
+    public MessageDto toDto(MessageBlm blm) {
+        return new MessageDto(blm.getUid(), blm.getBufferUid(),
+                blm.getContent(), blm.getContentType(), blm.getCreatedAt());
     }
-    
-    public MessageDALM toDALM(MessageBLM blm) {
-        return new MessageDALM(blm.getUid(), blm.getBufferUid(), blm.getContent(), blm.getContentType(), blm.getCreatedAt());
+
+    /** . */
+    public MessageDalm toDalm(MessageBlm blm) {
+        return new MessageDalm(blm.getUid(), blm.getBufferUid(),
+                blm.getContent(), blm.getContentType(), blm.getCreatedAt());
     }
 }

@@ -15,8 +15,8 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import com.connection.device.token.model.DeviceAccessTokenBLM;
-import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenBlm;
+import com.connection.device.token.model.DeviceTokenBlm;
 
 import io.jsonwebtoken.security.Keys;
 
@@ -37,54 +37,54 @@ class DeviceAccessTokenGeneratorTest {
     @DisplayName("Generate device access token - Positive")
     void testGenerateDeviceAccessToken_Positive() {
         String token = generator.generateDeviceAccessToken(
-            createValidDeviceAccessTokenDALM().getDeviceTokenUid(),
-            createValidDeviceAccessTokenDALM().getCreatedAt(),
-            createValidDeviceAccessTokenDALM().getExpiresAt()
+            createValidDeviceAccessTokenDalm().getDeviceTokenUid(),
+            createValidDeviceAccessTokenDalm().getCreatedAt(),
+            createValidDeviceAccessTokenDalm().getExpiresAt()
         );
         assertThat(token).isNotNull().isNotEmpty();
     }
 
     @Test
     @DisplayName("Parse valid device access token - Positive")
-    void testGetDeviceAccessTokenBLM_Positive() {
+    void testGetDeviceAccessTokenBlm_Positive() {
         String tokenString = generator.generateDeviceAccessToken(
-            createValidDeviceAccessTokenDALM().getDeviceTokenUid(),
-            createValidDeviceAccessTokenDALM().getCreatedAt(),
-            createValidDeviceAccessTokenDALM().getExpiresAt()
+            createValidDeviceAccessTokenDalm().getDeviceTokenUid(),
+            createValidDeviceAccessTokenDalm().getCreatedAt(),
+            createValidDeviceAccessTokenDalm().getExpiresAt()
         );
         
-        DeviceAccessTokenBLM result = generator.getDeviceAccessTokenBLM(tokenString);
+        DeviceAccessTokenBlm result = generator.getDeviceAccessTokenBlm(tokenString);
         assertThat(result).isNotNull();
-        assertThat(result.getDeviceTokenUid()).isEqualTo(createValidDeviceAccessTokenDALM().getDeviceTokenUid());
+        assertThat(result.getDeviceTokenUid()).isEqualTo(createValidDeviceAccessTokenDalm().getDeviceTokenUid());
         assertThat(result.getToken()).isEqualTo(tokenString);
     }
 
     @Test
     @DisplayName("Parse invalid device access token - Negative")
-    void testGetDeviceAccessTokenBLMWithInvalidToken_Negative() {
-        assertThatThrownBy(() -> generator.getDeviceAccessTokenBLM("invalid.token.here"))
+    void testGetDeviceAccessTokenBlmWithInvalidToken_Negative() {
+        assertThatThrownBy(() -> generator.getDeviceAccessTokenBlm("invalid.token.here"))
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
     @DisplayName("Parse device access token with wrong subject - Negative")
-    void testGetDeviceAccessTokenBLMWithWrongSubject_Negative() {
+    void testGetDeviceAccessTokenBlmWithWrongSubject_Negative() {
         DeviceAccessTokenGenerator wrongSubjectGenerator = new DeviceAccessTokenGenerator(secretKey, "test-app", "wrong-subject");
         
         String tokenString = generator.generateDeviceAccessToken(
-            createValidDeviceAccessTokenDALM().getDeviceTokenUid(),
-            createValidDeviceAccessTokenDALM().getCreatedAt(),
-            createValidDeviceAccessTokenDALM().getExpiresAt()
+            createValidDeviceAccessTokenDalm().getDeviceTokenUid(),
+            createValidDeviceAccessTokenDalm().getCreatedAt(),
+            createValidDeviceAccessTokenDalm().getExpiresAt()
         );
         
-        assertThatThrownBy(() -> wrongSubjectGenerator.getDeviceAccessTokenBLM(tokenString))
+        assertThatThrownBy(() -> wrongSubjectGenerator.getDeviceAccessTokenBlm(tokenString))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Invalid token subject");
     }
 
     @Test
     @DisplayName("Parse device access token with wrong type - Negative")
-    void testGetDeviceAccessTokenBLMWithWrongType_Negative() {
+    void testGetDeviceAccessTokenBlmWithWrongType_Negative() {
         DeviceAccessTokenGenerator wrongTypeGenerator = new DeviceAccessTokenGenerator(secretKey, "test-app", "device-access-token") {
             @Override
             public String generateDeviceAccessToken(java.util.UUID deviceTokenUid, Date createdAt, Date expiresAt) {
@@ -101,12 +101,12 @@ class DeviceAccessTokenGeneratorTest {
         };
         
         String tokenString = wrongTypeGenerator.generateDeviceAccessToken(
-            createValidDeviceAccessTokenDALM().getDeviceTokenUid(),
-            createValidDeviceAccessTokenDALM().getCreatedAt(),
-            createValidDeviceAccessTokenDALM().getExpiresAt()
+            createValidDeviceAccessTokenDalm().getDeviceTokenUid(),
+            createValidDeviceAccessTokenDalm().getCreatedAt(),
+            createValidDeviceAccessTokenDalm().getExpiresAt()
         );
         
-        assertThatThrownBy(() -> generator.getDeviceAccessTokenBLM(tokenString))
+        assertThatThrownBy(() -> generator.getDeviceAccessTokenBlm(tokenString))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Invalid token type");
     }
@@ -115,14 +115,14 @@ class DeviceAccessTokenGeneratorTest {
     @DisplayName("Generate and parse round trip - Positive")
     void testGenerateAndParseRoundTrip_Positive() {
         String token = generator.generateDeviceAccessToken(
-            createValidDeviceAccessTokenDALM().getDeviceTokenUid(),
-            createValidDeviceAccessTokenDALM().getCreatedAt(),
-            createValidDeviceAccessTokenDALM().getExpiresAt()
+            createValidDeviceAccessTokenDalm().getDeviceTokenUid(),
+            createValidDeviceAccessTokenDalm().getCreatedAt(),
+            createValidDeviceAccessTokenDalm().getExpiresAt()
         );
         
-        DeviceAccessTokenBLM parsed = generator.getDeviceAccessTokenBLM(token);
+        DeviceAccessTokenBlm parsed = generator.getDeviceAccessTokenBlm(token);
         
-        assertThat(parsed.getDeviceTokenUid()).isEqualTo(createValidDeviceAccessTokenDALM().getDeviceTokenUid());
+        assertThat(parsed.getDeviceTokenUid()).isEqualTo(createValidDeviceAccessTokenDalm().getDeviceTokenUid());
         assertThat(parsed.getToken()).isEqualTo(token);
         assertThat(parsed.getCreatedAt()).isNotNull();
         assertThat(parsed.getExpiresAt()).isNotNull();
@@ -135,12 +135,12 @@ class DeviceAccessTokenGeneratorTest {
         Date expiresAt = new Date(System.currentTimeMillis() - 1000L * 60 * 60 * 1);
         
         String token = generator.generateDeviceAccessToken(
-            createValidDeviceAccessTokenDALM().getDeviceTokenUid(),
+            createValidDeviceAccessTokenDalm().getDeviceTokenUid(),
             createdAt,
             expiresAt
         );
     
-        assertThatThrownBy(() -> generator.getDeviceAccessTokenBLM(token))
+        assertThatThrownBy(() -> generator.getDeviceAccessTokenBlm(token))
             .isInstanceOf(RuntimeException.class);
       
     }
@@ -152,12 +152,12 @@ class DeviceAccessTokenGeneratorTest {
         Date expiresAt = new Date(System.currentTimeMillis() + 1000L * 60 * 60);
         
         String token = generator.generateDeviceAccessToken(
-            createValidDeviceAccessTokenDALM().getDeviceTokenUid(),
+            createValidDeviceAccessTokenDalm().getDeviceTokenUid(),
             createdAt,
             expiresAt
         );
         
-        DeviceAccessTokenBLM result = generator.getDeviceAccessTokenBLM(token);
+        DeviceAccessTokenBlm result = generator.getDeviceAccessTokenBlm(token);
         
         assertThat(result.getCreatedAt().after(new Date())).isTrue();
     }
@@ -165,8 +165,8 @@ class DeviceAccessTokenGeneratorTest {
     @Test
     @DisplayName("Compare device token and device access token structure")
     void testCompareTokenStructures() {
-        UUID deviceUid = createValidDeviceTokenDALM().getDeviceUid();
-        UUID deviceTokenUid = createValidDeviceAccessTokenDALM().getDeviceTokenUid();
+        UUID deviceUid = createValidDeviceTokenDalm().getDeviceUid();
+        UUID deviceTokenUid = createValidDeviceAccessTokenDalm().getDeviceTokenUid();
         Date createdAt = new Date();
         Date expiresAt = new Date(System.currentTimeMillis() + 3600000);
         
@@ -175,11 +175,11 @@ class DeviceAccessTokenGeneratorTest {
         
         String deviceAccessToken = generator.generateDeviceAccessToken(deviceTokenUid, createdAt, expiresAt);
         
-        DeviceTokenBLM deviceTokenBLM = deviceTokenGenerator.getDeviceTokenBLM(deviceToken);
-        DeviceAccessTokenBLM deviceAccessTokenBLM = generator.getDeviceAccessTokenBLM(deviceAccessToken);
+        DeviceTokenBlm deviceTokenBlm = deviceTokenGenerator.getDeviceTokenBlm(deviceToken);
+        DeviceAccessTokenBlm deviceAccessTokenBlm = generator.getDeviceAccessTokenBlm(deviceAccessToken);
         
-        assertThat(deviceTokenBLM.getDeviceUid()).isEqualTo(deviceUid);
-        assertThat(deviceAccessTokenBLM.getDeviceTokenUid()).isEqualTo(deviceTokenUid);
+        assertThat(deviceTokenBlm.getDeviceUid()).isEqualTo(deviceUid);
+        assertThat(deviceAccessTokenBlm.getDeviceTokenUid()).isEqualTo(deviceTokenUid);
         assertThat(deviceToken).isNotEqualTo(deviceAccessToken);
     }
 }

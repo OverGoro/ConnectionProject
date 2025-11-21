@@ -1,1 +1,0 @@
-{"uuid":"cc767491-5ba0-47f4-ab85-e46532201b66","name":"Validate BufferBlm with null fields - Negative","children":["e695418f-847f-4df8-b99a-9ad70de6debc"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1763736586049,"stop":1763736586050}],"afters":[],"start":1763736585980,"stop":1763736586591}

@@ -1,4 +1,4 @@
-// ConnectionSchemeConverterTest.java
+
 package com.connection.scheme.converter;
 
 import static com.connection.scheme.mother.ConnectionSchemeObjectMother.*;
@@ -12,9 +12,9 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import com.connection.scheme.model.ConnectionSchemeBLM;
-import com.connection.scheme.model.ConnectionSchemeDALM;
-import com.connection.scheme.model.ConnectionSchemeDTO;
+import com.connection.scheme.model.ConnectionSchemeBlm;
+import com.connection.scheme.model.ConnectionSchemeDalm;
+import com.connection.scheme.model.ConnectionSchemeDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Connection Scheme Converter Tests")
@@ -28,10 +28,10 @@ class ConnectionSchemeConverterTest {
     }
 
     @Test
-    @DisplayName("Convert DALM to BLM - Positive")
-    void testToBLMFromDALM_Positive() {
-        ConnectionSchemeDALM dalM = createValidConnectionSchemeDALM();
-        ConnectionSchemeBLM result = converter.toBLM(dalM);
+    @DisplayName("Convert Dalm to Blm - Positive")
+    void testToBlmFromDalm_Positive() {
+        ConnectionSchemeDalm dalM = createValidConnectionSchemeDalm();
+        ConnectionSchemeBlm result = converter.toBlm(dalM);
         
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(dalM.getUid());
@@ -43,10 +43,10 @@ class ConnectionSchemeConverterTest {
     }
 
     @Test
-    @DisplayName("Convert DTO to BLM - Positive")
-    void testToBLMFromDTO_Positive() {
-        ConnectionSchemeDTO dto = createValidConnectionSchemeDTO();
-        ConnectionSchemeBLM result = converter.toBLM(dto);
+    @DisplayName("Convert Dto to Blm - Positive")
+    void testToBlmFromDto_Positive() {
+        ConnectionSchemeDto dto = createValidConnectionSchemeDto();
+        ConnectionSchemeBlm result = converter.toBlm(dto);
         
         assertThat(result).isNotNull();
         assertThat(result.getUid().toString()).isEqualTo(dto.getUid());
@@ -59,10 +59,10 @@ class ConnectionSchemeConverterTest {
     }
 
     @Test
-    @DisplayName("Convert BLM to DTO - Positive")
-    void testToDTOFromBLM_Positive() {
-        ConnectionSchemeBLM blm = createValidConnectionSchemeBLM();
-        ConnectionSchemeDTO result = converter.toDTO(blm);
+    @DisplayName("Convert Blm to Dto - Positive")
+    void testToDtoFromBlm_Positive() {
+        ConnectionSchemeBlm blm = createValidConnectionSchemeBlm();
+        ConnectionSchemeDto result = converter.toDto(blm);
         
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid().toString());
@@ -71,10 +71,10 @@ class ConnectionSchemeConverterTest {
     }
 
     @Test
-    @DisplayName("Convert BLM to DALM - Positive")
-    void testToDALMFromBLM_Positive() {
-        ConnectionSchemeBLM blm = createValidConnectionSchemeBLM();
-        ConnectionSchemeDALM result = converter.toDALM(blm);
+    @DisplayName("Convert Blm to Dalm - Positive")
+    void testToDalmFromBlm_Positive() {
+        ConnectionSchemeBlm blm = createValidConnectionSchemeBlm();
+        ConnectionSchemeDalm result = converter.toDalm(blm);
         
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid());
@@ -84,11 +84,11 @@ class ConnectionSchemeConverterTest {
     }
 
     @Test
-    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
-    void testRoundTripDTOToBLMToDTO() {
-        ConnectionSchemeDTO original = createValidConnectionSchemeDTO();
-        ConnectionSchemeBLM blm = converter.toBLM(original);
-        ConnectionSchemeDTO result = converter.toDTO(blm);
+    @DisplayName("Round-trip conversion Dto -> Blm -> Dto")
+    void testRoundTripDtoToBlmToDto() {
+        ConnectionSchemeDto original = createValidConnectionSchemeDto();
+        ConnectionSchemeBlm blm = converter.toBlm(original);
+        ConnectionSchemeDto result = converter.toDto(blm);
         
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(original.getUid());
@@ -97,11 +97,11 @@ class ConnectionSchemeConverterTest {
     }
 
     @Test
-    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
-    void testRoundTripDALMToBLMToDALM() {
-        ConnectionSchemeDALM original = createValidConnectionSchemeDALM();
-        ConnectionSchemeBLM blm = converter.toBLM(original);
-        ConnectionSchemeDALM result = converter.toDALM(blm);
+    @DisplayName("Round-trip conversion Dalm -> Blm -> Dalm")
+    void testRoundTripDalmToBlmToDalm() {
+        ConnectionSchemeDalm original = createValidConnectionSchemeDalm();
+        ConnectionSchemeBlm blm = converter.toBlm(original);
+        ConnectionSchemeDalm result = converter.toDalm(blm);
         
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(original.getUid());
@@ -113,8 +113,8 @@ class ConnectionSchemeConverterTest {
     @Test
     @DisplayName("Convert with empty used buffers")
     void testConvertWithEmptyUsedBuffers() {
-        ConnectionSchemeDALM dalM = createConnectionSchemeDALMWithUsedBuffers(Arrays.asList());
-        ConnectionSchemeBLM result = converter.toBLM(dalM);
+        ConnectionSchemeDalm dalM = createConnectionSchemeDalmWithUsedBuffers(Arrays.asList());
+        ConnectionSchemeBlm result = converter.toBlm(dalM);
         
         assertThat(result).isNotNull();
         assertThat(result.getUsedBuffers()).isEmpty();
@@ -123,8 +123,8 @@ class ConnectionSchemeConverterTest {
     @Test
     @DisplayName("Convert with null used buffers")
     void testConvertWithNullUsedBuffers() {
-        ConnectionSchemeDALM dalM = createConnectionSchemeDALMWithUsedBuffers(null);
-        ConnectionSchemeBLM result = converter.toBLM(dalM);
+        ConnectionSchemeDalm dalM = createConnectionSchemeDalmWithUsedBuffers(null);
+        ConnectionSchemeBlm result = converter.toBlm(dalM);
         
         assertThat(result).isNotNull();
         assertThat(result.getUsedBuffers()).isNull();

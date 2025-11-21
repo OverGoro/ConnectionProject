@@ -13,6 +13,6 @@ import lombok.Setter;
 @Setter
 @Entity
 @Builder
-public class RefreshTokenDTO {
+public class RefreshTokenDto {
     protected String token;
 }

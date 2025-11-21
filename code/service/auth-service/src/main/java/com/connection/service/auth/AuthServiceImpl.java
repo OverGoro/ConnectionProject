@@ -120,7 +120,7 @@ public class AuthServiceImpl implements AuthService {
         log.info("Validated refresh token");
 
         // Инициалаизация общих полей
-        UUID newClientUuid = refreshTokenBlm.getClientUID();
+        UUID newClientUuid = refreshTokenBlm.getClientUid();
         Date newCreatedAt = new Date();
 
         // Инициализация нового refreshToken

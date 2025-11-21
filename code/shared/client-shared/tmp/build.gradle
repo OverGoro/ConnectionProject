@@ -4,6 +4,8 @@ plugins {
     id 'io.qameta.allure' version '3.0.0'
     id 'com.avast.gradle.docker-compose' version '0.17.6'
     id 'maven-publish'
+    id 'checkstyle'
+    id 'pmd'
 }
 
 

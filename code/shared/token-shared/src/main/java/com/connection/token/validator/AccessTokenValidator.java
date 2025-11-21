@@ -1,49 +1,58 @@
 package com.connection.token.validator;
 
+import com.connection.token.exception.AccessTokenValidateException;
+import com.connection.token.model.AccessTokenBlm;
+import com.connection.token.model.AccessTokenDalm;
+import com.connection.token.model.AccessTokenDto;
 import java.util.Date;
 import java.util.UUID;
 
-import com.connection.token.exception.AccessTokenValidateException;
-import com.connection.token.model.AccessTokenBLM;
-import com.connection.token.model.AccessTokenDALM;
-import com.connection.token.model.AccessTokenDTO;
-
+/** . */
 public class AccessTokenValidator {
-    public void validate(AccessTokenDTO accessToken) {
+    /** . */
+    public void validate(AccessTokenDto accessToken) {
         if (accessToken == null) {
-            throw new AccessTokenValidateException("null", "Access token is null");
+            throw new AccessTokenValidateException("null",
+                    "Access token is null");
         }
         try {
             validateToken(accessToken.getToken());
         } catch (IllegalArgumentException e) {
-            throw new AccessTokenValidateException("accessToken", e.getMessage());
+            throw new AccessTokenValidateException("accessToken",
+                    e.getMessage());
         }
     }
 
-    public void validate(AccessTokenBLM accessToken) {
+    /** . */
+    public void validate(AccessTokenBlm accessToken) {
         if (accessToken == null) {
-            throw new AccessTokenValidateException("null", "Access token is null");
+            throw new AccessTokenValidateException("null",
+                    "Access token is null");
         }
         try {
             validateToken(accessToken.getToken());
-            validateClientUID(accessToken.getClientUID());
+            validateClientUid(accessToken.getClientUid());
             validateCreatedAt(accessToken.getCreatedAt());
             validateExpiresAt(accessToken.getExpiresAt());
         } catch (IllegalArgumentException e) {
-            throw new AccessTokenValidateException("accessToken", e.getMessage());
+            throw new AccessTokenValidateException("accessToken",
+                    e.getMessage());
         }
     }
 
-    public void validate(AccessTokenDALM accessToken) {
+    /** . */
+    public void validate(AccessTokenDalm accessToken) {
         if (accessToken == null) {
-            throw new AccessTokenValidateException("null", "Access token is null");
+            throw new AccessTokenValidateException("null",
+                    "Access token is null");
         }
         try {
-            validateClientUID(accessToken.getClientUID());
+            validateClientUid(accessToken.getClientUid());
             validateCreatedAt(accessToken.getCreatedAt());
             validateExpiresAt(accessToken.getExpiresAt());
         } catch (IllegalArgumentException e) {
-            throw new AccessTokenValidateException("accessToken", e.getMessage());
+            throw new AccessTokenValidateException("accessToken",
+                    e.getMessage());
         }
     }
 
@@ -53,8 +62,8 @@ public class AccessTokenValidator {
         }
     }
 
-    private void validateClientUID(UUID clientUID) {
-        if (clientUID == null) {
+    private void validateClientUid(UUID clientUid) {
+        if (clientUid == null) {
             throw new IllegalArgumentException("Client UID cannot be null");
         }
     }
@@ -66,13 +75,15 @@ public class AccessTokenValidator {
 
         Date now = new Date();
         if (createdAt.after(now)) {
-            throw new IllegalArgumentException("Creation date cannot be in the future");
+            throw new IllegalArgumentException(
+                    "Creation date cannot be in the future");
         }
     }
 
     private void validateExpiresAt(Date expiresAt) {
         if (expiresAt == null) {
-            throw new IllegalArgumentException("Expiration date cannot be null");
+            throw new IllegalArgumentException(
+                    "Expiration date cannot be null");
         }
 
         Date now = new Date();

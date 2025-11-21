@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+/** . */
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
@@ -14,8 +15,10 @@ import lombok.experimental.SuperBuilder;
 public abstract class Command extends BaseEvent {
     protected String replyTopic;
     protected String commandType;
-    
-    protected Command(String commandType, String sourceService, String replyTopic) {
+
+    /** . */
+    protected Command(String commandType, String sourceService,
+            String replyTopic) {
         super(commandType, sourceService);
         this.commandType = commandType;
         this.replyTopic = replyTopic;

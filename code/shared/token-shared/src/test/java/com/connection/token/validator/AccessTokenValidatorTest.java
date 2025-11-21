@@ -1,21 +1,20 @@
 package com.connection.token.validator;
 
-import static com.connection.token.mother.TokenObjectMother.*;
+import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenBlm;
+import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenDalm;
+import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenDto;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
+import com.connection.token.exception.AccessTokenValidateException;
+import com.connection.token.model.AccessTokenBlm;
+import com.connection.token.model.AccessTokenDalm;
+import com.connection.token.model.AccessTokenDto;
 import java.util.Date;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-
-import com.connection.token.exception.AccessTokenValidateException;
-import com.connection.token.model.AccessTokenBLM;
-import com.connection.token.model.AccessTokenDALM;
-import com.connection.token.model.AccessTokenDTO;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Access Token Validator Tests")
@@ -29,61 +28,61 @@ class AccessTokenValidatorTest {
     }
 
     @Test
-    @DisplayName("Validate valid AccessTokenDTO - Positive")
-    void testValidateAccessTokenDTO_Positive() {
-        AccessTokenDTO token = createValidAccessTokenDTO();
+    @DisplayName("Validate valid AccessTokenDto - Positive")
+    void testValidateAccessTokenDto_Positive() {
+        AccessTokenDto token = createValidAccessTokenDto();
         assertThat(token).isNotNull();
         validator.validate(token);
     }
 
     @Test
-    @DisplayName("Validate valid AccessTokenBLM - Positive")
-    void testValidateAccessTokenBLM_Positive() {
-        AccessTokenBLM token = createValidAccessTokenBLM();
+    @DisplayName("Validate valid AccessTokenBlm - Positive")
+    void testValidateAccessTokenBlm_Positive() {
+        AccessTokenBlm token = createValidAccessTokenBlm();
         assertThat(token).isNotNull();
         validator.validate(token);
     }
 
     @Test
-    @DisplayName("Validate valid AccessTokenDALM - Positive")
-    void testValidateAccessTokenDALM_Positive() {
-        AccessTokenDALM token = createValidAccessTokenDALM();
+    @DisplayName("Validate valid AccessTokenDalm - Positive")
+    void testValidateAccessTokenDalm_Positive() {
+        AccessTokenDalm token = createValidAccessTokenDalm();
         assertThat(token).isNotNull();
         validator.validate(token);
     }
 
     @Test
-    @DisplayName("Validate null AccessTokenDTO - Negative")
-    void testValidateNullAccessTokenDTO_Negative() {
-        AccessTokenDTO token = null;
+    @DisplayName("Validate null AccessTokenDto - Negative")
+    void testValidateNullAccessTokenDto_Negative() {
+        AccessTokenDto token = null;
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(AccessTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate AccessTokenDTO with empty token - Negative")
-    void testValidateAccessTokenDTOWithEmptyToken_Negative() {
-        AccessTokenDTO token = new AccessTokenDTO("");
+    @DisplayName("Validate AccessTokenDto with empty token - Negative")
+    void testValidateAccessTokenDtoWithEmptyToken_Negative() {
+        AccessTokenDto token = new AccessTokenDto("");
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(AccessTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate null AccessTokenBLM - Negative")
-    void testValidateNullAccessTokenBLM_Negative() {
-        AccessTokenBLM token = null;
+    @DisplayName("Validate null AccessTokenBlm - Negative")
+    void testValidateNullAccessTokenBlm_Negative() {
+        AccessTokenBlm token = null;
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(AccessTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate AccessTokenBLM with expired token - Negative")
-    void testValidateAccessTokenBLMWithExpiredToken_Negative() {
+    @DisplayName("Validate AccessTokenBlm with expired token - Negative")
+    void testValidateAccessTokenBlmWithExpiredToken_Negative() {
         Date expiredDate = new Date(System.currentTimeMillis() - 1000L * 60 * 60);
-        AccessTokenBLM token = new AccessTokenBLM(
+        AccessTokenBlm token = new AccessTokenBlm(
             "test-token",
-            createValidAccessTokenBLM().getClientUID(),
-            createValidAccessTokenBLM().getCreatedAt(),
+            createValidAccessTokenBlm().getClientUid(),
+            createValidAccessTokenBlm().getCreatedAt(),
             expiredDate
         );
         assertThatThrownBy(() -> validator.validate(token))
@@ -91,46 +90,46 @@ class AccessTokenValidatorTest {
     }
 
     @Test
-    @DisplayName("Validate AccessTokenBLM with future created date - Negative")
-    void testValidateAccessTokenBLMWithFutureCreatedAt_Negative() {
+    @DisplayName("Validate AccessTokenBlm with future created date - Negative")
+    void testValidateAccessTokenBlmWithFutureCreatedAt_Negative() {
         Date futureDate = new Date(System.currentTimeMillis() + 1000L * 60 * 60);
-        AccessTokenBLM token = new AccessTokenBLM(
+        AccessTokenBlm token = new AccessTokenBlm(
             "test-token",
-            createValidAccessTokenBLM().getClientUID(),
+            createValidAccessTokenBlm().getClientUid(),
             futureDate,
-            createValidAccessTokenBLM().getExpiresAt()
+            createValidAccessTokenBlm().getExpiresAt()
         );
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(AccessTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate null AccessTokenDALM - Negative")
-    void testValidateNullAccessTokenDALM_Negative() {
-        AccessTokenDALM token = null;
+    @DisplayName("Validate null AccessTokenDalm - Negative")
+    void testValidateNullAccessTokenDalm_Negative() {
+        AccessTokenDalm token = null;
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(AccessTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate AccessTokenDALM with null client UID - Negative")
-    void testValidateAccessTokenDALMWithNullClientUID_Negative() {
-        AccessTokenDALM token = new AccessTokenDALM(
+    @DisplayName("Validate AccessTokenDalm with null client UID - Negative")
+    void testValidateAccessTokenDalmWithNullClientUid_Negative() {
+        AccessTokenDalm token = new AccessTokenDalm(
             null,
-            createValidAccessTokenDALM().getCreatedAt(),
-            createValidAccessTokenDALM().getExpiresAt()
+            createValidAccessTokenDalm().getCreatedAt(),
+            createValidAccessTokenDalm().getExpiresAt()
         );
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(AccessTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate AccessTokenDALM with expired token - Negative")
-    void testValidateAccessTokenDALMWithExpiredToken_Negative() {
+    @DisplayName("Validate AccessTokenDalm with expired token - Negative")
+    void testValidateAccessTokenDalmWithExpiredToken_Negative() {
         Date expiredDate = new Date(System.currentTimeMillis() - 1000L * 60 * 60);
-        AccessTokenDALM token = new AccessTokenDALM(
-            createValidAccessTokenDALM().getClientUID(),
-            createValidAccessTokenDALM().getCreatedAt(),
+        AccessTokenDalm token = new AccessTokenDalm(
+            createValidAccessTokenDalm().getClientUid(),
+            createValidAccessTokenDalm().getCreatedAt(),
             expiredDate
         );
         assertThatThrownBy(() -> validator.validate(token))

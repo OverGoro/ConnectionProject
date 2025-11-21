@@ -54,7 +54,7 @@ public class MessageNotFoundException extends BaseMessageException {
         res += "\n" + "description: message not found";
         return res;
     }
-}// MessageRoutingException.java
+}
 package com.connection.message.exception;
 
 public class MessageRoutingException extends BaseMessageException {
@@ -140,7 +140,7 @@ public class MessageBLM {
     protected String content;
     protected String contentType;
     protected Date createdAt;
-}// MessageStatus.java
+}
 package com.connection.message.model;
 
 public enum MessageStatus {
@@ -148,7 +148,7 @@ public enum MessageStatus {
     PROCESSED,
     FAILED,
     DELIVERED
-}// MessageDirection.java
+}
 package com.connection.message.model;
 
 public enum MessageDirection {

@@ -4,12 +4,12 @@ import java.util.Date;
 import java.util.UUID;
 
 import com.connection.token.exception.AccessTokenValidateException;
-import com.connection.token.model.AccessTokenBLM;
-import com.connection.token.model.AccessTokenDALM;
-import com.connection.token.model.AccessTokenDTO;
+import com.connection.token.model.AccessTokenBlm;
+import com.connection.token.model.AccessTokenDalm;
+import com.connection.token.model.AccessTokenDto;
 
 public class AccessTokenValidator {
-    public void validate(AccessTokenDTO accessToken) {
+    public void validate(AccessTokenDto accessToken) {
         if (accessToken == null) {
             throw new AccessTokenValidateException("null", "Access token is null");
         }
@@ -20,13 +20,13 @@ public class AccessTokenValidator {
         }
     }
 
-    public void validate(AccessTokenBLM accessToken) {
+    public void validate(AccessTokenBlm accessToken) {
         if (accessToken == null) {
             throw new AccessTokenValidateException("null", "Access token is null");
         }
         try {
             validateToken(accessToken.getToken());
-            validateClientUID(accessToken.getClientUID());
+            validateClientUid(accessToken.getClientUid());
             validateCreatedAt(accessToken.getCreatedAt());
             validateExpiresAt(accessToken.getExpiresAt());
         } catch (IllegalArgumentException e) {
@@ -34,12 +34,12 @@ public class AccessTokenValidator {
         }
     }
 
-    public void validate(AccessTokenDALM accessToken) {
+    public void validate(AccessTokenDalm accessToken) {
         if (accessToken == null) {
             throw new AccessTokenValidateException("null", "Access token is null");
         }
         try {
-            validateClientUID(accessToken.getClientUID());
+            validateClientUid(accessToken.getClientUid());
             validateCreatedAt(accessToken.getCreatedAt());
             validateExpiresAt(accessToken.getExpiresAt());
         } catch (IllegalArgumentException e) {
@@ -53,7 +53,7 @@ public class AccessTokenValidator {
         }
     }
 
-    private void validateClientUID(UUID clientUID) {
+    private void validateClientUid(UUID clientUID) {
         if (clientUID == null) {
             throw new IllegalArgumentException("Client UID cannot be null");
         }

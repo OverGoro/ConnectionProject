@@ -3,12 +3,12 @@ package com.connection.token.mother;
 import java.util.Date;
 import java.util.UUID;
 
-import com.connection.token.model.AccessTokenBLM;
-import com.connection.token.model.AccessTokenDALM;
-import com.connection.token.model.AccessTokenDTO;
-import com.connection.token.model.RefreshTokenBLM;
-import com.connection.token.model.RefreshTokenDALM;
-import com.connection.token.model.RefreshTokenDTO;
+import com.connection.token.model.AccessTokenBlm;
+import com.connection.token.model.AccessTokenDalm;
+import com.connection.token.model.AccessTokenDto;
+import com.connection.token.model.RefreshTokenBlm;
+import com.connection.token.model.RefreshTokenDalm;
+import com.connection.token.model.RefreshTokenDto;
 
 public class TokenObjectMother {
 
@@ -18,53 +18,53 @@ public class TokenObjectMother {
     private static final Date DEFAULT_CREATED_AT = new Date(System.currentTimeMillis() - 1000L * 60 * 5);
     private static final Date DEFAULT_EXPIRES_AT = new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24);
 
-    public static RefreshTokenDTO createValidRefreshTokenDTO() {
-        return new RefreshTokenDTO(DEFAULT_TOKEN);
+    public static RefreshTokenDto createValidRefreshTokenDto() {
+        return new RefreshTokenDto(DEFAULT_TOKEN);
     }
 
-    public static RefreshTokenBLM createValidRefreshTokenBLM() {
-        return new RefreshTokenBLM(DEFAULT_TOKEN, DEFAULT_UID, DEFAULT_CLIENT_UID, DEFAULT_CREATED_AT, DEFAULT_EXPIRES_AT);
+    public static RefreshTokenBlm createValidRefreshTokenBlm() {
+        return new RefreshTokenBlm(DEFAULT_TOKEN, DEFAULT_UID, DEFAULT_CLIENT_UID, DEFAULT_CREATED_AT, DEFAULT_EXPIRES_AT);
     }
 
-    public static RefreshTokenDALM createValidRefreshTokenDALM() {
-        return new RefreshTokenDALM(DEFAULT_TOKEN, DEFAULT_UID, DEFAULT_CLIENT_UID, DEFAULT_CREATED_AT, DEFAULT_EXPIRES_AT);
+    public static RefreshTokenDalm createValidRefreshTokenDalm() {
+        return new RefreshTokenDalm(DEFAULT_TOKEN, DEFAULT_UID, DEFAULT_CLIENT_UID, DEFAULT_CREATED_AT, DEFAULT_EXPIRES_AT);
     }
 
-    public static AccessTokenDTO createValidAccessTokenDTO() {
-        return new AccessTokenDTO(DEFAULT_TOKEN);
+    public static AccessTokenDto createValidAccessTokenDto() {
+        return new AccessTokenDto(DEFAULT_TOKEN);
     }
 
-    public static AccessTokenBLM createValidAccessTokenBLM() {
-        return new AccessTokenBLM(DEFAULT_TOKEN, DEFAULT_CLIENT_UID, DEFAULT_CREATED_AT, DEFAULT_EXPIRES_AT);
+    public static AccessTokenBlm createValidAccessTokenBlm() {
+        return new AccessTokenBlm(DEFAULT_TOKEN, DEFAULT_CLIENT_UID, DEFAULT_CREATED_AT, DEFAULT_EXPIRES_AT);
     }
 
-    public static AccessTokenDALM createValidAccessTokenDALM() {
-        return new AccessTokenDALM(DEFAULT_CLIENT_UID, DEFAULT_CREATED_AT, DEFAULT_EXPIRES_AT);
+    public static AccessTokenDalm createValidAccessTokenDalm() {
+        return new AccessTokenDalm(DEFAULT_CLIENT_UID, DEFAULT_CREATED_AT, DEFAULT_EXPIRES_AT);
     }
 
-    public static RefreshTokenDTO createRefreshTokenDTOWithEmptyToken() {
-        return new RefreshTokenDTO("");
+    public static RefreshTokenDto createRefreshTokenDtoWithEmptyToken() {
+        return new RefreshTokenDto("");
     }
 
-    public static RefreshTokenBLM createRefreshTokenBLMWithNullFields() {
-        return new RefreshTokenBLM(null, null, null, null, null);
+    public static RefreshTokenBlm createRefreshTokenBlmWithNullFields() {
+        return new RefreshTokenBlm(null, null, null, null, null);
     }
 
-    public static RefreshTokenDALM createRefreshTokenDALMWithNullFields() {
-        return new RefreshTokenDALM(null, null, null, null, null);
+    public static RefreshTokenDalm createRefreshTokenDalmWithNullFields() {
+        return new RefreshTokenDalm(null, null, null, null, null);
     }
 
-    public static RefreshTokenBLM createRefreshTokenBLMWithExpiredToken() {
+    public static RefreshTokenBlm createRefreshTokenBlmWithExpiredToken() {
         Date expiredDate = new Date(System.currentTimeMillis() - 1000L * 60 * 60);
-        return new RefreshTokenBLM(DEFAULT_TOKEN, DEFAULT_UID, DEFAULT_CLIENT_UID, DEFAULT_CREATED_AT, expiredDate);
+        return new RefreshTokenBlm(DEFAULT_TOKEN, DEFAULT_UID, DEFAULT_CLIENT_UID, DEFAULT_CREATED_AT, expiredDate);
     }
 
-    public static RefreshTokenDALM createRefreshTokenDALMWithFutureCreatedAt() {
+    public static RefreshTokenDalm createRefreshTokenDalmWithFutureCreatedAt() {
         Date futureDate = new Date(System.currentTimeMillis() + 1000L * 60 * 60);
-        return new RefreshTokenDALM(DEFAULT_TOKEN, DEFAULT_UID, DEFAULT_CLIENT_UID, futureDate, DEFAULT_EXPIRES_AT);
+        return new RefreshTokenDalm(DEFAULT_TOKEN, DEFAULT_UID, DEFAULT_CLIENT_UID, futureDate, DEFAULT_EXPIRES_AT);
     }
 
-    public static RefreshTokenDALM createRefreshTokenForClient(UUID clientUid) {
-        return new RefreshTokenDALM(DEFAULT_TOKEN, UUID.randomUUID(), clientUid, DEFAULT_CREATED_AT, DEFAULT_EXPIRES_AT);
+    public static RefreshTokenDalm createRefreshTokenForClient(UUID clientUid) {
+        return new RefreshTokenDalm(DEFAULT_TOKEN, UUID.randomUUID(), clientUid, DEFAULT_CREATED_AT, DEFAULT_EXPIRES_AT);
     }
 }

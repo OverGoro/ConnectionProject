@@ -1,4 +1,4 @@
-// MessageEventUtils.java
+
 package com.connection.message.events;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -6,11 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.experimental.UtilityClass;
 
+/** . */
 @UtilityClass
 public class MessageEventUtils {
-    private static final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule());
-    
+    private static final ObjectMapper objectMapper =
+            new ObjectMapper().registerModule(new JavaTimeModule());
+
+    /** . */
     public static String toJson(Object event) {
         try {
             return objectMapper.writeValueAsString(event);
@@ -18,15 +20,18 @@ public class MessageEventUtils {
             throw new RuntimeException("Failed to serialize message event", e);
         }
     }
-    
+
+    /** . */
     public static <T> T fromJson(String json, Class<T> clazz) {
         try {
             return objectMapper.readValue(json, clazz);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to deserialize message event", e);
+            throw new RuntimeException("Failed to deserialize message event",
+                    e);
         }
     }
-    
+
+    /** . */
     public static String generateCorrelationId() {
         return java.util.UUID.randomUUID().toString();
     }

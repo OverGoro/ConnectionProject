@@ -1,11 +1,11 @@
 package com.connection.service.auth.e2e;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
+import com.connection.service.auth.mother.AuthObjectMother;
 import java.util.Map;
 import java.util.UUID;
 // import java.util.concurrent.TimeUnit;
-
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,10 +14,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 // import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
-import com.connection.service.auth.mother.AuthObjectMother;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @DisplayName("Auth Service API E2E Tests")
@@ -29,14 +25,17 @@ public class AuthApiE2ETest extends BaseE2ETest {
     @BeforeEach
     void setup() {
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-        System.setProperty("com.atomikos.icatch.log_base_name", "test-tm-" + uniqueId);
+        System.setProperty("com.atomikos.icatch.log_base_name",
+                "test-tm-" + uniqueId);
         System.setProperty("com.atomikos.icatch.log_base_dir", "./test-logs");
-        System.setProperty("com.atomikos.icatch.tm_unique_name", "test-tm-" + uniqueId);
+        System.setProperty("com.atomikos.icatch.tm_unique_name",
+                "test-tm-" + uniqueId);
 
         log.info("Base URL for tests: {}", baseUrl);
 
         // Генерируем уникальный email для каждого теста
-        testEmail = "test_" + System.currentTimeMillis() + "_" + Thread.currentThread().getId() + "@example.com";
+        testEmail = "test_" + System.currentTimeMillis() + "_"
+                + Thread.currentThread().getId() + "@example.com";
     }
 
     @AfterEach
@@ -45,8 +44,7 @@ public class AuthApiE2ETest extends BaseE2ETest {
         if (testEmail != null) {
             cleanupClientData(testEmail);
             log.info("Cleaned up test data for email: {}", testEmail);
-        }
-        else{
+        } else {
             log.error("cleanup: testEmail is null");
         }
     }
@@ -62,16 +60,15 @@ public class AuthApiE2ETest extends BaseE2ETest {
 
         // When
         ResponseEntity<Map> response = restTemplate.postForEntity(
-                baseUrl + "/register",
-                createHttpEntity(clientDto),
-                Map.class);
+                baseUrl + "/register", createHttpEntity(clientDto), Map.class);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
 
         Map<String, Object> body = response.getBody();
-        assertThat(body.get("message")).isEqualTo("User registered successfully");
+        assertThat(body.get("message"))
+                .isEqualTo("User registered successfully");
         assertThat(body.get("email")).isEqualTo(clientDto.getEmail());
 
         log.info("Client registered successfully: {}", clientDto.getEmail());
@@ -85,20 +82,17 @@ public class AuthApiE2ETest extends BaseE2ETest {
         testEmail = clientDto.getEmail();
         // First register the client
         ResponseEntity<Map> registerResponse = restTemplate.postForEntity(
-                baseUrl + "/register",
-                createHttpEntity(clientDto),
-                Map.class);
+                baseUrl + "/register", createHttpEntity(clientDto), Map.class);
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         // Prepare login request
-        var loginRequest = new LoginRequest(clientDto.getEmail(),
-                clientDto.getPassword());
+        var loginRequest =
+                new LoginRequest(clientDto.getEmail(), clientDto.getPassword());
 
         // When
-        ResponseEntity<LoginResponse> loginResponse = restTemplate.postForEntity(
-                baseUrl + "/login",
-                createHttpEntity(loginRequest),
-                LoginResponse.class);
+        ResponseEntity<LoginResponse> loginResponse =
+                restTemplate.postForEntity(baseUrl + "/login",
+                        createHttpEntity(loginRequest), LoginResponse.class);
 
         // Then
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -122,18 +116,16 @@ public class AuthApiE2ETest extends BaseE2ETest {
         testEmail = clientDto.getEmail();
         // First register the client
         ResponseEntity<Map> registerResponse = restTemplate.postForEntity(
-                baseUrl + "/register",
-                createHttpEntity(clientDto),
-                Map.class);
+                baseUrl + "/register", createHttpEntity(clientDto), Map.class);
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         // Login to get tokens
-        var loginRequest = new LoginRequest(clientDto.getEmail(), clientDto.getPassword());
+        var loginRequest =
+                new LoginRequest(clientDto.getEmail(), clientDto.getPassword());
 
-        ResponseEntity<LoginResponse> loginResponse = restTemplate.postForEntity(
-                baseUrl + "/login",
-                createHttpEntity(loginRequest),
-                LoginResponse.class);
+        ResponseEntity<LoginResponse> loginResponse =
+                restTemplate.postForEntity(baseUrl + "/login",
+                        createHttpEntity(loginRequest), LoginResponse.class);
 
         String refreshToken = loginResponse.getBody().getRefreshToken();
         sleep(1000);
@@ -142,10 +134,9 @@ public class AuthApiE2ETest extends BaseE2ETest {
         var refreshRequest = new RefreshTokenRequest(refreshToken);
 
         // When
-        ResponseEntity<LoginResponse> refreshResponse = restTemplate.postForEntity(
-                baseUrl + "/refresh",
-                createHttpEntity(refreshRequest),
-                LoginResponse.class);
+        ResponseEntity<LoginResponse> refreshResponse =
+                restTemplate.postForEntity(baseUrl + "/refresh",
+                        createHttpEntity(refreshRequest), LoginResponse.class);
 
         // Then
         assertThat(refreshResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -154,7 +145,8 @@ public class AuthApiE2ETest extends BaseE2ETest {
         LoginResponse body = refreshResponse.getBody();
         assertThat(body.getAccessToken()).isNotNull();
         assertThat(body.getRefreshToken()).isNotNull();
-        assertThat(body.getAccessToken()).isNotEqualTo(loginResponse.getBody().getAccessToken());
+        assertThat(body.getAccessToken())
+                .isNotEqualTo(loginResponse.getBody().getAccessToken());
         assertThat(body.getRefreshToken()).isNotEqualTo(refreshToken);
 
         log.info("Token refresh successful for: {}", clientDto.getEmail());
@@ -168,26 +160,23 @@ public class AuthApiE2ETest extends BaseE2ETest {
         testEmail = clientDto.getEmail(); // Используем уникальный email
 
         // Register and login
-        restTemplate.postForEntity(
-                baseUrl + "/register",
-                createHttpEntity(clientDto),
-                Map.class);
+        restTemplate.postForEntity(baseUrl + "/register",
+                createHttpEntity(clientDto), Map.class);
 
-        var loginRequest = new LoginRequest(clientDto.getEmail(),
-                clientDto.getPassword());
+        var loginRequest =
+                new LoginRequest(clientDto.getEmail(), clientDto.getPassword());
 
-        ResponseEntity<LoginResponse> loginResponse = restTemplate.postForEntity(
-                baseUrl + "/login",
-                createHttpEntity(loginRequest),
-                LoginResponse.class);
+        ResponseEntity<LoginResponse> loginResponse =
+                restTemplate.postForEntity(baseUrl + "/login",
+                        createHttpEntity(loginRequest), LoginResponse.class);
 
         String accessToken = loginResponse.getBody().getAccessToken();
 
         // When
-        ResponseEntity<ValidationResponse> validationResponse = restTemplate.postForEntity(
-                baseUrl + "/validate/access?accessToken=" + accessToken,
-                null,
-                ValidationResponse.class);
+        ResponseEntity<ValidationResponse> validationResponse =
+                restTemplate.postForEntity(
+                        baseUrl + "/validate/access?accessToken=" + accessToken,
+                        null, ValidationResponse.class);
 
         // Then
         assertThat(validationResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -205,26 +194,22 @@ public class AuthApiE2ETest extends BaseE2ETest {
         testEmail = clientDto.getEmail(); // Используем уникальный email
 
         // Register and login
-        restTemplate.postForEntity(
-                baseUrl + "/register",
-                createHttpEntity(clientDto),
-                Map.class);
+        restTemplate.postForEntity(baseUrl + "/register",
+                createHttpEntity(clientDto), Map.class);
 
-        var loginRequest = new LoginRequest(clientDto.getEmail(),
-                clientDto.getPassword());
+        var loginRequest =
+                new LoginRequest(clientDto.getEmail(), clientDto.getPassword());
 
-        ResponseEntity<LoginResponse> loginResponse = restTemplate.postForEntity(
-                baseUrl + "/login",
-                createHttpEntity(loginRequest),
-                LoginResponse.class);
+        ResponseEntity<LoginResponse> loginResponse =
+                restTemplate.postForEntity(baseUrl + "/login",
+                        createHttpEntity(loginRequest), LoginResponse.class);
 
         String refreshToken = loginResponse.getBody().getRefreshToken();
 
         // When
-        ResponseEntity<ValidationResponse> validationResponse = restTemplate.postForEntity(
-                baseUrl + "/validate/refresh?refreshToken=" + refreshToken,
-                null,
-                ValidationResponse.class);
+        ResponseEntity<ValidationResponse> validationResponse = restTemplate
+                .postForEntity(baseUrl + "/validate/refresh?refreshToken="
+                        + refreshToken, null, ValidationResponse.class);
 
         // Then
         assertThat(validationResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -242,16 +227,13 @@ public class AuthApiE2ETest extends BaseE2ETest {
         testEmail = clientDto.getEmail(); // Используем уникальный email
 
         // First registration
-        restTemplate.postForEntity(
-                baseUrl + "/register",
-                createHttpEntity(clientDto),
-                Map.class);
+        restTemplate.postForEntity(baseUrl + "/register",
+                createHttpEntity(clientDto), Map.class);
 
         // When - Try to register same client again
-        ResponseEntity<ErrorResponse> response = restTemplate.postForEntity(
-                baseUrl + "/register",
-                createHttpEntity(clientDto),
-                ErrorResponse.class);
+        ResponseEntity<ErrorResponse> response =
+                restTemplate.postForEntity(baseUrl + "/register",
+                        createHttpEntity(clientDto), ErrorResponse.class);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -259,7 +241,8 @@ public class AuthApiE2ETest extends BaseE2ETest {
 
         ErrorResponse body = response.getBody();
         assertThat(body.getError()).isEqualTo("client_already_exist");
-        assertThat(body.getMessage()).isEqualTo("An account with such email or uid already exists");
+        assertThat(body.getMessage())
+                .isEqualTo("An account with such email or uid already exists");
 
         log.info("Duplicate registration handled correctly");
     }
@@ -274,19 +257,16 @@ public class AuthApiE2ETest extends BaseE2ETest {
 
         // Step 1: Register
         ResponseEntity<Map> registerResponse = restTemplate.postForEntity(
-                baseUrl + "/register",
-                createHttpEntity(clientDto),
-                Map.class);
+                baseUrl + "/register", createHttpEntity(clientDto), Map.class);
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         log.info("Step 1: Registration completed");
 
         // Step 2: Login
-        var loginRequest = new LoginRequest(clientDto.getEmail(),
-                clientDto.getPassword());
-        ResponseEntity<LoginResponse> loginResponse = restTemplate.postForEntity(
-                baseUrl + "/login",
-                createHttpEntity(loginRequest),
-                LoginResponse.class);
+        var loginRequest =
+                new LoginRequest(clientDto.getEmail(), clientDto.getPassword());
+        ResponseEntity<LoginResponse> loginResponse =
+                restTemplate.postForEntity(baseUrl + "/login",
+                        createHttpEntity(loginRequest), LoginResponse.class);
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         String accessToken1 = loginResponse.getBody().getAccessToken();
@@ -294,10 +274,9 @@ public class AuthApiE2ETest extends BaseE2ETest {
         log.info("Step 2: Login completed");
 
         // Step 3: Validate access token
-        ResponseEntity<ValidationResponse> validateResponse1 = restTemplate.postForEntity(
-                baseUrl + "/validate/access?accessToken=" + accessToken1,
-                null,
-                ValidationResponse.class);
+        ResponseEntity<ValidationResponse> validateResponse1 = restTemplate
+                .postForEntity(baseUrl + "/validate/access?accessToken="
+                        + accessToken1, null, ValidationResponse.class);
         assertThat(validateResponse1.getStatusCode()).isEqualTo(HttpStatus.OK);
         log.info("Step 3: Access token validation completed");
 
@@ -305,10 +284,9 @@ public class AuthApiE2ETest extends BaseE2ETest {
 
         // Step 4: Refresh tokens
         var refreshRequest = new RefreshTokenRequest(refreshToken1);
-        ResponseEntity<LoginResponse> refreshResponse = restTemplate.postForEntity(
-                baseUrl + "/refresh",
-                createHttpEntity(refreshRequest),
-                LoginResponse.class);
+        ResponseEntity<LoginResponse> refreshResponse =
+                restTemplate.postForEntity(baseUrl + "/refresh",
+                        createHttpEntity(refreshRequest), LoginResponse.class);
         assertThat(refreshResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         String accessToken2 = refreshResponse.getBody().getAccessToken();
@@ -316,10 +294,9 @@ public class AuthApiE2ETest extends BaseE2ETest {
         log.info("Step 4: Token refresh completed");
 
         // Step 5: Validate new access token
-        ResponseEntity<ValidationResponse> validateResponse2 = restTemplate.postForEntity(
-                baseUrl + "/validate/access?accessToken=" + accessToken2,
-                null,
-                ValidationResponse.class);
+        ResponseEntity<ValidationResponse> validateResponse2 = restTemplate
+                .postForEntity(baseUrl + "/validate/access?accessToken="
+                        + accessToken2, null, ValidationResponse.class);
         assertThat(validateResponse2.getStatusCode()).isEqualTo(HttpStatus.OK);
         log.info("Step 5: New access token validation completed");
 
@@ -336,8 +313,7 @@ public class AuthApiE2ETest extends BaseE2ETest {
         private String email;
         private String password;
 
-        public LoginRequest() {
-        }
+        public LoginRequest() {}
 
         public LoginRequest(String email, String password) {
             this.email = email;
@@ -364,8 +340,7 @@ public class AuthApiE2ETest extends BaseE2ETest {
     public static class RefreshTokenRequest {
         private String refreshToken;
 
-        public RefreshTokenRequest() {
-        }
+        public RefreshTokenRequest() {}
 
         public RefreshTokenRequest(String refreshToken) {
             this.refreshToken = refreshToken;
@@ -408,7 +383,8 @@ public class AuthApiE2ETest extends BaseE2ETest {
             return accessTokenExpiresAt;
         }
 
-        public void setAccessTokenExpiresAt(java.util.Date accessTokenExpiresAt) {
+        public void setAccessTokenExpiresAt(
+                java.util.Date accessTokenExpiresAt) {
             this.accessTokenExpiresAt = accessTokenExpiresAt;
         }
 
@@ -416,7 +392,8 @@ public class AuthApiE2ETest extends BaseE2ETest {
             return refreshTokenExpiresAt;
         }
 
-        public void setRefreshTokenExpiresAt(java.util.Date refreshTokenExpiresAt) {
+        public void setRefreshTokenExpiresAt(
+                java.util.Date refreshTokenExpiresAt) {
             this.refreshTokenExpiresAt = refreshTokenExpiresAt;
         }
 
@@ -432,8 +409,7 @@ public class AuthApiE2ETest extends BaseE2ETest {
     public static class ValidationResponse {
         private String status;
 
-        public ValidationResponse() {
-        }
+        public ValidationResponse() {}
 
         public ValidationResponse(String status) {
             this.status = status;
@@ -453,8 +429,7 @@ public class AuthApiE2ETest extends BaseE2ETest {
         private String service;
         private long timestamp;
 
-        public HealthResponse() {
-        }
+        public HealthResponse() {}
 
         public HealthResponse(String status, String service, long timestamp) {
             this.status = status;
@@ -491,8 +466,7 @@ public class AuthApiE2ETest extends BaseE2ETest {
         private String error;
         private String message;
 
-        public ErrorResponse() {
-        }
+        public ErrorResponse() {}
 
         public ErrorResponse(String error, String message) {
             this.error = error;

@@ -11,9 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import com.connection.token.exception.RefreshTokenValidateException;
-import com.connection.token.model.RefreshTokenBLM;
-import com.connection.token.model.RefreshTokenDALM;
-import com.connection.token.model.RefreshTokenDTO;
+import com.connection.token.model.RefreshTokenBlm;
+import com.connection.token.model.RefreshTokenDalm;
+import com.connection.token.model.RefreshTokenDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Refresh Token Validator Tests")
@@ -27,89 +27,89 @@ class RefreshTokenValidatorTest {
     }
 
     @Test
-    @DisplayName("Validate valid RefreshTokenDTO - Positive")
-    void testValidateRefreshTokenDTO_Positive() {
-        RefreshTokenDTO token = createValidRefreshTokenDTO();
+    @DisplayName("Validate valid RefreshTokenDto - Positive")
+    void testValidateRefreshTokenDto_Positive() {
+        RefreshTokenDto token = createValidRefreshTokenDto();
         assertThat(token).isNotNull();
         validator.validate(token);
     }
 
     @Test
-    @DisplayName("Validate valid RefreshTokenBLM - Positive")
-    void testValidateRefreshTokenBLM_Positive() {
-        RefreshTokenBLM token = createValidRefreshTokenBLM();
+    @DisplayName("Validate valid RefreshTokenBlm - Positive")
+    void testValidateRefreshTokenBlm_Positive() {
+        RefreshTokenBlm token = createValidRefreshTokenBlm();
         assertThat(token).isNotNull();
         validator.validate(token);
     }
 
     @Test
-    @DisplayName("Validate valid RefreshTokenDALM - Positive")
-    void testValidateRefreshTokenDALM_Positive() {
-        RefreshTokenDALM token = createValidRefreshTokenDALM();
+    @DisplayName("Validate valid RefreshTokenDalm - Positive")
+    void testValidateRefreshTokenDalm_Positive() {
+        RefreshTokenDalm token = createValidRefreshTokenDalm();
         assertThat(token).isNotNull();
         validator.validate(token);
     }
 
     @Test
-    @DisplayName("Validate null RefreshTokenDTO - Negative")
-    void testValidateNullRefreshTokenDTO_Negative() {
-        RefreshTokenDTO token = null;
+    @DisplayName("Validate null RefreshTokenDto - Negative")
+    void testValidateNullRefreshTokenDto_Negative() {
+        RefreshTokenDto token = null;
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(RefreshTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate RefreshTokenDTO with empty token - Negative")
-    void testValidateRefreshTokenDTOWithEmptyToken_Negative() {
-        RefreshTokenDTO token = createRefreshTokenDTOWithEmptyToken();
+    @DisplayName("Validate RefreshTokenDto with empty token - Negative")
+    void testValidateRefreshTokenDtoWithEmptyToken_Negative() {
+        RefreshTokenDto token = createRefreshTokenDtoWithEmptyToken();
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(RefreshTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate null RefreshTokenBLM - Negative")
-    void testValidateNullRefreshTokenBLM_Negative() {
-        RefreshTokenBLM token = null;
+    @DisplayName("Validate null RefreshTokenBlm - Negative")
+    void testValidateNullRefreshTokenBlm_Negative() {
+        RefreshTokenBlm token = null;
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(RefreshTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate RefreshTokenBLM with null fields - Negative")
-    void testValidateRefreshTokenBLMWithNullFields_Negative() {
-        RefreshTokenBLM token = createRefreshTokenBLMWithNullFields();
+    @DisplayName("Validate RefreshTokenBlm with null fields - Negative")
+    void testValidateRefreshTokenBlmWithNullFields_Negative() {
+        RefreshTokenBlm token = createRefreshTokenBlmWithNullFields();
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(RefreshTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate null RefreshTokenDALM - Negative")
-    void testValidateNullRefreshTokenDALM_Negative() {
-        RefreshTokenDALM token = null;
+    @DisplayName("Validate null RefreshTokenDalm - Negative")
+    void testValidateNullRefreshTokenDalm_Negative() {
+        RefreshTokenDalm token = null;
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(RefreshTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate RefreshTokenDALM with null fields - Negative")
-    void testValidateRefreshTokenDALMWithNullFields_Negative() {
-        RefreshTokenDALM token = createRefreshTokenDALMWithNullFields();
+    @DisplayName("Validate RefreshTokenDalm with null fields - Negative")
+    void testValidateRefreshTokenDalmWithNullFields_Negative() {
+        RefreshTokenDalm token = createRefreshTokenDalmWithNullFields();
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(RefreshTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate RefreshTokenBLM with expired token - Negative")
-    void testValidateRefreshTokenBLMWithExpiredToken_Negative() {
-        RefreshTokenBLM token = createRefreshTokenBLMWithExpiredToken();
+    @DisplayName("Validate RefreshTokenBlm with expired token - Negative")
+    void testValidateRefreshTokenBlmWithExpiredToken_Negative() {
+        RefreshTokenBlm token = createRefreshTokenBlmWithExpiredToken();
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(RefreshTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate RefreshTokenDALM with future created date - Negative")
-    void testValidateRefreshTokenDALMWithFutureCreatedAt_Negative() {
-        RefreshTokenDALM token = createRefreshTokenDALMWithFutureCreatedAt();
+    @DisplayName("Validate RefreshTokenDalm with future created date - Negative")
+    void testValidateRefreshTokenDalmWithFutureCreatedAt_Negative() {
+        RefreshTokenDalm token = createRefreshTokenDalmWithFutureCreatedAt();
         assertThatThrownBy(() -> validator.validate(token))
                 .isInstanceOf(RefreshTokenValidateException.class);
     }

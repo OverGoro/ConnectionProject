@@ -2,10 +2,15 @@ package com.connection.service.auth.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
+import com.connection.client.model.ClientBlm;
+import com.connection.client.repository.ClientRepository;
+import com.connection.service.auth.AuthService;
+import com.connection.service.auth.mother.AuthObjectMother;
+import com.connection.token.model.AccessTokenBlm;
+import com.connection.token.model.RefreshTokenBlm;
 import java.util.Date;
 import java.util.UUID;
-
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,15 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.util.Pair;
 import org.springframework.test.context.ActiveProfiles;
-
-import com.connection.client.model.ClientBlm;
-import com.connection.client.repository.ClientRepository;
-import com.connection.service.auth.AuthService;
-import com.connection.service.auth.mother.AuthObjectMother;
-import com.connection.token.model.AccessTokenBlm;
-import com.connection.token.model.RefreshTokenBlm;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @SpringBootTest
@@ -98,11 +94,11 @@ public class AuthServiceIntegrationTest extends BaseIntegrationTest {
         RefreshTokenBlm refreshToken = tokens.getSecond();
         
         assertThat(accessToken.getToken()).isNotBlank();
-        assertThat(accessToken.getClientUID()).isEqualTo(testClient.getUid());
+        assertThat(accessToken.getClientUid()).isEqualTo(testClient.getUid());
         assertThat(accessToken.getExpiresAt()).isAfter(new Date());
         
         assertThat(refreshToken.getToken()).isNotBlank();
-        assertThat(refreshToken.getClientUID()).isEqualTo(testClient.getUid());
+        assertThat(refreshToken.getClientUid()).isEqualTo(testClient.getUid());
         assertThat(refreshToken.getExpiresAt()).isAfter(new Date());
         
         log.info("Successfully authorized and generated tokens for: {}", uniqueEmail);

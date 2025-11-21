@@ -1,49 +1,53 @@
 package com.connection.device.token.repository;
 
-import java.util.UUID;
-
 import com.connection.device.token.exception.DeviceAccessTokenExistsException;
 import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
-import com.connection.device.token.model.DeviceAccessTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenBlm;
+import java.util.UUID;
 
+/** . */
 public interface DeviceAccessTokenRepository {
     /**
-     * Добавить новый device access token
+     * Добавить новый device access token.
      * 
-     * @param deviceAccessTokenBLM Новый токен
+     * @param deviceAccessTokenBlm Новый токен
      * @throws DeviceAccessTokenExistsException Если активный токен уже существует
      */
-    void add(DeviceAccessTokenBLM deviceAccessTokenBLM) throws DeviceAccessTokenExistsException;
+    void add(DeviceAccessTokenBlm deviceAccessTokenBlm)
+            throws DeviceAccessTokenExistsException;
 
     /**
-     * Найти токен по UID
+     * Найти токен по UID.
      * 
      * @param uid UID токена
      * @return Найденный токен
      * @throws DeviceAccessTokenNotFoundException Если токен не найден
      */
-    DeviceAccessTokenBLM findByUid(UUID uid) throws DeviceAccessTokenNotFoundException;
+    DeviceAccessTokenBlm findByUid(UUID uid)
+            throws DeviceAccessTokenNotFoundException;
 
     /**
-     * Найти токен по значению токена
+     * Найти токен по значению токена.
      * 
      * @param token Значение токена
      * @return Найденный токен
      * @throws DeviceAccessTokenNotFoundException Если токен не найден
      */
-    DeviceAccessTokenBLM findByToken(String token) throws DeviceAccessTokenNotFoundException;
+    DeviceAccessTokenBlm findByToken(String token)
+            throws DeviceAccessTokenNotFoundException;
 
     /**
-     * Найти токен по UID device token
+     * Найти токен по UID device token.
      * 
      * @param deviceTokenUid UID device token
      * @return Найденный токен
      * @throws DeviceAccessTokenNotFoundException Если токен не найден
      */
-    DeviceAccessTokenBLM findByDeviceTokenUid(UUID deviceTokenUid) throws DeviceAccessTokenNotFoundException;
+    DeviceAccessTokenBlm findByDeviceTokenUid(UUID deviceTokenUid)
+            throws DeviceAccessTokenNotFoundException;
 
     /**
-     * Отозвать токен по UID
+     * Отозвать токен по UID.
      * 
      * @param uid UID токена
      * @throws DeviceAccessTokenNotFoundException Если токен не найден
@@ -51,19 +55,19 @@ public interface DeviceAccessTokenRepository {
     void revoke(UUID uid) throws DeviceAccessTokenNotFoundException;
 
     /**
-     * Отозвать все токены по UID device token
+     * Отозвать все токены по UID device token.
      * 
      * @param deviceTokenUid UID device token
      */
     void revokeByDeviceTokenUid(UUID deviceTokenUid);
 
     /**
-     * Отозвать все истекшие токены
+     * Отозвать все истекшие токены.
      */
     void revokeAllExpired();
 
     /**
-     * Проверить наличие активного токена для device token
+     * Проверить наличие активного токена для device token.
      * 
      * @param deviceTokenUid UID device token
      * @return true если активный токен существует

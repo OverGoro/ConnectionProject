@@ -3,12 +3,12 @@ package com.connection.device.token.mother;
 import java.util.Date;
 import java.util.UUID;
 
-import com.connection.device.token.model.DeviceAccessTokenBLM;
-import com.connection.device.token.model.DeviceAccessTokenDALM;
-import com.connection.device.token.model.DeviceAccessTokenDTO;
-import com.connection.device.token.model.DeviceTokenBLM;
-import com.connection.device.token.model.DeviceTokenDALM;
-import com.connection.device.token.model.DeviceTokenDTO;
+import com.connection.device.token.model.DeviceAccessTokenBlm;
+import com.connection.device.token.model.DeviceAccessTokenDalm;
+import com.connection.device.token.model.DeviceAccessTokenDto;
+import com.connection.device.token.model.DeviceTokenBlm;
+import com.connection.device.token.model.DeviceTokenDalm;
+import com.connection.device.token.model.DeviceTokenDto;
 
 public class DeviceTokenObjectMother {
 
@@ -20,14 +20,14 @@ public class DeviceTokenObjectMother {
     private static final Date DEFAULT_EXPIRES_AT = new Date(System.currentTimeMillis() + 3600000);
 
     // DeviceToken objects
-    public static DeviceTokenDTO createValidDeviceTokenDTO() {
-        return DeviceTokenDTO.builder()
+    public static DeviceTokenDto createValidDeviceTokenDto() {
+        return DeviceTokenDto.builder()
                 .token(DEFAULT_TOKEN)
                 .build();
     }
 
-    public static DeviceTokenBLM createValidDeviceTokenBLM() {
-        return DeviceTokenBLM.builder()
+    public static DeviceTokenBlm createValidDeviceTokenBlm() {
+        return DeviceTokenBlm.builder()
                 .token(DEFAULT_TOKEN)
                 .uid(DEFAULT_UID)
                 .deviceUid(DEFAULT_DEVICE_UID)
@@ -36,8 +36,8 @@ public class DeviceTokenObjectMother {
                 .build();
     }
 
-    public static DeviceTokenDALM createValidDeviceTokenDALM() {
-        return DeviceTokenDALM.builder()
+    public static DeviceTokenDalm createValidDeviceTokenDalm() {
+        return DeviceTokenDalm.builder()
                 .uid(DEFAULT_UID)
                 .deviceUid(DEFAULT_DEVICE_UID)
                 .token(DEFAULT_TOKEN)
@@ -46,14 +46,14 @@ public class DeviceTokenObjectMother {
                 .build();
     }
 
-    public static DeviceTokenDTO createDeviceTokenDTOWithEmptyToken() {
-        return DeviceTokenDTO.builder()
+    public static DeviceTokenDto createDeviceTokenDtoWithEmptyToken() {
+        return DeviceTokenDto.builder()
                 .token("")
                 .build();
     }
 
-    public static DeviceTokenBLM createDeviceTokenBLMWithExpiredToken() {
-        return DeviceTokenBLM.builder()
+    public static DeviceTokenBlm createDeviceTokenBlmWithExpiredToken() {
+        return DeviceTokenBlm.builder()
                 .token(DEFAULT_TOKEN)
                 .uid(DEFAULT_UID)
                 .deviceUid(DEFAULT_DEVICE_UID)
@@ -62,8 +62,8 @@ public class DeviceTokenObjectMother {
                 .build();
     }
 
-    public static DeviceTokenBLM createDeviceTokenBLMWithFutureCreationDate() {
-        return DeviceTokenBLM.builder()
+    public static DeviceTokenBlm createDeviceTokenBlmWithFutureCreationDate() {
+        return DeviceTokenBlm.builder()
                 .token(DEFAULT_TOKEN)
                 .uid(DEFAULT_UID)
                 .deviceUid(DEFAULT_DEVICE_UID)
@@ -73,14 +73,14 @@ public class DeviceTokenObjectMother {
     }
 
     // DeviceAccessToken objects
-    public static DeviceAccessTokenDTO createValidDeviceAccessTokenDTO() {
-        return DeviceAccessTokenDTO.builder()
+    public static DeviceAccessTokenDto createValidDeviceAccessTokenDto() {
+        return DeviceAccessTokenDto.builder()
                 .token(DEFAULT_TOKEN)
                 .build();
     }
 
-    public static DeviceAccessTokenBLM createValidDeviceAccessTokenBLM() {
-        return DeviceAccessTokenBLM.builder()
+    public static DeviceAccessTokenBlm createValidDeviceAccessTokenBlm() {
+        return DeviceAccessTokenBlm.builder()
                 .token(DEFAULT_TOKEN)
                 .uid(DEFAULT_UID)
                 .deviceTokenUid(DEFAULT_DEVICE_TOKEN_UID)
@@ -89,8 +89,8 @@ public class DeviceTokenObjectMother {
                 .build();
     }
 
-    public static DeviceAccessTokenDALM createValidDeviceAccessTokenDALM() {
-        return DeviceAccessTokenDALM.builder()
+    public static DeviceAccessTokenDalm createValidDeviceAccessTokenDalm() {
+        return DeviceAccessTokenDalm.builder()
                 .uid(DEFAULT_UID)
                 .deviceTokenUid(DEFAULT_DEVICE_TOKEN_UID)
                 .token(DEFAULT_TOKEN)
@@ -99,14 +99,14 @@ public class DeviceTokenObjectMother {
                 .build();
     }
 
-    public static DeviceAccessTokenDTO createDeviceAccessTokenDTOWithLongToken() {
-        return DeviceAccessTokenDTO.builder()
+    public static DeviceAccessTokenDto createDeviceAccessTokenDtoWithLongToken() {
+        return DeviceAccessTokenDto.builder()
                 .token("a".repeat(513))
                 .build();
     }
 
-    public static DeviceAccessTokenBLM createDeviceAccessTokenBLMWithInvalidDates() {
-        return DeviceAccessTokenBLM.builder()
+    public static DeviceAccessTokenBlm createDeviceAccessTokenBlmWithInvalidDates() {
+        return DeviceAccessTokenBlm.builder()
                 .token(DEFAULT_TOKEN)
                 .uid(DEFAULT_UID)
                 .deviceTokenUid(DEFAULT_DEVICE_TOKEN_UID)
@@ -116,8 +116,8 @@ public class DeviceTokenObjectMother {
     }
 
     // Helper methods
-    public static DeviceTokenDALM createDeviceTokenForDevice(UUID deviceUid) {
-        return DeviceTokenDALM.builder()
+    public static DeviceTokenDalm createDeviceTokenForDevice(UUID deviceUid) {
+        return DeviceTokenDalm.builder()
                 .uid(UUID.randomUUID())
                 .deviceUid(deviceUid)
                 .token("token_for_" + deviceUid)
@@ -126,8 +126,8 @@ public class DeviceTokenObjectMother {
                 .build();
     }
 
-    public static DeviceAccessTokenDALM createDeviceAccessTokenForDeviceToken(UUID deviceTokenUid) {
-        return DeviceAccessTokenDALM.builder()
+    public static DeviceAccessTokenDalm createDeviceAccessTokenForDeviceToken(UUID deviceTokenUid) {
+        return DeviceAccessTokenDalm.builder()
                 .uid(UUID.randomUUID())
                 .deviceTokenUid(deviceTokenUid)
                 .token("access_token_for_" + deviceTokenUid)

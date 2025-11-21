@@ -1,6 +1,6 @@
 package com.connection.message.repository;
 
-import static com.connection.message.mother.MessageObjectMother.createValidMessageBLM;
+import static com.connection.message.mother.MessageObjectMother.createValidMessageBlm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,13 +33,13 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import com.connection.message.converter.MessageConverter;
 import com.connection.message.exception.MessageAddException;
 import com.connection.message.exception.MessageNotFoundException;
-import com.connection.message.model.MessageBLM;
-import com.connection.message.model.MessageDALM;
+import com.connection.message.model.MessageBlm;
+import com.connection.message.model.MessageDalm;
 import com.connection.message.validator.MessageValidator;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
-@DisplayName("Message Repository Tests - SQL implementation tests")
-class MessageRepositorySQLImplTest {
+@DisplayName("Message Repository Tests - Sql implementation tests")
+class MessageRepositorySqlImplTest {
 
     @Mock
     private NamedParameterJdbcTemplate jdbcTemplate;
@@ -51,31 +51,31 @@ class MessageRepositorySQLImplTest {
     private MessageValidator validator;
 
     @InjectMocks
-    private MessageRepositorySQLImpl repository;
+    private MessageRepositorySqlImpl repository;
 
-    private MessageBLM testMessageBLM;
-    private MessageDALM testMessageDALM;
+    private MessageBlm testMessageBlm;
+    private MessageDalm testMessageDalm;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        testMessageBLM = createValidMessageBLM();
-        testMessageDALM = new MessageDALM();
-        testMessageDALM.setUid(testMessageBLM.getUid());
-        testMessageDALM.setBufferUid(testMessageBLM.getBufferUid());
-        testMessageDALM.setContent(testMessageBLM.getContent());
-        testMessageDALM.setContentType(testMessageBLM.getContentType());
-        testMessageDALM.setCreatedAt(testMessageBLM.getCreatedAt());
+        testMessageBlm = createValidMessageBlm();
+        testMessageDalm = new MessageDalm();
+        testMessageDalm.setUid(testMessageBlm.getUid());
+        testMessageDalm.setBufferUid(testMessageBlm.getBufferUid());
+        testMessageDalm.setContent(testMessageBlm.getContent());
+        testMessageDalm.setContentType(testMessageBlm.getContentType());
+        testMessageDalm.setCreatedAt(testMessageBlm.getCreatedAt());
     }
 
     @SuppressWarnings("unchecked")
     @Test
     @DisplayName("Add message - Positive")
     void testAddMessage_Positive() {
-        when(converter.toDALM(testMessageBLM)).thenReturn(testMessageDALM);
+        when(converter.toDalm(testMessageBlm)).thenReturn(testMessageDalm);
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
-        repository.add(testMessageBLM);
+        repository.add(testMessageBlm);
 
         verify(jdbcTemplate, times(1)).update(anyString(), any(MapSqlParameterSource.class));
     }
@@ -83,11 +83,11 @@ class MessageRepositorySQLImplTest {
     @Test
     @DisplayName("Add message with exception - Negative")
     void testAddMessageWithException_Negative() {
-        when(converter.toDALM(testMessageBLM)).thenReturn(testMessageDALM);
+        when(converter.toDalm(testMessageBlm)).thenReturn(testMessageDalm);
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class)))
                 .thenThrow(new RuntimeException("Database error"));
 
-        assertThatThrownBy(() -> repository.add(testMessageBLM))
+        assertThatThrownBy(() -> repository.add(testMessageBlm))
                 .isInstanceOf(RuntimeException.class);
 
     }
@@ -97,12 +97,12 @@ class MessageRepositorySQLImplTest {
     @DisplayName("Find message by UID - Positive")
     void testFindByUid_Positive() {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testMessageDALM);
-        when(converter.toBLM(testMessageDALM)).thenReturn(testMessageBLM);
+                .thenReturn(testMessageDalm);
+        when(converter.toBlm(testMessageDalm)).thenReturn(testMessageBlm);
 
-        MessageBLM result = repository.findByUid(testMessageBLM.getUid());
+        MessageBlm result = repository.findByUid(testMessageBlm.getUid());
 
-        assertThat(result).isEqualTo(testMessageBLM);
+        assertThat(result).isEqualTo(testMessageBlm);
         verify(jdbcTemplate, times(1)).queryForObject(
                 eq("SELECT uid, buffer_uid, content, content_type, created_at FROM processing.message WHERE uid = :uid"),
                 any(MapSqlParameterSource.class),
@@ -116,7 +116,7 @@ class MessageRepositorySQLImplTest {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenThrow(new EmptyResultDataAccessException(1));
 
-        assertThatThrownBy(() -> repository.findByUid(testMessageBLM.getUid()))
+        assertThatThrownBy(() -> repository.findByUid(testMessageBlm.getUid()))
                 .isInstanceOf(MessageNotFoundException.class);
 
     }
@@ -125,17 +125,17 @@ class MessageRepositorySQLImplTest {
     @Test
     @DisplayName("Find messages by buffer UID - Positive")
     void testFindByBufferUid_Positive() {
-        List<MessageDALM> dalMessages = Arrays.asList(testMessageDALM);
-        List<MessageBLM> blmMessages = Arrays.asList(testMessageBLM);
+        List<MessageDalm> dalMessages = Arrays.asList(testMessageDalm);
+        List<MessageBlm> blmMessages = Arrays.asList(testMessageBlm);
         
         when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenReturn(dalMessages);
-        when(converter.toBLM(testMessageDALM)).thenReturn(testMessageBLM);
+        when(converter.toBlm(testMessageDalm)).thenReturn(testMessageBlm);
 
-        List<MessageBLM> result = repository.findByBufferUid(testMessageBLM.getBufferUid());
+        List<MessageBlm> result = repository.findByBufferUid(testMessageBlm.getBufferUid());
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0)).isEqualTo(testMessageBLM);
+        assertThat(result.get(0)).isEqualTo(testMessageBlm);
         verify(jdbcTemplate, times(1)).query(
                 eq("SELECT uid, buffer_uid, content, content_type, created_at FROM processing.message WHERE buffer_uid = :buffer_uid ORDER BY created_at DESC"),
                 any(MapSqlParameterSource.class),
@@ -149,7 +149,7 @@ class MessageRepositorySQLImplTest {
         when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenReturn(Collections.emptyList());
 
-        assertThatThrownBy(() -> repository.findByBufferUid(testMessageBLM.getBufferUid()))
+        assertThatThrownBy(() -> repository.findByBufferUid(testMessageBlm.getBufferUid()))
                 .isInstanceOf(MessageNotFoundException.class);
     }
 
@@ -157,19 +157,19 @@ class MessageRepositorySQLImplTest {
     @Test
     @DisplayName("Find messages by buffer UID and time range - Positive")
     void testFindByBufferUidAndTimeRange_Positive() {
-        List<MessageDALM> dalMessages = Arrays.asList(testMessageDALM);
-        List<MessageBLM> blmMessages = Arrays.asList(testMessageBLM);
+        List<MessageDalm> dalMessages = Arrays.asList(testMessageDalm);
+        List<MessageBlm> blmMessages = Arrays.asList(testMessageBlm);
         Date startTime = new Date(System.currentTimeMillis() - 1000 * 60 * 60); // 1 hour ago
         Date endTime = new Date();
 
         when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenReturn(dalMessages);
-        when(converter.toBLM(testMessageDALM)).thenReturn(testMessageBLM);
+        when(converter.toBlm(testMessageDalm)).thenReturn(testMessageBlm);
 
-        List<MessageBLM> result = repository.findByBufferUidAndTimeRange(testMessageBLM.getBufferUid(), startTime, endTime);
+        List<MessageBlm> result = repository.findByBufferUidAndTimeRange(testMessageBlm.getBufferUid(), startTime, endTime);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0)).isEqualTo(testMessageBLM);
+        assertThat(result.get(0)).isEqualTo(testMessageBlm);
         verify(jdbcTemplate, times(1)).query(
                 eq("SELECT uid, buffer_uid, content, content_type, created_at FROM processing.message WHERE buffer_uid = :buffer_uid AND created_at BETWEEN :start_time AND :end_time ORDER BY created_at DESC"),
                 any(MapSqlParameterSource.class),
@@ -186,7 +186,7 @@ class MessageRepositorySQLImplTest {
         when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenReturn(Collections.emptyList());
 
-        assertThatThrownBy(() -> repository.findByBufferUidAndTimeRange(testMessageBLM.getBufferUid(), startTime, endTime))
+        assertThatThrownBy(() -> repository.findByBufferUidAndTimeRange(testMessageBlm.getBufferUid(), startTime, endTime))
                 .isInstanceOf(MessageNotFoundException.class);
 
     }
@@ -196,11 +196,11 @@ class MessageRepositorySQLImplTest {
     @DisplayName("Delete message by UID - Positive")
     void testDeleteByUid_Positive() {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testMessageDALM);
-        when(converter.toBLM(testMessageDALM)).thenReturn(testMessageBLM);
+                .thenReturn(testMessageDalm);
+        when(converter.toBlm(testMessageDalm)).thenReturn(testMessageBlm);
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
-        repository.deleteByUid(testMessageBLM.getUid());
+        repository.deleteByUid(testMessageBlm.getUid());
 
         verify(jdbcTemplate, times(1)).update(
                 eq("DELETE FROM processing.message WHERE uid = :uid"),
@@ -214,7 +214,7 @@ class MessageRepositorySQLImplTest {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenThrow(new EmptyResultDataAccessException(1));
 
-        assertThatThrownBy(() -> repository.deleteByUid(testMessageBLM.getUid()))
+        assertThatThrownBy(() -> repository.deleteByUid(testMessageBlm.getUid()))
                 .isInstanceOf(MessageNotFoundException.class);
 
         verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
@@ -224,15 +224,15 @@ class MessageRepositorySQLImplTest {
     @Test
     @DisplayName("Delete messages by buffer UID - Positive")
     void testDeleteByBufferUid_Positive() {
-        List<MessageDALM> dalMessages = Arrays.asList(testMessageDALM);
-        List<MessageBLM> blmMessages = Arrays.asList(testMessageBLM);
+        List<MessageDalm> dalMessages = Arrays.asList(testMessageDalm);
+        List<MessageBlm> blmMessages = Arrays.asList(testMessageBlm);
         
         when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenReturn(dalMessages);
-        when(converter.toBLM(testMessageDALM)).thenReturn(testMessageBLM);
+        when(converter.toBlm(testMessageDalm)).thenReturn(testMessageBlm);
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
-        repository.deleteByBufferUid(testMessageBLM.getBufferUid());
+        repository.deleteByBufferUid(testMessageBlm.getBufferUid());
 
         verify(jdbcTemplate, times(1)).update(
                 eq("DELETE FROM processing.message WHERE buffer_uid = :buffer_uid"),
@@ -246,7 +246,7 @@ class MessageRepositorySQLImplTest {
         when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
                 .thenReturn(Collections.emptyList());
 
-        assertThatThrownBy(() -> repository.deleteByBufferUid(testMessageBLM.getBufferUid()))
+        assertThatThrownBy(() -> repository.deleteByBufferUid(testMessageBlm.getBufferUid()))
                 .isInstanceOf(MessageNotFoundException.class);
 
         verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));

@@ -1,7 +1,7 @@
 package com.connection.service.auth.config;
 
 import com.connection.client.repository.ClientRepository;
-import com.connection.client.repository.ClientRepositorySQLImpl;
+import com.connection.client.repository.ClientRepositorySqlImpl;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +13,6 @@ public class ClientRepositoryConfig {
     @Bean("ClientRepository")
     ClientRepository clientRepository(
             @Qualifier("ClientJdbcTemplate") NamedParameterJdbcTemplate template) {
-        return new ClientRepositorySQLImpl(template);
+        return new ClientRepositorySqlImpl(template);
     }
 }

@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import com.connection.device.token.exception.DeviceAccessTokenValidateException;
-import com.connection.device.token.model.DeviceAccessTokenBLM;
-import com.connection.device.token.model.DeviceAccessTokenDALM;
-import com.connection.device.token.model.DeviceAccessTokenDTO;
+import com.connection.device.token.model.DeviceAccessTokenBlm;
+import com.connection.device.token.model.DeviceAccessTokenDalm;
+import com.connection.device.token.model.DeviceAccessTokenDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Device Access Token Validator Tests")
@@ -30,57 +30,57 @@ class DeviceAccessTokenValidatorTest {
     }
 
     @Test
-    @DisplayName("Validate valid DeviceAccessTokenDTO - Positive")
-    void testValidateDeviceAccessTokenDTO_Positive() {
-        DeviceAccessTokenDTO deviceToken = createValidDeviceAccessTokenDTO();
+    @DisplayName("Validate valid DeviceAccessTokenDto - Positive")
+    void testValidateDeviceAccessTokenDto_Positive() {
+        DeviceAccessTokenDto deviceToken = createValidDeviceAccessTokenDto();
         assertThat(deviceToken).isNotNull();
         validator.validate(deviceToken);
     }
 
     @Test
-    @DisplayName("Validate valid DeviceAccessTokenBLM - Positive")
-    void testValidateDeviceAccessTokenBLM_Positive() {
-        DeviceAccessTokenBLM deviceToken = createValidDeviceAccessTokenBLM();
+    @DisplayName("Validate valid DeviceAccessTokenBlm - Positive")
+    void testValidateDeviceAccessTokenBlm_Positive() {
+        DeviceAccessTokenBlm deviceToken = createValidDeviceAccessTokenBlm();
         assertThat(deviceToken).isNotNull();
         validator.validate(deviceToken);
     }
 
     @Test
-    @DisplayName("Validate valid DeviceAccessTokenDALM - Positive")
-    void testValidateDeviceAccessTokenDALM_Positive() {
-        DeviceAccessTokenDALM deviceToken = createValidDeviceAccessTokenDALM();
+    @DisplayName("Validate valid DeviceAccessTokenDalm - Positive")
+    void testValidateDeviceAccessTokenDalm_Positive() {
+        DeviceAccessTokenDalm deviceToken = createValidDeviceAccessTokenDalm();
         assertThat(deviceToken).isNotNull();
         validator.validate(deviceToken);
     }
 
     @Test
-    @DisplayName("Validate null DeviceAccessTokenDTO - Negative")
-    void testValidateNullDeviceAccessTokenDTO_Negative() {
-        DeviceAccessTokenDTO deviceToken = null;
+    @DisplayName("Validate null DeviceAccessTokenDto - Negative")
+    void testValidateNullDeviceAccessTokenDto_Negative() {
+        DeviceAccessTokenDto deviceToken = null;
         assertThatThrownBy(() -> validator.validate(deviceToken))
                 .isInstanceOf(DeviceAccessTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate DeviceAccessTokenDTO with long token - Negative")
-    void testValidateDeviceAccessTokenDTOWithLongToken_Negative() {
-        DeviceAccessTokenDTO deviceToken = createDeviceAccessTokenDTOWithLongToken();
+    @DisplayName("Validate DeviceAccessTokenDto with long token - Negative")
+    void testValidateDeviceAccessTokenDtoWithLongToken_Negative() {
+        DeviceAccessTokenDto deviceToken = createDeviceAccessTokenDtoWithLongToken();
         assertThatThrownBy(() -> validator.validate(deviceToken))
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    @DisplayName("Validate DeviceAccessTokenBLM with invalid dates - Negative")
-    void testValidateDeviceAccessTokenBLMWithInvalidDates_Negative() {
-        DeviceAccessTokenBLM deviceToken = createDeviceAccessTokenBLMWithInvalidDates();
+    @DisplayName("Validate DeviceAccessTokenBlm with invalid dates - Negative")
+    void testValidateDeviceAccessTokenBlmWithInvalidDates_Negative() {
+        DeviceAccessTokenBlm deviceToken = createDeviceAccessTokenBlmWithInvalidDates();
         assertThatThrownBy(() -> validator.validate(deviceToken))
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    @DisplayName("Validate DeviceAccessTokenDALM with null device token UID - Negative")
-    void testValidateDeviceAccessTokenDALMWithNullDeviceTokenUid_Negative() {
-        DeviceAccessTokenDALM deviceToken = DeviceAccessTokenDALM.builder()
+    @DisplayName("Validate DeviceAccessTokenDalm with null device token UID - Negative")
+    void testValidateDeviceAccessTokenDalmWithNullDeviceTokenUid_Negative() {
+        DeviceAccessTokenDalm deviceToken = DeviceAccessTokenDalm.builder()
                 .uid(UUID.randomUUID())
                 .deviceTokenUid(null)
                 .token("valid.token")

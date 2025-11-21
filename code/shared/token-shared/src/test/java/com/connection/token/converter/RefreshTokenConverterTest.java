@@ -1,12 +1,15 @@
 package com.connection.token.converter;
 
-import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenBLM;
-import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDALM;
-import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDTO;
+import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenBlm;
+import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDalm;
+import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDto;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.model.RefreshTokenBlm;
+import com.connection.token.model.RefreshTokenDalm;
+import com.connection.token.model.RefreshTokenDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -15,11 +18,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-
-import com.connection.token.generator.RefreshTokenGenerator;
-import com.connection.token.model.RefreshTokenBLM;
-import com.connection.token.model.RefreshTokenDALM;
-import com.connection.token.model.RefreshTokenDTO;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Refresh Token Converter Tests")
@@ -31,53 +29,53 @@ class RefreshTokenConverterTest {
     @InjectMocks
     private RefreshTokenConverter converter;
 
-    private RefreshTokenDALM testDALM;
-    private RefreshTokenDTO testDTO;
-    private RefreshTokenBLM testBLM;
+    private RefreshTokenDalm testDalm;
+    private RefreshTokenDto testDto;
+    private RefreshTokenBlm testBlm;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        testDALM = createValidRefreshTokenDALM();
-        testDTO = createValidRefreshTokenDTO();
-        testBLM = createValidRefreshTokenBLM();
+        testDalm = createValidRefreshTokenDalm();
+        testDto = createValidRefreshTokenDto();
+        testBlm = createValidRefreshTokenBlm();
 
-        when(tokenGenerator.generateRefreshToken(any(RefreshTokenDALM.class))).thenReturn("generated-token");
-        when(tokenGenerator.getRefreshToken(any(String.class))).thenReturn(testBLM);
+        when(tokenGenerator.generateRefreshToken(any(RefreshTokenDalm.class))).thenReturn("generated-token");
+        when(tokenGenerator.getRefreshToken(any(String.class))).thenReturn(testBlm);
     }
 
     @Test
-    @DisplayName("Convert DALM to BLM - Positive")
-    void testToBLMFromDALM_Positive() {
-        RefreshTokenBLM result = converter.toBLM(testDALM);
+    @DisplayName("Convert Dalm to Blm - Positive")
+    void testToBlmFromDalm_Positive() {
+        RefreshTokenBlm result = converter.toBlm(testDalm);
         assertThat(result).isNotNull();
         assertThat(result.getToken()).isEqualTo("generated-token");
     }
 
     @Test
-    @DisplayName("Convert DTO to BLM - Positive")
-    void testToBLMFromDTO_Positive() {
-        RefreshTokenBLM result = converter.toBLM(testDTO);
+    @DisplayName("Convert Dto to Blm - Positive")
+    void testToBlmFromDto_Positive() {
+        RefreshTokenBlm result = converter.toBlm(testDto);
         assertThat(result).isNotNull();
-        assertThat(result.getToken()).isEqualTo(testBLM.getToken());
+        assertThat(result.getToken()).isEqualTo(testBlm.getToken());
     }
 
     @Test
-    @DisplayName("Convert BLM to DTO - Positive")
-    void testToDTOFromBLM_Positive() {
-        RefreshTokenDTO result = converter.toDTO(testBLM);
+    @DisplayName("Convert Blm to Dto - Positive")
+    void testToDtoFromBlm_Positive() {
+        RefreshTokenDto result = converter.toDto(testBlm);
         assertThat(result).isNotNull();
-        assertThat(result.getToken()).isEqualTo(testBLM.getToken());
+        assertThat(result.getToken()).isEqualTo(testBlm.getToken());
     }
 
     @Test
-    @DisplayName("Convert BLM to DALM - Positive")
-    void testToDALMFromBLM_Positive() {
-        RefreshTokenDALM result = converter.toDALM(testBLM);
+    @DisplayName("Convert Blm to Dalm - Positive")
+    void testToDalmFromBlm_Positive() {
+        RefreshTokenDalm result = converter.toDalm(testBlm);
         assertThat(result).isNotNull();
-        assertThat(result.getUid()).isEqualTo(testBLM.getUid());
-        assertThat(result.getClientUID()).isEqualTo(testBLM.getClientUID());
-        assertThat(result.getCreatedAt()).isEqualTo(testBLM.getCreatedAt());
-        assertThat(result.getExpiresAt()).isEqualTo(testBLM.getExpiresAt());
+        assertThat(result.getUid()).isEqualTo(testBlm.getUid());
+        assertThat(result.getClientUid()).isEqualTo(testBlm.getClientUid());
+        assertThat(result.getCreatedAt()).isEqualTo(testBlm.getCreatedAt());
+        assertThat(result.getExpiresAt()).isEqualTo(testBlm.getExpiresAt());
     }
 }

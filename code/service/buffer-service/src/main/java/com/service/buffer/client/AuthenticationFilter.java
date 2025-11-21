@@ -63,14 +63,14 @@ public class AuthenticationFilter extends OncePerRequestFilter {
 
             UsernamePasswordAuthenticationToken authentication = 
                 new UsernamePasswordAuthenticationToken(
-                    accessTokenBlm.getClientUID(),
+                    accessTokenBlm.getClientUid(),
                     null,
                     Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
 
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            log.info("Successfully authenticated client: {}", accessTokenBlm.getClientUID());
+            log.info("Successfully authenticated client: {}", accessTokenBlm.getClientUid());
         } catch (Exception e) {
             throw new SecurityException("Authentication failed: " + e.getMessage());
         }

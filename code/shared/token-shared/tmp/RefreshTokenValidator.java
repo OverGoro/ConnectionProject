@@ -4,12 +4,12 @@ import java.util.Date;
 import java.util.UUID;
 
 import com.connection.token.exception.RefreshTokenValidateException;
-import com.connection.token.model.RefreshTokenBLM;
-import com.connection.token.model.RefreshTokenDALM;
-import com.connection.token.model.RefreshTokenDTO;
+import com.connection.token.model.RefreshTokenBlm;
+import com.connection.token.model.RefreshTokenDalm;
+import com.connection.token.model.RefreshTokenDto;
 
 public class RefreshTokenValidator {
-    public void validate(RefreshTokenDTO refreshToken) {
+    public void validate(RefreshTokenDto refreshToken) {
         if (refreshToken == null) {
             throw new RefreshTokenValidateException("null", "Refresh token is null");
         }
@@ -20,14 +20,14 @@ public class RefreshTokenValidator {
         }
     }
 
-    public void validate(RefreshTokenBLM refreshToken) {
+    public void validate(RefreshTokenBlm refreshToken) {
         if (refreshToken == null) {
             throw new RefreshTokenValidateException("null", "Refresh token is null");
         }
         try {
             validateToken(refreshToken.getToken());
             validateUID(refreshToken.getUid());
-            validateClientUID(refreshToken.getClientUID());
+            validateClientUid(refreshToken.getClientUid());
             validateCreatedAt(refreshToken.getCreatedAt());
             validateExpiresAt(refreshToken.getExpiresAt());
         } catch (IllegalArgumentException e) {
@@ -38,13 +38,13 @@ public class RefreshTokenValidator {
         }
     }
 
-    public void validate(RefreshTokenDALM refreshToken) {
+    public void validate(RefreshTokenDalm refreshToken) {
         if (refreshToken == null) {
             throw new RefreshTokenValidateException("null", "Refresh token is null");
         }
         try {
             validateUID(refreshToken.getUid());
-            validateClientUID(refreshToken.getClientUID());
+            validateClientUid(refreshToken.getClientUid());
             validateCreatedAt(refreshToken.getCreatedAt());
             validateExpiresAt(refreshToken.getExpiresAt());
         } catch (IllegalArgumentException e) {
@@ -67,7 +67,7 @@ public class RefreshTokenValidator {
         }
     }
 
-    private void validateClientUID(UUID clientUID) {
+    private void validateClientUid(UUID clientUID) {
         if (clientUID == null) {
             throw new IllegalArgumentException("Client UID cannot be null");
         }

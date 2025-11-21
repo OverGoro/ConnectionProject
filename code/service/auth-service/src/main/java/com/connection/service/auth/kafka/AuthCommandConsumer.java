@@ -60,7 +60,7 @@
 
 // TokenValidationResponse response = TokenValidationResponse.valid(
 // command.getCorrelationId(),
-// tokenBlm.getClientUID(),
+// tokenBlm.getClientUid(),
 // command.getTokenType().name());
 
 // kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);

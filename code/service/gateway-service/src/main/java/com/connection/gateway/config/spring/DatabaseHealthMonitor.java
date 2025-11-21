@@ -1,7 +1,7 @@
 // package com.connection.gateway.config.spring;
 
 // import java.sql.Connection;
-// import java.sql.SQLException;
+// import java.sql.SqlException;
 // import java.sql.Statement;
 // import java.util.Map;
 // import java.util.concurrent.ConcurrentHashMap;
@@ -99,7 +99,7 @@
 // statement.executeQuery("SELECT 1");
 // return true;
 
-// } catch (SQLException e) {
+// } catch (SqlException e) {
 // log.error("Database connection test failed: {}", e.getMessage());
 // return false;
 // }

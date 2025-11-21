@@ -1515,7 +1515,7 @@ public class AuthEventConstants {
     private AuthEventConstants() {
         // utility class
     }
-}// MessageEventConstants.java
+}
 package com.connection.message.events;
 
 public class MessageEventConstants {
@@ -1540,7 +1540,7 @@ public class MessageEventConstants {
     private MessageEventConstants() {
         // utility class
     }
-}// AddMessageCommand.java
+}
 package com.connection.message.events.commands;
 
 import java.util.Date;
@@ -1581,7 +1581,7 @@ public class AddMessageCommand extends Command {
         this.direction = direction;
         this.clientUid = clientUid;
     }
-}// HealthCheckCommand.java
+}
 package com.connection.message.events.commands;
 
 import com.connection.common.events.Command;
@@ -1603,7 +1603,7 @@ public class HealthCheckCommand extends Command {
     public HealthCheckCommand(String sourceService) {
         super(MessageEventConstants.COMMAND_HEALTH_CHECK, sourceService, MessageEventConstants.MESSAGE_RESPONSES_TOPIC);
     }
-}// GetMessagesByBufferCommand.java
+}
 package com.connection.message.events.commands;
 
 import java.util.UUID;
@@ -1634,7 +1634,7 @@ public class GetMessagesByBufferCommand extends Command {
         this.clientUid = clientUid;
         this.direction = direction;
     }
-}// RouteMessageCommand.java
+}
 package com.connection.message.events.commands;
 
 import java.util.UUID;
@@ -1662,7 +1662,7 @@ public class RouteMessageCommand extends Command {
         this.messageUid = messageUid;
         this.clientUid = clientUid;
     }
-}// GetMessageCommand.java
+}
 package com.connection.message.events.commands;
 
 import java.util.UUID;
@@ -1690,7 +1690,7 @@ public class GetMessageCommand extends Command {
         this.messageUid = messageUid;
         this.clientUid = clientUid;
     }
-}// AddMessageResponse.java
+}
 package com.connection.message.events.responses;
 
 import java.util.UUID;
@@ -1730,7 +1730,7 @@ public class AddMessageResponse extends CommandResponse {
                 .timestamp(java.time.Instant.now())
                 .build();
     }
-}// HealthCheckResponse.java
+}
 package com.connection.message.events.responses;
 
 import java.util.Map;
@@ -1771,7 +1771,7 @@ public class HealthCheckResponse extends CommandResponse {
                 .timestamp(java.time.Instant.now())
                 .build();
     }
-}// GetMessageResponse.java
+}
 package com.connection.message.events.responses;
 
 import java.util.UUID;
@@ -1812,7 +1812,7 @@ public class GetMessageResponse extends CommandResponse {
                 .timestamp(java.time.Instant.now())
                 .build();
     }
-}// GetMessagesByBufferResponse.java
+}
 package com.connection.message.events.responses;
 
 import java.util.List;
@@ -1854,7 +1854,7 @@ public class GetMessagesByBufferResponse extends CommandResponse {
                 .timestamp(java.time.Instant.now())
                 .build();
     }
-}// RouteMessageResponse.java
+}
 package com.connection.message.events.responses;
 
 import java.util.List;
@@ -1895,7 +1895,7 @@ public class RouteMessageResponse extends CommandResponse {
                 .timestamp(java.time.Instant.now())
                 .build();
     }
-}// GetBuffersByDeviceUidCommand.java
+}
 package com.connection.buffer.events.commands;
 
 import lombok.Data;
@@ -1946,7 +1946,7 @@ public class HealthCheckCommand extends Command {
     public HealthCheckCommand(String sourceService) {
         super(BufferEventConstants.COMMAND_HEALTH_CHECK, sourceService, BufferEventConstants.BUFFER_COMMANDS_TOPIC);
     }
-}// GetBufferByUidCommand.java
+}
 package com.connection.buffer.events.commands;
 
 import java.util.UUID;
@@ -1976,7 +1976,7 @@ public class GetBufferByUidCommand extends Command {
         this.bufferUid = bufferUid;
         this.clientUid = clientUid;
     }
-}// GetBuffersByClientUidCommand.java
+}
 package com.connection.buffer.events.commands;
 
 import lombok.Data;
@@ -2003,7 +2003,7 @@ public class GetBuffersByClientUidCommand extends Command {
         super(BufferEventConstants.COMMAND_GET_BUFFERS_BY_CLIENT_UID, sourceService, BufferEventConstants.BUFFER_RESPONSES_TOPIC);
         this.clientUid = clientUid;
     }
-}// GetBuffersByConnectionSchemeUidCommand.java
+}
 package com.connection.buffer.events.commands;
 
 import lombok.Data;
@@ -2033,7 +2033,7 @@ public class GetBuffersByConnectionSchemeUidCommand extends Command {
         this.connectionSchemeUid = connectionSchemeUid;
         this.clientUid = clientUid;
     }
-}// BufferEventConstants.java
+}
 package com.connection.buffer.events;
 
 public class BufferEventConstants {
@@ -2058,7 +2058,7 @@ public class BufferEventConstants {
     private BufferEventConstants() {
         // utility class
     }
-}// GetBuffersByConnectionSchemeResponse.java
+}
 package com.connection.buffer.events.responses;
 
 import lombok.AllArgsConstructor;
@@ -2100,7 +2100,7 @@ public class GetBuffersByConnectionSchemeResponse extends CommandResponse {
                 .timestamp(java.time.Instant.now())
                 .build();
     }
-}// HealthCheckResponse.java
+}
 package com.connection.buffer.events.responses;
 
 import lombok.AllArgsConstructor;
@@ -2141,7 +2141,7 @@ public class HealthCheckResponse extends CommandResponse {
                 .timestamp(java.time.Instant.now())
                 .build();
     }
-}// GetBuffersByClientResponse.java
+}
 package com.connection.buffer.events.responses;
 
 import lombok.AllArgsConstructor;
@@ -2183,7 +2183,7 @@ public class GetBuffersByClientResponse extends CommandResponse {
                 .timestamp(java.time.Instant.now())
                 .build();
     }
-}// GetBufferByUidResponse.java
+}
 package com.connection.buffer.events.responses;
 
 import lombok.AllArgsConstructor;
@@ -2224,7 +2224,7 @@ public class GetBufferByUidResponse extends CommandResponse {
                 .timestamp(java.time.Instant.now())
                 .build();
     }
-}// GetBuffersByDeviceResponse.java
+}
 package com.connection.buffer.events.responses;
 
 import lombok.AllArgsConstructor;

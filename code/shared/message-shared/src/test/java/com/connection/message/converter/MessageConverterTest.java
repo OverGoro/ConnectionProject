@@ -9,9 +9,9 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import com.connection.message.model.MessageBLM;
-import com.connection.message.model.MessageDALM;
-import com.connection.message.model.MessageDTO;
+import com.connection.message.model.MessageBlm;
+import com.connection.message.model.MessageDalm;
+import com.connection.message.model.MessageDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Message Converter Tests")
@@ -25,10 +25,10 @@ class  MessageConverterTest{
     }
 
     @Test
-    @DisplayName("Convert DTO to BLM - Positive")
-    void testToBLMFromDTO_Positive() {
-        MessageDTO dto = createValidMessageDTO();
-        MessageBLM result = converter.toBLM(dto);
+    @DisplayName("Convert Dto to Blm - Positive")
+    void testToBlmFromDto_Positive() {
+        MessageDto dto = createValidMessageDto();
+        MessageBlm result = converter.toBlm(dto);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(dto.getUid());
         assertThat(result.getBufferUid()).isEqualTo(dto.getBufferUid());
@@ -38,10 +38,10 @@ class  MessageConverterTest{
     }
 
     @Test
-    @DisplayName("Convert DALM to BLM - Positive")
-    void testToBLMFromDALM_Positive() {
-        MessageDALM dalM = createValidMessageDALM();
-        MessageBLM result = converter.toBLM(dalM);
+    @DisplayName("Convert Dalm to Blm - Positive")
+    void testToBlmFromDalm_Positive() {
+        MessageDalm dalM = createValidMessageDalm();
+        MessageBlm result = converter.toBlm(dalM);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(dalM.getUid());
         assertThat(result.getBufferUid()).isEqualTo(dalM.getBufferUid());
@@ -51,10 +51,10 @@ class  MessageConverterTest{
     }
 
     @Test
-    @DisplayName("Convert BLM to DTO - Positive")
-    void testToDTOFromBLM_Positive() {
-        MessageBLM blm = createValidMessageBLM();
-        MessageDTO result = converter.toDTO(blm);
+    @DisplayName("Convert Blm to Dto - Positive")
+    void testToDtoFromBlm_Positive() {
+        MessageBlm blm = createValidMessageBlm();
+        MessageDto result = converter.toDto(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid());
         assertThat(result.getBufferUid()).isEqualTo(blm.getBufferUid());
@@ -64,10 +64,10 @@ class  MessageConverterTest{
     }
 
     @Test
-    @DisplayName("Convert BLM to DALM - Positive")
-    void testToDALMFromBLM_Positive() {
-        MessageBLM blm = createValidMessageBLM();
-        MessageDALM result = converter.toDALM(blm);
+    @DisplayName("Convert Blm to Dalm - Positive")
+    void testToDalmFromBlm_Positive() {
+        MessageBlm blm = createValidMessageBlm();
+        MessageDalm result = converter.toDalm(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid());
         assertThat(result.getBufferUid()).isEqualTo(blm.getBufferUid());
@@ -77,11 +77,11 @@ class  MessageConverterTest{
     }
 
     @Test
-    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
-    void testRoundTripDTOToBLMToDTO() {
-        MessageDTO original = createValidMessageDTO();
-        MessageBLM blm = converter.toBLM(original);
-        MessageDTO result = converter.toDTO(blm);
+    @DisplayName("Round-trip conversion Dto -> Blm -> Dto")
+    void testRoundTripDtoToBlmToDto() {
+        MessageDto original = createValidMessageDto();
+        MessageBlm blm = converter.toBlm(original);
+        MessageDto result = converter.toDto(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(original.getUid());
         assertThat(result.getBufferUid()).isEqualTo(original.getBufferUid());
@@ -91,11 +91,11 @@ class  MessageConverterTest{
     }
 
     @Test
-    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
-    void testRoundTripDALMToBLMToDALM() {
-        MessageDALM original = createValidMessageDALM();
-        MessageBLM blm = converter.toBLM(original);
-        MessageDALM result = converter.toDALM(blm);
+    @DisplayName("Round-trip conversion Dalm -> Blm -> Dalm")
+    void testRoundTripDalmToBlmToDalm() {
+        MessageDalm original = createValidMessageDalm();
+        MessageBlm blm = converter.toBlm(original);
+        MessageDalm result = converter.toDalm(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(original.getUid());
         assertThat(result.getBufferUid()).isEqualTo(original.getBufferUid());

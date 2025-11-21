@@ -94,7 +94,7 @@ public class AuthServiceController {
         return ResponseEntity.ok(new LoginResponse(tokens.getFirst().getToken(),
                 tokens.getSecond().getToken(), tokens.getFirst().getExpiresAt(),
                 tokens.getSecond().getExpiresAt(),
-                tokens.getFirst().getClientUID()));
+                tokens.getFirst().getClientUid()));
     }
 
     /** . */
@@ -118,7 +118,7 @@ public class AuthServiceController {
                     refreshTokenConverter.toBlm(refreshTokenDto);
 
             log.info(refreshTokenBlm.getToken());
-            log.info(refreshTokenBlm.getClientUID().toString());
+            log.info(refreshTokenBlm.getClientUid().toString());
 
             Pair<AccessTokenBlm, RefreshTokenBlm> newTokens =
                     authService.refresh(refreshTokenBlm);
@@ -129,7 +129,7 @@ public class AuthServiceController {
                             newTokens.getSecond().getToken(),
                             newTokens.getFirst().getExpiresAt(),
                             newTokens.getSecond().getExpiresAt(),
-                            newTokens.getFirst().getClientUID()));
+                            newTokens.getFirst().getClientUid()));
         } catch (BaseTokenException e) {
             return ResponseEntity.badRequest().build();
         }

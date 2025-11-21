@@ -1,4 +1,4 @@
-// DeviceValidateException.java
+
 package com.connection.device.exception;
 
 public class DeviceValidateException extends BaseDeviceException {
@@ -15,7 +15,7 @@ public class DeviceValidateException extends BaseDeviceException {
         res += "\n" + descriptionString;
         return res;
     }
-}// BaseDeviceException.java
+}
 package com.connection.device.exception;
 
 public class BaseDeviceException extends RuntimeException {
@@ -31,7 +31,7 @@ public class BaseDeviceException extends RuntimeException {
         res += "\n" + "device: " + deviceUid;
         return res;
     }
-}// DeviceNotFoundException.java
+}
 package com.connection.device.exception;
 
 public class DeviceNotFoundException extends BaseDeviceException {
@@ -57,7 +57,7 @@ public class DeviceAddException extends BaseDeviceException{
         return res;
     }
 }
-// DeviceAlreadyExistsException.java
+
 package com.connection.device.exception;
 
 public class DeviceAlreadyExistsException extends BaseDeviceException {
@@ -70,7 +70,7 @@ public class DeviceAlreadyExistsException extends BaseDeviceException {
         res += "\n" + "description: device already exists";
         return res;
     }
-}// DeviceBLM.java
+}
 package com.connection.device.model;
 
 import java.util.UUID;
@@ -97,7 +97,7 @@ public class DeviceBLM {
     protected String deviceName;
 
     protected String deviceDescription;
-}// DeviceDTO.java
+}
 package com.connection.device.model;
 
 import lombok.AllArgsConstructor;
@@ -122,7 +122,7 @@ public class DeviceDTO {
     protected String deviceName;
     
     protected String deviceDescription;
-}// DeviceDALM.java
+}
 package com.connection.device.model;
 
 import java.util.UUID;
@@ -149,7 +149,7 @@ public class DeviceDALM {
     protected String deviceName;
     
     protected String deviceDescription;
-}// DeviceConverter.java
+}
 package com.connection.device.converter;
 
 import java.util.UUID;
@@ -194,7 +194,7 @@ public class DeviceConverter {
             blm.getDeviceDescription()
         );
     }
-}// DeviceValidator.java
+}
 package com.connection.device.validator;
 
 import java.util.UUID;

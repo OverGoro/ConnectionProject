@@ -1,7 +1,7 @@
 package com.connection.service.auth.config;
 
 import com.connection.token.repository.RefreshTokenRepository;
-import com.connection.token.repository.RefreshTokenRepositorySQLImpl;
+import com.connection.token.repository.RefreshTokenRepositorySqlImpl;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +13,6 @@ public class RefreshTokenRepositoryConfig {
     @Bean("RefreshTokenRepository")
     RefreshTokenRepository refreshTokenRepository(
             @Qualifier("RefreshTokenJdbcTemplate") NamedParameterJdbcTemplate template) {
-        return new RefreshTokenRepositorySQLImpl(template);
+        return new RefreshTokenRepositorySqlImpl(template);
     }
 }

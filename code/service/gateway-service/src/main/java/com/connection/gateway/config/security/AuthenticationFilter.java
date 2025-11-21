@@ -98,7 +98,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            accessTokenBlm.getClientUID(), null,
+                            accessTokenBlm.getClientUid(), null,
                             Collections.singletonList(
                                     new SimpleGrantedAuthority("ROLE_CLIENT")));
 
@@ -108,7 +108,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
                     .setAuthentication(authentication);
 
             log.info("Successfully authenticated client: {}",
-                    accessTokenBlm.getClientUID());
+                    accessTokenBlm.getClientUid());
             return true;
         } catch (Exception e) {
             log.warn("Client authentication failed: {}", e.getMessage());

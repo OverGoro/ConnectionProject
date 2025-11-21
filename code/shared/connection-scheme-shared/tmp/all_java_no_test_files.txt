@@ -1,4 +1,4 @@
-// ConnectionSchemeNotFoundException.java
+
 package com.connection.scheme.exception;
 
 public class ConnectionSchemeNotFoundException extends BaseConnectionSchemeException {
@@ -9,7 +9,7 @@ public class ConnectionSchemeNotFoundException extends BaseConnectionSchemeExcep
     public String toString() {
         return super.toString() + "\ndescription: connection scheme not found";
     }
-}// BaseConnectionSchemeException.java
+}
 package com.connection.scheme.exception;
 
 public class BaseConnectionSchemeException extends RuntimeException {
@@ -23,7 +23,7 @@ public class BaseConnectionSchemeException extends RuntimeException {
     public String toString() {
         return super.toString() + "\nscheme: " + schemeUid;
     }
-}// ConnectionSchemeValidateException.java
+}
 package com.connection.scheme.exception;
 
 public class ConnectionSchemeValidateException extends BaseConnectionSchemeException {
@@ -37,7 +37,7 @@ public class ConnectionSchemeValidateException extends BaseConnectionSchemeExcep
     public String toString() {
         return super.toString() + "\ndescription: " + description;
     }
-}// ConnectionSchemeAlreadyExistsException.java
+}
 package com.connection.scheme.exception;
 
 public class ConnectionSchemeAlreadyExistsException extends BaseConnectionSchemeException {
@@ -48,7 +48,7 @@ public class ConnectionSchemeAlreadyExistsException extends BaseConnectionScheme
     public String toString() {
         return super.toString() + "\ndescription: connection scheme already exists";
     }
-}// ConnectionSchemeDTO.java
+}
 package com.connection.scheme.model;
 
 import java.util.List;
@@ -74,7 +74,7 @@ public class ConnectionSchemeDTO {
     protected List<UUID> usedBuffers;
 
     protected String schemeJson;
-}// ConnectionSchemeBLM.java
+}
 package com.connection.scheme.model;
 
 import java.util.List;
@@ -240,7 +240,7 @@ public class ConnectionSchemeConverter {
             throw new RuntimeException("Failed to convert transitions to JSON", e);
         }
     }
-}// ConnectionSchemeValidator.java
+}
 package com.connection.scheme.validator;
 
 import java.util.List;
@@ -662,7 +662,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
         // Сохраняем новые связи
         saveSchemeBuffers(schemeUid, usedBuffers);
     }
-}// ConnectionSchemeRepository.java
+}
 package com.connection.scheme.repository;
 
 import java.util.List;

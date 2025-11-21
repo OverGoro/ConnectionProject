@@ -1,7 +1,7 @@
 package com.connection.device.config;
 
 import com.connection.device.repository.DeviceRepository;
-import com.connection.device.repository.DeviceRepositorySQLImpl;
+import com.connection.device.repository.DeviceRepositorySqlImpl;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +13,6 @@ public class DeviceRepositoryConfig {
     @Bean("DeviceRepository")
     DeviceRepository deviceRepository(
             @Qualifier("DeviceJdbcTemplate") NamedParameterJdbcTemplate template) {
-        return new DeviceRepositorySQLImpl(template);
+        return new DeviceRepositorySqlImpl(template);
     }
 }
