@@ -1,14 +1,16 @@
-// BufferValidator.java
+
 package com.connection.processing.buffer.validator;
 
-import java.util.UUID;
 import com.connection.processing.buffer.exception.BufferValidateException;
-import com.connection.processing.buffer.model.BufferBLM;
-import com.connection.processing.buffer.model.BufferDALM;
-import com.connection.processing.buffer.model.BufferDTO;
+import com.connection.processing.buffer.model.BufferBlm;
+import com.connection.processing.buffer.model.BufferDalm;
+import com.connection.processing.buffer.model.BufferDto;
+import java.util.UUID;
 
+/** . */
 public class BufferValidator {
-    public void validate(BufferDTO buffer) {
+    /** . */
+    public void validate(BufferDto buffer) {
         if (buffer == null) {
             throw new BufferValidateException("null", "Buffer is null");
         }
@@ -23,7 +25,8 @@ public class BufferValidator {
         }
     }
 
-    public void validate(BufferBLM buffer) {
+    /** . */
+    public void validate(BufferBlm buffer) {
         if (buffer == null) {
             throw new BufferValidateException("null", "Buffer is null");
         }
@@ -34,11 +37,15 @@ public class BufferValidator {
             validateMaxMessageSize(buffer.getMaxMessageSize());
             validateMessagePrototype(buffer.getMessagePrototype());
         } catch (IllegalArgumentException e) {
-            throw new BufferValidateException(buffer.getUid() != null ? buffer.getUid().toString() : "null", e.getMessage());
+            throw new BufferValidateException(
+                    buffer.getUid() != null ? buffer.getUid().toString()
+                            : "null",
+                    e.getMessage());
         }
     }
 
-    public void validate(BufferDALM buffer) {
+    /** . */
+    public void validate(BufferDalm buffer) {
         if (buffer == null) {
             throw new BufferValidateException("null", "Buffer is null");
         }
@@ -49,7 +56,10 @@ public class BufferValidator {
             validateMaxMessageSize(buffer.getMaxMessageSize());
             validateMessagePrototype(buffer.getMessagePrototype());
         } catch (IllegalArgumentException e) {
-            throw new BufferValidateException(buffer.getUid() != null ? buffer.getUid().toString() : "null", e.getMessage());
+            throw new BufferValidateException(
+                    buffer.getUid() != null ? buffer.getUid().toString()
+                            : "null",
+                    e.getMessage());
         }
     }
 
@@ -89,25 +99,30 @@ public class BufferValidator {
 
     private void validateMaxMessagesNumber(Integer maxMessagesNumber) {
         if (maxMessagesNumber == null) {
-            throw new IllegalArgumentException("Max messages number cannot be null");
+            throw new IllegalArgumentException(
+                    "Max messages number cannot be null");
         }
         if (maxMessagesNumber <= 0) {
-            throw new IllegalArgumentException("Max messages number must be greater than 0");
+            throw new IllegalArgumentException(
+                    "Max messages number must be greater than 0");
         }
     }
 
     private void validateMaxMessageSize(Integer maxMessageSize) {
         if (maxMessageSize == null) {
-            throw new IllegalArgumentException("Max message size cannot be null");
+            throw new IllegalArgumentException(
+                    "Max message size cannot be null");
         }
         if (maxMessageSize <= 0) {
-            throw new IllegalArgumentException("Max message size must be greater than 0");
+            throw new IllegalArgumentException(
+                    "Max message size must be greater than 0");
         }
     }
 
     private void validateMessagePrototype(String messagePrototype) {
         if (messagePrototype == null || messagePrototype.trim().isEmpty()) {
-            throw new IllegalArgumentException("Message prototype cannot be empty");
+            throw new IllegalArgumentException(
+                    "Message prototype cannot be empty");
         }
     }
 }

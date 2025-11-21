@@ -1,4 +1,4 @@
-// BufferDALM.java
+
 package com.connection.processing.buffer.model;
 
 import java.util.UUID;
@@ -9,13 +9,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** . */
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
 @EqualsAndHashCode
-public class BufferDALM {
+public class BufferDalm {
     protected UUID uid;
     protected UUID deviceUid;
     protected Integer maxMessagesNumber;

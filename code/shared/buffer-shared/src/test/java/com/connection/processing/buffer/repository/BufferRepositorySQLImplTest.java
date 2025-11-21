@@ -1,6 +1,6 @@
 package com.connection.processing.buffer.repository;
 
-import static com.connection.processing.buffer.mother.BufferObjectMother.createValidBufferDALM;
+import static com.connection.processing.buffer.mother.BufferObjectMother.createValidBufferDalm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,29 +29,29 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.connection.processing.buffer.exception.BufferAlreadyExistsException;
 import com.connection.processing.buffer.exception.BufferNotFoundException;
-import com.connection.processing.buffer.model.BufferBLM;
-import com.connection.processing.buffer.model.BufferDALM;
+import com.connection.processing.buffer.model.BufferBlm;
+import com.connection.processing.buffer.model.BufferDalm;
 import com.connection.processing.buffer.mother.BufferObjectMother;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
-@DisplayName("Buffer Repository Tests - SQL implementation tests")
-class BufferRepositorySQLImplTest {
+@DisplayName("Buffer Repository Tests - Sql implementation tests")
+class BufferRepositorySqlImplTest {
 
     @Mock
     private NamedParameterJdbcTemplate jdbcTemplate;
 
     @InjectMocks
-    private BufferRepositorySQLImpl repository;
+    private BufferRepositorySqlImpl repository;
 
-    private BufferBLM testBuffer;
+    private BufferBlm testBuffer;
 
-    private BufferDALM testBufferDALM;
+    private BufferDalm testBufferDalm;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        testBuffer = BufferObjectMother.createValidBufferBLM();
-        testBufferDALM = BufferObjectMother.createValidBufferDALM();
+        testBuffer = BufferObjectMother.createValidBufferBlm();
+        testBufferDalm = BufferObjectMother.createValidBufferDalm();
     }
 
     @SuppressWarnings("unchecked")
@@ -150,7 +150,7 @@ class BufferRepositorySQLImplTest {
     void testDeleteByDeviceUid_Positive() {
         UUID deviceUid = UUID.randomUUID();
         when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(List.of(testBufferDALM));
+                .thenReturn(List.of(testBufferDalm));
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
         repository.deleteByDeviceUid(deviceUid);
@@ -168,9 +168,9 @@ class BufferRepositorySQLImplTest {
     @DisplayName("Find buffer by UID - Positive")
     void testFindByUid_Positive() {
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testBufferDALM);
+                .thenReturn(testBufferDalm);
 
-        BufferBLM result = repository.findByUid(testBuffer.getUid());
+        BufferBlm result = repository.findByUid(testBuffer.getUid());
 
         assertThat(result).isEqualTo(testBuffer);
         verify(jdbcTemplate, times(1)).queryForObject(
@@ -195,9 +195,9 @@ class BufferRepositorySQLImplTest {
     @DisplayName("Find buffers by device UID - Positive")
     void testFindByDeviceUid_Positive() {
         when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(List.of(testBufferDALM));
+                .thenReturn(List.of(testBufferDalm));
 
-        List<BufferBLM> result = repository.findByDeviceUid(testBuffer.getDeviceUid());
+        List<BufferBlm> result = repository.findByDeviceUid(testBuffer.getDeviceUid());
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0)).isEqualTo(testBuffer);
@@ -213,9 +213,9 @@ class BufferRepositorySQLImplTest {
     void testFindByConnectionSchemeUid_Positive() {
         UUID schemeUid = UUID.randomUUID();
         when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(List.of(testBufferDALM));
+                .thenReturn(List.of(testBufferDalm));
 
-        List<BufferBLM> result = repository.findByConnectionSchemeUid(schemeUid);
+        List<BufferBlm> result = repository.findByConnectionSchemeUid(schemeUid);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0)).isEqualTo(testBuffer);

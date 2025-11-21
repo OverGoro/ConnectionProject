@@ -1,6 +1,7 @@
-// BufferDTO.java
+
 package com.connection.processing.buffer.model;
 
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -8,15 +9,16 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** . */
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
 @EqualsAndHashCode
-public class BufferDTO {
-    protected String uid;
-    protected String deviceUid;
+public class BufferBlm {
+    protected UUID uid;
+    protected UUID deviceUid;
     protected Integer maxMessagesNumber;
     protected Integer maxMessageSize;
     protected String messagePrototype;
