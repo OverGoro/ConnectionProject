@@ -1,4 +1,4 @@
-// DeviceAuthServiceApplication.java
+
 package com.service.device.auth;
 
 import org.springframework.boot.SpringApplication;
@@ -8,13 +8,12 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerA
 import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 
-@SpringBootApplication(exclude = {
-    DataSourceAutoConfiguration.class,
-    DataSourceTransactionManagerAutoConfiguration.class, 
-    HibernateJpaAutoConfiguration.class,
-    JdbcTemplateAutoConfiguration.class
-})
+/** . */
+@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class,
+    DataSourceTransactionManagerAutoConfiguration.class,
+    HibernateJpaAutoConfiguration.class, JdbcTemplateAutoConfiguration.class})
 public class DeviceAuthServiceApplication {
+    /** . */
     public static void main(String[] args) {
         SpringApplication.run(DeviceAuthServiceApplication.class, args);
     }

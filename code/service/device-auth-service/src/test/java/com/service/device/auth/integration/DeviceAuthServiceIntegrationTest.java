@@ -1,13 +1,16 @@
-// DeviceAuthServiceIntegrationTest.java
+
 package com.service.device.auth.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
+import com.connection.device.token.model.DeviceAccessTokenBlm;
+import com.connection.device.token.model.DeviceTokenBlm;
+import com.connection.service.auth.AuthService;
+import com.service.device.auth.DeviceAuthService;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
-
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,13 +21,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.util.Pair;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
-import com.connection.device.token.model.DeviceAccessTokenBLM;
-import com.connection.device.token.model.DeviceTokenBLM;
-import com.connection.service.auth.AuthService;
-import com.service.device.auth.DeviceAuthService;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @SpringBootTest
@@ -66,7 +62,7 @@ public class DeviceAuthServiceIntegrationTest extends BaseDeviceAuthIntegrationT
         setupAuthentication();
 
         // When
-        DeviceTokenBLM createdToken = deviceAuthService.createDeviceToken(testDeviceUid);
+        DeviceTokenBlm createdToken = deviceAuthService.createDeviceToken(testDeviceUid);
 
         // Then
         assertThat(createdToken).isNotNull();
@@ -83,10 +79,10 @@ public class DeviceAuthServiceIntegrationTest extends BaseDeviceAuthIntegrationT
     void shouldGetDeviceTokenByDeviceUid() {
         // Given
         setupAuthentication();
-        DeviceTokenBLM originalToken = deviceAuthService.createDeviceToken(testDeviceUid);
+        DeviceTokenBlm originalToken = deviceAuthService.createDeviceToken(testDeviceUid);
 
         // When
-        DeviceTokenBLM foundToken = deviceAuthService.getDeviceToken(testDeviceUid);
+        DeviceTokenBlm foundToken = deviceAuthService.getDeviceToken(testDeviceUid);
 
         // Then
         assertThat(foundToken).isNotNull();
@@ -103,10 +99,10 @@ public class DeviceAuthServiceIntegrationTest extends BaseDeviceAuthIntegrationT
     void shouldRevokeDeviceTokenSuccessfully() {
         // Given
         setupAuthentication();
-        DeviceTokenBLM deviceToken = deviceAuthService.createDeviceToken(testDeviceUid);
+        DeviceTokenBlm deviceToken = deviceAuthService.createDeviceToken(testDeviceUid);
 
         // Verify token exists
-        DeviceTokenBLM foundToken = deviceAuthService.getDeviceToken(testDeviceUid);
+        DeviceTokenBlm foundToken = deviceAuthService.getDeviceToken(testDeviceUid);
         assertThat(foundToken).isNotNull();
 
         // When
@@ -125,7 +121,7 @@ public class DeviceAuthServiceIntegrationTest extends BaseDeviceAuthIntegrationT
     void shouldValidateDeviceTokenSuccessfully() {
         // Given
         setupAuthentication();
-        DeviceTokenBLM deviceToken = deviceAuthService.createDeviceToken(testDeviceUid);
+        DeviceTokenBlm deviceToken = deviceAuthService.createDeviceToken(testDeviceUid);
 
         // When & Then - No exception should be thrown
         deviceAuthService.validateDeviceToken(deviceToken);
@@ -139,17 +135,17 @@ public class DeviceAuthServiceIntegrationTest extends BaseDeviceAuthIntegrationT
     void shouldCreateDeviceAccessTokenSuccessfully() {
         // Given
         setupAuthentication();
-        DeviceTokenBLM deviceToken = deviceAuthService.createDeviceToken(testDeviceUid);
+        DeviceTokenBlm deviceToken = deviceAuthService.createDeviceToken(testDeviceUid);
 
         // When
-        Pair<DeviceAccessTokenBLM, DeviceTokenBLM> result = deviceAuthService.createDeviceAccessToken(deviceToken);
+        Pair<DeviceAccessTokenBlm, DeviceTokenBlm> result = deviceAuthService.createDeviceAccessToken(deviceToken);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.getFirst()).isNotNull(); // DeviceAccessTokenBLM
-        assertThat(result.getSecond()).isNotNull(); // DeviceTokenBLM
+        assertThat(result.getFirst()).isNotNull(); // DeviceAccessTokenBlm
+        assertThat(result.getSecond()).isNotNull(); // DeviceTokenBlm
         
-        DeviceAccessTokenBLM accessToken = result.getFirst();
+        DeviceAccessTokenBlm accessToken = result.getFirst();
         assertThat(accessToken.getToken()).isNotBlank();
         assertThat(accessToken.getExpiresAt()).isAfter(new Date());
         assertThat(accessToken.getDeviceTokenUid()).isEqualTo(deviceToken.getUid());
@@ -163,12 +159,12 @@ public class DeviceAuthServiceIntegrationTest extends BaseDeviceAuthIntegrationT
     void shouldRefreshDeviceAccessTokenSuccessfully() {
         // Given
         setupAuthentication();
-        DeviceTokenBLM deviceToken = deviceAuthService.createDeviceToken(testDeviceUid);
-        Pair<DeviceAccessTokenBLM, DeviceTokenBLM> originalResult = deviceAuthService.createDeviceAccessToken(deviceToken);
-        DeviceAccessTokenBLM originalAccessToken = originalResult.getFirst();
+        DeviceTokenBlm deviceToken = deviceAuthService.createDeviceToken(testDeviceUid);
+        Pair<DeviceAccessTokenBlm, DeviceTokenBlm> originalResult = deviceAuthService.createDeviceAccessToken(deviceToken);
+        DeviceAccessTokenBlm originalAccessToken = originalResult.getFirst();
         sleep(1000);
         // When
-        DeviceAccessTokenBLM refreshedToken = deviceAuthService.refreshDeviceAccessToken(originalAccessToken);
+        DeviceAccessTokenBlm refreshedToken = deviceAuthService.refreshDeviceAccessToken(originalAccessToken);
 
         // Then
         assertThat(refreshedToken).isNotNull();
@@ -186,9 +182,9 @@ public class DeviceAuthServiceIntegrationTest extends BaseDeviceAuthIntegrationT
     void shouldValidateDeviceAccessTokenSuccessfully() {
         // Given
         setupAuthentication();
-        DeviceTokenBLM deviceToken = deviceAuthService.createDeviceToken(testDeviceUid);
-        Pair<DeviceAccessTokenBLM, DeviceTokenBLM> result = deviceAuthService.createDeviceAccessToken(deviceToken);
-        DeviceAccessTokenBLM accessToken = result.getFirst();
+        DeviceTokenBlm deviceToken = deviceAuthService.createDeviceToken(testDeviceUid);
+        Pair<DeviceAccessTokenBlm, DeviceTokenBlm> result = deviceAuthService.createDeviceAccessToken(deviceToken);
+        DeviceAccessTokenBlm accessToken = result.getFirst();
 
         // When & Then - No exception should be thrown
         deviceAuthService.validateDeviceAccessToken(accessToken);
@@ -232,7 +228,7 @@ public class DeviceAuthServiceIntegrationTest extends BaseDeviceAuthIntegrationT
     void shouldThrowExceptionWhenCreatingDuplicateDeviceAccessToken() {
         // Given
         setupAuthentication();
-        DeviceTokenBLM deviceToken = deviceAuthService.createDeviceToken(testDeviceUid);
+        DeviceTokenBlm deviceToken = deviceAuthService.createDeviceToken(testDeviceUid);
         deviceAuthService.createDeviceAccessToken(deviceToken);
 
         // When & Then

@@ -1,5 +1,7 @@
 package com.service.device.auth.config.security;
 
+import com.service.device.auth.security.AuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,10 +12,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.service.device.auth.security.AuthenticationFilter;
-
-import lombok.RequiredArgsConstructor;
-
+/** . */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -24,10 +23,10 @@ public class SecurityConfig {
     private final AuthenticationFilter jwtKafkaAuthenticationFilter;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http
-                .csrf(csrf -> csrf.disable()) // Отключаем CSRF для API
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http.csrf(csrf -> csrf.disable()) // Отключаем CSRF для API
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui.html").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
@@ -35,11 +34,11 @@ public class SecurityConfig {
                         .requestMatchers("/webjars/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/v1/device-token").authenticated()
-                        .requestMatchers("/api/v1/device-token/**").authenticated()
-                        .requestMatchers("/api/v1/**").permitAll()
-                        .anyRequest().denyAll()
-                )
-                .addFilterBefore(jwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                        .requestMatchers("/api/v1/device-token/**")
+                        .authenticated().requestMatchers("/api/v1/**")
+                        .permitAll().anyRequest().denyAll())
+                .addFilterBefore(jwtKafkaAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }

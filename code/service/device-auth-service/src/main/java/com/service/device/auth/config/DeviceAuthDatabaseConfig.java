@@ -1,23 +1,21 @@
-// DatabaseConfig.java
+
 package com.service.device.auth.config;
 
+import com.atomikos.jdbc.AtomikosDataSourceBean;
 import java.util.Properties;
-
 import javax.sql.DataSource;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.atomikos.jdbc.AtomikosDataSourceBean;
-
+/** . */
 @Configuration
 public class DeviceAuthDatabaseConfig {
-    
+
     // Device Token DataSource
-    @Value("${app.datasource.device-token.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    @Value("${app.datasource.device-token.xa-data-source-class-name:}")
     private String deviceTokenXaDataSourceClassName;
 
     @Value("${app.datasource.device-token.xa-properties.url}")
@@ -33,7 +31,7 @@ public class DeviceAuthDatabaseConfig {
     private String deviceTokenUniqueResourceName;
 
     // Device Access Token DataSource
-    @Value("${app.datasource.device-access-token.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+    @Value("${app.datasource.device-access-token.xa-data-source-class-name:}")
     private String deviceAccessTokenXaDataSourceClassName;
 
     @Value("${app.datasource.device-access-token.xa-properties.url}")
@@ -45,29 +43,22 @@ public class DeviceAuthDatabaseConfig {
     @Value("${app.datasource.device-access-token.xa-properties.password}")
     private String deviceAccessTokenPassword;
 
-    @Value("${app.datasource.device-access-token.unique-resource-name:deviceAccessTokenXADataSource}")
+    @Value("${app.datasource.device-access-token.unique-resource-name:}")
     private String deviceAccessTokenUniqueResourceName;
 
     @Bean("deviceTokenDataSource")
     DataSource deviceTokenDataSource() {
-        return createDataSource(
-            deviceTokenUniqueResourceName,
-            deviceTokenXaDataSourceClassName,
-            deviceTokenJdbcUrl,
-            deviceTokenUsername,
-            deviceTokenPassword
-        );
+        return createDataSource(deviceTokenUniqueResourceName,
+                deviceTokenXaDataSourceClassName, deviceTokenJdbcUrl,
+                deviceTokenUsername, deviceTokenPassword);
     }
 
     @Bean("deviceAccessTokenDataSource")
     DataSource deviceAccessTokenDataSource() {
-        return createDataSource(
-            deviceAccessTokenUniqueResourceName,
-            deviceAccessTokenXaDataSourceClassName,
-            deviceAccessTokenJdbcUrl,
-            deviceAccessTokenUsername,
-            deviceAccessTokenPassword
-        );
+        return createDataSource(deviceAccessTokenUniqueResourceName,
+                deviceAccessTokenXaDataSourceClassName,
+                deviceAccessTokenJdbcUrl, deviceAccessTokenUsername,
+                deviceAccessTokenPassword);
     }
 
     @Bean("deviceTokenJdbcTemplate")
@@ -82,8 +73,9 @@ public class DeviceAuthDatabaseConfig {
         return new NamedParameterJdbcTemplate(dataSource);
     }
 
-    private DataSource createDataSource(String uniqueResourceName, String xaDataSourceClassName, 
-                                      String url, String username, String password) {
+    private DataSource createDataSource(String uniqueResourceName,
+            String xaDataSourceClassName, String url, String username,
+            String password) {
         AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
         dataSource.setUniqueResourceName(uniqueResourceName);
         dataSource.setXaDataSourceClassName(xaDataSourceClassName);
