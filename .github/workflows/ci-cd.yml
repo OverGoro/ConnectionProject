@@ -3,9 +3,9 @@ name: Java CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, static_analyze_ok]
   pull_request:
-    branches: [main]
+    branches: [main, static_analyze_ok]
 
 env:
   JAVA_VERSION: '21'
