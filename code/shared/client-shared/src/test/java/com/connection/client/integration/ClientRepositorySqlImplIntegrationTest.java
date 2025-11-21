@@ -12,28 +12,28 @@ import org.junit.jupiter.api.Test;
 
 import com.connection.client.exception.ClientAlreadyExisistsException;
 import com.connection.client.exception.ClientNotFoundException;
-import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientBlm;
 import com.connection.client.repository.ClientRepository;
-import com.connection.client.repository.ClientRepositorySQLImpl;
+import com.connection.client.repository.ClientRepositorySqlImpl;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@DisplayName("Client Repository SQL Implementation Tests")
-public class ClientRepositorySQLImplIntegrationTest extends BaseClientRepositoryIntegrationTest {
+@DisplayName("Client Repository Sql Implementation Tests")
+public class ClientRepositorySqlImplIntegrationTest extends BaseClientRepositoryIntegrationTest {
 
     private ClientRepository clientRepository;
 
     @BeforeEach
     void setUpRepository() {
-        this.clientRepository = new ClientRepositorySQLImpl(jdbcTemplate);
+        this.clientRepository = new ClientRepositorySqlImpl(jdbcTemplate);
     }
 
     @Test
     @DisplayName("Should add client successfully")
     void shouldAddClientSuccessfully() {
         // Given
-        ClientBLM testClient = ClientBLM.builder()
+        ClientBlm testClient = ClientBlm.builder()
                 .uid(testClientUid)
                 .email(testEmail)
                 .username(testUsername)
@@ -45,7 +45,7 @@ public class ClientRepositorySQLImplIntegrationTest extends BaseClientRepository
         clientRepository.add(testClient);
 
         // Then
-        ClientBLM foundClient = clientRepository.findByUid(testClientUid);
+        ClientBlm foundClient = clientRepository.findByUid(testClientUid);
 
         assertThat(foundClient).isNotNull();
         assertThat(foundClient.getUid()).isEqualTo(testClientUid);
@@ -59,7 +59,7 @@ public class ClientRepositorySQLImplIntegrationTest extends BaseClientRepository
     @DisplayName("Should throw exception when adding client with duplicate email")
     void shouldThrowExceptionWhenAddingClientWithDuplicateEmail() {
         // Given
-        ClientBLM firstClient = ClientBLM.builder()
+        ClientBlm firstClient = ClientBlm.builder()
                 .uid(testClientUid)
                 .email(testEmail)
                 .username(testUsername)
@@ -70,7 +70,7 @@ public class ClientRepositorySQLImplIntegrationTest extends BaseClientRepository
         clientRepository.add(firstClient);
 
         // When & Then
-        ClientBLM duplicateEmailClient = ClientBLM.builder()
+        ClientBlm duplicateEmailClient = ClientBlm.builder()
                 .uid(UUID.randomUUID())
                 .email(testEmail) // тот же email
                 .username("different_username")
@@ -91,7 +91,7 @@ public class ClientRepositorySQLImplIntegrationTest extends BaseClientRepository
         createTestClientInDatabase();
 
         // When
-        ClientBLM foundClient = clientRepository.findByEmail(testEmail);
+        ClientBlm foundClient = clientRepository.findByEmail(testEmail);
 
         // Then
         assertThat(foundClient).isNotNull();
@@ -108,7 +108,7 @@ public class ClientRepositorySQLImplIntegrationTest extends BaseClientRepository
         createTestClientInDatabase();
 
         // When
-        ClientBLM foundClient = clientRepository.findByUsername(testUsername);
+        ClientBlm foundClient = clientRepository.findByUsername(testUsername);
 
         // Then
         assertThat(foundClient).isNotNull();
@@ -125,7 +125,7 @@ public class ClientRepositorySQLImplIntegrationTest extends BaseClientRepository
         createTestClientInDatabase();
 
         // When
-        ClientBLM foundClient = clientRepository.findByEmailPassword(testEmail, testPassword);
+        ClientBlm foundClient = clientRepository.findByEmailPassword(testEmail, testPassword);
 
         // Then
         assertThat(foundClient).isNotNull();
@@ -142,7 +142,7 @@ public class ClientRepositorySQLImplIntegrationTest extends BaseClientRepository
         createTestClientInDatabase();
 
         // When
-        ClientBLM foundClient = clientRepository.findByUsernamePassword(testUsername, testPassword);
+        ClientBlm foundClient = clientRepository.findByUsernamePassword(testUsername, testPassword);
 
         // Then
         assertThat(foundClient).isNotNull();
@@ -185,7 +185,7 @@ public class ClientRepositorySQLImplIntegrationTest extends BaseClientRepository
         createTestClientInDatabase();
 
         // Verify client exists
-        ClientBLM existingClient = clientRepository.findByUid(testClientUid);
+        ClientBlm existingClient = clientRepository.findByUid(testClientUid);
         assertThat(existingClient).isNotNull();
 
         // When
