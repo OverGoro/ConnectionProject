@@ -1,1 +1,0 @@
-{"uuid":"3352407d-1958-4cf9-b0b0-7b7b88b246d9","name":"Validate DeviceDto with whitespace name - Negative","children":["f5a4a3a9-5dcf-4c27-83de-a02554361040"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1763749536370,"stop":1763749536371}],"afters":[],"start":1763749536368,"stop":1763749536372}

@@ -1,1 +1,0 @@
-{"uuid":"7595232e-51bd-4b54-a888-0fd8bddc8bfd","name":"Create device - Negative: Client UID mismatch","children":["4f5cb83f-5ab1-491e-b046-6e34a5de5c5d"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1763749502707,"stop":1763749502718}],"afters":[],"start":1763749501199,"stop":1763749503705}

@@ -1,1 +1,0 @@
-{"uuid":"ea5a9dd6-cea0-4be5-b7b2-461e649945ba","name":"Validate ConnectionSchemeDto with null UID - Negative","children":["b294ee30-5993-40de-8519-627bfbae5ac6"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1763749531582,"stop":1763749531582}],"afters":[],"start":1763749531581,"stop":1763749531583}

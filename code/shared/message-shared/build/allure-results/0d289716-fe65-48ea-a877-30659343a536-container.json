@@ -1,1 +1,0 @@
-{"uuid":"0d289716-fe65-48ea-a877-30659343a536","name":"Validate MessageDto with null created at - Negative","children":["2603cde0-7600-4934-9db5-f6e6d835d1d6"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1763749546853,"stop":1763749546853}],"afters":[],"start":1763749546850,"stop":1763749546854}

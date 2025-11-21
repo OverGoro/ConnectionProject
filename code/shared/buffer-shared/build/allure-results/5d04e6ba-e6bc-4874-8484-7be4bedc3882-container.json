@@ -1,1 +1,0 @@
-{"uuid":"5d04e6ba-e6bc-4874-8484-7be4bedc3882","name":"Remove buffer from connection scheme - Positive","children":["1e26fd67-36be-4ea0-86d9-48873379f533"],"befores":[{"name":"setUp","status":"passed","stage":"finished","steps":[],"attachments":[],"parameters":[],"start":1763749514803,"stop":1763749514804}],"afters":[],"start":1763749514801,"stop":1763749514806}
