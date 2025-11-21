@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.connection.device.DeviceService;
-import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceBlm;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,14 +23,14 @@ import lombok.extern.slf4j.Slf4j;
 public class TestDeviceService implements DeviceService {
     
     // Хранилище тестовых данных
-    private final Map<UUID, DeviceBLM> testDevices = new ConcurrentHashMap<>();
-    private final Map<UUID, List<DeviceBLM>> clientDevices = new ConcurrentHashMap<>();
+    private final Map<UUID, DeviceBlm> testDevices = new ConcurrentHashMap<>();
+    private final Map<UUID, List<DeviceBlm>> clientDevices = new ConcurrentHashMap<>();
         
     
     
     // Методы для управления тестовыми данными
     public void addTestDevice(UUID deviceUid, UUID clientUid, String deviceName) {
-        DeviceBLM device = new DeviceBLM();
+        DeviceBlm device = new DeviceBlm();
         device.setUid(deviceUid);
         device.setClientUuid(clientUid);
         device.setDeviceName(deviceName);
@@ -39,7 +39,7 @@ public class TestDeviceService implements DeviceService {
         testDevices.put(deviceUid, device);
         
         // Также добавляем в список устройств клиента
-        List<DeviceBLM> clientDeviceList = clientDevices.computeIfAbsent(
+        List<DeviceBlm> clientDeviceList = clientDevices.computeIfAbsent(
             clientUid, k -> new java.util.ArrayList<>()
         );
         clientDeviceList.add(device);
@@ -47,23 +47,23 @@ public class TestDeviceService implements DeviceService {
         log.info("📝 Test Responder: Added test device {} for client {}", deviceUid, clientUid);
     }
     
-    public void addTestDevice(DeviceBLM device) {
+    public void addTestDevice(DeviceBlm device) {
         UUID deviceUid = (device.getUid());
         UUID clientUid = (device.getClientUuid());
         
         testDevices.put(deviceUid, device);
         
-        List<DeviceBLM> clientDeviceList = clientDevices.computeIfAbsent(
+        List<DeviceBlm> clientDeviceList = clientDevices.computeIfAbsent(
             clientUid, k -> new java.util.ArrayList<>()
         );
         clientDeviceList.add(device);
     }
     
     public void removeTestDevice(UUID deviceUid) {
-        DeviceBLM device = testDevices.remove(deviceUid);
+        DeviceBlm device = testDevices.remove(deviceUid);
         if (device != null) {
             UUID clientUid = (device.getClientUuid());
-            List<DeviceBLM> clientDevicesList = clientDevices.get(clientUid);
+            List<DeviceBlm> clientDevicesList = clientDevices.get(clientUid);
             if (clientDevicesList != null) {
                 clientDevicesList.removeIf(d -> d.getUid().equals(deviceUid));
             }
@@ -81,7 +81,7 @@ public class TestDeviceService implements DeviceService {
     }
 
     @Override
-    public DeviceBLM createDevice(DeviceBLM deviceBLM) {
+    public DeviceBlm createDevice(DeviceBlm deviceBlm) {
         throw new UnsupportedOperationException("Unimplemented method 'createDevice'");
     }
 
@@ -93,11 +93,11 @@ public class TestDeviceService implements DeviceService {
     }
 
     @Override
-    public DeviceBLM getDevice(UUID deviceUid) {
-        DeviceBLM deviceBLM = testDevices.get(deviceUid);
-        if (deviceBLM != null) {
+    public DeviceBlm getDevice(UUID deviceUid) {
+        DeviceBlm deviceBlm = testDevices.get(deviceUid);
+        if (deviceBlm != null) {
             log.debug(" Test Responder: Retrieved device {}", deviceUid);
-            return deviceBLM;
+            return deviceBlm;
         } else {
             log.warn(" Test Responder: Device {} not found", deviceUid);
             return null;
@@ -105,7 +105,7 @@ public class TestDeviceService implements DeviceService {
     }
 
     @Override
-    public List<DeviceBLM> getDevicesByClient(UUID clientUid) {
+    public List<DeviceBlm> getDevicesByClient(UUID clientUid) {
         throw new UnsupportedOperationException("Unimplemented method 'createDevice'");
     }
 
@@ -122,7 +122,7 @@ public class TestDeviceService implements DeviceService {
     }
 
     @Override
-    public DeviceBLM updateDevice(DeviceBLM deviceBLM) {
+    public DeviceBlm updateDevice(DeviceBlm deviceBlm) {
         throw new UnsupportedOperationException("Unimplemented method 'createDevice'");
     }
 

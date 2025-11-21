@@ -495,7 +495,7 @@ public class TestTopicUtils {
     public static String getTestDeviceCommandsTopic() {
         return generateTestTopic("device.commands");
     }
-}// BufferServiceIntegrationTest.java
+}
 package com.service.buffer.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -1225,7 +1225,7 @@ public abstract class BaseBufferIntegrationTest {
         }
     }
 
-    // BaseBufferIntegrationTest.java - упрощаем метод cleanupAllTestData
+     - упрощаем метод cleanupAllTestData
     protected void cleanupAllTestData() {
         // Этот метод теперь не используется, так как каждый тест очищает только свои
         // данные

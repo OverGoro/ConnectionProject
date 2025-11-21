@@ -1,13 +1,14 @@
-// BufferServiceIntegrationTest.java
+
 package com.service.buffer.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
+import com.connection.processing.buffer.model.BufferBlm;
+import com.service.buffer.BufferService;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,11 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-
-import com.connection.processing.buffer.model.BufferBLM;
-import com.service.buffer.BufferService;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @SpringBootTest
@@ -62,13 +58,13 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should create buffer successfully")
     void shouldCreateBufferSuccessfully() {
         // Given
-        BufferBLM bufferBLM = createTestBufferBLM();
+        BufferBlm bufferBlm = createTestBufferBlm();
 
         // Устанавливаем аутентификацию перед вызовом сервиса
         setupAuthentication();
 
         // When
-        BufferBLM createdBuffer = bufferService.createBuffer(bufferBLM);
+        BufferBlm createdBuffer = bufferService.createBuffer(bufferBlm);
 
         // Then
         assertThat(createdBuffer).isNotNull();
@@ -84,14 +80,14 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should get buffer by UID")
     void shouldGetBufferByUid() {
         // Given
-        BufferBLM bufferBLM = createTestBufferBLM();
+        BufferBlm bufferBlm = createTestBufferBlm();
 
         // Создаем буфер с аутентификацией
         setupAuthentication();
-        bufferService.createBuffer(bufferBLM);
+        bufferService.createBuffer(bufferBlm);
 
         // Получаем буфер с той же аутентификацией
-        BufferBLM foundBuffer = bufferService.getBufferByUid(testBufferUid);
+        BufferBlm foundBuffer = bufferService.getBufferByUid(testBufferUid);
 
         // Then
         assertThat(foundBuffer).isNotNull();
@@ -105,13 +101,13 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should get buffers by device")
     void shouldGetBuffersByDevice() {
         // Given
-        BufferBLM bufferBLM = createTestBufferBLM();
+        BufferBlm bufferBlm = createTestBufferBlm();
 
         setupAuthentication();
-        bufferService.createBuffer(bufferBLM);
+        bufferService.createBuffer(bufferBlm);
 
         // When
-        List<BufferBLM> buffers = bufferService.getBuffersByDevice(testDeviceUid);
+        List<BufferBlm> buffers = bufferService.getBuffersByDevice(testDeviceUid);
 
         // Then
         assertThat(buffers).isNotEmpty();
@@ -126,13 +122,13 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should update buffer successfully")
     void shouldUpdateBufferSuccessfully() {
         // Given
-        BufferBLM originalBufferBLM = createTestBufferBLM();
+        BufferBlm originalBufferBlm = createTestBufferBlm();
 
         setupAuthentication();
-        bufferService.createBuffer(originalBufferBLM);
+        bufferService.createBuffer(originalBufferBlm);
 
-        // Обновляем BLM без message_prototype, так как его нет в таблице
-        BufferBLM updatedBufferBLM = new BufferBLM(
+        // Обновляем Blm без message_prototype, так как его нет в таблице
+        BufferBlm updatedBufferBlm = new BufferBlm(
                 testBufferUid,
                 testDeviceUid,
                 2000, // updated max messages
@@ -141,7 +137,7 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
         );
 
         // When
-        BufferBLM updatedBuffer = bufferService.updateBuffer(testBufferUid, updatedBufferBLM);
+        BufferBlm updatedBuffer = bufferService.updateBuffer(testBufferUid, updatedBufferBlm);
 
         // Then
         assertThat(updatedBuffer).isNotNull();
@@ -156,13 +152,13 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should delete buffer successfully")
     void shouldDeleteBufferSuccessfully() {
         // Given
-        BufferBLM bufferBLM = createTestBufferBLM();
+        BufferBlm bufferBlm = createTestBufferBlm();
 
         setupAuthentication();
-        bufferService.createBuffer(bufferBLM);
+        bufferService.createBuffer(bufferBlm);
 
         // Verify buffer exists
-        BufferBLM foundBuffer = bufferService.getBufferByUid(testBufferUid);
+        BufferBlm foundBuffer = bufferService.getBufferByUid(testBufferUid);
         assertThat(foundBuffer).isNotNull();
 
         // When
@@ -179,7 +175,7 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should check buffer existence")
     void shouldCheckBufferExistence() {
         // Given
-        BufferBLM bufferBLM = createTestBufferBLM();
+        BufferBlm bufferBlm = createTestBufferBlm();
 
         // When & Then - Before creation
         setupAuthentication();
@@ -187,7 +183,7 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
         assertThat(existsBefore).isFalse();
 
         // When & Then - After creation
-        bufferService.createBuffer(bufferBLM);
+        bufferService.createBuffer(bufferBlm);
         boolean existsAfter = bufferService.bufferExists(testBufferUid);
         assertThat(existsAfter).isTrue();
 
@@ -253,13 +249,13 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
     @DisplayName("Should throw SecurityException when not authenticated")
     void shouldThrowSecurityExceptionWhenNotAuthenticated() {
         // Given
-        BufferBLM bufferBLM = createTestBufferBLM();
+        BufferBlm bufferBlm = createTestBufferBlm();
 
         // Очищаем аутентификацию
         clearAuthentication();
 
         // When & Then
-        assertThatThrownBy(() -> bufferService.createBuffer(bufferBLM))
+        assertThatThrownBy(() -> bufferService.createBuffer(bufferBlm))
                 .isInstanceOf(SecurityException.class)
                 .hasMessageContaining("User not authenticated");
 
@@ -411,8 +407,8 @@ public class BufferServiceIntegrationTest extends BaseBufferIntegrationTest {
         }
     }
 
-    private BufferBLM createTestBufferBLM() {
-        return new BufferBLM(
+    private BufferBlm createTestBufferBlm() {
+        return new BufferBlm(
                 testBufferUid,
                 testDeviceUid,
                 1000,

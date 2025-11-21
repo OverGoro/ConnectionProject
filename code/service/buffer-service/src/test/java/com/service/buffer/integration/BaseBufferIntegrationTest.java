@@ -27,7 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceBlm;
 import com.connection.service.auth.AuthService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -158,7 +158,7 @@ public abstract class BaseBufferIntegrationTest {
     /**
      * Проверяет, связана ли схема с буфером
      */
-    protected boolean isSchemeLinkeBLMBuffer(UUID schemeUid, UUID bufferUid) {
+    protected boolean isSchemeLinkeBlmBuffer(UUID schemeUid, UUID bufferUid) {
         // Эта логика будет зависеть от реализации, можно добавить соответствующий метод
         // в Service
         return testConnectionSchemeService.hasConnectionScheme(schemeUid);
@@ -167,7 +167,7 @@ public abstract class BaseBufferIntegrationTest {
     /**
      * Настраивает тестовое устройство с конкретными данными
      */
-    protected void setupTestDevice(DeviceBLM device) {
+    protected void setupTestDevice(DeviceBlm device) {
         testDeviceService.addTestDevice(device);
     }
 

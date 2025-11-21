@@ -19,49 +19,51 @@
 // @Slf4j
 // @Component
 // @RequiredArgsConstructor
-// public class ConnectionSchemeResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
+// public class ConnectionSchemeResponseConsumer
+//  implements ApplicationListener<ApplicationReadyEvent> {
 
-//     @Autowired
-//     private TypedConnectionSchemeKafkaClient connectionSchemeKafkaClient;
-//     @Autowired
-//     private KafkaListenerEndpointRegistry registry;
+// @Autowired
+// private TypedConnectionSchemeKafkaClient connectionSchemeKafkaClient;
+// @Autowired
+// private KafkaListenerEndpointRegistry registry;
 
-//     @KafkaListener(id = "dynamicConnectionSchemeListener", 
-//                    topics = "#{@typedConnectionSchemeKafkaClient.getInstanceReplyTopic()}")
-//     public void handleConnectionSchemeResponse(ConsumerRecord<String, CommandResponse> record) {
-//         try {
-//             CommandResponse message = record.value();
-//             String correlationId = record.key();
-            
-//             log.info("Received connection scheme response from instance topic: correlationId={}, topic={}", 
-//                     correlationId, record.topic());
-                
-//             if (message instanceof GetConnectionSchemeByUidResponse) {
-//                 GetConnectionSchemeByUidResponse typedResponse = (GetConnectionSchemeByUidResponse) message;
-//                 connectionSchemeKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof HealthCheckResponse) {
-//                 HealthCheckResponse typedResponse = (HealthCheckResponse) message;
-//                 connectionSchemeKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else {
-//                 log.warn("Unknown connection scheme response type for correlationId: {}", correlationId);
-//             }
-            
-//         } catch (Exception e) {
-//             log.error("Error processing connection scheme response: correlationId={}", record.key(), e);
-//         }
-//     }
+// @KafkaListener(id = "dynamicConnectionSchemeListener", 
+// topics = "#{@typedConnectionSchemeKafkaClient.getInstanceReplyTopic()}")
+// public void handleConnectionSchemeResponse(ConsumerRecord<String, CommandResponse> record) {
+// try {
+// CommandResponse message = record.value();
+// String correlationId = record.key();
 
-//     @Override
-//     public void onApplicationEvent(ApplicationReadyEvent event) {
-//         try {
-//             MessageListenerContainer container = registry.getListenerContainer("dynamicConnectionSchemeListener");
-//             if (container != null && !container.isRunning()) {
-//                 container.start();
-//                 log.info("Dynamic connection scheme response listener started for topic: {}", 
-//                         connectionSchemeKafkaClient.getInstanceReplyTopic());
-//             }
-//         } catch (Exception e) {
-//             log.error("Failed to start dynamic connection scheme listener", e);
-//         }
-//     }
+// log.info("Received connection scheme response from instance topic: correlationId={}, topic={}", 
+// correlationId, record.topic());
+
+// if (message instanceof GetConnectionSchemeByUidResponse) {
+// GetConnectionSchemeByUidResponse typedResponse = (GetConnectionSchemeByUidResponse) message;
+// connectionSchemeKafkaClient.handleResponse(correlationId, typedResponse);
+// } else if (message instanceof HealthCheckResponse) {
+// HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+// connectionSchemeKafkaClient.handleResponse(correlationId, typedResponse);
+// } else {
+// log.warn("Unknown connection scheme response type for correlationId: {}", correlationId);
+// }
+
+// } catch (Exception e) {
+// log.error("Error processing connection scheme response: correlationId={}", record.key(), e);
+// }
+// }
+
+// @Override
+// public void onApplicationEvent(ApplicationReadyEvent event) {
+// try {
+// MessageListenerContainer container =
+//  registry.getListenerContainer("dynamicConnectionSchemeListener");
+// if (container != null && !container.isRunning()) {
+// container.start();
+// log.info("Dynamic connection scheme response listener started for topic: {}", 
+// connectionSchemeKafkaClient.getInstanceReplyTopic());
+// }
+// } catch (Exception e) {
+// log.error("Failed to start dynamic connection scheme listener", e);
+// }
+// }
 // }

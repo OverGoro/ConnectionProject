@@ -1,22 +1,20 @@
-// BufferJDBCConfig.java
+
 package com.service.buffer.config;
 
+import com.atomikos.jdbc.AtomikosDataSourceBean;
 import java.util.Properties;
 import javax.sql.DataSource;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.atomikos.jdbc.AtomikosDataSourceBean;
-
-import lombok.extern.slf4j.Slf4j;
-
+/** . */
 @Configuration
 @Slf4j
-public class BufferJDBCConfig {
+public class BufferJdbcConfig {
     
     @Value("${app.datasource.buffer.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
     private String xaDataSourceClassName;
