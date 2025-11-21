@@ -8,8 +8,9 @@ plugins {
     id 'io.qameta.allure' version '3.0.0'
     id 'com.avast.gradle.docker-compose' version '0.17.6'
     id 'maven-publish'
+    id 'checkstyle'
+    id 'pmd'
 }
-
 // ========== CONFIGURATION ==========
 ext {
     SERVICE_NAME = 'message-service'
@@ -41,6 +42,56 @@ configurations {
     integrationTestRuntimeOnly {
         extendsFrom testRuntimeOnly
     }
+}
+// ========== CHECKSTYLE CONFIGURATION ==========
+checkstyle {
+    toolVersion = '12.1.1'
+    configFile = file("${project.rootDir}/config/checkstyle/google_checks.xml")
+    configProperties = [
+        'org.checkstyle.google.suppressionfilter.config': "${project.rootDir}/config/checkstyle/suppressions.xml"
+    ]
+    ignoreFailures = false
+    showViolations = true
+    maxWarnings = 0
+}
+
+tasks.withType(Checkstyle) {
+    reports {
+        xml.required = false
+        html.required = true
+        html.outputLocation = file("${buildDir}/reports/checkstyle/checkstyle.html")
+    }
+}
+
+// ========== PMD CONFIGURATION ==========
+pmd {
+    toolVersion = '7.0.0'
+    ruleSetFiles = files("${project.rootDir}/config/pmd/custom-ruleset.xml")
+    ruleSets = []
+    ignoreFailures = false
+    consoleOutput = true
+}
+
+tasks.withType(Pmd) {
+    reports {
+        xml.required = false
+        html.required = true
+        html.outputLocation = file("${buildDir}/reports/pmd/pmd.html")
+    }
+}
+
+// ========== STATIC ANALYSIS TASKS ==========
+task staticAnalysis {
+    description = 'Run all static analysis checks'
+    group = 'Verification'
+    dependsOn checkstyleMain, checkstyleTest, pmdMain, pmdTest
+}
+
+// Комбинированная задача для CI/CD
+task codeQuality {
+    description = 'Run all code quality checks (static analysis + tests)'
+    group = 'Verification'
+    dependsOn staticAnalysis, test
 }
 
 // ========== ALLURE CONFIGURATION ==========

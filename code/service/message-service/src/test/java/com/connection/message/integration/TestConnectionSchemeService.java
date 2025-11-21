@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeBlm;
 import com.service.connectionscheme.ConnectionSchemeService;
 
 import lombok.RequiredArgsConstructor;
@@ -23,15 +23,15 @@ import lombok.extern.slf4j.Slf4j;
 @ActiveProfiles("integrationtest")
 public class TestConnectionSchemeService implements ConnectionSchemeService {
     // Хранилище тестовых данных
-    private final Map<UUID, ConnectionSchemeBLM> testSchemes = new ConcurrentHashMap<>();
-    private final Map<UUID, List<ConnectionSchemeBLM>> bufferSchemes = new ConcurrentHashMap<>();
-    private final Map<UUID, List<ConnectionSchemeBLM>> clientSchemes = new ConcurrentHashMap<>();
+    private final Map<UUID, ConnectionSchemeBlm> testSchemes = new ConcurrentHashMap<>();
+    private final Map<UUID, List<ConnectionSchemeBlm>> bufferSchemes = new ConcurrentHashMap<>();
+    private final Map<UUID, List<ConnectionSchemeBlm>> clientSchemes = new ConcurrentHashMap<>();
 
     /**
      * Добавляет тестовую схему подключения
      */
     public void addTestConnectionScheme(UUID schemeUid, UUID clientUid, List<UUID> usedBuffers, Map<UUID, List<UUID>> bufferTransitions) {
-        ConnectionSchemeBLM scheme = createTestConnectionSchemeBLM(schemeUid, clientUid, usedBuffers, bufferTransitions);
+        ConnectionSchemeBlm scheme = createTestConnectionSchemeBlm(schemeUid, clientUid, usedBuffers, bufferTransitions);
         testSchemes.put(schemeUid, scheme);
         
         // Связываем схему с клиентом
@@ -51,9 +51,9 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
      * Связывает схему с буфером
      */
     public void linkSchemeToBuffer(UUID schemeUid, UUID bufferUid) {
-        ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
+        ConnectionSchemeBlm scheme = testSchemes.get(schemeUid);
         if (scheme != null) {
-            List<ConnectionSchemeBLM> bufferSchemeList = bufferSchemes.computeIfAbsent(
+            List<ConnectionSchemeBlm> bufferSchemeList = bufferSchemes.computeIfAbsent(
                     bufferUid, k -> new ArrayList<>());
             if (!bufferSchemeList.contains(scheme)) {
                 bufferSchemeList.add(scheme);
@@ -66,9 +66,9 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
      * Связывает схему с клиентом
      */
     public void linkSchemeToClient(UUID schemeUid, UUID clientUid) {
-        ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
+        ConnectionSchemeBlm scheme = testSchemes.get(schemeUid);
         if (scheme != null) {
-            List<ConnectionSchemeBLM> clientSchemeList = clientSchemes.computeIfAbsent(
+            List<ConnectionSchemeBlm> clientSchemeList = clientSchemes.computeIfAbsent(
                     clientUid, k -> new ArrayList<>());
             if (!clientSchemeList.contains(scheme)) {
                 clientSchemeList.add(scheme);
@@ -98,28 +98,28 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
      * Проверяет принадлежность схемы клиенту
      */
     public boolean connectionSchemeBelongsToClient(UUID schemeUid, UUID clientUid) {
-        ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
+        ConnectionSchemeBlm scheme = testSchemes.get(schemeUid);
         return scheme != null && scheme.getClientUid().equals(clientUid);
     }
 
     /**
      * Получает схему по UID
      */
-    public ConnectionSchemeBLM getConnectionScheme(UUID schemeUid) {
+    public ConnectionSchemeBlm getConnectionScheme(UUID schemeUid) {
         return testSchemes.get(schemeUid);
     }
 
     /**
      * Получает все схемы для буфера
      */
-    public List<ConnectionSchemeBLM> getConnectionSchemesForBuffer(UUID bufferUid) {
+    public List<ConnectionSchemeBlm> getConnectionSchemesForBuffer(UUID bufferUid) {
         return bufferSchemes.getOrDefault(bufferUid, List.of());
     }
 
     /**
      * Получает все схемы для клиента
      */
-    public List<ConnectionSchemeBLM> getConnectionSchemesForClient(UUID clientUid) {
+    public List<ConnectionSchemeBlm> getConnectionSchemesForClient(UUID clientUid) {
         return clientSchemes.getOrDefault(clientUid, List.of());
     }
 
@@ -127,7 +127,7 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
      * Удаляет схему
      */
     public void removeConnectionScheme(UUID schemeUid) {
-        ConnectionSchemeBLM removedScheme = testSchemes.remove(schemeUid);
+        ConnectionSchemeBlm removedScheme = testSchemes.remove(schemeUid);
         if (removedScheme != null) {
             // Удаляем из связей с буферами
             bufferSchemes.values().forEach(schemes -> schemes.remove(removedScheme));
@@ -138,9 +138,9 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
     }
 
     /**
-     * Создает тестовый BLM схемы подключения
+     * Создает тестовый Blm схемы подключения
      */
-    private ConnectionSchemeBLM createTestConnectionSchemeBLM(UUID schemeUid, UUID clientUid, 
+    private ConnectionSchemeBlm createTestConnectionSchemeBlm(UUID schemeUid, UUID clientUid, 
                                                             List<UUID> usedBuffers, 
                                                             Map<UUID, List<UUID>> bufferTransitions) {
         try {
@@ -155,7 +155,7 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
             com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
             String schemeJson = objectMapper.writeValueAsString(schemeData);
 
-            ConnectionSchemeBLM scheme = new ConnectionSchemeBLM();
+            ConnectionSchemeBlm scheme = new ConnectionSchemeBlm();
             scheme.setUid(schemeUid);
             scheme.setClientUid(clientUid);
             scheme.setUsedBuffers(usedBuffers != null ? usedBuffers : new ArrayList<>());
@@ -164,9 +164,9 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
             
             return scheme;
         } catch (Exception e) {
-            log.error("❌ Error creating test connection scheme BLM", e);
-            // Fallback: создаем простой BLM без JSON
-            ConnectionSchemeBLM scheme = new ConnectionSchemeBLM();
+            log.error("❌ Error creating test connection scheme Blm", e);
+            // Fallback: создаем простой Blm без JSON
+            ConnectionSchemeBlm scheme = new ConnectionSchemeBlm();
             scheme.setUid(schemeUid);
             scheme.setClientUid(clientUid);
             scheme.setUsedBuffers(usedBuffers != null ? usedBuffers : new ArrayList<>());
@@ -177,32 +177,32 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
     }
 
     @Override
-    public ConnectionSchemeBLM createScheme(ConnectionSchemeBLM schemeBLM) {
-        if (schemeBLM.getUid() == null) {
-            schemeBLM.setUid(UUID.randomUUID());
+    public ConnectionSchemeBlm createScheme(ConnectionSchemeBlm schemeBlm) {
+        if (schemeBlm.getUid() == null) {
+            schemeBlm.setUid(UUID.randomUUID());
         }
         
-        testSchemes.put(schemeBLM.getUid(), schemeBLM);
+        testSchemes.put(schemeBlm.getUid(), schemeBlm);
         
         // Связываем с клиентом
-        linkSchemeToClient(schemeBLM.getUid(), schemeBLM.getClientUid());
+        linkSchemeToClient(schemeBlm.getUid(), schemeBlm.getClientUid());
         
         // Связываем с буферами
-        if (schemeBLM.getUsedBuffers() != null) {
-            for (UUID bufferUid : schemeBLM.getUsedBuffers()) {
-                linkSchemeToBuffer(schemeBLM.getUid(), bufferUid);
+        if (schemeBlm.getUsedBuffers() != null) {
+            for (UUID bufferUid : schemeBlm.getUsedBuffers()) {
+                linkSchemeToBuffer(schemeBlm.getUid(), bufferUid);
             }
         }
         
         log.info("📝 Test Responder: Created connection scheme {} for client {}", 
-                schemeBLM.getUid(), schemeBLM.getClientUid());
+                schemeBlm.getUid(), schemeBlm.getClientUid());
         
-        return schemeBLM;
+        return schemeBlm;
     }
 
     @Override
     public void deleteScheme(UUID schemeUid) {
-        ConnectionSchemeBLM removedScheme = testSchemes.remove(schemeUid);
+        ConnectionSchemeBlm removedScheme = testSchemes.remove(schemeUid);
         if (removedScheme != null) {
             // Удаляем из связей с буферами
             bufferSchemes.values().forEach(schemes -> schemes.removeIf(s -> s.getUid().equals(schemeUid)));
@@ -231,8 +231,8 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
     }
 
     @Override
-    public ConnectionSchemeBLM getSchemeByUid(UUID schemeUid) {
-        ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
+    public ConnectionSchemeBlm getSchemeByUid(UUID schemeUid) {
+        ConnectionSchemeBlm scheme = testSchemes.get(schemeUid);
         if (scheme == null) {
             log.debug("🔍 Test Responder: Scheme {} not found", schemeUid);
         }
@@ -240,10 +240,10 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
     }
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemeByUid(List<UUID> schemeUids) {
-        List<ConnectionSchemeBLM> result = new ArrayList<>();
+    public List<ConnectionSchemeBlm> getSchemeByUid(List<UUID> schemeUids) {
+        List<ConnectionSchemeBlm> result = new ArrayList<>();
         for (UUID schemeUid : schemeUids) {
-            ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
+            ConnectionSchemeBlm scheme = testSchemes.get(schemeUid);
             if (scheme != null) {
                 result.add(scheme);
             }
@@ -253,19 +253,19 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
     }
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemesByBuffer(UUID bufferUuid) {
-        List<ConnectionSchemeBLM> schemes = bufferSchemes.getOrDefault(bufferUuid, new ArrayList<>());
+    public List<ConnectionSchemeBlm> getSchemesByBuffer(UUID bufferUuid) {
+        List<ConnectionSchemeBlm> schemes = bufferSchemes.getOrDefault(bufferUuid, new ArrayList<>());
         log.debug("🔍 Test Responder: Found {} schemes for buffer {}", schemes.size(), bufferUuid);
         return new ArrayList<>(schemes); // Возвращаем копию для безопасности
     }
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemesByBuffer(List<UUID> bufferUuids) {
-        List<ConnectionSchemeBLM> result = new ArrayList<>();
+    public List<ConnectionSchemeBlm> getSchemesByBuffer(List<UUID> bufferUuids) {
+        List<ConnectionSchemeBlm> result = new ArrayList<>();
         for (UUID bufferUuid : bufferUuids) {
-            List<ConnectionSchemeBLM> schemes = bufferSchemes.get(bufferUuid);
+            List<ConnectionSchemeBlm> schemes = bufferSchemes.get(bufferUuid);
             if (schemes != null) {
-                for (ConnectionSchemeBLM scheme : schemes) {
+                for (ConnectionSchemeBlm scheme : schemes) {
                     if (!result.contains(scheme)) {
                         result.add(scheme);
                     }
@@ -277,8 +277,8 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
     }
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUuid) {
-        List<ConnectionSchemeBLM> schemes = clientSchemes.getOrDefault(clientUuid, new ArrayList<>());
+    public List<ConnectionSchemeBlm> getSchemesByClient(UUID clientUuid) {
+        List<ConnectionSchemeBlm> schemes = clientSchemes.getOrDefault(clientUuid, new ArrayList<>());
         log.debug("🔍 Test Responder: Found {} schemes for client {}", schemes.size(), clientUuid);
         return new ArrayList<>(schemes); // Возвращаем копию для безопасности
     }
@@ -289,25 +289,25 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
     }
 
     @Override
-    public ConnectionSchemeBLM updateScheme(UUID schemeUid, ConnectionSchemeBLM schemeBLM) {
-        ConnectionSchemeBLM existingScheme = testSchemes.get(schemeUid);
+    public ConnectionSchemeBlm updateScheme(UUID schemeUid, ConnectionSchemeBlm schemeBlm) {
+        ConnectionSchemeBlm existingScheme = testSchemes.get(schemeUid);
         if (existingScheme == null) {
             log.warn("⚠️ Test Responder: Attempted to update non-existent scheme {}", schemeUid);
             return null;
         }
         
         // Обновляем поля схемы
-        if (schemeBLM.getSchemeJson() != null) {
-            existingScheme.setSchemeJson(schemeBLM.getSchemeJson());
+        if (schemeBlm.getSchemeJson() != null) {
+            existingScheme.setSchemeJson(schemeBlm.getSchemeJson());
         }
-        if (schemeBLM.getUsedBuffers() != null) {
+        if (schemeBlm.getUsedBuffers() != null) {
             // Обновляем связи с буферами
             List<UUID> oldBuffers = existingScheme.getUsedBuffers();
-            List<UUID> newBuffers = schemeBLM.getUsedBuffers();
+            List<UUID> newBuffers = schemeBlm.getUsedBuffers();
             
             // Удаляем старые связи
             for (UUID bufferUid : oldBuffers) {
-                List<ConnectionSchemeBLM> bufferSchemesList = bufferSchemes.get(bufferUid);
+                List<ConnectionSchemeBlm> bufferSchemesList = bufferSchemes.get(bufferUid);
                 if (bufferSchemesList != null) {
                     bufferSchemesList.remove(existingScheme);
                 }
@@ -319,8 +319,8 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
                 linkSchemeToBuffer(schemeUid, bufferUid);
             }
         }
-        if (schemeBLM.getBufferTransitions() != null) {
-            existingScheme.setBufferTransitions(new HashMap<>(schemeBLM.getBufferTransitions()));
+        if (schemeBlm.getBufferTransitions() != null) {
+            existingScheme.setBufferTransitions(new HashMap<>(schemeBlm.getBufferTransitions()));
         }
         
         log.info("✏️ Test Responder: Updated connection scheme {}", schemeUid);

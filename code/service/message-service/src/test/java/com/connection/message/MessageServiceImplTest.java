@@ -25,7 +25,7 @@ import com.connection.device.DeviceService;
 import com.connection.device.converter.DeviceConverter;
 import com.connection.message.config.SecurityUtils;
 import com.connection.message.converter.MessageConverter;
-import com.connection.message.model.MessageBLM;
+import com.connection.message.model.MessageBlm;
 import com.connection.message.repository.MessageRepository;
 import com.connection.message.validator.MessageValidator;
 import com.connection.processing.buffer.converter.BufferConverter;
@@ -102,7 +102,7 @@ class MessageServiceImplTest {
         // Arrange
         UUID deviceUid = UUID.randomUUID();
         UUID bufferUid = UUID.randomUUID();
-        MessageBLM messageBLM = MessageBLM.builder()
+        MessageBlm messageBlm = MessageBlm.builder()
             .uid(UUID.randomUUID())
             .bufferUid(bufferUid)
             .content("test message")
@@ -112,14 +112,14 @@ class MessageServiceImplTest {
 
         // securityUtilsMock.when(SecurityUtils::isDeviceAuthenticated).thenReturn(true);
         // securityUtilsMock.when(SecurityUtils::getCurrentDeviceUid).thenReturn(deviceUid);
-        // doNothing().when(messageValidator).validate(messageBLM);
+        // doNothing().when(messageValidator).validate(messageBlm);
 
         // // Act
-        // messageService.addMessage(messageBLM);
+        // messageService.addMessage(messageBlm);
 
         // // Assert
-        // verify(messageValidator).validate(messageBLM);
-        // verify(messageRepository).add(messageBLM);
+        // verify(messageValidator).validate(messageBlm);
+        // verify(messageRepository).add(messageBlm);
     }
 
     @Test
@@ -127,7 +127,7 @@ class MessageServiceImplTest {
         // Arrange
         UUID clientUid = UUID.randomUUID();
         UUID bufferUid = UUID.randomUUID();
-        MessageBLM messageBLM = MessageBLM.builder()
+        MessageBlm messageBlm = MessageBlm.builder()
             .uid(UUID.randomUUID())
             .bufferUid(bufferUid)
             .content("test message")
@@ -137,20 +137,20 @@ class MessageServiceImplTest {
 
         // securityUtilsMock.when(SecurityUtils::isClientAuthenticated).thenReturn(true);
         // securityUtilsMock.when(SecurityUtils::getCurrentClientUid).thenReturn(clientUid);
-        // doNothing().when(messageValidator).validate(messageBLM);
+        // doNothing().when(messageValidator).validate(messageBlm);
 
         // // Act
-        // messageService.addMessage(messageBLM);
+        // messageService.addMessage(messageBlm);
 
         // // Assert
-        // verify(messageValidator).validate(messageBLM);
-        // verify(messageRepository).add(messageBLM);
+        // verify(messageValidator).validate(messageBlm);
+        // verify(messageRepository).add(messageBlm);
     }
 
     @Test
     void testAddMessage_NoAuthentication_ThrowsSecurityException() {
         // Arrange
-        MessageBLM messageBLM = MessageBLM.builder()
+        MessageBlm messageBlm = MessageBlm.builder()
             .uid(UUID.randomUUID())
             .bufferUid(UUID.randomUUID())
             .content("test message")
@@ -163,7 +163,7 @@ class MessageServiceImplTest {
 
         // // Act & Assert
         // SecurityException exception = assertThrows(SecurityException.class, 
-        //     () -> messageService.addMessage(messageBLM));
+        //     () -> messageService.addMessage(messageBlm));
         // assertTrue(exception.getMessage().contains("Cannot add messages without authorization"));
     }
 
@@ -172,15 +172,15 @@ class MessageServiceImplTest {
         // Arrange
         UUID bufferUid = UUID.randomUUID();
         UUID clientUid = UUID.randomUUID();
-        List<MessageBLM> expectedMessages = Arrays.asList(
-            MessageBLM.builder()
+        List<MessageBlm> expectedMessages = Arrays.asList(
+            MessageBlm.builder()
                 .uid(UUID.randomUUID())
                 .bufferUid(bufferUid)
                 .content("message 1")
                 .contentType("INCOMING")
                 .createdAt(new Date())
                 .build(),
-            MessageBLM.builder()
+            MessageBlm.builder()
                 .uid(UUID.randomUUID())
                 .bufferUid(bufferUid)
                 .content("message 2")
@@ -194,7 +194,7 @@ class MessageServiceImplTest {
         // when(messageRepository.findByBufferUid(bufferUid)).thenReturn(expectedMessages);
 
         // // Act
-        // List<MessageBLM> result = messageService.getMessagesByBuffer(bufferUid, false, 0, 10);
+        // List<MessageBlm> result = messageService.getMessagesByBuffer(bufferUid, false, 0, 10);
 
         // // Assert
         // assertEquals(expectedMessages.size(), result.size());
@@ -206,21 +206,21 @@ class MessageServiceImplTest {
         // Arrange
         UUID bufferUid = UUID.randomUUID();
         UUID clientUid = UUID.randomUUID();
-        MessageBLM message = MessageBLM.builder()
+        MessageBlm message = MessageBlm.builder()
             .uid(UUID.randomUUID())
             .bufferUid(bufferUid)
             .content("test message")
             .contentType("INCOMING")
             .createdAt(new Date())
             .build();
-        List<MessageBLM> messages = Collections.singletonList(message);
+        List<MessageBlm> messages = Collections.singletonList(message);
 
         // securityUtilsMock.when(SecurityUtils::isClientAuthenticated).thenReturn(true);
         // securityUtilsMock.when(SecurityUtils::getCurrentClientUid).thenReturn(clientUid);
         // when(messageRepository.findByBufferUid(bufferUid)).thenReturn(messages);
 
         // // Act
-        // List<MessageBLM> result = messageService.getMessagesByBuffer(bufferUid, true, 0, 10);
+        // List<MessageBlm> result = messageService.getMessagesByBuffer(bufferUid, true, 0, 10);
 
         // // Assert
         // assertEquals(1, result.size());
@@ -252,7 +252,7 @@ class MessageServiceImplTest {
         //     .thenReturn(true);
 
         // // Act
-        // List<MessageBLM> result = messageService.getMessagesByScheme(schemeUid, false, 0, 10);
+        // List<MessageBlm> result = messageService.getMessagesByScheme(schemeUid, false, 0, 10);
 
         // // Assert
         // assertNotNull(result);
@@ -268,7 +268,7 @@ class MessageServiceImplTest {
         // securityUtilsMock.when(SecurityUtils::getCurrentDeviceUid).thenReturn(deviceUid);
 
         // // Act
-        // List<MessageBLM> result = messageService.getMessagesByDevice(deviceUid, false, 0, 10);
+        // List<MessageBlm> result = messageService.getMessagesByDevice(deviceUid, false, 0, 10);
 
         // // Assert
         // assertNotNull(result);
@@ -287,7 +287,7 @@ class MessageServiceImplTest {
         //     .thenReturn(true);
 
         // // Act
-        // List<MessageBLM> result = messageService.getMessagesByDevice(deviceUid, false, 0, 10);
+        // List<MessageBlm> result = messageService.getMessagesByDevice(deviceUid, false, 0, 10);
 
         // // Assert
         // assertNotNull(result);

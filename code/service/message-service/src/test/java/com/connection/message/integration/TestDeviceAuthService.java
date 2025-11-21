@@ -10,8 +10,8 @@ import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.connection.device.token.model.DeviceAccessTokenBLM;
-import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenBlm;
+import com.connection.device.token.model.DeviceTokenBlm;
 import com.service.device.auth.DeviceAuthService;
 
 import lombok.RequiredArgsConstructor;
@@ -47,19 +47,19 @@ public class TestDeviceAuthService implements DeviceAuthService {
     }
 
     @Override
-    public Pair<DeviceAccessTokenBLM, DeviceTokenBLM> createDeviceAccessToken(DeviceTokenBLM deviceToken) {
+    public Pair<DeviceAccessTokenBlm, DeviceTokenBlm> createDeviceAccessToken(DeviceTokenBlm deviceToken) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'createDeviceAccessToken'");
     }
 
     @Override
-    public DeviceTokenBLM createDeviceToken(UUID deviceUid) {
+    public DeviceTokenBlm createDeviceToken(UUID deviceUid) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'createDeviceToken'");
     }
 
     @Override
-    public DeviceTokenBLM getDeviceToken(UUID deviceUid) {
+    public DeviceTokenBlm getDeviceToken(UUID deviceUid) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'getDeviceToken'");
     }
@@ -71,7 +71,7 @@ public class TestDeviceAuthService implements DeviceAuthService {
     }
 
     @Override
-    public DeviceAccessTokenBLM refreshDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+    public DeviceAccessTokenBlm refreshDeviceAccessToken(DeviceAccessTokenBlm deviceAccessToken) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'refreshDeviceAccessToken'");
     }
@@ -83,25 +83,25 @@ public class TestDeviceAuthService implements DeviceAuthService {
     }
 
     @Override
-    public DeviceAccessTokenBLM validateDeviceAccessToken(DeviceAccessTokenBLM deviceAccessToken) {
+    public DeviceAccessTokenBlm validateDeviceAccessToken(DeviceAccessTokenBlm deviceAccessToken) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'validateDeviceAccessToken'");
     }
 
     @Override
-    public DeviceAccessTokenBLM validateDeviceAccessToken(String deviceAccessTokenString) {
+    public DeviceAccessTokenBlm validateDeviceAccessToken(String deviceAccessTokenString) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'validateDeviceAccessToken'");
     }
 
     @Override
-    public DeviceTokenBLM validateDeviceToken(DeviceTokenBLM deviceToken) {
+    public DeviceTokenBlm validateDeviceToken(DeviceTokenBlm deviceToken) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'validateDeviceToken'");
     }
 
     @Override
-    public DeviceTokenBLM validateDeviceToken(String deviceTokenString) {
+    public DeviceTokenBlm validateDeviceToken(String deviceTokenString) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'validateDeviceToken'");
     }
