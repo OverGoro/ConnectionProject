@@ -1,19 +1,19 @@
-// DevicesListResponse.java
+
 package com.connection.device.controller;
 
-import com.connection.device.model.DeviceDTO;
-
+import com.connection.device.model.DeviceDto;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.List;
-
+/** . */
 @AllArgsConstructor
 @Getter
 public class DevicesListResponse {
-    private final List<DeviceDTO> devices;
+    private final List<DeviceDto> devices;
     private final PaginationInfo pagination;
 
+    /** . */
     @AllArgsConstructor
     @Getter
     public static class PaginationInfo {

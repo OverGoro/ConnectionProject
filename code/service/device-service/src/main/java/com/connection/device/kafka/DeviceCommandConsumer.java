@@ -1,142 +1,141 @@
 // package com.connection.device.kafka;
 
-// import org.apache.kafka.clients.consumer.ConsumerRecord;
-// import org.springframework.beans.factory.annotation.Qualifier;
-// import org.springframework.kafka.annotation.KafkaListener;
-// import org.springframework.kafka.core.KafkaTemplate;
-// import org.springframework.stereotype.Component;
-
+// import com.connection.common.events.Command;
+// import com.connection.device.DeviceService;
+// import com.connection.device.converter.DeviceConverter;
 // import com.connection.device.events.commands.GetDeviceByUidCommand;
 // import com.connection.device.events.commands.GetDevicesByClientUid;
 // import com.connection.device.events.commands.HealthCheckCommand;
 // import com.connection.device.events.responses.GetDeviceByUidResponse;
 // import com.connection.device.events.responses.GetDevicesByClientResponse;
 // import com.connection.device.events.responses.HealthCheckResponse;
-// import com.connection.common.events.Command;
-// import com.connection.device.DeviceService;
-// import com.connection.device.converter.DeviceConverter;
-// import com.connection.device.model.DeviceBLM;
-// import com.connection.device.model.DeviceDTO;
-
-// import lombok.RequiredArgsConstructor;
-// import lombok.extern.slf4j.Slf4j;
-
+// import com.connection.device.model.DeviceBlm;
+// import com.connection.device.model.DeviceDto;
 // import java.util.List;
 // import java.util.stream.Collectors;
+// import lombok.RequiredArgsConstructor;
+// import lombok.extern.slf4j.Slf4j;
+// import org.apache.kafka.clients.consumer.ConsumerRecord;
+// import org.springframework.beans.factory.annotation.Qualifier;
+// import org.springframework.kafka.annotation.KafkaListener;
+// import org.springframework.kafka.core.KafkaTemplate;
+// import org.springframework.stereotype.Component;
 
 // @Slf4j
 // @Component
 // @RequiredArgsConstructor
 // public class DeviceCommandConsumer {
-    
-//     @Qualifier("DeviceServiceKafkaImpl")
-//     private final DeviceService deviceService;
 
-//     private final DeviceConverter deviceConverter;
-//     private final KafkaTemplate<String, Object> kafkaTemplate;
-    
-//     @KafkaListener(topics = "${app.kafka.topics.device-commands:device.commands}")
-//     public void handleDeviceCommand(ConsumerRecord<String, Command> record) {
-//         try {
-//             Command command = record.value();
-//             String key = record.key();
+// @Qualifier("DeviceServiceKafkaImpl")
+// private final DeviceService deviceService;
 
-//             log.info("Received device command: {} with key: {}", command.getClass().getSimpleName(), key);
+// private final DeviceConverter deviceConverter;
+// private final KafkaTemplate<String, Object> kafkaTemplate;
 
-//             if (command instanceof GetDeviceByUidCommand) {
-//                 GetDeviceByUidCommand getDeviceCommand = (GetDeviceByUidCommand) command;
-//                 handleGetDeviceByUidCommand(getDeviceCommand, key);
-//             } else if (command instanceof GetDevicesByClientUid) {
-//                 GetDevicesByClientUid getDevicesCommand = (GetDevicesByClientUid) command;
-//                 handleGetDevicesByClientCommand(getDevicesCommand, key);
-//             } else if (command instanceof HealthCheckCommand) {
-//                 HealthCheckCommand healthCommand = (HealthCheckCommand) command;
-//                 handleHealthCheckCommand(healthCommand, key);
-//             } else {
-//                 log.warn("Unknown device command type: {}", command.getClass().getCanonicalName());
-//             }
+// @KafkaListener(topics = "${app.kafka.topics.device-commands:device.commands}")
+// public void handleDeviceCommand(ConsumerRecord<String, Command> record) {
+// try {
+// Command command = record.value();
+// String key = record.key();
 
-//         } catch (Exception e) {
-//             log.error("Error processing device command: key={}", record.key(), e);
-//         }
-//     }
+// log.info("Received device command: {} with key: {}", command.getClass().getSimpleName(), key);
 
-//     private void handleGetDeviceByUidCommand(GetDeviceByUidCommand command, String key) {
-//         try {
-//             log.info("Processing GetDeviceByUidCommand for device UID: {}", command.getDeviceUid());
+// if (command instanceof GetDeviceByUidCommand) {
+// GetDeviceByUidCommand getDeviceCommand = (GetDeviceByUidCommand) command;
+// handleGetDeviceByUidCommand(getDeviceCommand, key);
+// } else if (command instanceof GetDevicesByClientUid) {
+// GetDevicesByClientUid getDevicesCommand = (GetDevicesByClientUid) command;
+// handleGetDevicesByClientCommand(getDevicesCommand, key);
+// } else if (command instanceof HealthCheckCommand) {
+// HealthCheckCommand healthCommand = (HealthCheckCommand) command;
+// handleHealthCheckCommand(healthCommand, key);
+// } else {
+// log.warn("Unknown device command type: {}", command.getClass().getCanonicalName());
+// }
 
-//             DeviceBLM deviceBLM = deviceService.getDevice(command.getDeviceUid());
-//             DeviceDTO deviceDTO = deviceConverter.toDTO(deviceBLM);
+// } catch (Exception e) {
+// log.error("Error processing device command: key={}", record.key(), e);
+// }
+// }
 
-//             GetDeviceByUidResponse response = GetDeviceByUidResponse.success(
-//                     command.getCorrelationId(),
-//                     deviceDTO);
+// private void handleGetDeviceByUidCommand(GetDeviceByUidCommand command, String key) {
+// try {
+// log.info("Processing GetDeviceByUidCommand for device UID: {}", command.getDeviceUid());
 
-//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-//             log.info("Successfully processed GetDeviceByUidCommand for device: {}", command.getDeviceUid());
+// DeviceBlm deviceBlm = deviceService.getDevice(command.getDeviceUid());
+// DeviceDto deviceDto = deviceConverter.toDto(deviceBlm);
 
-//         } catch (Exception e) {
-//             log.error("Error processing GetDeviceByUidCommand for device UID: {}", command.getDeviceUid(), e);
+// GetDeviceByUidResponse response = GetDeviceByUidResponse.success(
+// command.getCorrelationId(),
+// deviceDto);
 
-//             GetDeviceByUidResponse response = GetDeviceByUidResponse.error(
-//                     command.getCorrelationId(),
-//                     e.getMessage());
+// kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+// log.info("Successfully processed GetDeviceByUidCommand for device: {}", command.getDeviceUid());
 
-//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-//         }
-//     }
+// } catch (Exception e) {
+// log.error("Error processing GetDeviceByUidCommand fo
+// r device UID: {}", command.getDeviceUid(), e);
 
-//     private void handleGetDevicesByClientCommand(GetDevicesByClientUid command, String key) {
-//         try {
-//             log.info("Processing GetDevicesByClientCommand for client UID: {}", command.getClientUid());
+// GetDeviceByUidResponse response = GetDeviceByUidResponse.error(
+// command.getCorrelationId(),
+// e.getMessage());
 
-//             List<DeviceBLM> devicesBLM = deviceService.getDevicesByClient(command.getClientUid());
-//             List<DeviceDTO> deviceDTOs = devicesBLM.stream()
-//                     .map(deviceConverter::toDTO)
-//                     .collect(Collectors.toList());
+// kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+// }
+// }
 
-//             GetDevicesByClientResponse response = GetDevicesByClientResponse.valid(
-//                     command.getCorrelationId(),
-//                     deviceDTOs);
+// private void handleGetDevicesByClientCommand(GetDevicesByClientUid command, String key) {
+// try {
+// log.info("Processing GetDevicesByClientCommand for client UID: {}", command.getClientUid());
 
-//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+// List<DeviceBlm> devicesBlm = deviceService.getDevicesByClient(command.getClientUid());
+// List<DeviceDto> deviceDtos = devicesBlm.stream()
+// .map(deviceConverter::toDto)
+// .collect(Collectors.toList());
 
-//             log.info("Successfully processed GetDevicesByClientCommand for client: {}, found {} devices",
-//                     command.getClientUid(), deviceDTOs.size());
+// GetDevicesByClientResponse response = GetDevicesByClientResponse.valid(
+// command.getCorrelationId(),
+// deviceDtos);
 
-//         } catch (Exception e) {
-//             log.error("Error processing GetDevicesByClientCommand for client UID: {}", command.getClientUid(), e);
+// kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
 
-//             GetDevicesByClientResponse response = GetDevicesByClientResponse.error(
-//                     command.getCorrelationId(),
-//                     e.getMessage());
+// log.info("Successfully processed GetDevicesByClientCommand for client: {}, found {} devices",
+// command.getClientUid(), deviceDtos.size());
 
-//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-//         }
-//     }
+// } catch (Exception e) {
+// log.error("Error processing GetDevicesByClientCommand for client UID
+// : {}", command.getClientUid(), e);
 
-//     private void handleHealthCheckCommand(HealthCheckCommand command, String key) {
-//         try {
-//             log.info("Processing HealthCheckCommand");
+// GetDevicesByClientResponse response = GetDevicesByClientResponse.error(
+// command.getCorrelationId(),
+// e.getMessage());
 
-//             var healthStatus = deviceService.getHealthStatus();
+// kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+// }
+// }
 
-//             HealthCheckResponse response = HealthCheckResponse.success(
-//                     command.getCorrelationId(),
-//                     healthStatus);
+// private void handleHealthCheckCommand(HealthCheckCommand command, String key) {
+// try {
+// log.info("Processing HealthCheckCommand");
 
-//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+// var healthStatus = deviceService.getHealthStatus();
 
-//             log.info("Successfully processed HealthCheckCommand");
+// HealthCheckResponse response = HealthCheckResponse.success(
+// command.getCorrelationId(),
+// healthStatus);
 
-//         } catch (Exception e) {
-//             log.error("Error processing HealthCheckCommand", e);
+// kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
 
-//             HealthCheckResponse response = HealthCheckResponse.error(
-//                     command.getCorrelationId(),
-//                     e.getMessage());
+// log.info("Successfully processed HealthCheckCommand");
 
-//             kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
-//         }
-//     }
+// } catch (Exception e) {
+// log.error("Error processing HealthCheckCommand", e);
+
+// HealthCheckResponse response = HealthCheckResponse.error(
+// command.getCorrelationId(),
+// e.getMessage());
+
+// kafkaTemplate.send(command.getReplyTopic(), command.getCorrelationId(), response);
+// }
+// }
 // }

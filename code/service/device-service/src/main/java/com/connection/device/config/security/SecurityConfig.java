@@ -1,6 +1,7 @@
 package com.connection.device.config.security;
 
-import org.springframework.beans.factory.annotation.Qualifier;
+import com.connection.device.client.AuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -10,10 +11,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.connection.device.client.AuthenticationFilter;
-
-import lombok.RequiredArgsConstructor;
-
+/** . */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -23,21 +21,21 @@ public class SecurityConfig {
     private final AuthenticationFilter authFilter;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/swagger-ui.html").permitAll()
-                        .requestMatchers("/swagger-ui/**").permitAll()
-                        .requestMatchers("/api-docs/**").permitAll()
-                        .requestMatchers("/webjars/**").permitAll()
-                        .requestMatchers("/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/v1/health").permitAll()
-                        .requestMatchers("/api/v1/**").authenticated()
-                        .anyRequest().denyAll()
-                )
-                .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)
+    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http.csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(
+                        auth -> auth.requestMatchers("/swagger-ui.html")
+                                .permitAll().requestMatchers("/swagger-ui/**")
+                                .permitAll().requestMatchers("/api-docs/**")
+                                .permitAll().requestMatchers("/webjars/**")
+                                .permitAll().requestMatchers("/v3/api-docs/**")
+                                .permitAll().requestMatchers("/api/v1/health")
+                                .permitAll().requestMatchers("/api/v1/**")
+                                .authenticated().anyRequest().denyAll())
+                .addFilterBefore(authFilter,
+                        UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
-}   
+}

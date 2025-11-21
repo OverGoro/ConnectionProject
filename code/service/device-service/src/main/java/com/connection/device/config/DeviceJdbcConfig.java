@@ -1,19 +1,18 @@
 package com.connection.device.config;
 
+import com.atomikos.jdbc.AtomikosDataSourceBean;
 import java.util.Properties;
 import javax.sql.DataSource;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.atomikos.jdbc.AtomikosDataSourceBean;
-
+/** . */
 @Configuration
-public class DeviceJDBCConfig {
-    
+public class DeviceJdbcConfig {
+
     @Value("${app.datasource.device.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
     private String xaDataSourceClassName;
 
@@ -34,7 +33,7 @@ public class DeviceJDBCConfig {
         AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
         dataSource.setUniqueResourceName(uniqueResourceName);
         dataSource.setXaDataSourceClassName(xaDataSourceClassName);
-        
+
         Properties xaProperties = new Properties();
         xaProperties.setProperty("url", jdbcUrl);
         xaProperties.setProperty("user", username);
