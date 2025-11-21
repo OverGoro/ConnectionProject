@@ -1,66 +1,64 @@
 package com.connection.service.auth.config;
 
+import com.atomikos.jdbc.AtomikosDataSourceBean;
 import java.util.Properties;
-
 import javax.sql.DataSource;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.atomikos.jdbc.AtomikosDataSourceBean;
-
+/** . */
 @Configuration
-public class ClientJDBCConfig {
-    
-    @Value("${app.datasource.client.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
+public class RefreshTokenJdbcConfig {
+
+    @Value("${app.datasource.refresh-token.xa-data-source-class-name:}")
     private String xaDataSourceClassName;
 
-    @Value("${app.datasource.client.xa-properties.url}")
+    @Value("${app.datasource.refresh-token.xa-properties.url}")
     private String jdbcUrl;
 
-    @Value("${app.datasource.client.xa-properties.user}")
+    @Value("${app.datasource.refresh-token.xa-properties.user}")
     private String username;
 
-    @Value("${app.datasource.client.xa-properties.password}")
+    @Value("${app.datasource.refresh-token.xa-properties.password}")
     private String password;
 
-    @Value("${app.datasource.client.pool-size:5}")
+    @Value("${app.datasource.refresh-token.pool-size:5}")
     private int poolSize;
 
-    @Value("${app.datasource.client.max-pool-size:10}")
+    @Value("${app.datasource.refresh-token.max-pool-size:10}")
     private int maxPoolSize;
 
-    @Value("${app.datasource.client.min-pool-size:2}")
+    @Value("${app.datasource.refresh-token.min-pool-size:2}")
     private int minPoolSize;
 
-    @Value("${app.datasource.client.borrow-connection-timeout:30000}")
+    @Value("${app.datasource.refresh-token.borrow-connection-timeout:30000}")
     private int borrowConnectionTimeout;
 
-    @Value("${app.datasource.client.max-idle-time:60}")
+    @Value("${app.datasource.refresh-token.max-idle-time:60}")
     private int maxIdleTime;
 
-    @Value("${app.datasource.client.max-lifetime:120}")
+    @Value("${app.datasource.refresh-token.max-lifetime:120}")
     private int maxLifetime;
 
-    @Value("${app.datasource.client.test-query:SELECT 1}")
+    @Value("${app.datasource.refresh-token.test-query:SELECT 1}")
     private String testQuery;
 
-    @Value("${app.datasource.client.maintenance-interval:60}")
+    @Value("${app.datasource.refresh-token.maintenance-interval:60}")
     private int maintenanceInterval;
 
-    @Value("${app.datasource.client.unique-resource-name:clientXADataSource}")
+    @Value("${app.datasource.refresh-token.unique-resource-name:refreshTokenXADataSource}")
     private String uniqueResourceName;
 
-    @Bean("ClientDataSource")
-    DataSource clientDataSource() {
+    @Bean("RefreshTokenDataSource")
+    DataSource refreshTokenDataSource() {
         AtomikosDataSourceBean dataSource = new AtomikosDataSourceBean();
 
         dataSource.setUniqueResourceName(uniqueResourceName);
         dataSource.setXaDataSourceClassName(xaDataSourceClassName);
-        
+
         Properties xaProperties = new Properties();
         xaProperties.setProperty("url", jdbcUrl);
         xaProperties.setProperty("user", username);
@@ -81,9 +79,9 @@ public class ClientJDBCConfig {
         return dataSource;
     }
 
-    @Bean("ClientJdbcTemplate")
-    NamedParameterJdbcTemplate clientNamedParameterJdbcTemplate(
-            @Qualifier("ClientDataSource") DataSource clientDataSource) {
-        return new NamedParameterJdbcTemplate(clientDataSource);
+    @Bean("RefreshTokenJdbcTemplate")
+    NamedParameterJdbcTemplate refreshTokenNamedParameterJdbcTemplate(
+            @Qualifier("RefreshTokenDataSource") DataSource refreshTokenDataSource) {
+        return new NamedParameterJdbcTemplate(refreshTokenDataSource);
     }
 }

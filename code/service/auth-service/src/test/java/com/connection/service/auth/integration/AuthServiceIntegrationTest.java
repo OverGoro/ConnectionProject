@@ -15,12 +15,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.util.Pair;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientBlm;
 import com.connection.client.repository.ClientRepository;
 import com.connection.service.auth.AuthService;
 import com.connection.service.auth.mother.AuthObjectMother;
-import com.connection.token.model.AccessTokenBLM;
-import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.AccessTokenBlm;
+import com.connection.token.model.RefreshTokenBlm;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,7 +36,7 @@ public class AuthServiceIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private ClientRepository clientRepository;
 
-    private ClientBLM testClient;
+    private ClientBlm testClient;
     private String uniqueEmail;
 
     @BeforeEach
@@ -44,7 +44,7 @@ public class AuthServiceIntegrationTest extends BaseIntegrationTest {
         String timestamp = String.valueOf(System.currentTimeMillis()) + UUID.randomUUID().toString().substring(0, 8);
         uniqueEmail = "integration_test_" + timestamp + "@example.com";
         
-        testClient = new ClientBLM(
+        testClient = new ClientBlm(
             UUID.randomUUID(),
             new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000),
             uniqueEmail,
@@ -71,7 +71,7 @@ public class AuthServiceIntegrationTest extends BaseIntegrationTest {
         authService.register(testClient);
 
         // Then
-        ClientBLM foundClient = clientRepository.findByEmail(uniqueEmail);
+        ClientBlm foundClient = clientRepository.findByEmail(uniqueEmail);
         assertThat(foundClient).isNotNull();
         assertThat(foundClient.getEmail()).isEqualTo(uniqueEmail);
         assertThat(foundClient.getUsername()).isEqualTo(testClient.getUsername());
@@ -86,7 +86,7 @@ public class AuthServiceIntegrationTest extends BaseIntegrationTest {
         authService.register(testClient);
 
         // When
-        Pair<AccessTokenBLM, RefreshTokenBLM> tokens = authService.authorizeByEmail(
+        Pair<AccessTokenBlm, RefreshTokenBlm> tokens = authService.authorizeByEmail(
             testClient.getEmail(), testClient.getPassword());
 
         // Then
@@ -94,8 +94,8 @@ public class AuthServiceIntegrationTest extends BaseIntegrationTest {
         assertThat(tokens.getFirst()).isNotNull();
         assertThat(tokens.getSecond()).isNotNull();
         
-        AccessTokenBLM accessToken = tokens.getFirst();
-        RefreshTokenBLM refreshToken = tokens.getSecond();
+        AccessTokenBlm accessToken = tokens.getFirst();
+        RefreshTokenBlm refreshToken = tokens.getSecond();
         
         assertThat(accessToken.getToken()).isNotBlank();
         assertThat(accessToken.getClientUID()).isEqualTo(testClient.getUid());
@@ -113,14 +113,14 @@ public class AuthServiceIntegrationTest extends BaseIntegrationTest {
     void shouldRefreshTokensSuccessfully() {
         // Given
         authService.register(testClient);
-        Pair<AccessTokenBLM, RefreshTokenBLM> originalTokens = authService.authorizeByEmail(
+        Pair<AccessTokenBlm, RefreshTokenBlm> originalTokens = authService.authorizeByEmail(
             uniqueEmail, testClient.getPassword());
         
-        RefreshTokenBLM originalRefreshToken = originalTokens.getSecond();
+        RefreshTokenBlm originalRefreshToken = originalTokens.getSecond();
 
         sleep(1000);
         // When
-        Pair<AccessTokenBLM, RefreshTokenBLM> newTokens = authService.refresh(originalRefreshToken);
+        Pair<AccessTokenBlm, RefreshTokenBlm> newTokens = authService.refresh(originalRefreshToken);
 
         // Then
         assertThat(newTokens).isNotNull();
@@ -139,10 +139,10 @@ public class AuthServiceIntegrationTest extends BaseIntegrationTest {
     void shouldValidateAccessTokenSuccessfully() {
         // Given
         authService.register(testClient);
-        Pair<AccessTokenBLM, RefreshTokenBLM> tokens = authService.authorizeByEmail(
+        Pair<AccessTokenBlm, RefreshTokenBlm> tokens = authService.authorizeByEmail(
             uniqueEmail, testClient.getPassword());
         
-        AccessTokenBLM accessToken = tokens.getFirst();
+        AccessTokenBlm accessToken = tokens.getFirst();
 
         // When & Then - Should not throw exception
         authService.validateAccessToken(accessToken);
@@ -155,10 +155,10 @@ public class AuthServiceIntegrationTest extends BaseIntegrationTest {
     void shouldValidateRefreshTokenSuccessfully() {
         // Given
         authService.register(testClient);
-        Pair<AccessTokenBLM, RefreshTokenBLM> tokens = authService.authorizeByEmail(
+        Pair<AccessTokenBlm, RefreshTokenBlm> tokens = authService.authorizeByEmail(
             uniqueEmail, testClient.getPassword());
         
-        RefreshTokenBLM refreshToken = tokens.getSecond();
+        RefreshTokenBlm refreshToken = tokens.getSecond();
 
         // When & Then - Should not throw exception
         authService.validateRefreshToken(refreshToken);
@@ -183,7 +183,7 @@ public class AuthServiceIntegrationTest extends BaseIntegrationTest {
     @DisplayName("Should throw exception when refreshing with invalid token")
     void shouldThrowExceptionWhenRefreshingWithInvalidToken() {
         // Given
-        RefreshTokenBLM invalidRefreshToken = AuthObjectMother.createExpiredRefreshTokenBLM();
+        RefreshTokenBlm invalidRefreshToken = AuthObjectMother.createExpiredRefreshTokenBlm();
 
         // When & Then
         assertThatThrownBy(() -> authService.refresh(invalidRefreshToken))

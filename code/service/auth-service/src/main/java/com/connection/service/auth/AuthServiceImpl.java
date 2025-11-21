@@ -1,11 +1,24 @@
 package com.connection.service.auth;
 
+import com.connection.client.model.ClientBlm;
+import com.connection.client.repository.ClientRepository;
+import com.connection.client.validator.ClientValidator;
+import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.model.AccessTokenBlm;
+import com.connection.token.model.RefreshTokenBlm;
+import com.connection.token.model.RefreshTokenDalm;
+import com.connection.token.repository.RefreshTokenRepository;
+import com.connection.token.validator.AccessTokenValidator;
+import com.connection.token.validator.RefreshTokenValidator;
 import java.time.Duration;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
@@ -14,28 +27,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.connection.client.model.ClientBLM;
-import com.connection.client.repository.ClientRepository;
-import com.connection.client.validator.ClientValidator;
-import com.connection.token.converter.RefreshTokenConverter;
-import com.connection.token.generator.AccessTokenGenerator;
-import com.connection.token.generator.RefreshTokenGenerator;
-import com.connection.token.model.AccessTokenBLM;
-import com.connection.token.model.RefreshTokenBLM;
-import com.connection.token.model.RefreshTokenDALM;
-import com.connection.token.repository.RefreshTokenRepository;
-import com.connection.token.validator.AccessTokenValidator;
-import com.connection.token.validator.RefreshTokenValidator;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
+/** . */
 @Slf4j
 @RequiredArgsConstructor
 @Service
-@EnableAutoConfiguration(exclude = {
-        JpaRepositoriesAutoConfiguration.class
-})
+@EnableAutoConfiguration(exclude = {JpaRepositoriesAutoConfiguration.class})
 @EnableTransactionManagement
 public class AuthServiceImpl implements AuthService {
     private final RefreshTokenConverter refreshTokenConverter;
@@ -58,109 +54,132 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional("atomicosTransactionManager")
-    public Pair<AccessTokenBLM, RefreshTokenBLM> authorizeByEmail(String email, String password) {
+    public Pair<AccessTokenBlm, RefreshTokenBlm> authorizeByEmail(String email,
+            String password) {
         clientValidator.validateEmail(email);
 
-        ClientBLM clientBLM = clientRepository.findByEmail(email);
+        ClientBlm clientBlm = clientRepository.findByEmail(email);
 
-        if (!clientBLM.getPassword().equals(password)) {
+        if (!clientBlm.getPassword().equals(password)) {
             throw new SecurityException("Invalid email or password");
         }
 
         // Инициалаизация общих полей
-        UUID newClientUuid = clientBLM.getUid();
+        UUID newClientUuid = clientBlm.getUid();
         Date newCreatedAt = new Date();
 
         // Инициализация нового refreshToken
-        UUID newRefreshUID = UUID.randomUUID();
+        UUID newRefreshUid = UUID.randomUUID();
 
-        Date newRefreshExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
-        String newRefreshTokenString = refreshTokenGenerator.generateRefreshToken(newRefreshUID, newClientUuid,
-                newCreatedAt, newRefreshExpiresAt);
+        Date newRefreshExpiresAt = Date
+                .from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
+        String newRefreshTokenString =
+                refreshTokenGenerator.generateRefreshToken(newRefreshUid,
+                        newClientUuid, newCreatedAt, newRefreshExpiresAt);
 
-        RefreshTokenBLM newRefreshTokenBLM = new RefreshTokenBLM(newRefreshTokenString, newRefreshUID, newClientUuid,
-                newCreatedAt, newRefreshExpiresAt);
+        RefreshTokenBlm newRefreshTokenBlm =
+                new RefreshTokenBlm(newRefreshTokenString, newRefreshUid,
+                        newClientUuid, newCreatedAt, newRefreshExpiresAt);
 
-        refreshTokenValidator.validate(newRefreshTokenBLM);
+        refreshTokenValidator.validate(newRefreshTokenBlm);
 
         // Инициалищация нового accessToken
-        Date newAccessExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
-        String newAcessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
-                newAccessExpiresAt);
-        AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAcessTokenString, newClientUuid, newCreatedAt,
-                newAccessExpiresAt);
-        accessTokenValidator.validate(newAccessTokenBLM);
+        Date newAccessExpiresAt = Date
+                .from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
+        String newAcessTokenString = accessTokenGenerator.generateAccessToken(
+                newClientUuid, newCreatedAt, newAccessExpiresAt);
+        AccessTokenBlm newAccessTokenBlm =
+                new AccessTokenBlm(newAcessTokenString, newClientUuid,
+                        newCreatedAt, newAccessExpiresAt);
+        accessTokenValidator.validate(newAccessTokenBlm);
 
         // Добавление нового refreshToken в БД
-        RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
-        refreshTokenRepository.add(newRefreshTokenDALM);
+        RefreshTokenDalm newRefreshTokenDalm =
+                refreshTokenConverter.toDalm(newRefreshTokenBlm);
+        refreshTokenRepository.add(newRefreshTokenDalm);
 
         // Возварты пары токенов
-        return Pair.of(newAccessTokenBLM, newRefreshTokenBLM);
+        return Pair.of(newAccessTokenBlm, newRefreshTokenBlm);
 
     }
 
     @Override
     @Transactional("atomicosTransactionManager")
-    public void register(ClientBLM clientBLM) {
-        clientValidator.validate(clientBLM);
-        clientRepository.add(clientBLM);
+    public void register(ClientBlm clientBlm) {
+        clientValidator.validate(clientBlm);
+        clientRepository.add(clientBlm);
     }
 
     @Override
     @Transactional("atomicosTransactionManager")
-    public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(
-            RefreshTokenBLM refreshTokenBLM) {
+    public Pair<AccessTokenBlm, RefreshTokenBlm> refresh(
+            RefreshTokenBlm refreshTokenBlm) {
 
         log.info("Validating refresh token");
-        refreshTokenValidator.validate(refreshTokenBLM);
+        refreshTokenValidator.validate(refreshTokenBlm);
         log.info("Validated refresh token");
 
         // Инициалаизация общих полей
-        UUID newClientUuid = refreshTokenBLM.getClientUID();
+        UUID newClientUuid = refreshTokenBlm.getClientUID();
         Date newCreatedAt = new Date();
 
         // Инициализация нового refreshToken
-        UUID newRefreshUID = refreshTokenBLM.getUid();
-        Date newRefreshExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
-        String newRefreshTokenString = refreshTokenGenerator.generateRefreshToken(newRefreshUID, newClientUuid,
-                newCreatedAt, newRefreshExpiresAt);
+        UUID newRefreshUid = refreshTokenBlm.getUid();
+        Date newRefreshExpiresAt = Date
+                .from(newCreatedAt.toInstant().plus(jwtRefreshTokenDuration));
+        String newRefreshTokenString =
+                refreshTokenGenerator.generateRefreshToken(newRefreshUid,
+                        newClientUuid, newCreatedAt, newRefreshExpiresAt);
 
-        RefreshTokenBLM newRefreshTokenBLM = new RefreshTokenBLM(newRefreshTokenString, newRefreshUID, newClientUuid,
-                newCreatedAt, newRefreshExpiresAt);
+        RefreshTokenBlm newRefreshTokenBlm =
+                new RefreshTokenBlm(newRefreshTokenString, newRefreshUid,
+                        newClientUuid, newCreatedAt, newRefreshExpiresAt);
         log.info("Validating new refresh token");
-        refreshTokenValidator.validate(newRefreshTokenBLM);
+        refreshTokenValidator.validate(newRefreshTokenBlm);
         log.info("Validated new refresh token");
 
         // Инициалищация нового accessToken
-        Date newAccessExpiresAt = Date.from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
-        String newAcessTokenString = accessTokenGenerator.generateAccessToken(newClientUuid, newCreatedAt,
-                newAccessExpiresAt);
+        Date newAccessExpiresAt = Date
+                .from(newCreatedAt.toInstant().plus(jwtAccessTokenDuration));
+        String newAcessTokenString = accessTokenGenerator.generateAccessToken(
+                newClientUuid, newCreatedAt, newAccessExpiresAt);
         log.info("Generated new access token");
-        AccessTokenBLM newAccessTokenBLM = new AccessTokenBLM(newAcessTokenString, newClientUuid, newCreatedAt,
-                newAccessExpiresAt);
-        accessTokenValidator.validate(newAccessTokenBLM);
+        AccessTokenBlm newAccessTokenBlm =
+                new AccessTokenBlm(newAcessTokenString, newClientUuid,
+                        newCreatedAt, newAccessExpiresAt);
+        accessTokenValidator.validate(newAccessTokenBlm);
         log.info("Validated new access token");
 
         // Обновление RefreshToken в репозитории
-        RefreshTokenDALM refreshTokenDALM = refreshTokenConverter.toDALM(refreshTokenBLM);
+        RefreshTokenDalm refreshTokenDalm =
+                refreshTokenConverter.toDalm(refreshTokenBlm);
         log.info("Converted refresh token");
-        RefreshTokenDALM newRefreshTokenDALM = refreshTokenConverter.toDALM(newRefreshTokenBLM);
+        RefreshTokenDalm newRefreshTokenDalm =
+                refreshTokenConverter.toDalm(newRefreshTokenBlm);
         log.info("Converted new refresh token");
-        refreshTokenRepository.updateToken(refreshTokenDALM, newRefreshTokenDALM);
+        refreshTokenRepository.updateToken(refreshTokenDalm,
+                newRefreshTokenDalm);
         log.info("Updated by repo refresh token");
         // Возвращат новых токенов
-        return Pair.of(newAccessTokenBLM, newRefreshTokenBLM);
+        return Pair.of(newAccessTokenBlm, newRefreshTokenBlm);
     }
 
     @Override
-    public void validateAccessToken(AccessTokenBLM accessTokenBLM) {
-        accessTokenValidator.validate(accessTokenBLM);
+    public void validateAccessToken(AccessTokenBlm accessTokenBlm) {
+        accessTokenValidator.validate(accessTokenBlm);
+    }
+    
+    @Override
+    public AccessTokenBlm validateAccessToken(String token) {
+        AccessTokenBlm accessTokenBlm =
+                accessTokenGenerator.getAccessTokenBlm(token);
+        accessTokenValidator.validate(accessTokenBlm);
+        return accessTokenBlm;
     }
 
     @Override
-    public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM) {
-        refreshTokenValidator.validate(refreshTokenBLM);
+    public void validateRefreshToken(RefreshTokenBlm refreshTokenBlm) {
+        refreshTokenValidator.validate(refreshTokenBlm);
     }
 
     @Override
@@ -168,12 +187,5 @@ public class AuthServiceImpl implements AuthService {
         Map<String, Object> map = new HashMap<>();
         map.put("status", "OK");
         return map;
-    }
-
-    @Override
-    public AccessTokenBLM validateAccessToken(String token) {
-        AccessTokenBLM accessTokenBLM = accessTokenGenerator.getAccessTokenBLM(token);
-        accessTokenValidator.validate(accessTokenBLM);
-        return accessTokenBLM;
     }
 }

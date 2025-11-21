@@ -55,15 +55,15 @@ public class AuthApiE2ETest extends BaseE2ETest {
     @DisplayName("Should register client via API")
     void shouldRegisterClientViaApi() {
         // Given
-        var clientDTO = AuthObjectMother.randomValidClientDTO();
+        var clientDto = AuthObjectMother.randomValidClientDto();
         // Используем уникальный email для этого теста
-        testEmail = clientDTO.getEmail();
-        log.info("Registering client with email: {}", clientDTO.getEmail());
+        testEmail = clientDto.getEmail();
+        log.info("Registering client with email: {}", clientDto.getEmail());
 
         // When
         ResponseEntity<Map> response = restTemplate.postForEntity(
                 baseUrl + "/register",
-                createHttpEntity(clientDTO),
+                createHttpEntity(clientDto),
                 Map.class);
 
         // Then
@@ -72,27 +72,27 @@ public class AuthApiE2ETest extends BaseE2ETest {
 
         Map<String, Object> body = response.getBody();
         assertThat(body.get("message")).isEqualTo("User registered successfully");
-        assertThat(body.get("email")).isEqualTo(clientDTO.getEmail());
+        assertThat(body.get("email")).isEqualTo(clientDto.getEmail());
 
-        log.info("Client registered successfully: {}", clientDTO.getEmail());
+        log.info("Client registered successfully: {}", clientDto.getEmail());
     }
 
     @Test
     @DisplayName("Should login via API and return tokens")
     void shouldLoginViaApiAndReturnTokens() {
         // Given
-        var clientDTO = AuthObjectMother.randomValidClientDTO();
-        testEmail = clientDTO.getEmail();
+        var clientDto = AuthObjectMother.randomValidClientDto();
+        testEmail = clientDto.getEmail();
         // First register the client
         ResponseEntity<Map> registerResponse = restTemplate.postForEntity(
                 baseUrl + "/register",
-                createHttpEntity(clientDTO),
+                createHttpEntity(clientDto),
                 Map.class);
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         // Prepare login request
-        var loginRequest = new LoginRequest(clientDTO.getEmail(),
-                clientDTO.getPassword());
+        var loginRequest = new LoginRequest(clientDto.getEmail(),
+                clientDto.getPassword());
 
         // When
         ResponseEntity<LoginResponse> loginResponse = restTemplate.postForEntity(
@@ -111,24 +111,24 @@ public class AuthApiE2ETest extends BaseE2ETest {
         assertThat(body.getRefreshTokenExpiresAt()).isNotNull();
         assertThat(body.getClientUid()).isNotNull();
 
-        log.info("Login successful for: {}", clientDTO.getEmail());
+        log.info("Login successful for: {}", clientDto.getEmail());
     }
 
     @Test
     @DisplayName("Should refresh tokens via API")
     void shouldRefreshTokensViaApi() {
         // Given
-        var clientDTO = AuthObjectMother.randomValidClientDTO();
-        testEmail = clientDTO.getEmail();
+        var clientDto = AuthObjectMother.randomValidClientDto();
+        testEmail = clientDto.getEmail();
         // First register the client
         ResponseEntity<Map> registerResponse = restTemplate.postForEntity(
                 baseUrl + "/register",
-                createHttpEntity(clientDTO),
+                createHttpEntity(clientDto),
                 Map.class);
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         // Login to get tokens
-        var loginRequest = new LoginRequest(clientDTO.getEmail(), clientDTO.getPassword());
+        var loginRequest = new LoginRequest(clientDto.getEmail(), clientDto.getPassword());
 
         ResponseEntity<LoginResponse> loginResponse = restTemplate.postForEntity(
                 baseUrl + "/login",
@@ -157,24 +157,24 @@ public class AuthApiE2ETest extends BaseE2ETest {
         assertThat(body.getAccessToken()).isNotEqualTo(loginResponse.getBody().getAccessToken());
         assertThat(body.getRefreshToken()).isNotEqualTo(refreshToken);
 
-        log.info("Token refresh successful for: {}", clientDTO.getEmail());
+        log.info("Token refresh successful for: {}", clientDto.getEmail());
     }
 
     @Test
     @DisplayName("Should validate access token via API")
     void shouldValidateAccessTokenViaApi() {
         // Given
-        var clientDTO = AuthObjectMother.randomValidClientDTO();
-        testEmail = clientDTO.getEmail(); // Используем уникальный email
+        var clientDto = AuthObjectMother.randomValidClientDto();
+        testEmail = clientDto.getEmail(); // Используем уникальный email
 
         // Register and login
         restTemplate.postForEntity(
                 baseUrl + "/register",
-                createHttpEntity(clientDTO),
+                createHttpEntity(clientDto),
                 Map.class);
 
-        var loginRequest = new LoginRequest(clientDTO.getEmail(),
-                clientDTO.getPassword());
+        var loginRequest = new LoginRequest(clientDto.getEmail(),
+                clientDto.getPassword());
 
         ResponseEntity<LoginResponse> loginResponse = restTemplate.postForEntity(
                 baseUrl + "/login",
@@ -201,17 +201,17 @@ public class AuthApiE2ETest extends BaseE2ETest {
     @DisplayName("Should validate refresh token via API")
     void shouldValidateRefreshTokenViaApi() {
         // Given
-        var clientDTO = AuthObjectMother.randomValidClientDTO();
-        testEmail = clientDTO.getEmail(); // Используем уникальный email
+        var clientDto = AuthObjectMother.randomValidClientDto();
+        testEmail = clientDto.getEmail(); // Используем уникальный email
 
         // Register and login
         restTemplate.postForEntity(
                 baseUrl + "/register",
-                createHttpEntity(clientDTO),
+                createHttpEntity(clientDto),
                 Map.class);
 
-        var loginRequest = new LoginRequest(clientDTO.getEmail(),
-                clientDTO.getPassword());
+        var loginRequest = new LoginRequest(clientDto.getEmail(),
+                clientDto.getPassword());
 
         ResponseEntity<LoginResponse> loginResponse = restTemplate.postForEntity(
                 baseUrl + "/login",
@@ -238,19 +238,19 @@ public class AuthApiE2ETest extends BaseE2ETest {
     @DisplayName("Should return error for duplicate registration")
     void shouldReturnErrorForDuplicateRegistration() {
         // Given
-        var clientDTO = AuthObjectMother.randomValidClientDTO();
-        testEmail = clientDTO.getEmail(); // Используем уникальный email
+        var clientDto = AuthObjectMother.randomValidClientDto();
+        testEmail = clientDto.getEmail(); // Используем уникальный email
 
         // First registration
         restTemplate.postForEntity(
                 baseUrl + "/register",
-                createHttpEntity(clientDTO),
+                createHttpEntity(clientDto),
                 Map.class);
 
         // When - Try to register same client again
         ResponseEntity<ErrorResponse> response = restTemplate.postForEntity(
                 baseUrl + "/register",
-                createHttpEntity(clientDTO),
+                createHttpEntity(clientDto),
                 ErrorResponse.class);
 
         // Then
@@ -268,21 +268,21 @@ public class AuthApiE2ETest extends BaseE2ETest {
     @DisplayName("Full flow: register -> login -> validate -> refresh -> validate")
     void shouldCompleteFullAuthenticationFlow() {
         // Given
-        var clientDTO = AuthObjectMother.randomValidClientDTO();
-        testEmail = clientDTO.getEmail(); // Используем уникальный email
-        log.info("Starting full flow for: {}", clientDTO.getEmail());
+        var clientDto = AuthObjectMother.randomValidClientDto();
+        testEmail = clientDto.getEmail(); // Используем уникальный email
+        log.info("Starting full flow for: {}", clientDto.getEmail());
 
         // Step 1: Register
         ResponseEntity<Map> registerResponse = restTemplate.postForEntity(
                 baseUrl + "/register",
-                createHttpEntity(clientDTO),
+                createHttpEntity(clientDto),
                 Map.class);
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         log.info("Step 1: Registration completed");
 
         // Step 2: Login
-        var loginRequest = new LoginRequest(clientDTO.getEmail(),
-                clientDTO.getPassword());
+        var loginRequest = new LoginRequest(clientDto.getEmail(),
+                clientDto.getPassword());
         ResponseEntity<LoginResponse> loginResponse = restTemplate.postForEntity(
                 baseUrl + "/login",
                 createHttpEntity(loginRequest),
@@ -328,10 +328,10 @@ public class AuthApiE2ETest extends BaseE2ETest {
         assertThat(refreshToken2).isNotEqualTo(refreshToken1);
 
         log.info("Full authentication flow completed successfully for: {}",
-                clientDTO.getEmail());
+                clientDto.getEmail());
     }
 
-    // Вспомогательные DTO классы для тестов (остаются без изменений)
+    // Вспомогательные Dto классы для тестов (остаются без изменений)
     public static class LoginRequest {
         private String email;
         private String password;

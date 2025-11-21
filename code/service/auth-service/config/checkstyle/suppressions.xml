@@ -6,6 +6,7 @@
 <suppressions>
     <!-- Temporarily suppress tests until they are fixed -->
     <suppress files=".*Test.*java" checks=".*"/>
+    <suppress files=".*Mother.*java" checks=".*"/>
     
     <!-- Suppress generated code -->
     <suppress files=".*/generated/.*" checks=".*"/>

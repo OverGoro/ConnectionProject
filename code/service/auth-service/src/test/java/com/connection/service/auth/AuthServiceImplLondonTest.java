@@ -1,6 +1,11 @@
 package com.connection.service.auth;
 
-import static com.connection.service.auth.mother.AuthObjectMother.*;
+import static com.connection.service.auth.mother.AuthObjectMother.VALID_EMAIL;
+import static com.connection.service.auth.mother.AuthObjectMother.VALID_PASSWORD;
+import static com.connection.service.auth.mother.AuthObjectMother.createExpiredRefreshTokenBlm;
+import static com.connection.service.auth.mother.AuthObjectMother.createValidAccessTokenBlm;
+import static com.connection.service.auth.mother.AuthObjectMother.createValidClientBlm;
+import static com.connection.service.auth.mother.AuthObjectMother.createValidRefreshTokenBlm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -8,9 +13,19 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
+import com.connection.client.converter.ClientConverter;
+import com.connection.client.model.ClientBlm;
+import com.connection.client.validator.ClientValidator;
+import com.connection.token.converter.RefreshTokenConverter;
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.generator.RefreshTokenGenerator;
+import com.connection.token.model.AccessTokenBlm;
+import com.connection.token.model.RefreshTokenBlm;
+import com.connection.token.model.RefreshTokenDalm;
+import com.connection.token.repository.RefreshTokenRepository;
+import com.connection.token.validator.AccessTokenValidator;
+import com.connection.token.validator.RefreshTokenValidator;
 import java.time.Duration;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,20 +34,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.util.Pair;
-
-import com.connection.client.converter.ClientConverter;
-import com.connection.client.model.ClientBLM;
-import com.connection.client.validator.ClientValidator;
-import com.connection.service.auth.AuthServiceImpl;
-import com.connection.token.converter.RefreshTokenConverter;
-import com.connection.token.generator.AccessTokenGenerator;
-import com.connection.token.generator.RefreshTokenGenerator;
-import com.connection.token.model.AccessTokenBLM;
-import com.connection.token.model.RefreshTokenBLM;
-import com.connection.token.model.RefreshTokenDALM;
-import com.connection.token.repository.RefreshTokenRepository;
-import com.connection.token.validator.AccessTokenValidator;
-import com.connection.token.validator.RefreshTokenValidator;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Auth Service Implementation Tests - London Style")
@@ -77,8 +78,10 @@ class AuthServiceImplLondonTest {
         // Устанавливаем реальные Duration через рефлексию, так как они final в
         // AuthServiceImpl
         try {
-            var accessTokenField = AuthServiceImpl.class.getDeclaredField("jwtAccessTokenDuration");
-            var refreshTokenField = AuthServiceImpl.class.getDeclaredField("jwtRefreshTokenDuration");
+            var accessTokenField = AuthServiceImpl.class
+                    .getDeclaredField("jwtAccessTokenDuration");
+            var refreshTokenField = AuthServiceImpl.class
+                    .getDeclaredField("jwtRefreshTokenDuration");
 
             accessTokenField.setAccessible(true);
             refreshTokenField.setAccessible(true);
@@ -94,29 +97,31 @@ class AuthServiceImplLondonTest {
     @DisplayName("Authorize by email - Positive")
     void shouldAuthorizeByEmailWhenValidCredentials() {
         // Arrange
-        ClientBLM clientBLM = createValidClientBLM();
-        AccessTokenBLM accessTokenBLM = createValidAccessTokenBLM();
-        RefreshTokenBLM refreshTokenBLM = createValidRefreshTokenBLM();
-        RefreshTokenDALM refreshTokenDALM = new RefreshTokenDALM();
+        ClientBlm clientBlm = createValidClientBlm();
+        AccessTokenBlm accessTokenBlm = createValidAccessTokenBlm();
+        RefreshTokenBlm refreshTokenBlm = createValidRefreshTokenBlm();
+        RefreshTokenDalm refreshTokenDalm = new RefreshTokenDalm();
 
-        when(clientRepository.findByEmail(VALID_EMAIL)).thenReturn(clientBLM);
-        when(refreshTokenGenerator.generateRefreshToken(any(), any(), any(), any()))
-                .thenReturn(refreshTokenBLM.getToken());
+        when(clientRepository.findByEmail(VALID_EMAIL)).thenReturn(clientBlm);
+        when(refreshTokenGenerator.generateRefreshToken(any(), any(), any(),
+                any())).thenReturn(refreshTokenBlm.getToken());
         when(accessTokenGenerator.generateAccessToken(any(), any(), any()))
-                .thenReturn(accessTokenBLM.getToken());
-        when(refreshTokenConverter.toDALM(any(RefreshTokenBLM.class))).thenReturn(refreshTokenDALM);
+                .thenReturn(accessTokenBlm.getToken());
+        when(refreshTokenConverter.toDalm(any(RefreshTokenBlm.class)))
+                .thenReturn(refreshTokenDalm);
 
         // Act
-        Pair<AccessTokenBLM, RefreshTokenBLM> result = authService.authorizeByEmail(VALID_EMAIL, VALID_PASSWORD);
+        Pair<AccessTokenBlm, RefreshTokenBlm> result =
+                authService.authorizeByEmail(VALID_EMAIL, VALID_PASSWORD);
 
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getFirst()).isNotNull();
         assertThat(result.getSecond()).isNotNull();
         verify(clientValidator).validateEmail(VALID_EMAIL);
-        verify(refreshTokenValidator).validate(any(RefreshTokenBLM.class));
-        verify(accessTokenValidator).validate(any(AccessTokenBLM.class));
-        verify(refreshTokenRepository).add(refreshTokenDALM);
+        verify(refreshTokenValidator).validate(any(RefreshTokenBlm.class));
+        verify(accessTokenValidator).validate(any(AccessTokenBlm.class));
+        verify(refreshTokenRepository).add(refreshTokenDalm);
     }
 
     @Test
@@ -127,9 +132,9 @@ class AuthServiceImplLondonTest {
                 .when(clientValidator).validateEmail("invalid-email");
 
         // Act & Assert
-        assertThatThrownBy(() -> authService.authorizeByEmail("invalid-email", VALID_PASSWORD))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Invalid email");
+        assertThatThrownBy(() -> authService.authorizeByEmail("invalid-email",
+                VALID_PASSWORD)).isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("Invalid email");
 
         verify(clientRepository, never()).findByEmail(any());
         verify(refreshTokenRepository, never()).add(any());
@@ -139,22 +144,22 @@ class AuthServiceImplLondonTest {
     @DisplayName("Register client - Positive")
     void shouldRegisterClientWhenValidData() {
         // Arrange
-        ClientBLM clientBLM = createValidClientBLM();
+        ClientBlm clientBlm = createValidClientBlm();
 
 
         // Act
-        authService.register(clientBLM);
+        authService.register(clientBlm);
 
         // Assert
-        verify(clientValidator).validate(clientBLM);
-        verify(clientRepository).add(clientBLM);
+        verify(clientValidator).validate(clientBlm);
+        verify(clientRepository).add(clientBlm);
     }
 
     @Test
     @DisplayName("Register client - Negative: Client validation fails")
     void shouldThrowExceptionWhenClientValidationFails() {
         // Arrange
-        ClientBLM invalidClient = createValidClientBLM();
+        ClientBlm invalidClient = createValidClientBlm();
 
         doThrow(new IllegalArgumentException("Invalid client data"))
                 .when(clientValidator).validate(invalidClient);
@@ -171,21 +176,22 @@ class AuthServiceImplLondonTest {
     @DisplayName("Refresh tokens - Positive")
     void shouldRefreshTokensWhenValidRefreshToken() {
         // Arrange
-        RefreshTokenBLM oldRefreshToken = createValidRefreshTokenBLM();
-        RefreshTokenBLM newRefreshToken = createValidRefreshTokenBLM();
-        AccessTokenBLM newAccessToken = createValidAccessTokenBLM();
-        RefreshTokenDALM oldRefreshTokenDALM = new RefreshTokenDALM();
-        RefreshTokenDALM newRefreshTokenDALM = new RefreshTokenDALM();
+        RefreshTokenBlm oldRefreshToken = createValidRefreshTokenBlm();
+        RefreshTokenBlm newRefreshToken = createValidRefreshTokenBlm();
+        AccessTokenBlm newAccessToken = createValidAccessTokenBlm();
+        RefreshTokenDalm oldRefreshTokenDalm = new RefreshTokenDalm();
+        RefreshTokenDalm newRefreshTokenDalm = new RefreshTokenDalm();
 
-        when(refreshTokenGenerator.generateRefreshToken(any(), any(), any(), any()))
-                .thenReturn(newRefreshToken.getToken());
+        when(refreshTokenGenerator.generateRefreshToken(any(), any(), any(),
+                any())).thenReturn(newRefreshToken.getToken());
         when(accessTokenGenerator.generateAccessToken(any(), any(), any()))
                 .thenReturn(newAccessToken.getToken());
-        when(refreshTokenConverter.toDALM(any(RefreshTokenBLM.class)))
-                .thenReturn(oldRefreshTokenDALM) // для первого вызова
-                .thenReturn(newRefreshTokenDALM); // для второго вызова
+        when(refreshTokenConverter.toDalm(any(RefreshTokenBlm.class)))
+                .thenReturn(oldRefreshTokenDalm) // для первого вызова
+                .thenReturn(newRefreshTokenDalm); // для второго вызова
         // Act
-        Pair<AccessTokenBLM, RefreshTokenBLM> result = authService.refresh(oldRefreshToken);
+        Pair<AccessTokenBlm, RefreshTokenBlm> result =
+                authService.refresh(oldRefreshToken);
 
         // Assert
         assertThat(result).isNotNull();
@@ -197,7 +203,7 @@ class AuthServiceImplLondonTest {
     @DisplayName("Refresh tokens - Negative: Invalid refresh token")
     void shouldThrowExceptionWhenRefreshTokenInvalid() {
         // Arrange
-        RefreshTokenBLM invalidRefreshToken = createExpiredRefreshTokenBLM();
+        RefreshTokenBlm invalidRefreshToken = createExpiredRefreshTokenBlm();
 
         doThrow(new IllegalArgumentException("Expired refresh token"))
                 .when(refreshTokenValidator).validate(invalidRefreshToken);
@@ -214,7 +220,7 @@ class AuthServiceImplLondonTest {
     @DisplayName("Validate access token - Positive")
     void shouldValidateAccessTokenWhenValid() {
         // Arrange
-        AccessTokenBLM accessToken = createValidAccessTokenBLM();
+        AccessTokenBlm accessToken = createValidAccessTokenBlm();
 
         // Act
         authService.validateAccessToken(accessToken);
@@ -227,22 +233,23 @@ class AuthServiceImplLondonTest {
     @DisplayName("Validate access token - Negative: Invalid token")
     void shouldThrowExceptionWhenAccessTokenInvalid() {
         // Arrange
-        AccessTokenBLM invalidAccessToken = createValidAccessTokenBLM();
+        AccessTokenBlm invalidAccessToken = createValidAccessTokenBlm();
 
         doThrow(new IllegalArgumentException("Expired access token"))
                 .when(accessTokenValidator).validate(invalidAccessToken);
 
         // Act & Assert
-        assertThatThrownBy(() -> authService.validateAccessToken(invalidAccessToken))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Expired access token");
+        assertThatThrownBy(
+                () -> authService.validateAccessToken(invalidAccessToken))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("Expired access token");
     }
 
     @Test
     @DisplayName("Validate refresh token - Positive")
     void shouldValidateRefreshTokenWhenValid() {
         // Arrange
-        RefreshTokenBLM refreshToken = createValidRefreshTokenBLM();
+        RefreshTokenBlm refreshToken = createValidRefreshTokenBlm();
 
         // Act
         authService.validateRefreshToken(refreshToken);
