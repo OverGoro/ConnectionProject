@@ -209,6 +209,51 @@ task generateAllureReport(type: Exec) {
     }
 }
 
+task halsteadMetrics(type: Exec) {
+    workingDir project.rootDir
+    group = "Reporting"
+    description = "Calculate Halstead metrics for all .java files"
+    
+    // Получаем список Java файлов
+    def javaFiles = fileTree('src').include('**/*.java').files
+    
+    // Команда для первого файла (остальные обработаем в doFirst)
+    commandLine 'java', '-jar', 
+        '/home/yurik/programs/Java-Halstead-Metrics-Evaluator-1.0-SNAPSHOT.jar',
+        javaFiles.first().absolutePath
+    
+    doFirst {
+        println "Analyzing Java files in src folder..."
+        println "Found ${javaFiles.size()} Java files"
+        
+        // Обрабатываем все файлы последовательно
+        javaFiles.each { file ->
+            println "\n=== Analyzing: ${file.name} ==="
+            try {
+                // Выполняем анализ для каждого файла отдельно
+                def process = new ProcessBuilder('java', '-jar', 
+                    '/home/yurik/programs/Java-Halstead-Metrics-Evaluator-1.0-SNAPSHOT.jar',
+                    file.absolutePath)
+                    .directory(project.rootDir)
+                    .redirectErrorStream(true)
+                    .start()
+                
+                process.waitFor()
+                
+                // Вывод результатов
+                def output = process.text
+                println output
+                
+            } catch (Exception e) {
+                println "ERROR analyzing ${file.name}: ${e.message}"
+            }
+        }
+        
+        // Отменяем стандартное выполнение, так как мы уже все обработали
+        throw new StopExecutionException("Manual file processing completed")
+    }
+}
+
 task openAllureReport(type: Exec) {
     description = 'Open Allure report in default browser'
     group = 'Reporting'
