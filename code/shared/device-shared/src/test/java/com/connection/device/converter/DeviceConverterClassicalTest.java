@@ -1,8 +1,8 @@
 package com.connection.device.converter;
 
-import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBLM;
-import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDALM;
-import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDTO;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBlm;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDalm;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDto;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -11,9 +11,9 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import com.connection.device.model.DeviceBLM;
-import com.connection.device.model.DeviceDALM;
-import com.connection.device.model.DeviceDTO;
+import com.connection.device.model.DeviceBlm;
+import com.connection.device.model.DeviceDalm;
+import com.connection.device.model.DeviceDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Device Converter Tests")
@@ -27,12 +27,12 @@ class DeviceConverterTest {
     }
 
     @Test
-    @DisplayName("Convert DALM to BLM - Positive")
-    void testToBLMFromDALM_Positive() {
+    @DisplayName("Convert Dalm to Blm - Positive")
+    void testToBlmFromDalm_Positive() {
 
-        DeviceDALM dalM = createValidDeviceDALM();
+        DeviceDalm dalM = createValidDeviceDalm();
 
-        DeviceBLM result = converter.toBLM(dalM);
+        DeviceBlm result = converter.toBlm(dalM);
 
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(dalM.getUid());
@@ -42,12 +42,12 @@ class DeviceConverterTest {
     }
 
     @Test
-    @DisplayName("Convert DTO to BLM - Positive")
-    void testToBLMFromDTO_Positive() {
+    @DisplayName("Convert Dto to Blm - Positive")
+    void testToBlmFromDto_Positive() {
 
-        DeviceDTO dto = createValidDeviceDTO();
+        DeviceDto dto = createValidDeviceDto();
 
-        DeviceBLM result = converter.toBLM(dto);
+        DeviceBlm result = converter.toBlm(dto);
 
         assertThat(result).isNotNull();
         assertThat(result.getUid().toString()).isEqualTo(dto.getUid());
@@ -57,12 +57,12 @@ class DeviceConverterTest {
     }
 
     @Test
-    @DisplayName("Convert BLM to DTO - Positive")
-    void testToDTOFromBLM_Positive() {
+    @DisplayName("Convert Blm to Dto - Positive")
+    void testToDtoFromBlm_Positive() {
 
-        DeviceBLM blm = createValidDeviceBLM();
+        DeviceBlm blm = createValidDeviceBlm();
 
-        DeviceDTO result = converter.toDTO(blm);
+        DeviceDto result = converter.toDto(blm);
 
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid().toString());
@@ -72,12 +72,12 @@ class DeviceConverterTest {
     }
 
     @Test
-    @DisplayName("Convert BLM to DALM - Positive")
-    void testToDALMFromBLM_Positive() {
+    @DisplayName("Convert Blm to Dalm - Positive")
+    void testToDalmFromBlm_Positive() {
 
-        DeviceBLM blm = createValidDeviceBLM();
+        DeviceBlm blm = createValidDeviceBlm();
 
-        DeviceDALM result = converter.toDALM(blm);
+        DeviceDalm result = converter.toDalm(blm);
 
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid());
@@ -87,13 +87,13 @@ class DeviceConverterTest {
     }
 
     @Test
-    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
-    void testRoundTripDTOToBLMToDTO() {
+    @DisplayName("Round-trip conversion Dto -> Blm -> Dto")
+    void testRoundTripDtoToBlmToDto() {
 
-        DeviceDTO original = createValidDeviceDTO();
+        DeviceDto original = createValidDeviceDto();
 
-        DeviceBLM blm = converter.toBLM(original);
-        DeviceDTO result = converter.toDTO(blm);
+        DeviceBlm blm = converter.toBlm(original);
+        DeviceDto result = converter.toDto(blm);
 
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(original.getUid());
@@ -103,13 +103,13 @@ class DeviceConverterTest {
     }
 
     @Test
-    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
-    void testRoundTripDALMToBLMToDALM() {
+    @DisplayName("Round-trip conversion Dalm -> Blm -> Dalm")
+    void testRoundTripDalmToBlmToDalm() {
 
-        DeviceDALM original = createValidDeviceDALM();
+        DeviceDalm original = createValidDeviceDalm();
 
-        DeviceBLM blm = converter.toBLM(original);
-        DeviceDALM result = converter.toDALM(blm);
+        DeviceBlm blm = converter.toBlm(original);
+        DeviceDalm result = converter.toDalm(blm);
 
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(original.getUid());

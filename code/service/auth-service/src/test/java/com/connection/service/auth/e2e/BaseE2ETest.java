@@ -13,7 +13,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
-import com.connection.client.model.ClientDTO;
+import com.connection.client.model.ClientDto;
 
 import lombok.extern.slf4j.Slf4j;
 

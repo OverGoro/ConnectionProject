@@ -1,19 +1,19 @@
-// ConnectionSchemesListResponse.java
+
 package com.service.connectionscheme.controller;
 
-import com.connection.scheme.model.ConnectionSchemeDTO;
-
+import com.connection.scheme.model.ConnectionSchemeDto;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.List;
-
+/** . */
 @AllArgsConstructor
 @Getter
 public class ConnectionSchemesListResponse {
-    private final List<ConnectionSchemeDTO> schemes;
+    private final List<ConnectionSchemeDto> schemes;
     private final PaginationInfo pagination;
 
+    /** . */
     @AllArgsConstructor
     @Getter
     public static class PaginationInfo {

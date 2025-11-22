@@ -1,27 +1,37 @@
 package com.connection.client.converter;
 
+import com.connection.client.model.ClientBlm;
+import com.connection.client.model.ClientDalm;
+import com.connection.client.model.ClientDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import com.connection.client.model.ClientBLM;
-import com.connection.client.model.ClientDALM;
-import com.connection.client.model.ClientDTO;
-
-import lombok.RequiredArgsConstructor;
-
+/** . */
 @Component
 @RequiredArgsConstructor
 public class ClientConverter {
-    public ClientBLM toBLM(ClientDTO dto){
-        return new ClientBLM(dto.getUid(), dto.getBirthDate(), dto.getEmail(), dto.getPassword(), dto.getUsername());
+    /** . */
+    public ClientBlm toBlm(ClientDto dto) {
+        return new ClientBlm(dto.getUid(), dto.getBirthDate(), dto.getEmail(),
+                dto.getPassword(), dto.getUsername());
     }
-    public ClientBLM toBLM(ClientDALM dalm){
-        return new ClientBLM(dalm.getUid(), dalm.getBirthDate(), dalm.getEmail(), dalm.getPassword(), dalm.getUsername());
+
+    /** . */
+    public ClientBlm toBlm(ClientDalm dalm) {
+        return new ClientBlm(dalm.getUid(), dalm.getBirthDate(),
+                dalm.getEmail(), dalm.getPassword(), dalm.getUsername());
     }
-    public ClientDTO toDTO(ClientBLM blm){
-        return new ClientDTO(blm.getUid(), blm.getBirthDate(), blm.getEmail(), blm.getPassword(), blm.getUsername());
+
+    /** . */
+    public ClientDto toDto(ClientBlm blm) {
+        return new ClientDto(blm.getUid(), blm.getBirthDate(), blm.getEmail(),
+                blm.getPassword(), blm.getUsername());
     }
-    public ClientDALM toDALM(ClientBLM blm){
-        return new ClientDALM(blm.getUid(), blm.getBirthDate(), blm.getEmail(), blm.getPassword(), blm.getUsername());
+
+    /** . */
+    public ClientDalm toDalm(ClientBlm blm) {
+        return new ClientDalm(blm.getUid(), blm.getBirthDate(), blm.getEmail(),
+                blm.getPassword(), blm.getUsername());
     }
-    
+
 }

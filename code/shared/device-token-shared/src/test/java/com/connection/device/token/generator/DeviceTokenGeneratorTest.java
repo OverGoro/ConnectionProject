@@ -15,7 +15,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceTokenBlm;
 
 import io.jsonwebtoken.security.Keys;
 
@@ -38,57 +38,57 @@ class DeviceTokenGeneratorTest {
     @DisplayName("Generate device token - Positive")
     void testGenerateDeviceToken_Positive() {
         String token = generator.generateDeviceToken(
-            createValidDeviceTokenDALM().getDeviceUid(),
+            createValidDeviceTokenDalm().getDeviceUid(),
             tokenUid,
-            createValidDeviceTokenDALM().getCreatedAt(),
-            createValidDeviceTokenDALM().getExpiresAt()
+            createValidDeviceTokenDalm().getCreatedAt(),
+            createValidDeviceTokenDalm().getExpiresAt()
         );
         assertThat(token).isNotNull().isNotEmpty();
     }
 
     @Test
     @DisplayName("Parse valid device token - Positive")
-    void testGetDeviceTokenBLM_Positive() {
+    void testGetDeviceTokenBlm_Positive() {
         String tokenString = generator.generateDeviceToken(
-            createValidDeviceTokenDALM().getDeviceUid(),
+            createValidDeviceTokenDalm().getDeviceUid(),
             tokenUid,
-            createValidDeviceTokenDALM().getCreatedAt(),
-            createValidDeviceTokenDALM().getExpiresAt()
+            createValidDeviceTokenDalm().getCreatedAt(),
+            createValidDeviceTokenDalm().getExpiresAt()
         );
         
-        DeviceTokenBLM result = generator.getDeviceTokenBLM(tokenString);
+        DeviceTokenBlm result = generator.getDeviceTokenBlm(tokenString);
         assertThat(result).isNotNull();
-        assertThat(result.getDeviceUid()).isEqualTo(createValidDeviceTokenDALM().getDeviceUid());
+        assertThat(result.getDeviceUid()).isEqualTo(createValidDeviceTokenDalm().getDeviceUid());
         assertThat(result.getToken()).isEqualTo(tokenString);
     }
 
     @Test
     @DisplayName("Parse invalid device token - Negative")
-    void testGetDeviceTokenBLMWithInvalidToken_Negative() {
-        assertThatThrownBy(() -> generator.getDeviceTokenBLM("invalid.token.here"))
+    void testGetDeviceTokenBlmWithInvalidToken_Negative() {
+        assertThatThrownBy(() -> generator.getDeviceTokenBlm("invalid.token.here"))
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
     @DisplayName("Parse device token with wrong subject - Negative")
-    void testGetDeviceTokenBLMWithWrongSubject_Negative() {
+    void testGetDeviceTokenBlmWithWrongSubject_Negative() {
         DeviceTokenGenerator wrongSubjectGenerator = new DeviceTokenGenerator(secretKey, "test-app", "wrong-subject");
         
         String tokenString = generator.generateDeviceToken(
-            createValidDeviceTokenDALM().getDeviceUid(),
+            createValidDeviceTokenDalm().getDeviceUid(),
             tokenUid,
-            createValidDeviceTokenDALM().getCreatedAt(),
-            createValidDeviceTokenDALM().getExpiresAt()
+            createValidDeviceTokenDalm().getCreatedAt(),
+            createValidDeviceTokenDalm().getExpiresAt()
         );
         
-        assertThatThrownBy(() -> wrongSubjectGenerator.getDeviceTokenBLM(tokenString))
+        assertThatThrownBy(() -> wrongSubjectGenerator.getDeviceTokenBlm(tokenString))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Invalid token subject");
     }
 
     @Test
     @DisplayName("Parse device token with wrong type - Negative")
-    void testGetDeviceTokenBLMWithWrongType_Negative() {
+    void testGetDeviceTokenBlmWithWrongType_Negative() {
         DeviceTokenGenerator wrongTypeGenerator = new DeviceTokenGenerator(secretKey, "test-app", "device-token") {
             @Override
             public String generateDeviceToken(java.util.UUID deviceUid, java.util.UUID tokenUid, Date createdAt, Date expiresAt) {
@@ -105,13 +105,13 @@ class DeviceTokenGeneratorTest {
         };
         
         String tokenString = wrongTypeGenerator.generateDeviceToken(
-            createValidDeviceTokenDALM().getDeviceUid(),
+            createValidDeviceTokenDalm().getDeviceUid(),
             tokenUid,
-            createValidDeviceTokenDALM().getCreatedAt(),
-            createValidDeviceTokenDALM().getExpiresAt()
+            createValidDeviceTokenDalm().getCreatedAt(),
+            createValidDeviceTokenDalm().getExpiresAt()
         );
         
-        assertThatThrownBy(() -> generator.getDeviceTokenBLM(tokenString))
+        assertThatThrownBy(() -> generator.getDeviceTokenBlm(tokenString))
                 .isInstanceOf(RuntimeException.class);
     }
 
@@ -119,15 +119,15 @@ class DeviceTokenGeneratorTest {
     @DisplayName("Generate and parse round trip - Positive")
     void testGenerateAndParseRoundTrip_Positive() {
         String token = generator.generateDeviceToken(
-            createValidDeviceTokenDALM().getDeviceUid(),
+            createValidDeviceTokenDalm().getDeviceUid(),
             tokenUid,
-            createValidDeviceTokenDALM().getCreatedAt(),
-            createValidDeviceTokenDALM().getExpiresAt()
+            createValidDeviceTokenDalm().getCreatedAt(),
+            createValidDeviceTokenDalm().getExpiresAt()
         );
         
-        DeviceTokenBLM parsed = generator.getDeviceTokenBLM(token);
+        DeviceTokenBlm parsed = generator.getDeviceTokenBlm(token);
         
-        assertThat(parsed.getDeviceUid()).isEqualTo(createValidDeviceTokenDALM().getDeviceUid());
+        assertThat(parsed.getDeviceUid()).isEqualTo(createValidDeviceTokenDalm().getDeviceUid());
         assertThat(parsed.getToken()).isEqualTo(token);
         assertThat(parsed.getCreatedAt()).isNotNull();
         assertThat(parsed.getExpiresAt()).isNotNull();
@@ -140,13 +140,13 @@ class DeviceTokenGeneratorTest {
         Date expiresAt = new Date(System.currentTimeMillis() + 1000L * 60 * 30);
         
         String token = generator.generateDeviceToken(
-            createValidDeviceTokenDALM().getDeviceUid(),
+            createValidDeviceTokenDalm().getDeviceUid(),
             tokenUid,
             createdAt,
             expiresAt
         );
         
-        DeviceTokenBLM result = generator.getDeviceTokenBLM(token);
+        DeviceTokenBlm result = generator.getDeviceTokenBlm(token);
         
         assertThat(result.getDeviceUid()).isEqualTo(result.getDeviceUid());
         assertThat(result.getToken()).isEqualTo(token);
@@ -155,7 +155,7 @@ class DeviceTokenGeneratorTest {
     @Test
     @DisplayName("Generate multiple tokens for same device - Positive")
     void testGenerateMultipleTokensForSameDevice_Positive() {
-        UUID deviceUid = createValidDeviceTokenDALM().getDeviceUid();
+        UUID deviceUid = createValidDeviceTokenDalm().getDeviceUid();
         Date createdAt1 = new Date(System.currentTimeMillis() - 1000L * 60 * 5);
         Date expiresAt1 = new Date(System.currentTimeMillis() + 1000L * 60 * 15);
         
@@ -167,8 +167,8 @@ class DeviceTokenGeneratorTest {
         String token1 = generator.generateDeviceToken(deviceUid, tokenUid,createdAt1, expiresAt1);
         String token2 = generator.generateDeviceToken(deviceUid, tokeUuid2,createdAt2, expiresAt2);
         
-        DeviceTokenBLM result1 = generator.getDeviceTokenBLM(token1);
-        DeviceTokenBLM result2 = generator.getDeviceTokenBLM(token2);
+        DeviceTokenBlm result1 = generator.getDeviceTokenBlm(token1);
+        DeviceTokenBlm result2 = generator.getDeviceTokenBlm(token2);
         
         assertThat(result1.getDeviceUid()).isEqualTo(deviceUid);
         assertThat(result2.getDeviceUid()).isEqualTo(deviceUid);

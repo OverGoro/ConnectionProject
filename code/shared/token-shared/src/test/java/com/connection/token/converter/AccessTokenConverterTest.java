@@ -1,15 +1,17 @@
 package com.connection.token.converter;
 
-import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenBLM;
-import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenDALM;
-import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenDTO;
+import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenBlm;
+import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenDalm;
+import static com.connection.token.mother.TokenObjectMother.createValidAccessTokenDto;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.model.AccessTokenBlm;
+import com.connection.token.model.AccessTokenDalm;
+import com.connection.token.model.AccessTokenDto;
 import java.util.Date;
 import java.util.UUID;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -18,11 +20,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-
-import com.connection.token.generator.AccessTokenGenerator;
-import com.connection.token.model.AccessTokenBLM;
-import com.connection.token.model.AccessTokenDALM;
-import com.connection.token.model.AccessTokenDTO;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Access Token Converter Tests")
@@ -34,53 +31,53 @@ class AccessTokenConverterTest {
     @InjectMocks
     private AccessTokenConverter converter;
 
-    private AccessTokenDALM testDALM;
-    private AccessTokenDTO testDTO;
-    private AccessTokenBLM testBLM;
+    private AccessTokenDalm testDalm;
+    private AccessTokenDto testDto;
+    private AccessTokenBlm testBlm;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        testDALM = createValidAccessTokenDALM();
-        testDTO = createValidAccessTokenDTO();
-        testBLM = createValidAccessTokenBLM();
+        testDalm = createValidAccessTokenDalm();
+        testDto = createValidAccessTokenDto();
+        testBlm = createValidAccessTokenBlm();
 
         when(accessTokenGenerator.generateAccessToken(any(UUID.class), any(Date.class), any(Date.class)))
                 .thenReturn("generated-access-token");
-        when(accessTokenGenerator.getAccessTokenBLM(any(String.class))).thenReturn(testBLM);
+        when(accessTokenGenerator.getAccessTokenBlm(any(String.class))).thenReturn(testBlm);
     }
 
     @Test
-    @DisplayName("Convert DALM to BLM - Positive")
-    void testToBLMFromDALM_Positive() {
-        AccessTokenBLM result = converter.toBLM(testDALM);
+    @DisplayName("Convert Dalm to Blm - Positive")
+    void testToBlmFromDalm_Positive() {
+        AccessTokenBlm result = converter.toBlm(testDalm);
         assertThat(result).isNotNull();
         assertThat(result.getToken()).isEqualTo("generated-access-token");
     }
 
     @Test
-    @DisplayName("Convert DTO to BLM - Positive")
-    void testToBLMFromDTO_Positive() {
-        AccessTokenBLM result = converter.toBLM(testDTO);
+    @DisplayName("Convert Dto to Blm - Positive")
+    void testToBlmFromDto_Positive() {
+        AccessTokenBlm result = converter.toBlm(testDto);
         assertThat(result).isNotNull();
-        assertThat(result.getToken()).isEqualTo(testBLM.getToken());
+        assertThat(result.getToken()).isEqualTo(testBlm.getToken());
     }
 
     @Test
-    @DisplayName("Convert BLM to DTO - Positive")
-    void testToDTOFromBLM_Positive() {
-        AccessTokenDTO result = converter.toDTO(testBLM);
+    @DisplayName("Convert Blm to Dto - Positive")
+    void testToDtoFromBlm_Positive() {
+        AccessTokenDto result = converter.toDto(testBlm);
         assertThat(result).isNotNull();
-        assertThat(result.getToken()).isEqualTo(testBLM.getToken());
+        assertThat(result.getToken()).isEqualTo(testBlm.getToken());
     }
 
     @Test
-    @DisplayName("Convert BLM to DALM - Positive")
-    void testToDALMFromBLM_Positive() {
-        AccessTokenDALM result = converter.toDALM(testBLM);
+    @DisplayName("Convert Blm to Dalm - Positive")
+    void testToDalmFromBlm_Positive() {
+        AccessTokenDalm result = converter.toDalm(testBlm);
         assertThat(result).isNotNull();
-        assertThat(result.getClientUID()).isEqualTo(testBLM.getClientUID());
-        assertThat(result.getCreatedAt()).isEqualTo(testBLM.getCreatedAt());
-        assertThat(result.getExpiresAt()).isEqualTo(testBLM.getExpiresAt());
+        assertThat(result.getClientUid()).isEqualTo(testBlm.getClientUid());
+        assertThat(result.getCreatedAt()).isEqualTo(testBlm.getCreatedAt());
+        assertThat(result.getExpiresAt()).isEqualTo(testBlm.getExpiresAt());
     }
 }

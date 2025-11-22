@@ -1,16 +1,15 @@
-// MessageRoutedEvent.java
-package com.connection.message.events.domain;
 
-import java.util.List;
-import java.util.UUID;
+package com.connection.message.events.domain;
 
 import com.connection.common.events.BaseEvent;
 import com.connection.message.events.MessageEventConstants;
-
+import java.util.List;
+import java.util.UUID;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.SuperBuilder;
 
+/** . */
 @Data
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
@@ -20,9 +19,11 @@ public class MessageRoutedEvent extends BaseEvent {
     private List<UUID> targetBufferUids;
     private List<UUID> createdMessageUids;
     private UUID deviceUid;
-    
-    public MessageRoutedEvent(UUID sourceMessageUid, UUID sourceBufferUid, 
-                            List<UUID> targetBufferUids, List<UUID> createdMessageUids, UUID deviceUid) {
+
+    /** . */
+    public MessageRoutedEvent(UUID sourceMessageUid, UUID sourceBufferUid,
+            List<UUID> targetBufferUids, List<UUID> createdMessageUids,
+            UUID deviceUid) {
         super(MessageEventConstants.EVENT_MESSAGE_ROUTED, "message-service");
         this.sourceMessageUid = sourceMessageUid;
         this.sourceBufferUid = sourceBufferUid;

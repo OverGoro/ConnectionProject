@@ -1,6 +1,8 @@
 plugins {
     id 'java'
     id 'maven-publish'
+    id 'checkstyle'
+    id 'pmd'
 }
 
 group = 'com.connection'

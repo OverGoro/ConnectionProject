@@ -11,9 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import com.connection.processing.buffer.exception.BufferValidateException;
-import com.connection.processing.buffer.model.BufferBLM;
-import com.connection.processing.buffer.model.BufferDALM;
-import com.connection.processing.buffer.model.BufferDTO;
+import com.connection.processing.buffer.model.BufferBlm;
+import com.connection.processing.buffer.model.BufferDalm;
+import com.connection.processing.buffer.model.BufferDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Buffer Validator Tests")
@@ -27,97 +27,97 @@ class BufferValidatorTest {
     }
 
     @Test
-    @DisplayName("Validate valid BufferDTO - Positive")
-    void testValidateBufferDTO_Positive() {
-        BufferDTO buffer = createValidBufferDTO();
+    @DisplayName("Validate valid BufferDto - Positive")
+    void testValidateBufferDto_Positive() {
+        BufferDto buffer = createValidBufferDto();
         assertThat(buffer).isNotNull();
         validator.validate(buffer);
     }
 
     @Test
-    @DisplayName("Validate valid BufferBLM - Positive")
-    void testValidateBufferBLM_Positive() {
-        BufferBLM buffer = createValidBufferBLM();
+    @DisplayName("Validate valid BufferBlm - Positive")
+    void testValidateBufferBlm_Positive() {
+        BufferBlm buffer = createValidBufferBlm();
         assertThat(buffer).isNotNull();
         validator.validate(buffer);
     }
 
     @Test
-    @DisplayName("Validate valid BufferDALM - Positive")
-    void testValidateBufferDALM_Positive() {
-        BufferDALM buffer = createValidBufferDALM();
+    @DisplayName("Validate valid BufferDalm - Positive")
+    void testValidateBufferDalm_Positive() {
+        BufferDalm buffer = createValidBufferDalm();
         assertThat(buffer).isNotNull();
         validator.validate(buffer);
     }
 
     @Test
-    @DisplayName("Validate null BufferDTO - Negative")
-    void testValidateNullBufferDTO_Negative() {
-        BufferDTO buffer = null;
+    @DisplayName("Validate null BufferDto - Negative")
+    void testValidateNullBufferDto_Negative() {
+        BufferDto buffer = null;
         assertThatThrownBy(() -> validator.validate(buffer))
                 .isInstanceOf(BufferValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate BufferDTO with null UID - Negative")
-    void testValidateBufferDTOWithNullUid_Negative() {
-        BufferDTO buffer = createBufferDTOWithNullUid();
+    @DisplayName("Validate BufferDto with null UID - Negative")
+    void testValidateBufferDtoWithNullUid_Negative() {
+        BufferDto buffer = createBufferDtoWithNullUid();
         assertThatThrownBy(() -> validator.validate(buffer))
                 .isInstanceOf(BufferValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate BufferDTO with invalid UID - Negative")
-    void testValidateBufferDTOWithInvalidUid_Negative() {
-        BufferDTO buffer = createBufferDTOWithInvalidUid();
+    @DisplayName("Validate BufferDto with invalid UID - Negative")
+    void testValidateBufferDtoWithInvalidUid_Negative() {
+        BufferDto buffer = createBufferDtoWithInvalidUid();
         assertThatThrownBy(() -> validator.validate(buffer))
                 .isInstanceOf(BufferValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate BufferDTO with null device UID - Negative")
-    void testValidateBufferDTOWithNullDeviceUid_Negative() {
-        BufferDTO buffer = createBufferDTOWithNullUid(); // Используем существующий метод, т.к. deviceUid теперь обязателен
+    @DisplayName("Validate BufferDto with null device UID - Negative")
+    void testValidateBufferDtoWithNullDeviceUid_Negative() {
+        BufferDto buffer = createBufferDtoWithNullUid(); // Используем существующий метод, т.к. deviceUid теперь обязателен
         assertThatThrownBy(() -> validator.validate(buffer))
                 .isInstanceOf(BufferValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate BufferDTO with zero max messages - Negative")
-    void testValidateBufferDTOWithZeroMaxMessages_Negative() {
-        BufferDTO buffer = createBufferDTOWithZeroMaxMessages();
+    @DisplayName("Validate BufferDto with zero max messages - Negative")
+    void testValidateBufferDtoWithZeroMaxMessages_Negative() {
+        BufferDto buffer = createBufferDtoWithZeroMaxMessages();
         assertThatThrownBy(() -> validator.validate(buffer))
                 .isInstanceOf(BufferValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate BufferDTO with negative max size - Negative")
-    void testValidateBufferDTOWithNegativeMaxSize_Negative() {
-        BufferDTO buffer = createBufferDTOWithNegativeMaxSize();
+    @DisplayName("Validate BufferDto with negative max size - Negative")
+    void testValidateBufferDtoWithNegativeMaxSize_Negative() {
+        BufferDto buffer = createBufferDtoWithNegativeMaxSize();
         assertThatThrownBy(() -> validator.validate(buffer))
                 .isInstanceOf(BufferValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate BufferDTO with empty prototype - Negative")
-    void testValidateBufferDTOWithEmptyPrototype_Negative() {
-        BufferDTO buffer = createBufferDTOWithEmptyPrototype();
+    @DisplayName("Validate BufferDto with empty prototype - Negative")
+    void testValidateBufferDtoWithEmptyPrototype_Negative() {
+        BufferDto buffer = createBufferDtoWithEmptyPrototype();
         assertThatThrownBy(() -> validator.validate(buffer))
                 .isInstanceOf(BufferValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate null BufferBLM - Negative")
-    void testValidateNullBufferBLM_Negative() {
-        BufferBLM buffer = null;
+    @DisplayName("Validate null BufferBlm - Negative")
+    void testValidateNullBufferBlm_Negative() {
+        BufferBlm buffer = null;
         assertThatThrownBy(() -> validator.validate(buffer))
                 .isInstanceOf(BufferValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate BufferBLM with null fields - Negative")
-    void testValidateBufferBLMWithNullFields_Negative() {
-        BufferBLM buffer = createBufferBLMWithNullFields();
+    @DisplayName("Validate BufferBlm with null fields - Negative")
+    void testValidateBufferBlmWithNullFields_Negative() {
+        BufferBlm buffer = createBufferBlmWithNullFields();
         assertThatThrownBy(() -> validator.validate(buffer))
                 .isInstanceOf(BufferValidateException.class);
     }

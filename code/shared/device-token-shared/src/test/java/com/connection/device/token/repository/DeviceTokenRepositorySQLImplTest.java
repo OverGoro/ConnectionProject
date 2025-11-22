@@ -1,7 +1,7 @@
 package com.connection.device.token.repository;
 
-import static com.connection.device.token.mother.DeviceTokenObjectMother.createValidDeviceTokenBLM;
-import static com.connection.device.token.mother.DeviceTokenObjectMother.createValidDeviceTokenDALM;
+import static com.connection.device.token.mother.DeviceTokenObjectMother.createValidDeviceTokenBlm;
+import static com.connection.device.token.mother.DeviceTokenObjectMother.createValidDeviceTokenDalm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,14 +33,14 @@ import com.connection.device.token.converter.DeviceTokenConverter;
 import com.connection.device.token.exception.DeviceTokenAlreadyExistsException;
 import com.connection.device.token.exception.DeviceTokenNotFoundException;
 import com.connection.device.token.generator.DeviceTokenGenerator;
-import com.connection.device.token.model.DeviceTokenBLM;
-import com.connection.device.token.model.DeviceTokenDALM;
+import com.connection.device.token.model.DeviceTokenBlm;
+import com.connection.device.token.model.DeviceTokenDalm;
 
 import io.jsonwebtoken.security.Keys;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Device Token Repository Tests")
-class DeviceTokenRepositorySQLImplTest {
+class DeviceTokenRepositorySqlImplTest {
 
     @Mock
     private NamedParameterJdbcTemplate jdbcTemplate;
@@ -52,10 +52,10 @@ class DeviceTokenRepositorySQLImplTest {
     private DeviceTokenGenerator generator;
 
     @InjectMocks
-    private DeviceTokenRepositorySQLImpl repository;
+    private DeviceTokenRepositorySqlImpl repository;
 
-    private DeviceTokenBLM testTokenBLM;
-    private DeviceTokenDALM testTokenDALM;
+    private DeviceTokenBlm testTokenBlm;
+    private DeviceTokenDalm testTokenDalm;
     
     private static final String SELECT_DEVICE_TOKEN = "SELECT uid, device_uid, token, created_at, expires_at";
     private static final String FROM_DEVICE_TOKEN = " FROM access.device_token";
@@ -79,8 +79,8 @@ class DeviceTokenRepositorySQLImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        testTokenBLM = createValidDeviceTokenBLM();
-        testTokenDALM = createValidDeviceTokenDALM();
+        testTokenBlm = createValidDeviceTokenBlm();
+        testTokenDalm = createValidDeviceTokenDalm();
     }
 
     @SuppressWarnings("unchecked")
@@ -88,7 +88,7 @@ class DeviceTokenRepositorySQLImplTest {
     @DisplayName("Add device token - Positive")
     void testAddDeviceToken_Positive() {
         // Мокируем конвертацию
-        when(converter.toDALM(testTokenBLM)).thenReturn(testTokenDALM);
+        when(converter.toDalm(testTokenBlm)).thenReturn(testTokenDalm);
         
         // Мокируем проверку существования устройства - возвращаем true
         when(jdbcTemplate.queryForObject(
@@ -107,7 +107,7 @@ class DeviceTokenRepositorySQLImplTest {
         // Мокируем успешное выполнение INSERT
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
-        repository.add(testTokenBLM);
+        repository.add(testTokenBlm);
 
         // Проверяем, что были вызваны все необходимые проверки
         verify(jdbcTemplate, times(1)).queryForObject(
@@ -125,7 +125,7 @@ class DeviceTokenRepositorySQLImplTest {
     @DisplayName("Add existing device token - Negative")
     void testAddExistingDeviceToken_Negative() {
         // Мокируем конвертацию
-        when(converter.toDALM(testTokenBLM)).thenReturn(testTokenDALM);
+        when(converter.toDalm(testTokenBlm)).thenReturn(testTokenDalm);
         
         // Сначала имитируем, что device существует
         when(jdbcTemplate.queryForObject(
@@ -139,9 +139,9 @@ class DeviceTokenRepositorySQLImplTest {
             eq(SELECT_TOKEN_BY_UID), 
             any(MapSqlParameterSource.class), 
             any(RowMapper.class)
-        )).thenReturn(testTokenDALM);
+        )).thenReturn(testTokenDalm);
 
-        assertThatThrownBy(() -> repository.add(testTokenBLM))
+        assertThatThrownBy(() -> repository.add(testTokenBlm))
                 .isInstanceOf(DeviceTokenAlreadyExistsException.class);
 
         verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
@@ -154,13 +154,13 @@ class DeviceTokenRepositorySQLImplTest {
     //     UUID uid = UUID.randomUUID();
         
     //     when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-    //             .thenReturn(testTokenDALM);
-    //     when(converter.toBLM(testTokenDALM)).thenReturn(testTokenBLM);
+    //             .thenReturn(testTokenDalm);
+    //     when(converter.toBlm(testTokenDalm)).thenReturn(testTokenBlm);
 
-    //     DeviceTokenBLM result = repository.findByUid(uid);
+    //     DeviceTokenBlm result = repository.findByUid(uid);
 
-    //     assertThat(result).isEqualTo(testTokenBLM);
-    //     verify(converter, times(1)).toBLM(testTokenDALM);
+    //     assertThat(result).isEqualTo(testTokenBlm);
+    //     verify(converter, times(1)).toBlm(testTokenDalm);
     // }
 
     @SuppressWarnings("unchecked")
@@ -183,7 +183,7 @@ class DeviceTokenRepositorySQLImplTest {
         UUID uid = UUID.randomUUID();
         
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testTokenDALM);
+                .thenReturn(testTokenDalm);
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
         repository.revoke(uid);

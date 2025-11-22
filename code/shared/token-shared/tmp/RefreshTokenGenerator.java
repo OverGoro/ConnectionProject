@@ -5,8 +5,8 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import com.connection.token.model.RefreshTokenBLM;
-import com.connection.token.model.RefreshTokenDALM;
+import com.connection.token.model.RefreshTokenBlm;
+import com.connection.token.model.RefreshTokenDalm;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -25,12 +25,12 @@ public class RefreshTokenGenerator {
     @NonNull
     private final String jwtSubjecString;
 
-    public String generateRefreshToken(RefreshTokenDALM dalm) {
+    public String generateRefreshToken(RefreshTokenDalm dalm) {
         String token = Jwts.builder()
                 .issuer(appNameString)
                 .subject(jwtSubjecString)
                 .claim("uid", dalm.getUid().toString())
-                .claim("clientUid", dalm.getClientUID().toString())
+                .claim("clientUid", dalm.getClientUid().toString())
                 .issuedAt(dalm.getCreatedAt())
                 .expiration(dalm.getExpiresAt())
                 .signWith(jwtSecretKey)
@@ -51,7 +51,7 @@ public class RefreshTokenGenerator {
         return token;
     }
 
-    public RefreshTokenBLM getRefreshToken(String token) {
+    public RefreshTokenBlm getRefreshToken(String token) {
         Jws<Claims> jws = Jwts.parser()
                 .verifyWith(jwtSecretKey)
                 .build()
@@ -68,6 +68,6 @@ public class RefreshTokenGenerator {
             throw new RuntimeException("Invalid token subject");
         }
 
-        return new RefreshTokenBLM(token, uid, clientUid, issuedAt, expiration);
+        return new RefreshTokenBlm(token, uid, clientUid, issuedAt, expiration);
     }
 }

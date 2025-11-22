@@ -1,6 +1,6 @@
 package com.connection.token.repository;
 
-import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDALM;
+import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDalm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,7 +10,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
+import com.connection.token.exception.RefreshTokenAlreadyExisistsException;
+import com.connection.token.exception.RefreshTokenNotFoundException;
+import com.connection.token.model.RefreshTokenDalm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -24,26 +26,22 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import com.connection.token.exception.RefreshTokenAlreadyExisistsException;
-import com.connection.token.exception.RefreshTokenNotFoundException;
-import com.connection.token.model.RefreshTokenDALM;
-
 @TestMethodOrder(MethodOrderer.Random.class)
-@DisplayName("Refresh Token Repository Tests - SQL implementation tests")
-class RefreshTokenRepositorySQLImplTest {
+@DisplayName("Refresh Token Repository Tests - Sql implementation tests")
+class RefreshTokenRepositorySqlImplTest {
 
     @Mock
     private NamedParameterJdbcTemplate jdbcTemplate;
 
     @InjectMocks
-    private RefreshTokenRepositorySQLImpl repository;
+    private RefreshTokenRepositorySqlImpl repository;
 
-    private RefreshTokenDALM testToken;
+    private RefreshTokenDalm testToken;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        testToken = createValidRefreshTokenDALM();
+        testToken = createValidRefreshTokenDalm();
     }
 
     @SuppressWarnings("unchecked")
@@ -106,7 +104,7 @@ class RefreshTokenRepositorySQLImplTest {
     void testRevokeAllClientTokens_Positive() {
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
-        repository.revokeAll(testToken.getClientUID());
+        repository.revokeAll(testToken.getClientUid());
 
         verify(jdbcTemplate, times(1)).update(
                 eq("DELETE FROM \"access\".refresh_token WHERE client_id = :client_id"),

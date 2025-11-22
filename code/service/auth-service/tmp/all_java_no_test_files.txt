@@ -8,7 +8,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import com.connection.token.repository.RefreshTokenRepository;
 import com.connection.token.repository.RefreshTokenRepositorySQLImpl;
 
-@Configuration
+/**.*/@Configuration
 public class RefreshTokenRepositoryConfig {
     @Bean("RefreshTokenRepository")
     RefreshTokenRepository refreshTokenRepository(@Qualifier("RefreshTokenJdbcTemplate")NamedParameterJdbcTemplate template){
@@ -24,7 +24,7 @@ import com.connection.client.converter.ClientConverter;
 import com.connection.client.validator.ClientValidator;
 
 
-@Configuration
+/**.*/@Configuration
 public class ClientUtilsConfig {
     @Bean("ClientConverter")
     ClientConverter clientConverter(){
@@ -50,8 +50,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.atomikos.jdbc.AtomikosDataSourceBean;
 
-@Configuration
-public class RefreshTokenJDBCConfig {
+/**.*/@Configuration
+public class RefreshTokenJdbcConfig {
     
     @Value("${app.datasource.refresh-token.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
     private String xaDataSourceClassName;
@@ -138,8 +138,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.atomikos.jdbc.AtomikosDataSourceBean;
 
-@Configuration
-public class ClientJDBCConfig {
+/**.*/@Configuration
+public class ClientJdbcConfig {
     
     @Value("${app.datasource.client.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
     private String xaDataSourceClassName;
@@ -227,7 +227,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.MacAlgorithm;
 
-@Configuration
+/**.*/@Configuration
 public class JwtConfig {
     @Value("${JWT_KEY:${app.jwt.key:zbhcWhLNkuwmbgJBdLKQU5tEArWPrWyMHrenwYT7e9c}}")
     private String jwtSecretString;
@@ -287,7 +287,7 @@ import com.connection.token.converter.RefreshTokenConverter;
 import com.connection.token.generator.RefreshTokenGenerator;
 import com.connection.token.validator.RefreshTokenValidator;
 
-@Configuration
+/**.*/@Configuration
 public class RefreshTokenUtilsConfig {
 
     @Bean("RefreshTokenValidator")
@@ -331,7 +331,7 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.util.backoff.FixedBackOff;
 
-@Configuration
+/**.*/@Configuration
 public class KafkaConfig {
 
     @Value("${spring.kafka.bootstrap-servers:localhost:29092}")
@@ -339,7 +339,7 @@ public class KafkaConfig {
 
     // Конфигурация для Consumer с обработкой ошибок десериализации
     @Bean
-    public ConsumerFactory<String, Object> consumerFactory() {
+     ConsumerFactory<String, Object> consumerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ConsumerConfig.GROUP_ID_CONFIG, "auth-service-group"); // Изменено на auth-service-group
@@ -366,7 +366,7 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+     ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
 
@@ -393,7 +393,7 @@ public class KafkaConfig {
 
     // Конфигурация для Producer (как в BufferKafkaConfig)
     @Bean
-    public ProducerFactory<String, Object> producerFactory() {
+     ProducerFactory<String, Object> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
@@ -404,7 +404,7 @@ public class KafkaConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate() {
+     KafkaTemplate<String, Object> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
 }package com.connection.service.auth.config;
@@ -419,11 +419,11 @@ import com.atomikos.icatch.jta.UserTransactionManager;
 
 import jakarta.transaction.SystemException;
 
-@Configuration
+/**.*/@Configuration
 public class TransactionConfig {
     
     @Bean
-    public UserTransactionManager userTransactionManager() throws SystemException {
+     UserTransactionManager userTransactionManager() throws SystemException {
         setPropertyIfNotExists("com.atomikos.icatch.log_base_name", "atomikos-tm-" + UUID.randomUUID().toString().substring(0, 8));
         setPropertyIfNotExists("com.atomikos.icatch.log_base_dir", "./logs");
         setPropertyIfNotExists("com.atomikos.icatch.tm_unique_name", "tm-" + UUID.randomUUID().toString().substring(0, 8));
@@ -465,7 +465,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import com.connection.client.repository.ClientRepository;
 import com.connection.client.repository.ClientRepositorySQLImpl;
 
-@Configuration
+/**.*/@Configuration
 public class ClientRepositoryConfig {
     @Bean("ClientRepository")
     ClientRepository clientRepository(@Qualifier("ClientJdbcTemplate")NamedParameterJdbcTemplate template){
@@ -479,7 +479,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@Configuration
+/**.*/@Configuration
 public class ApplicationConfig {
     @Value("${spring.application.name:auth-service}")
     private String appNameString;
@@ -501,7 +501,7 @@ import org.springframework.context.annotation.Configuration;
 import com.connection.token.converter.AccessTokenConverter;
 import com.connection.token.generator.AccessTokenGenerator;
 import com.connection.token.validator.AccessTokenValidator;
-@Configuration
+/**.*/@Configuration
 public class AccessTokenUtilsConfig {
     @Bean("AccessTokenValidator")
     AccessTokenValidator accessTokenValidator() {

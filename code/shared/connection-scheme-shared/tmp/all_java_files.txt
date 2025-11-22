@@ -1,4 +1,4 @@
-// ConnectionSchemeNotFoundException.java
+
 package com.connection.scheme.exception;
 
 public class ConnectionSchemeNotFoundException extends BaseConnectionSchemeException {
@@ -9,7 +9,7 @@ public class ConnectionSchemeNotFoundException extends BaseConnectionSchemeExcep
     public String toString() {
         return super.toString() + "\ndescription: connection scheme not found";
     }
-}// BaseConnectionSchemeException.java
+}
 package com.connection.scheme.exception;
 
 public class BaseConnectionSchemeException extends RuntimeException {
@@ -23,7 +23,7 @@ public class BaseConnectionSchemeException extends RuntimeException {
     public String toString() {
         return super.toString() + "\nscheme: " + schemeUid;
     }
-}// ConnectionSchemeValidateException.java
+}
 package com.connection.scheme.exception;
 
 public class ConnectionSchemeValidateException extends BaseConnectionSchemeException {
@@ -37,7 +37,7 @@ public class ConnectionSchemeValidateException extends BaseConnectionSchemeExcep
     public String toString() {
         return super.toString() + "\ndescription: " + description;
     }
-}// ConnectionSchemeAlreadyExistsException.java
+}
 package com.connection.scheme.exception;
 
 public class ConnectionSchemeAlreadyExistsException extends BaseConnectionSchemeException {
@@ -48,7 +48,7 @@ public class ConnectionSchemeAlreadyExistsException extends BaseConnectionScheme
     public String toString() {
         return super.toString() + "\ndescription: connection scheme already exists";
     }
-}// ConnectionSchemeDTO.java
+}
 package com.connection.scheme.model;
 
 import lombok.AllArgsConstructor;
@@ -69,7 +69,7 @@ public class ConnectionSchemeDTO {
     protected String clientUid;
     
     protected String schemeJson;
-}// ConnectionSchemeBLM.java
+}
 package com.connection.scheme.model;
 
 import java.util.List;
@@ -98,7 +98,7 @@ public class ConnectionSchemeBLM {
     protected List<UUID> usedBuffers;
     
     protected Map<UUID, List<UUID>> bufferTransitions;
-}// ConnectionSchemeDALM.java
+}
 package com.connection.scheme.model;
 
 import java.util.List;
@@ -128,7 +128,7 @@ public class ConnectionSchemeDALM {
     protected String schemeJson;
 
     protected List<UUID> usedBuffers;
-}// ConnectionSchemeConverter.java
+}
 package com.connection.scheme.converter;
 
 import java.util.List;
@@ -221,7 +221,7 @@ public class ConnectionSchemeConverter {
             throw new RuntimeException("Failed to extract used buffers from JSON", e);
         }
     }
-}// ConnectionSchemeValidator.java
+}
 package com.connection.scheme.validator;
 
 import java.util.List;
@@ -381,7 +381,7 @@ public class ConnectionSchemeValidator {
             }
         }
     }
-}// ConnectionSchemeRepositorySQLImpl.java
+}
 package com.connection.scheme.repository;
 
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -571,7 +571,7 @@ public class ConnectionSchemeRepositorySQLImpl implements ConnectionSchemeReposi
         // Сохраняем новые связи
         saveUsedBuffers(schemeUid, usedBuffers);
     }
-}// ConnectionSchemeRepository.java
+}
 package com.connection.scheme.repository;
 
 import java.util.List;
@@ -652,7 +652,7 @@ class ConnectionSchemeExceptionTest {
         assertThat(notFoundException).isInstanceOf(BaseConnectionSchemeException.class);
         assertThat(validateException).isInstanceOf(RuntimeException.class);
     }
-}// ConnectionSchemeConverterTest.java
+}
 package com.connection.scheme.converter;
 
 import static com.connection.scheme.mother.ConnectionSchemeObjectMother.*;
@@ -783,7 +783,7 @@ class ConnectionSchemeConverterTest {
         assertThat(result).isNotNull();
         assertThat(result.getUsedBuffers()).isNull();
     }
-}// ConnectionSchemeValidatorTest.java
+}
 package com.connection.scheme.validator;
 
 import static com.connection.scheme.mother.ConnectionSchemeObjectMother.*;
@@ -970,7 +970,7 @@ class ConnectionSchemeValidatorTest {
         assertThatThrownBy(() -> validator.validate(scheme))
                 .isInstanceOf(ConnectionSchemeValidateException.class);
     }
-}// ConnectionSchemeObjectMother.java
+}
 package com.connection.scheme.mother;
 
 import java.util.Arrays;
@@ -1110,7 +1110,7 @@ public class ConnectionSchemeObjectMother {
                 .usedBuffers(usedBuffers)
                 .build();
     }
-}// ConnectionSchemeRepositorySQLImplTest.java
+}
 package com.connection.scheme.repository;
 
 import static com.connection.scheme.mother.ConnectionSchemeObjectMother.*;

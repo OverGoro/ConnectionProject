@@ -230,7 +230,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import com.atomikos.jdbc.AtomikosDataSourceBean;
 
 @Configuration
-public class MessageJDBCConfig {
+public class MessageJdbcConfig {
     
     @Value("${app.datasource.message.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
     private String xaDataSourceClassName;

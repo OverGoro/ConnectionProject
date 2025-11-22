@@ -1,20 +1,16 @@
 package com.connection.token.generator;
 
-import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDALM;
+import static com.connection.token.mother.TokenObjectMother.createValidRefreshTokenDalm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
+import com.connection.token.model.RefreshTokenDalm;
+import io.jsonwebtoken.security.Keys;
 import javax.crypto.SecretKey;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-
-import com.connection.token.model.RefreshTokenDALM;
-
-import io.jsonwebtoken.security.Keys;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Refresh Token Generator Tests")
@@ -30,9 +26,9 @@ class RefreshTokenGeneratorTest {
     }
 
     @Test
-    @DisplayName("Generate refresh token from DALM - Positive")
-    void testGenerateRefreshTokenFromDALM_Positive() {
-        RefreshTokenDALM dalM = createValidRefreshTokenDALM();
+    @DisplayName("Generate refresh token from Dalm - Positive")
+    void testGenerateRefreshTokenFromDalm_Positive() {
+        RefreshTokenDalm dalM = createValidRefreshTokenDalm();
         String token = generator.generateRefreshToken(dalM);
         assertThat(token).isNotNull().isNotEmpty();
     }
@@ -41,10 +37,10 @@ class RefreshTokenGeneratorTest {
     @DisplayName("Generate refresh token from parameters - Positive")
     void testGenerateRefreshTokenFromParameters_Positive() {
         String token = generator.generateRefreshToken(
-            createValidRefreshTokenDALM().getUid(),
-            createValidRefreshTokenDALM().getClientUID(),
-            createValidRefreshTokenDALM().getCreatedAt(),
-            createValidRefreshTokenDALM().getExpiresAt()
+            createValidRefreshTokenDalm().getUid(),
+            createValidRefreshTokenDalm().getClientUid(),
+            createValidRefreshTokenDalm().getCreatedAt(),
+            createValidRefreshTokenDalm().getExpiresAt()
         );
         assertThat(token).isNotNull().isNotEmpty();
     }
@@ -52,13 +48,13 @@ class RefreshTokenGeneratorTest {
     @Test
     @DisplayName("Parse valid refresh token - Positive")
     void testGetRefreshToken_Positive() {
-        RefreshTokenDALM dalM = createValidRefreshTokenDALM();
+        RefreshTokenDalm dalM = createValidRefreshTokenDalm();
         String tokenString = generator.generateRefreshToken(dalM);
         
         var result = generator.getRefreshToken(tokenString);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(dalM.getUid());
-        assertThat(result.getClientUID()).isEqualTo(dalM.getClientUID());
+        assertThat(result.getClientUid()).isEqualTo(dalM.getClientUid());
     }
 
     @Test

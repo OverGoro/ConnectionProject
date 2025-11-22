@@ -1,8 +1,8 @@
 package com.service.device.auth;
 
-import static com.service.device.auth.mother.DeviceTokenObjectMother.createExpiredDeviceAccessTokenBLM;
-import static com.service.device.auth.mother.DeviceTokenObjectMother.createValidDeviceAccessTokenBLM;
-import static com.service.device.auth.mother.DeviceTokenObjectMother.createValidDeviceTokenBLM;
+import static com.service.device.auth.mother.DeviceTokenObjectMother.createExpiredDeviceAccessTokenBlm;
+import static com.service.device.auth.mother.DeviceTokenObjectMother.createValidDeviceAccessTokenBlm;
+import static com.service.device.auth.mother.DeviceTokenObjectMother.createValidDeviceTokenBlm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,8 +32,8 @@ import com.connection.device.token.exception.DeviceTokenAlreadyExistsException;
 import com.connection.device.token.exception.DeviceTokenNotFoundException;
 import com.connection.device.token.generator.DeviceAccessTokenGenerator;
 import com.connection.device.token.generator.DeviceTokenGenerator;
-import com.connection.device.token.model.DeviceAccessTokenBLM;
-import com.connection.device.token.model.DeviceTokenBLM;
+import com.connection.device.token.model.DeviceAccessTokenBlm;
+import com.connection.device.token.model.DeviceTokenBlm;
 import com.connection.device.token.repository.DeviceAccessTokenRepository;
 import com.connection.device.token.repository.DeviceTokenRepository;
 import com.connection.device.token.validator.DeviceAccessTokenValidator;
@@ -113,16 +113,16 @@ class DeviceAuthServiceImplLondonTest {
     void shouldGetDeviceTokenWhenValidDeviceUid() {
         // Arrange
         UUID deviceUid = UUID.randomUUID();
-        DeviceTokenBLM deviceTokenBLM = createValidDeviceTokenBLM();
+        DeviceTokenBlm deviceTokenBlm = createValidDeviceTokenBlm();
 
-        when(deviceTokenRepository.findByDeviceUid(deviceUid)).thenReturn(deviceTokenBLM);
+        when(deviceTokenRepository.findByDeviceUid(deviceUid)).thenReturn(deviceTokenBlm);
 
         // Act
-        DeviceTokenBLM result = deviceAuthService.getDeviceToken(deviceUid);
+        DeviceTokenBlm result = deviceAuthService.getDeviceToken(deviceUid);
 
         // Assert
-        assertThat(result).isNotNull().isEqualTo(deviceTokenBLM);
-        verify(deviceTokenValidator).validate(deviceTokenBLM);
+        assertThat(result).isNotNull().isEqualTo(deviceTokenBlm);
+        verify(deviceTokenValidator).validate(deviceTokenBlm);
     }
 
     @Test
@@ -144,46 +144,46 @@ class DeviceAuthServiceImplLondonTest {
     void shouldRevokeDeviceTokenWhenValidDeviceUid() {
         // Arrange
         UUID deviceUid = UUID.randomUUID();
-        DeviceTokenBLM deviceTokenBLM = createValidDeviceTokenBLM();
+        DeviceTokenBlm deviceTokenBlm = createValidDeviceTokenBlm();
 
-        when(deviceTokenRepository.findByDeviceUid(deviceUid)).thenReturn(deviceTokenBLM);
+        when(deviceTokenRepository.findByDeviceUid(deviceUid)).thenReturn(deviceTokenBlm);
 
         // Act
         deviceAuthService.revokeDeviceToken(deviceUid);
 
         // Assert
         verify(deviceTokenRepository).revokeByDeviceUid(deviceUid);
-        verify(deviceAccessTokenRepository).revokeByDeviceTokenUid(deviceTokenBLM.getUid());
+        verify(deviceAccessTokenRepository).revokeByDeviceTokenUid(deviceTokenBlm.getUid());
     }
 
     @Test
     @DisplayName("Create device access token - Positive")
     void shouldCreateDeviceAccessTokenWhenValidDeviceToken() {
         // Arrange
-        DeviceTokenBLM deviceToken = createValidDeviceTokenBLM();
+        DeviceTokenBlm deviceToken = createValidDeviceTokenBlm();
         String generatedAccessToken = "generated.access.jwt.token";
-        DeviceAccessTokenBLM deviceAccessTokenBLM = createValidDeviceAccessTokenBLM();
+        DeviceAccessTokenBlm deviceAccessTokenBlm = createValidDeviceAccessTokenBlm();
 
         when(deviceAccessTokenRepository.hasDeviceAccessToken(deviceToken.getUid())).thenReturn(false);
         when(deviceAccessTokenGenerator.generateDeviceAccessToken(any(UUID.class), any(Date.class), any(Date.class)))
             .thenReturn(generatedAccessToken);
 
         // Act
-        Pair<DeviceAccessTokenBLM, DeviceTokenBLM> result = deviceAuthService.createDeviceAccessToken(deviceToken);
+        Pair<DeviceAccessTokenBlm, DeviceTokenBlm> result = deviceAuthService.createDeviceAccessToken(deviceToken);
 
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getFirst().getToken()).isEqualTo(generatedAccessToken);
         assertThat(result.getSecond()).isEqualTo(deviceToken);
         verify(deviceTokenValidator).validate(deviceToken);
-        verify(deviceAccessTokenValidator).validate(any(DeviceAccessTokenBLM.class));
+        verify(deviceAccessTokenValidator).validate(any(DeviceAccessTokenBlm.class));
     }
 
     @Test
     @DisplayName("Create device access token - Negative: Active access token exists")
     void shouldThrowExceptionWhenActiveAccessTokenExists() {
         // Arrange
-        DeviceTokenBLM deviceToken = createValidDeviceTokenBLM();
+        DeviceTokenBlm deviceToken = createValidDeviceTokenBlm();
 
         when(deviceAccessTokenRepository.hasDeviceAccessToken(deviceToken.getUid())).thenReturn(true);
 
@@ -198,21 +198,21 @@ class DeviceAuthServiceImplLondonTest {
     @DisplayName("Refresh device access token - Positive")
     void shouldRefreshDeviceAccessTokenWhenValid() {
         // Arrange
-        DeviceAccessTokenBLM oldAccessToken = createValidDeviceAccessTokenBLM();
+        DeviceAccessTokenBlm oldAccessToken = createValidDeviceAccessTokenBlm();
         String newGeneratedToken = "new.generated.access.token";
-        DeviceAccessTokenBLM newAccessTokenBLM = createValidDeviceAccessTokenBLM();
+        DeviceAccessTokenBlm newAccessTokenBlm = createValidDeviceAccessTokenBlm();
 
         when(deviceAccessTokenGenerator.generateDeviceAccessToken(any(UUID.class), any(Date.class), any(Date.class)))
             .thenReturn(newGeneratedToken);
 
         // Act
-        DeviceAccessTokenBLM result = deviceAuthService.refreshDeviceAccessToken(oldAccessToken);
+        DeviceAccessTokenBlm result = deviceAuthService.refreshDeviceAccessToken(oldAccessToken);
 
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getToken()).isEqualTo(newGeneratedToken);
         verify(deviceAccessTokenValidator).validate(oldAccessToken);
-        verify(deviceAccessTokenValidator, times(2)).validate(any(DeviceAccessTokenBLM.class));
+        verify(deviceAccessTokenValidator, times(2)).validate(any(DeviceAccessTokenBlm.class));
         verify(deviceAccessTokenRepository).revoke(oldAccessToken.getUid());
     }
 
@@ -220,7 +220,7 @@ class DeviceAuthServiceImplLondonTest {
     @DisplayName("Validate device access token - Positive")
     void shouldValidateDeviceAccessTokenWhenValid() {
         // Arrange
-        DeviceAccessTokenBLM deviceAccessToken = createValidDeviceAccessTokenBLM();
+        DeviceAccessTokenBlm deviceAccessToken = createValidDeviceAccessTokenBlm();
 
         // Act
         deviceAuthService.validateDeviceAccessToken(deviceAccessToken);
@@ -233,7 +233,7 @@ class DeviceAuthServiceImplLondonTest {
     @DisplayName("Validate device access token - Negative: Invalid token")
     void shouldThrowExceptionWhenDeviceAccessTokenInvalid() {
         // Arrange
-        DeviceAccessTokenBLM invalidToken = createExpiredDeviceAccessTokenBLM();
+        DeviceAccessTokenBlm invalidToken = createExpiredDeviceAccessTokenBlm();
 
         doThrow(new IllegalArgumentException("Expired token"))
             .when(deviceAccessTokenValidator).validate(invalidToken);
@@ -248,7 +248,7 @@ class DeviceAuthServiceImplLondonTest {
     @DisplayName("Validate device token - Positive")
     void shouldValidateDeviceTokenWhenValid() {
         // Arrange
-        DeviceTokenBLM deviceToken = createValidDeviceTokenBLM();
+        DeviceTokenBlm deviceToken = createValidDeviceTokenBlm();
 
         // Act
         deviceAuthService.validateDeviceToken(deviceToken);
@@ -261,7 +261,7 @@ class DeviceAuthServiceImplLondonTest {
     @DisplayName("Validate device token - Negative: Invalid token")
     void shouldThrowExceptionWhenDeviceTokenInvalid() {
         // Arrange
-        DeviceTokenBLM invalidToken = createValidDeviceTokenBLM();
+        DeviceTokenBlm invalidToken = createValidDeviceTokenBlm();
         invalidToken.setToken("");
 
         doThrow(new IllegalArgumentException("Invalid token"))

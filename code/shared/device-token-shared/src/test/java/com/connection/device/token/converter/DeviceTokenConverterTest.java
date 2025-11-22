@@ -15,9 +15,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.connection.device.token.generator.DeviceTokenGenerator;
-import com.connection.device.token.model.DeviceTokenBLM;
-import com.connection.device.token.model.DeviceTokenDALM;
-import com.connection.device.token.model.DeviceTokenDTO;
+import com.connection.device.token.model.DeviceTokenBlm;
+import com.connection.device.token.model.DeviceTokenDalm;
+import com.connection.device.token.model.DeviceTokenDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Device Token Converter Tests")
@@ -35,15 +35,15 @@ class DeviceTokenConverterTest {
     }
 
     @Test
-    @DisplayName("Convert DALM to BLM - Positive")
-    void testToBLMFromDALM_Positive() {
-        DeviceTokenDALM dalM = createValidDeviceTokenDALM();
-        DeviceTokenBLM expectedBLM = createValidDeviceTokenBLM();
+    @DisplayName("Convert Dalm to Blm - Positive")
+    void testToBlmFromDalm_Positive() {
+        DeviceTokenDalm dalM = createValidDeviceTokenDalm();
+        DeviceTokenBlm expectedBlm = createValidDeviceTokenBlm();
         
         when(deviceTokenGenerator.generateDeviceToken(any(),any(), any(), any()))
-                .thenReturn(expectedBLM.getToken());
+                .thenReturn(expectedBlm.getToken());
 
-        DeviceTokenBLM result = converter.toBLM(dalM);
+        DeviceTokenBlm result = converter.toBlm(dalM);
 
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(dalM.getUid());
@@ -53,37 +53,37 @@ class DeviceTokenConverterTest {
     }
 
     @Test
-    @DisplayName("Convert DTO to BLM - Positive")
-    void testToBLMFromDTO_Positive() {
-        DeviceTokenDTO dto = createValidDeviceTokenDTO();
-        DeviceTokenBLM expectedBLM = createValidDeviceTokenBLM();
+    @DisplayName("Convert Dto to Blm - Positive")
+    void testToBlmFromDto_Positive() {
+        DeviceTokenDto dto = createValidDeviceTokenDto();
+        DeviceTokenBlm expectedBlm = createValidDeviceTokenBlm();
         
-        when(deviceTokenGenerator.getDeviceTokenBLM(dto.getToken()))
-                .thenReturn(expectedBLM);
+        when(deviceTokenGenerator.getDeviceTokenBlm(dto.getToken()))
+                .thenReturn(expectedBlm);
 
-        DeviceTokenBLM result = converter.toBLM(dto);
+        DeviceTokenBlm result = converter.toBlm(dto);
 
         assertThat(result).isNotNull();
         assertThat(result.getToken()).isEqualTo(dto.getToken());
     }
 
     @Test
-    @DisplayName("Convert BLM to DTO - Positive")
-    void testToDTOFromBLM_Positive() {
-        DeviceTokenBLM blm = createValidDeviceTokenBLM();
+    @DisplayName("Convert Blm to Dto - Positive")
+    void testToDtoFromBlm_Positive() {
+        DeviceTokenBlm blm = createValidDeviceTokenBlm();
 
-        DeviceTokenDTO result = converter.toDTO(blm);
+        DeviceTokenDto result = converter.toDto(blm);
 
         assertThat(result).isNotNull();
         assertThat(result.getToken()).isEqualTo(blm.getToken());
     }
 
     @Test
-    @DisplayName("Convert BLM to DALM - Positive")
-    void testToDALMFromBLM_Positive() {
-        DeviceTokenBLM blm = createValidDeviceTokenBLM();
+    @DisplayName("Convert Blm to Dalm - Positive")
+    void testToDalmFromBlm_Positive() {
+        DeviceTokenBlm blm = createValidDeviceTokenBlm();
 
-        DeviceTokenDALM result = converter.toDALM(blm);
+        DeviceTokenDalm result = converter.toDalm(blm);
 
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid());
@@ -94,14 +94,14 @@ class DeviceTokenConverterTest {
     }
 
     @Test
-    @DisplayName("Convert DTO to BLM with invalid token - Negative")
-    void testToBLMFromDTOWithInvalidToken_Negative() {
-        DeviceTokenDTO dto = createValidDeviceTokenDTO();
+    @DisplayName("Convert Dto to Blm with invalid token - Negative")
+    void testToBlmFromDtoWithInvalidToken_Negative() {
+        DeviceTokenDto dto = createValidDeviceTokenDto();
         
-        when(deviceTokenGenerator.getDeviceTokenBLM(dto.getToken()))
+        when(deviceTokenGenerator.getDeviceTokenBlm(dto.getToken()))
                 .thenThrow(new RuntimeException("Invalid JWT token"));
 
-        assertThatThrownBy(() -> converter.toBLM(dto))
+        assertThatThrownBy(() -> converter.toBlm(dto))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Invalid JWT token");
     }

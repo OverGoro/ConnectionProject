@@ -1,13 +1,15 @@
-// DeviceServiceIntegrationTest.java
+
 package com.connection.device.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
+import com.connection.device.DeviceService;
+import com.connection.device.model.DeviceBlm;
+import com.connection.service.auth.AuthService;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,12 +19,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
-import com.connection.device.DeviceService;
-import com.connection.device.model.DeviceBLM;
-import com.connection.service.auth.AuthService;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @SpringBootTest
@@ -58,13 +54,13 @@ public class DeviceServiceIntegrationTest extends BaseDeviceIntegrationTest {
     @DisplayName("Should create device successfully")
     void shouldCreateDeviceSuccessfully() {
         // Given
-        DeviceBLM deviceBLM = createTestDeviceBLM();
+        DeviceBlm deviceBlm = createTestDeviceBlm();
 
         // Устанавливаем аутентификацию перед вызовом сервиса
         setupAuthentication();
 
         // When
-        DeviceBLM createdDevice = deviceService.createDevice(deviceBLM);
+        DeviceBlm createdDevice = deviceService.createDevice(deviceBlm);
 
         // Then
         assertThat(createdDevice).isNotNull();
@@ -79,14 +75,14 @@ public class DeviceServiceIntegrationTest extends BaseDeviceIntegrationTest {
     @DisplayName("Should get device by UID")
     void shouldGetDeviceByUid() {
         // Given
-        DeviceBLM deviceBLM = createTestDeviceBLM();
+        DeviceBlm deviceBlm = createTestDeviceBlm();
 
         // Создаем устройство с аутентификацией
         setupAuthentication();
-        deviceService.createDevice(deviceBLM);
+        deviceService.createDevice(deviceBlm);
 
         // Получаем устройство с той же аутентификацией
-        DeviceBLM foundDevice = deviceService.getDevice(testDeviceUid);
+        DeviceBlm foundDevice = deviceService.getDevice(testDeviceUid);
 
         // Then
         assertThat(foundDevice).isNotNull();
@@ -100,13 +96,13 @@ public class DeviceServiceIntegrationTest extends BaseDeviceIntegrationTest {
     @DisplayName("Should get devices by client")
     void shouldGetDevicesByClient() {
         // Given
-        DeviceBLM deviceBLM = createTestDeviceBLM();
+        DeviceBlm deviceBlm = createTestDeviceBlm();
 
         setupAuthentication();
-        deviceService.createDevice(deviceBLM);
+        deviceService.createDevice(deviceBlm);
 
         // When
-        List<DeviceBLM> devices = deviceService.getDevicesByClient(getTestClientUid());
+        List<DeviceBlm> devices = deviceService.getDevicesByClient(getTestClientUid());
 
         // Then
         assertThat(devices).isNotEmpty();
@@ -120,13 +116,13 @@ public class DeviceServiceIntegrationTest extends BaseDeviceIntegrationTest {
     @DisplayName("Should update device successfully")
     void shouldUpdateDeviceSuccessfully() {
         // Given
-        DeviceBLM originalDeviceBLM = createTestDeviceBLM();
+        DeviceBlm originalDeviceBlm = createTestDeviceBlm();
 
         setupAuthentication();
-        deviceService.createDevice(originalDeviceBLM);
+        deviceService.createDevice(originalDeviceBlm);
 
-        // Обновляем BLM
-        DeviceBLM updatedDeviceBLM = new DeviceBLM(
+        // Обновляем Blm
+        DeviceBlm updatedDeviceBlm = new DeviceBlm(
                 testDeviceUid,
                 getTestClientUid(),
                 "Updated Test Device",
@@ -134,7 +130,7 @@ public class DeviceServiceIntegrationTest extends BaseDeviceIntegrationTest {
         );
 
         // When
-        DeviceBLM updatedDevice = deviceService.updateDevice(updatedDeviceBLM);
+        DeviceBlm updatedDevice = deviceService.updateDevice(updatedDeviceBlm);
 
         // Then
         assertThat(updatedDevice).isNotNull();
@@ -149,13 +145,13 @@ public class DeviceServiceIntegrationTest extends BaseDeviceIntegrationTest {
     @DisplayName("Should delete device successfully")
     void shouldDeleteDeviceSuccessfully() {
         // Given
-        DeviceBLM deviceBLM = createTestDeviceBLM();
+        DeviceBlm deviceBlm = createTestDeviceBlm();
 
         setupAuthentication();
-        deviceService.createDevice(deviceBLM);
+        deviceService.createDevice(deviceBlm);
 
         // Verify device exists
-        DeviceBLM foundDevice = deviceService.getDevice(testDeviceUid);
+        DeviceBlm foundDevice = deviceService.getDevice(testDeviceUid);
         assertThat(foundDevice).isNotNull();
 
         // When
@@ -172,7 +168,7 @@ public class DeviceServiceIntegrationTest extends BaseDeviceIntegrationTest {
     @DisplayName("Should check device existence")
     void shouldCheckDeviceExistence() {
         // Given
-        DeviceBLM deviceBLM = createTestDeviceBLM();
+        DeviceBlm deviceBlm = createTestDeviceBlm();
 
         // When & Then - Before creation
         setupAuthentication();
@@ -180,7 +176,7 @@ public class DeviceServiceIntegrationTest extends BaseDeviceIntegrationTest {
         assertThat(existsBefore).isFalse();
 
         // When & Then - After creation
-        deviceService.createDevice(deviceBLM);
+        deviceService.createDevice(deviceBlm);
         boolean existsAfter = deviceService.deviceExists(testDeviceUid);
         assertThat(existsAfter).isTrue();
 
@@ -231,11 +227,11 @@ public class DeviceServiceIntegrationTest extends BaseDeviceIntegrationTest {
     @DisplayName("Should throw SecurityException when device doesn't belong to client")
     void shouldThrowSecurityExceptionWhenDeviceNotBelongsToClient() {
         // Given
-        DeviceBLM deviceBLM = createTestDeviceBLM();
+        DeviceBlm deviceBlm = createTestDeviceBlm();
         
         // Создаем устройство для текущего клиента
         setupAuthentication();
-        deviceService.createDevice(deviceBLM);
+        deviceService.createDevice(deviceBlm);
 
         // Пытаемся получить устройство под другим клиентом
         UUID differentClientUid = UUID.randomUUID();
@@ -268,13 +264,13 @@ public class DeviceServiceIntegrationTest extends BaseDeviceIntegrationTest {
     @DisplayName("Should throw SecurityException when not authenticated")
     void shouldThrowSecurityExceptionWhenNotAuthenticated() {
         // Given
-        DeviceBLM deviceBLM = createTestDeviceBLM();
+        DeviceBlm deviceBlm = createTestDeviceBlm();
 
         // Очищаем аутентификацию
         clearAuthentication();
 
         // When & Then
-        assertThatThrownBy(() -> deviceService.createDevice(deviceBLM))
+        assertThatThrownBy(() -> deviceService.createDevice(deviceBlm))
                 .isInstanceOf(SecurityException.class)
                 .hasMessageContaining("User not authenticated");
 
@@ -309,8 +305,8 @@ public class DeviceServiceIntegrationTest extends BaseDeviceIntegrationTest {
         }
     }
 
-    private DeviceBLM createTestDeviceBLM() {
-        return new DeviceBLM(
+    private DeviceBlm createTestDeviceBlm() {
+        return new DeviceBlm(
                 testDeviceUid,
                 getTestClientUid(),
                 "Test Device",

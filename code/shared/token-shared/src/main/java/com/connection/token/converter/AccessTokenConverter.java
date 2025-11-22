@@ -1,50 +1,57 @@
 package com.connection.token.converter;
 
 import com.connection.token.generator.AccessTokenGenerator;
-import com.connection.token.model.AccessTokenBLM;
-import com.connection.token.model.AccessTokenDALM;
-import com.connection.token.model.AccessTokenDTO;
-
+import com.connection.token.model.AccessTokenBlm;
+import com.connection.token.model.AccessTokenDalm;
+import com.connection.token.model.AccessTokenDto;
 import io.jsonwebtoken.JwtException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+/** . */
 @RequiredArgsConstructor
 public class AccessTokenConverter {
     @NonNull
     private final AccessTokenGenerator accessTokenGenerator;
 
-    public AccessTokenBLM toBLM(AccessTokenDALM dalm) {
+    /** . */
+    public AccessTokenBlm toBlm(AccessTokenDalm dalm) {
         try {
-            String token = accessTokenGenerator.generateAccessToken(dalm.getClientUID(), dalm.getCreatedAt(),
+            String token = accessTokenGenerator.generateAccessToken(
+                    dalm.getClientUid(), dalm.getCreatedAt(),
                     dalm.getExpiresAt());
-            return new AccessTokenBLM(token,
-                    dalm.getClientUID(),
-                    dalm.getCreatedAt(),
-                    dalm.getExpiresAt());
+            return new AccessTokenBlm(token, dalm.getClientUid(),
+                    dalm.getCreatedAt(), dalm.getExpiresAt());
         } catch (JwtException e) {
-            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(),
+                    e);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Malformed JWT token", e);
         }
     }
 
-    public AccessTokenBLM toBLM(AccessTokenDTO dto) {
+    /** . */
+    public AccessTokenBlm toBlm(AccessTokenDto dto) {
         try {
-            AccessTokenBLM blm = accessTokenGenerator.getAccessTokenBLM(dto.getToken());
+            AccessTokenBlm blm =
+                    accessTokenGenerator.getAccessTokenBlm(dto.getToken());
             return blm;
         } catch (JwtException e) {
-            throw new RuntimeException("Invalid JWT token: " + e.getMessage(), e);
+            throw new RuntimeException("Invalid JWT token: " + e.getMessage(),
+                    e);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Malformed JWT token", e);
         }
     }
 
-    public AccessTokenDTO toDTO(AccessTokenBLM blm) {
-        return new AccessTokenDTO(blm.getToken());
+    /** . */
+    public AccessTokenDto toDto(AccessTokenBlm blm) {
+        return new AccessTokenDto(blm.getToken());
     }
 
-    public AccessTokenDALM toDALM(AccessTokenBLM blm) {
-        return new AccessTokenDALM(blm.getClientUID(), blm.getCreatedAt(), blm.getExpiresAt());
+    /** . */
+    public AccessTokenDalm toDalm(AccessTokenBlm blm) {
+        return new AccessTokenDalm(blm.getClientUid(), blm.getCreatedAt(),
+                blm.getExpiresAt());
     }
 }

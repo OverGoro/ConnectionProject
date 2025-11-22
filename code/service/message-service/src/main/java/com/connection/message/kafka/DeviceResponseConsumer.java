@@ -21,48 +21,48 @@
 // @RequiredArgsConstructor
 // public class DeviceResponseConsumer implements ApplicationListener<ApplicationReadyEvent> {
 
-//     private final TypedDeviceKafkaClient deviceKafkaClient;
-//     private final KafkaListenerEndpointRegistry registry;
+// private final TypedDeviceKafkaClient deviceKafkaClient;
+// private final KafkaListenerEndpointRegistry registry;
 
-//     @KafkaListener(id = "dynamicDeviceListener", 
-//                    topics = "#{@typedDeviceKafkaClient.getInstanceReplyTopic()}")
-//     public void handleDeviceResponse(ConsumerRecord<String, CommandResponse> record) {
-//         try {
-//             CommandResponse message = record.value();
-//             String correlationId = record.key();
-            
-//             log.info("Received device response from instance topic: correlationId={}, topic={}", 
-//                     correlationId, record.topic());
-                
-//             if (message instanceof GetDeviceByUidResponse) {
-//                 GetDeviceByUidResponse typedResponse = (GetDeviceByUidResponse) message;
-//                 deviceKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof GetDevicesByClientResponse) {
-//                 GetDevicesByClientResponse typedResponse = (GetDevicesByClientResponse) message;
-//                 deviceKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else if (message instanceof HealthCheckResponse) {
-//                 HealthCheckResponse typedResponse = (HealthCheckResponse) message;
-//                 deviceKafkaClient.handleResponse(correlationId, typedResponse);
-//             } else {
-//                 log.warn("Unknown device response type for correlationId: {}", correlationId);
-//             }
-            
-//         } catch (Exception e) {
-//             log.error("Error processing device response: correlationId={}", record.key(), e);
-//         }
-//     }
+// @KafkaListener(id = "dynamicDeviceListener", 
+// topics = "#{@typedDeviceKafkaClient.getInstanceReplyTopic()}")
+// public void handleDeviceResponse(ConsumerRecord<String, CommandResponse> record) {
+// try {
+// CommandResponse message = record.value();
+// String correlationId = record.key();
 
-//     @Override
-//     public void onApplicationEvent(ApplicationReadyEvent event) {
-//         try {
-//             MessageListenerContainer container = registry.getListenerContainer("dynamicDeviceListener");
-//             if (container != null && !container.isRunning()) {
-//                 container.start();
-//                 log.info("Dynamic device response listener started for topic: {}", 
-//                         deviceKafkaClient.getInstanceReplyTopic());
-//             }
-//         } catch (Exception e) {
-//             log.error("Failed to start dynamic device listener", e);
-//         }
-//     }
+// log.info("Received device response from instance topic: correlationId={}, topic={}", 
+// correlationId, record.topic());
+
+// if (message instanceof GetDeviceByUidResponse) {
+// GetDeviceByUidResponse typedResponse = (GetDeviceByUidResponse) message;
+// deviceKafkaClient.handleResponse(correlationId, typedResponse);
+// } else if (message instanceof GetDevicesByClientResponse) {
+// GetDevicesByClientResponse typedResponse = (GetDevicesByClientResponse) message;
+// deviceKafkaClient.handleResponse(correlationId, typedResponse);
+// } else if (message instanceof HealthCheckResponse) {
+// HealthCheckResponse typedResponse = (HealthCheckResponse) message;
+// deviceKafkaClient.handleResponse(correlationId, typedResponse);
+// } else {
+// log.warn("Unknown device response type for correlationId: {}", correlationId);
+// }
+
+// } catch (Exception e) {
+// log.error("Error processing device response: correlationId={}", record.key(), e);
+// }
+// }
+
+// @Override
+// public void onApplicationEvent(ApplicationReadyEvent event) {
+// try {
+// MessageListenerContainer container = registry.getListenerContainer("dynamicDeviceListener");
+// if (container != null && !container.isRunning()) {
+// container.start();
+// log.info("Dynamic device response listener started for topic: {}", 
+// deviceKafkaClient.getInstanceReplyTopic());
+// }
+// } catch (Exception e) {
+// log.error("Failed to start dynamic device listener", e);
+// }
+// }
 // }

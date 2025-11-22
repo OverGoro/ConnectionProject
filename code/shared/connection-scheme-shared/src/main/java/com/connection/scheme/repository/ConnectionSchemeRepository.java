@@ -1,57 +1,66 @@
-// ConnectionSchemeRepository.java
-package com.connection.scheme.repository;
 
-import java.util.List;
-import java.util.UUID;
+package com.connection.scheme.repository;
 
 import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
 import com.connection.scheme.exception.ConnectionSchemeNotFoundException;
-import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeBlm;
+import java.util.List;
+import java.util.UUID;
 
+/** . */
 public interface ConnectionSchemeRepository {
     /**
-     * Добавить новуб схему
-     * @param scheme
-     * @throws ConnectionSchemeAlreadyExistsException
+     * Добавить новуб схему.
+     * 
+     * @param scheme .
+     * @throws ConnectionSchemeAlreadyExistsException .
      */
-    void add(ConnectionSchemeBLM scheme) throws ConnectionSchemeAlreadyExistsException;
-    /**
-     * Обновить параметры схемы
-     * @param scheme
-     * @throws ConnectionSchemeNotFoundException
-     */
-    void update(ConnectionSchemeBLM scheme) throws ConnectionSchemeNotFoundException;
+    void add(ConnectionSchemeBlm scheme)
+            throws ConnectionSchemeAlreadyExistsException;
 
     /**
-     * Удалить схему по Uid
-     * @param uid
-     * @throws ConnectionSchemeNotFoundException
+     * Обновить параметры схемы.
+     * 
+     * @param scheme .
+     * @throws ConnectionSchemeNotFoundException .
+     */
+    void update(ConnectionSchemeBlm scheme)
+            throws ConnectionSchemeNotFoundException;
+
+    /**
+     * Удалить схему по Uid.
+     * 
+     * @param uid .
+     * @throws ConnectionSchemeNotFoundException .
      */
     void delete(UUID uid) throws ConnectionSchemeNotFoundException;
-    /**
-     * Получить схему по Uid
-     * @param uid
-     * @return
-     * @throws ConnectionSchemeNotFoundException
-     */
-    ConnectionSchemeBLM findByUid(UUID uid) throws ConnectionSchemeNotFoundException;
-    /**
-     * Получить все схемы клиента
-     * @param clientUid
-     * @return
-     */
-    List<ConnectionSchemeBLM> findByClientUid(UUID clientUid);
 
     /**
-     * Получить все схемы, в которых участвует буфер
-     * @param bufferUid
-     * @return
+     * Получить схему по Uid.
+     * 
+     * @param uid .
+     * @return .
+     * @throws ConnectionSchemeNotFoundException .
      */
-    List<ConnectionSchemeBLM> findByBufferUid(UUID bufferUid);
+    ConnectionSchemeBlm findByUid(UUID uid)
+            throws ConnectionSchemeNotFoundException;
+
     /**
-     * Проверить существование схемы
-     * @param uid
-     * @return
+     * Получить все схемы клиента.
+     * 
+     * @param clientUid .
+     * @return .
      */
+    List<ConnectionSchemeBlm> findByClientUid(UUID clientUid);
+
+    /**
+     * Получить все схемы, в которых участвует буфер .
+     * 
+     * @param bufferUid .
+     * @return .
+     */
+    List<ConnectionSchemeBlm> findByBufferUid(UUID bufferUid);
+
+    /** . */
     boolean exists(UUID uid);
 }

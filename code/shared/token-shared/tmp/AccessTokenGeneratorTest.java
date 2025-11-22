@@ -16,8 +16,8 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import com.connection.token.model.AccessTokenBLM;
-import com.connection.token.model.AccessTokenDALM;
+import com.connection.token.model.AccessTokenBlm;
+import com.connection.token.model.AccessTokenDalm;
 
 import io.jsonwebtoken.security.Keys;
 
@@ -37,9 +37,9 @@ class AccessTokenGeneratorTest {
     @Test
     @DisplayName("Generate access token - Positive")
     void testGenerateAccessToken_Positive() {
-        AccessTokenDALM dalM = createValidAccessTokenDALM();
+        AccessTokenDalm dalM = createValidAccessTokenDalm();
         String token = generator.generateAccessToken(
-            dalM.getClientUID(),
+            dalM.getClientUid(),
             dalM.getCreatedAt(),
             dalM.getExpiresAt()
         );
@@ -48,17 +48,17 @@ class AccessTokenGeneratorTest {
 
     @Test
     @DisplayName("Parse valid access token - Positive")
-    void testGetAccessTokenBLM_Positive() {
-        AccessTokenDALM dalM = createValidAccessTokenDALM();
+    void testGetAccessTokenBlm_Positive() {
+        AccessTokenDalm dalM = createValidAccessTokenDalm();
         String tokenString = generator.generateAccessToken(
-            dalM.getClientUID(),
+            dalM.getClientUid(),
             dalM.getCreatedAt(),
             dalM.getExpiresAt()
         );
         
-        AccessTokenBLM result = generator.getAccessTokenBLM(tokenString);
+        AccessTokenBlm result = generator.getAccessTokenBlm(tokenString);
         assertThat(result).isNotNull();
-        assertThat(result.getClientUID()).isEqualTo(dalM.getClientUID());
+        assertThat(result.getClientUid()).isEqualTo(dalM.getClientUid());
         
         // Сравниваем время в секундах (миллисекунды игнорируются)
         assertThat(result.getCreatedAt().getTime() / 1000).isEqualTo(dalM.getCreatedAt().getTime() / 1000);
@@ -67,41 +67,41 @@ class AccessTokenGeneratorTest {
 
     @Test
     @DisplayName("Parse invalid access token - Negative")
-    void testGetAccessTokenBLMWithInvalidToken_Negative() {
-        assertThatThrownBy(() -> generator.getAccessTokenBLM("invalid.token.here"))
+    void testGetAccessTokenBlmWithInvalidToken_Negative() {
+        assertThatThrownBy(() -> generator.getAccessTokenBlm("invalid.token.here"))
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
     @DisplayName("Parse access token with wrong subject - Negative")
-    void testGetAccessTokenBLMWithWrongSubject_Negative() {
+    void testGetAccessTokenBlmWithWrongSubject_Negative() {
         AccessTokenGenerator wrongSubjectGenerator = new AccessTokenGenerator(secretKey, "test-app", "wrong-subject");
-        AccessTokenDALM dalM = createValidAccessTokenDALM();
+        AccessTokenDalm dalM = createValidAccessTokenDalm();
         
         String tokenString = generator.generateAccessToken(
-            dalM.getClientUID(),
+            dalM.getClientUid(),
             dalM.getCreatedAt(),
             dalM.getExpiresAt()
         );
         
-        assertThatThrownBy(() -> wrongSubjectGenerator.getAccessTokenBLM(tokenString))
+        assertThatThrownBy(() -> wrongSubjectGenerator.getAccessTokenBlm(tokenString))
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
     @DisplayName("Generate and parse round trip - Positive")
     void testGenerateAndParseRoundTrip_Positive() {
-        AccessTokenDALM original = createValidAccessTokenDALM();
+        AccessTokenDalm original = createValidAccessTokenDalm();
         
         String token = generator.generateAccessToken(
-            original.getClientUID(),
+            original.getClientUid(),
             original.getCreatedAt(),
             original.getExpiresAt()
         );
         
-        AccessTokenBLM parsed = generator.getAccessTokenBLM(token);
+        AccessTokenBlm parsed = generator.getAccessTokenBlm(token);
         
-        assertThat(parsed.getClientUID()).isEqualTo(original.getClientUID());
+        assertThat(parsed.getClientUid()).isEqualTo(original.getClientUid());
         
         // Сравниваем время в секундах (миллисекунды игнорируются)
         assertThat(parsed.getCreatedAt().getTime() / 1000).isEqualTo(original.getCreatedAt().getTime() / 1000);
@@ -116,12 +116,12 @@ class AccessTokenGeneratorTest {
         Date expiresAt = new Date(System.currentTimeMillis() + 1000L * 60 * 30);
         
         String token = generator.generateAccessToken(
-            createValidAccessTokenDALM().getClientUID(),
+            createValidAccessTokenDalm().getClientUid(),
             createdAt,
             expiresAt
         );
         
-        AccessTokenBLM result = generator.getAccessTokenBLM(token);
+        AccessTokenBlm result = generator.getAccessTokenBlm(token);
         
         // Сравниваем время в секундах (миллисекунды игнорируются)
         assertThat(result.getCreatedAt().getTime() / 1000).isEqualTo(createdAt.getTime() / 1000);
@@ -137,12 +137,12 @@ class AccessTokenGeneratorTest {
         Date expiresAt = new Date(baseTime + 3600000 + 456); // +456 мс
         
         String token = generator.generateAccessToken(
-            createValidAccessTokenDALM().getClientUID(),
+            createValidAccessTokenDalm().getClientUid(),
             createdAt,
             expiresAt
         );
         
-        AccessTokenBLM result = generator.getAccessTokenBLM(token);
+        AccessTokenBlm result = generator.getAccessTokenBlm(token);
         
         // Проверяем, что миллисекунды игнорируются при сравнении
         assertThat(result.getCreatedAt().getTime() / 1000).isEqualTo(createdAt.getTime() / 1000);

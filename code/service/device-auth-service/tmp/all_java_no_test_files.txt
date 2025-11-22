@@ -1,4 +1,4 @@
-// DeviceAccessTokenUtilsConfig.java
+
 package com.service.device.auth.config;
 
 import javax.crypto.SecretKey;
@@ -66,7 +66,7 @@ public class SwaggerConfig {
                                 .scheme("bearer")
                                 .bearerFormat("JWT")));
     }
-}// DatabaseConfig.java
+}
 package com.service.device.auth.config;
 
 import java.util.Properties;
@@ -168,7 +168,7 @@ public class DatabaseConfig {
 
         return dataSource;
     }
-}// RepositoryConfig.java
+}
 package com.service.device.auth.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -205,7 +205,7 @@ public class RepositoryConfig {
             DeviceTokenRepository deviceTokenRepository) {
         return new DeviceAccessTokenRepositorySQLImpl(template,accessGenerator);
     }
-}// JwtConfig.java
+}
 package com.service.device.auth.config;
 
 import java.nio.charset.StandardCharsets;
@@ -266,7 +266,7 @@ public class JwtConfig {
         byte[] keyBytes = secretString.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
-}// DeviceTokenUtilsConfig.java
+}
 package com.service.device.auth.config;
 
 import javax.crypto.SecretKey;
@@ -299,7 +299,7 @@ public class DeviceTokenUtilsConfig {
     DeviceTokenConverter deviceTokenConverter(DeviceTokenGenerator deviceTokenGenerator) {
         return new DeviceTokenConverter(deviceTokenGenerator);
     }
-}// KafkaConfig.java
+}
 package com.service.device.auth.config;
 
 import org.apache.kafka.clients.admin.NewTopic;
@@ -470,7 +470,7 @@ public class TransactionConfig {
         }
     }
 
-}// ApplicationConfig.java
+}
 package com.service.device.auth.config;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -486,7 +486,7 @@ public class ApplicationConfig {
     String appName(){
         return appNameString;
     }
-}// DeviceAuthService.java
+}
 package com.service.device.auth;
 
 import java.util.Map;
@@ -1044,7 +1044,7 @@ public class TypedAuthKafkaClient {
     public String getInstanceReplyTopic() {
         return instanceReplyTopic;
     }
-}// DeviceAuthCommandConsumer.java
+}
 package com.service.device.auth.kafka;
 
 import java.util.UUID;
@@ -1198,7 +1198,7 @@ public class DeviceAuthCommandConsumer {
             log.error("Device auth health check failed: {}", e.getMessage());
         }
     }
-}// DeviceAuthServiceImpl.java
+}
 package com.service.device.auth;
 
 import java.time.Duration;
@@ -1425,7 +1425,7 @@ public class DeviceAuthServiceImpl implements DeviceAuthService {
                     "error", e.getMessage());
         }
     }
-}// JwtKafkaAuthenticationFilter.java
+}
 package com.service.device.auth.security;
 
 import jakarta.servlet.FilterChain;
@@ -1560,7 +1560,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
-}// DeviceAuthServiceApplication.java
+}
 package com.service.device.auth;
 
 import org.springframework.boot.SpringApplication;

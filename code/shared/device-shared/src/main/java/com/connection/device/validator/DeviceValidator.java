@@ -1,15 +1,16 @@
-// DeviceValidator.java
+
 package com.connection.device.validator;
 
+import com.connection.device.exception.DeviceValidateException;
+import com.connection.device.model.DeviceBlm;
+import com.connection.device.model.DeviceDalm;
+import com.connection.device.model.DeviceDto;
 import java.util.UUID;
 
-import com.connection.device.exception.DeviceValidateException;
-import com.connection.device.model.DeviceBLM;
-import com.connection.device.model.DeviceDALM;
-import com.connection.device.model.DeviceDTO;
-
+/** . */
 public class DeviceValidator {
-    public void validate(DeviceDTO device) {
+    /** . */
+    public void validate(DeviceDto device) {
         if (device == null) {
             throw new DeviceValidateException("null", "Device is null");
         }
@@ -23,7 +24,8 @@ public class DeviceValidator {
         }
     }
 
-    public void validate(DeviceBLM device) {
+    /** . */
+    public void validate(DeviceBlm device) {
         if (device == null) {
             throw new DeviceValidateException("null", "Device is null");
         }
@@ -33,11 +35,15 @@ public class DeviceValidator {
             validateDeviceName(device.getDeviceName());
             validateDeviceDescription(device.getDeviceDescription());
         } catch (IllegalArgumentException e) {
-            throw new DeviceValidateException(device.getUid() != null ? device.getUid().toString() : "null", e.getMessage());
+            throw new DeviceValidateException(
+                    device.getUid() != null ? device.getUid().toString()
+                            : "null",
+                    e.getMessage());
         }
     }
 
-    public void validate(DeviceDALM device) {
+    /** . */
+    public void validate(DeviceDalm device) {
         if (device == null) {
             throw new DeviceValidateException("null", "Device is null");
         }
@@ -47,7 +53,10 @@ public class DeviceValidator {
             validateDeviceName(device.getDeviceName());
             validateDeviceDescription(device.getDeviceDescription());
         } catch (IllegalArgumentException e) {
-            throw new DeviceValidateException(device.getUid() != null ? device.getUid().toString() : "null", e.getMessage());
+            throw new DeviceValidateException(
+                    device.getUid() != null ? device.getUid().toString()
+                            : "null",
+                    e.getMessage());
         }
     }
 
@@ -90,16 +99,19 @@ public class DeviceValidator {
             throw new IllegalArgumentException("Device name cannot be empty");
         }
         if (deviceName.length() > 100) {
-            throw new IllegalArgumentException("Device name cannot exceed 100 characters");
+            throw new IllegalArgumentException(
+                    "Device name cannot exceed 100 characters");
         }
     }
 
     private void validateDeviceDescription(String deviceDescription) {
         if (deviceDescription == null || deviceDescription.trim().isEmpty()) {
-            throw new IllegalArgumentException("Device description cannot be empty");
+            throw new IllegalArgumentException(
+                    "Device description cannot be empty");
         }
         if (deviceDescription.length() > 500) {
-            throw new IllegalArgumentException("Device description cannot exceed 500 characters");
+            throw new IllegalArgumentException(
+                    "Device description cannot exceed 500 characters");
         }
     }
 }

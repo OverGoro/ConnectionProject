@@ -244,7 +244,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import com.atomikos.jdbc.AtomikosDataSourceBean;
 
 @Configuration
-public class DeviceJDBCConfig {
+public class DeviceJdbcConfig {
     
     @Value("${app.datasource.device.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
     private String xaDataSourceClassName;
@@ -284,7 +284,7 @@ public class DeviceJDBCConfig {
             @Qualifier("DeviceDataSource") DataSource deviceDataSource) {
         return new NamedParameterJdbcTemplate(deviceDataSource);
     }
-}// DeviceExceptionHandler.java
+}
 package com.connection.device.config;
 
 import org.springframework.http.HttpStatus;
@@ -481,7 +481,7 @@ public class SecurityConfig {
                 .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
-}   // GlobalExceptionHandler.java
+}   
 package com.connection.device.controller;
 
 import lombok.extern.slf4j.Slf4j;
@@ -530,7 +530,7 @@ public class GlobalExceptionHandler {
                 "internal_server_error",
                 "An unexpected error occurred"));
     }
-}// ErrorResponse.java
+}
 package com.connection.device.controller;
 
 import lombok.AllArgsConstructor;
@@ -541,7 +541,7 @@ import lombok.Getter;
 public class ErrorResponse {
     private final String error;
     private final String message;
-}// DeviceResponse.java
+}
 package com.connection.device.controller;
 
 import java.util.UUID;
@@ -553,7 +553,7 @@ import lombok.Getter;
 @Getter
 public class DeviceResponse {
     private final UUID deviceUid;
-}// HealthResponse.java
+}
 package com.connection.device.controller;
 
 import lombok.AllArgsConstructor;
@@ -719,7 +719,7 @@ public class DeviceController {
                 .limit(limit)
                 .collect(Collectors.toList());
     }
-}// DevicesListResponse.java
+}
 package com.connection.device.controller;
 
 import com.connection.device.model.DeviceDTO;
@@ -1324,7 +1324,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             throw new SecurityException("Authentication failed: " + e.getMessage());
         }
     }
-}// TestTopicUtils.java
+}
 package com.connection.device.integration;
 
 import java.util.UUID;

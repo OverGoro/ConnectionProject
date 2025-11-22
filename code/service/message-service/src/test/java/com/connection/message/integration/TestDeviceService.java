@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.connection.device.DeviceService;
-import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceBlm;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,12 +23,12 @@ import lombok.extern.slf4j.Slf4j;
 @ActiveProfiles("integrationtest")
 public class TestDeviceService implements DeviceService {
     // Хранилище тестовых данных
-    private final Map<UUID, DeviceBLM> testDevices = new ConcurrentHashMap<>();
-    private final Map<UUID, List<DeviceBLM>> clientDevices = new ConcurrentHashMap<>();
+    private final Map<UUID, DeviceBlm> testDevices = new ConcurrentHashMap<>();
+    private final Map<UUID, List<DeviceBlm>> clientDevices = new ConcurrentHashMap<>();
 
     // Методы для управления тестовыми данными
     public void addTestDevice(UUID deviceUid, UUID clientUid, String deviceName) {
-        DeviceBLM device = new DeviceBLM();
+        DeviceBlm device = new DeviceBlm();
         device.setUid(deviceUid);
         device.setClientUuid(clientUid);
         device.setDeviceName(deviceName);
@@ -36,7 +36,7 @@ public class TestDeviceService implements DeviceService {
 
         testDevices.put(deviceUid, device);
 
-        List<DeviceBLM> clientDeviceList = clientDevices.computeIfAbsent(
+        List<DeviceBlm> clientDeviceList = clientDevices.computeIfAbsent(
                 clientUid, k -> new java.util.ArrayList<>());
         clientDeviceList.add(device);
 
@@ -44,10 +44,10 @@ public class TestDeviceService implements DeviceService {
     }
 
     public void removeTestDevice(UUID deviceUid) {
-        DeviceBLM device = testDevices.remove(deviceUid);
+        DeviceBlm device = testDevices.remove(deviceUid);
         if (device != null) {
             UUID clientUid = device.getClientUuid();
-            List<DeviceBLM> clientDevicesList = clientDevices.get(clientUid);
+            List<DeviceBlm> clientDevicesList = clientDevices.get(clientUid);
             if (clientDevicesList != null) {
                 clientDevicesList.removeIf(d -> d.getUid().equals(deviceUid));
             }
@@ -65,34 +65,34 @@ public class TestDeviceService implements DeviceService {
     }
 
     public boolean deviceBelongsToClient(UUID deviceUid, UUID clientUid) {
-        DeviceBLM device = testDevices.get(deviceUid);
+        DeviceBlm device = testDevices.get(deviceUid);
         return device != null && device.getClientUuid().equals(clientUid);
     }
 
     @Override
-    public DeviceBLM createDevice(DeviceBLM deviceBLM) {
-        if (deviceBLM.getUid() == null) {
-            deviceBLM.setUid(UUID.randomUUID());
+    public DeviceBlm createDevice(DeviceBlm deviceBlm) {
+        if (deviceBlm.getUid() == null) {
+            deviceBlm.setUid(UUID.randomUUID());
         }
         
-        testDevices.put(deviceBLM.getUid(), deviceBLM);
+        testDevices.put(deviceBlm.getUid(), deviceBlm);
         
-        List<DeviceBLM> clientDeviceList = clientDevices.computeIfAbsent(
-                deviceBLM.getClientUuid(), k -> new java.util.ArrayList<>());
-        clientDeviceList.add(deviceBLM);
+        List<DeviceBlm> clientDeviceList = clientDevices.computeIfAbsent(
+                deviceBlm.getClientUuid(), k -> new java.util.ArrayList<>());
+        clientDeviceList.add(deviceBlm);
         
         log.info(" Test Responder: Created device {} for client {}", 
-                deviceBLM.getUid(), deviceBLM.getClientUuid());
+                deviceBlm.getUid(), deviceBlm.getClientUuid());
         
-        return deviceBLM;
+        return deviceBlm;
     }
 
     @Override
     public void deleteDevice(UUID deviceUid) {
-        DeviceBLM device = testDevices.remove(deviceUid);
+        DeviceBlm device = testDevices.remove(deviceUid);
         if (device != null) {
             UUID clientUid = device.getClientUuid();
-            List<DeviceBLM> clientDevicesList = clientDevices.get(clientUid);
+            List<DeviceBlm> clientDevicesList = clientDevices.get(clientUid);
             if (clientDevicesList != null) {
                 clientDevicesList.removeIf(d -> d.getUid().equals(deviceUid));
             }
@@ -108,8 +108,8 @@ public class TestDeviceService implements DeviceService {
     }
 
     @Override
-    public DeviceBLM getDevice(UUID deviceUid) {
-        DeviceBLM device = testDevices.get(deviceUid);
+    public DeviceBlm getDevice(UUID deviceUid) {
+        DeviceBlm device = testDevices.get(deviceUid);
         if (device == null) {
             log.debug(" Test Responder: Device {} not found", deviceUid);
         }
@@ -117,8 +117,8 @@ public class TestDeviceService implements DeviceService {
     }
 
     @Override
-    public List<DeviceBLM> getDevicesByClient(UUID clientUid) {
-        List<DeviceBLM> devices = clientDevices.getOrDefault(clientUid, java.util.Collections.emptyList());
+    public List<DeviceBlm> getDevicesByClient(UUID clientUid) {
+        List<DeviceBlm> devices = clientDevices.getOrDefault(clientUid, java.util.Collections.emptyList());
         log.debug(" Test Responder: Found {} devices for client {}", devices.size(), clientUid);
         return new java.util.ArrayList<>(devices); // Возвращаем копию для безопасности
     }
@@ -139,42 +139,42 @@ public class TestDeviceService implements DeviceService {
     }
 
     @Override
-    public DeviceBLM updateDevice(DeviceBLM deviceBLM) {
-        if (deviceBLM.getUid() == null) {
+    public DeviceBlm updateDevice(DeviceBlm deviceBlm) {
+        if (deviceBlm.getUid() == null) {
             throw new IllegalArgumentException("Device UID cannot be null for update");
         }
         
-        DeviceBLM existingDevice = testDevices.get(deviceBLM.getUid());
+        DeviceBlm existingDevice = testDevices.get(deviceBlm.getUid());
         if (existingDevice == null) {
-            log.warn(" Test Responder: Attempted to update non-existent device {}", deviceBLM.getUid());
+            log.warn(" Test Responder: Attempted to update non-existent device {}", deviceBlm.getUid());
             return null;
         }
         
         // Обновляем поля устройства
-        if (deviceBLM.getDeviceName() != null) {
-            existingDevice.setDeviceName(deviceBLM.getDeviceName());
+        if (deviceBlm.getDeviceName() != null) {
+            existingDevice.setDeviceName(deviceBlm.getDeviceName());
         }
-        if (deviceBLM.getDeviceDescription() != null) {
-            existingDevice.setDeviceDescription(deviceBLM.getDeviceDescription());
+        if (deviceBlm.getDeviceDescription() != null) {
+            existingDevice.setDeviceDescription(deviceBlm.getDeviceDescription());
         }
-        if (deviceBLM.getClientUuid() != null && !deviceBLM.getClientUuid().equals(existingDevice.getClientUuid())) {
+        if (deviceBlm.getClientUuid() != null && !deviceBlm.getClientUuid().equals(existingDevice.getClientUuid())) {
             // Если изменился клиент, перемещаем устройство в другой список
             UUID oldClientUid = existingDevice.getClientUuid();
-            UUID newClientUid = deviceBLM.getClientUuid();
+            UUID newClientUid = deviceBlm.getClientUuid();
             
-            List<DeviceBLM> oldClientDevices = clientDevices.get(oldClientUid);
+            List<DeviceBlm> oldClientDevices = clientDevices.get(oldClientUid);
             if (oldClientDevices != null) {
-                oldClientDevices.removeIf(d -> d.getUid().equals(deviceBLM.getUid()));
+                oldClientDevices.removeIf(d -> d.getUid().equals(deviceBlm.getUid()));
             }
             
-            List<DeviceBLM> newClientDevices = clientDevices.computeIfAbsent(
+            List<DeviceBlm> newClientDevices = clientDevices.computeIfAbsent(
                     newClientUid, k -> new java.util.ArrayList<>());
             newClientDevices.add(existingDevice);
             
             existingDevice.setClientUuid(newClientUid);
         }
         
-        log.info(" Test Responder: Updated device {}", deviceBLM.getUid());
+        log.info(" Test Responder: Updated device {}", deviceBlm.getUid());
         return existingDevice;
     }
 }

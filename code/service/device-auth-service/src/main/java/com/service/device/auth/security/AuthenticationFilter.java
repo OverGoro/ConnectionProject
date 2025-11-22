@@ -1,13 +1,13 @@
 package com.service.device.auth.security;
 
+import com.connection.service.auth.AuthService;
+import com.connection.token.model.AccessTokenBlm;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
-import com.connection.service.auth.AuthService;
-import com.connection.token.model.AccessTokenBLM;
-
+import java.io.IOException;
+import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,9 +17,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.Collections;
-
+/** . */
 @Slf4j
 @Component("deviceAuthAuthenticationFilter")
 @RequiredArgsConstructor
@@ -31,8 +29,8 @@ public class AuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+            HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
         String authHeader = request.getHeader(AUTH_HEADER);
 
@@ -54,26 +52,33 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private void authenticateWithToken(String token, HttpServletRequest request) {
+    private void authenticateWithToken(String token,
+            HttpServletRequest request) {
         try {
             String cleanToken = token.trim();
             cleanToken = cleanToken.replace("Bearer ", "");
 
             log.info("Validating token: {}...", cleanToken);
 
-            AccessTokenBLM accessTokenBLM = authClient.validateAccessToken(cleanToken);
+            AccessTokenBlm accessTokenBlm =
+                    authClient.validateAccessToken(cleanToken);
 
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    accessTokenBLM.getClientUID(),
-                    null,
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            accessTokenBlm.getClientUid(), null,
+                            Collections.singletonList(
+                                    new SimpleGrantedAuthority("ROLE_USER")));
 
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            authentication.setDetails(
+                    new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext()
+                    .setAuthentication(authentication);
 
-            log.info("Successfully authenticated client: {}", accessTokenBLM.getClientUID());
+            log.info("Successfully authenticated client: {}",
+                    accessTokenBlm.getClientUid());
         } catch (Exception e) {
-            throw new SecurityException("Authentication failed: " + e.getMessage());
+            throw new SecurityException(
+                    "Authentication failed: " + e.getMessage());
         }
     }
 }

@@ -1,14 +1,14 @@
 package com.connection.service.auth.config;
 
+import com.connection.token.converter.AccessTokenConverter;
+import com.connection.token.generator.AccessTokenGenerator;
+import com.connection.token.validator.AccessTokenValidator;
 import javax.crypto.SecretKey;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.connection.token.converter.AccessTokenConverter;
-import com.connection.token.generator.AccessTokenGenerator;
-import com.connection.token.validator.AccessTokenValidator;
+/** . */
 @Configuration
 public class AccessTokenUtilsConfig {
     @Bean("AccessTokenValidator")

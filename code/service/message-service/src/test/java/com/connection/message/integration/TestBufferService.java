@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.connection.processing.buffer.model.BufferBLM;
+import com.connection.processing.buffer.model.BufferBlm;
 import com.service.buffer.BufferService;
 
 import lombok.RequiredArgsConstructor;
@@ -24,14 +24,14 @@ import lombok.extern.slf4j.Slf4j;
 public class TestBufferService implements BufferService {
 
     // Хранилище тестовых данных
-    private final Map<UUID, BufferBLM> testBuffers = new ConcurrentHashMap<>();
-    private final Map<UUID, List<BufferBLM>> deviceBuffers = new ConcurrentHashMap<>();
-    private final Map<UUID, List<BufferBLM>> schemeBuffers = new ConcurrentHashMap<>();
-    private final Map<UUID, List<BufferBLM>> clientBuffers = new ConcurrentHashMap<>();
+    private final Map<UUID, BufferBlm> testBuffers = new ConcurrentHashMap<>();
+    private final Map<UUID, List<BufferBlm>> deviceBuffers = new ConcurrentHashMap<>();
+    private final Map<UUID, List<BufferBlm>> schemeBuffers = new ConcurrentHashMap<>();
+    private final Map<UUID, List<BufferBlm>> clientBuffers = new ConcurrentHashMap<>();
 
     // Методы для управления тестовыми данными
     public void addTestBuffer(UUID bufferUid, UUID deviceUid, int maxMessages, int maxSize) {
-        BufferBLM buffer = new BufferBLM(
+        BufferBlm buffer = new BufferBlm(
                 bufferUid,
                 deviceUid,
                 maxMessages,
@@ -41,7 +41,7 @@ public class TestBufferService implements BufferService {
 
         testBuffers.put(bufferUid, buffer);
 
-        List<BufferBLM> deviceBufferList = deviceBuffers.computeIfAbsent(
+        List<BufferBlm> deviceBufferList = deviceBuffers.computeIfAbsent(
                 deviceUid, k -> new java.util.ArrayList<>());
         deviceBufferList.add(buffer);
 
@@ -49,9 +49,9 @@ public class TestBufferService implements BufferService {
     }
 
     public void linkBufferToScheme(UUID bufferUid, UUID schemeUid) {
-        BufferBLM buffer = testBuffers.get(bufferUid);
+        BufferBlm buffer = testBuffers.get(bufferUid);
         if (buffer != null) {
-            List<BufferBLM> schemeBufferList = schemeBuffers.computeIfAbsent(
+            List<BufferBlm> schemeBufferList = schemeBuffers.computeIfAbsent(
                     schemeUid, k -> new java.util.ArrayList<>());
             if (!schemeBufferList.contains(buffer)) {
                 schemeBufferList.add(buffer);
@@ -61,9 +61,9 @@ public class TestBufferService implements BufferService {
     }
 
     public void linkBufferToClient(UUID bufferUid, UUID clientUid) {
-        BufferBLM buffer = testBuffers.get(bufferUid);
+        BufferBlm buffer = testBuffers.get(bufferUid);
         if (buffer != null) {
-            List<BufferBLM> clientBufferList = clientBuffers.computeIfAbsent(
+            List<BufferBlm> clientBufferList = clientBuffers.computeIfAbsent(
                     clientUid, k -> new java.util.ArrayList<>());
             if (!clientBufferList.contains(buffer)) {
                 clientBufferList.add(buffer);
@@ -85,7 +85,7 @@ public class TestBufferService implements BufferService {
     }
 
     public boolean bufferBelongsToDevice(UUID bufferUid, UUID deviceUid) {
-        BufferBLM buffer = testBuffers.get(bufferUid);
+        BufferBlm buffer = testBuffers.get(bufferUid);
         return buffer != null && buffer.getDeviceUid().equals(deviceUid);
     }
 
@@ -97,27 +97,27 @@ public class TestBufferService implements BufferService {
     }
 
     @Override
-    public BufferBLM createBuffer(BufferBLM bufferBLM) {
-        if (bufferBLM.getUid() == null) {
-            bufferBLM.setUid(UUID.randomUUID());
+    public BufferBlm createBuffer(BufferBlm bufferBlm) {
+        if (bufferBlm.getUid() == null) {
+            bufferBlm.setUid(UUID.randomUUID());
         }
         
-        testBuffers.put(bufferBLM.getUid(), bufferBLM);
+        testBuffers.put(bufferBlm.getUid(), bufferBlm);
         
         // Связываем с устройством
-        List<BufferBLM> deviceBufferList = deviceBuffers.computeIfAbsent(
-                bufferBLM.getDeviceUid(), k -> new ArrayList<>());
-        deviceBufferList.add(bufferBLM);
+        List<BufferBlm> deviceBufferList = deviceBuffers.computeIfAbsent(
+                bufferBlm.getDeviceUid(), k -> new ArrayList<>());
+        deviceBufferList.add(bufferBlm);
         
         log.info("📝 Test Responder: Created buffer {} for device {}", 
-                bufferBLM.getUid(), bufferBLM.getDeviceUid());
+                bufferBlm.getUid(), bufferBlm.getDeviceUid());
         
-        return bufferBLM;
+        return bufferBlm;
     }
 
     @Override
     public void deleteAllBuffersFromConnectionScheme(UUID connectionSchemeUid) {
-        List<BufferBLM> schemeBuffersList = schemeBuffers.remove(connectionSchemeUid);
+        List<BufferBlm> schemeBuffersList = schemeBuffers.remove(connectionSchemeUid);
         if (schemeBuffersList != null) {
             log.info("🗑️ Test Responder: Removed all {} buffers from scheme {}", 
                     schemeBuffersList.size(), connectionSchemeUid);
@@ -128,10 +128,10 @@ public class TestBufferService implements BufferService {
 
     @Override
     public void deleteBuffer(UUID bufferUid) {
-        BufferBLM removedBuffer = testBuffers.remove(bufferUid);
+        BufferBlm removedBuffer = testBuffers.remove(bufferUid);
         if (removedBuffer != null) {
             // Удаляем из связей с устройствами
-            List<BufferBLM> deviceBuffersList = deviceBuffers.get(removedBuffer.getDeviceUid());
+            List<BufferBlm> deviceBuffersList = deviceBuffers.get(removedBuffer.getDeviceUid());
             if (deviceBuffersList != null) {
                 deviceBuffersList.removeIf(b -> b.getUid().equals(bufferUid));
             }
@@ -150,7 +150,7 @@ public class TestBufferService implements BufferService {
 
     @Override
     public void deleteBufferFromConnectionScheme(UUID connectionSchemeUid, UUID bufferUid) {
-        List<BufferBLM> schemeBuffersList = schemeBuffers.get(connectionSchemeUid);
+        List<BufferBlm> schemeBuffersList = schemeBuffers.get(connectionSchemeUid);
         if (schemeBuffersList != null) {
             boolean removed = schemeBuffersList.removeIf(b -> b.getUid().equals(bufferUid));
             if (removed) {
@@ -162,8 +162,8 @@ public class TestBufferService implements BufferService {
     }
 
     @Override
-    public BufferBLM getBufferByUid(UUID bufferUid) {
-        BufferBLM buffer = testBuffers.get(bufferUid);
+    public BufferBlm getBufferByUid(UUID bufferUid) {
+        BufferBlm buffer = testBuffers.get(bufferUid);
         if (buffer == null) {
             log.debug("🔍 Test Responder: Buffer {} not found", bufferUid);
         }
@@ -171,22 +171,22 @@ public class TestBufferService implements BufferService {
     }
 
     @Override
-    public List<BufferBLM> getBuffersByClient(UUID clientUid) {
-        List<BufferBLM> buffers = clientBuffers.getOrDefault(clientUid, new ArrayList<>());
+    public List<BufferBlm> getBuffersByClient(UUID clientUid) {
+        List<BufferBlm> buffers = clientBuffers.getOrDefault(clientUid, new ArrayList<>());
         log.debug("🔍 Test Responder: Found {} buffers for client {}", buffers.size(), clientUid);
         return new ArrayList<>(buffers); // Возвращаем копию для безопасности
     }
 
     @Override
-    public List<BufferBLM> getBuffersByConnectionScheme(UUID connectionSchemeUid) {
-        List<BufferBLM> buffers = schemeBuffers.getOrDefault(connectionSchemeUid, new ArrayList<>());
+    public List<BufferBlm> getBuffersByConnectionScheme(UUID connectionSchemeUid) {
+        List<BufferBlm> buffers = schemeBuffers.getOrDefault(connectionSchemeUid, new ArrayList<>());
         log.debug("🔍 Test Responder: Found {} buffers for scheme {}", buffers.size(), connectionSchemeUid);
         return new ArrayList<>(buffers); // Возвращаем копию для безопасности
     }
 
     @Override
-    public List<BufferBLM> getBuffersByDevice(UUID deviceUid) {
-        List<BufferBLM> buffers = deviceBuffers.getOrDefault(deviceUid, new ArrayList<>());
+    public List<BufferBlm> getBuffersByDevice(UUID deviceUid) {
+        List<BufferBlm> buffers = deviceBuffers.getOrDefault(deviceUid, new ArrayList<>());
         log.debug("🔍 Test Responder: Found {} buffers for device {}", buffers.size(), deviceUid);
         return new ArrayList<>(buffers); // Возвращаем копию для безопасности
     }
@@ -209,37 +209,37 @@ public class TestBufferService implements BufferService {
     }
 
     @Override
-    public BufferBLM updateBuffer(UUID bufferUid, BufferBLM bufferBLM) {
-        BufferBLM existingBuffer = testBuffers.get(bufferUid);
+    public BufferBlm updateBuffer(UUID bufferUid, BufferBlm bufferBlm) {
+        BufferBlm existingBuffer = testBuffers.get(bufferUid);
         if (existingBuffer == null) {
             log.warn("⚠️ Test Responder: Attempted to update non-existent buffer {}", bufferUid);
             return null;
         }
         
         // Обновляем поля буфера
-        if (bufferBLM.getMaxMessagesNumber() != null) {
-            existingBuffer.setMaxMessagesNumber(bufferBLM.getMaxMessagesNumber());
+        if (bufferBlm.getMaxMessagesNumber() != null) {
+            existingBuffer.setMaxMessagesNumber(bufferBlm.getMaxMessagesNumber());
         }
-        if (bufferBLM.getMaxMessageSize() != null) {
-            existingBuffer.setMaxMessageSize(bufferBLM.getMaxMessageSize());
+        if (bufferBlm.getMaxMessageSize() != null) {
+            existingBuffer.setMaxMessageSize(bufferBlm.getMaxMessageSize());
         }
-        if (bufferBLM.getMessagePrototype() != null) {
-            existingBuffer.setMessagePrototype(bufferBLM.getMessagePrototype());
+        if (bufferBlm.getMessagePrototype() != null) {
+            existingBuffer.setMessagePrototype(bufferBlm.getMessagePrototype());
         }
         
         // Обрабатываем смену устройства
-        if (bufferBLM.getDeviceUid() != null && !bufferBLM.getDeviceUid().equals(existingBuffer.getDeviceUid())) {
+        if (bufferBlm.getDeviceUid() != null && !bufferBlm.getDeviceUid().equals(existingBuffer.getDeviceUid())) {
             UUID oldDeviceUid = existingBuffer.getDeviceUid();
-            UUID newDeviceUid = bufferBLM.getDeviceUid();
+            UUID newDeviceUid = bufferBlm.getDeviceUid();
             
             // Удаляем из старого устройства
-            List<BufferBLM> oldDeviceBuffers = deviceBuffers.get(oldDeviceUid);
+            List<BufferBlm> oldDeviceBuffers = deviceBuffers.get(oldDeviceUid);
             if (oldDeviceBuffers != null) {
                 oldDeviceBuffers.removeIf(b -> b.getUid().equals(bufferUid));
             }
             
             // Добавляем в новое устройство
-            List<BufferBLM> newDeviceBuffers = deviceBuffers.computeIfAbsent(
+            List<BufferBlm> newDeviceBuffers = deviceBuffers.computeIfAbsent(
                     newDeviceUid, k -> new ArrayList<>());
             if (!newDeviceBuffers.contains(existingBuffer)) {
                 newDeviceBuffers.add(existingBuffer);
@@ -253,7 +253,7 @@ public class TestBufferService implements BufferService {
     }
 
     // Вспомогательные методы для тестов
-    public List<BufferBLM> getAllBuffers() {
+    public List<BufferBlm> getAllBuffers() {
         return new ArrayList<>(testBuffers.values());
     }
 
@@ -262,12 +262,12 @@ public class TestBufferService implements BufferService {
     }
 
     public int getDeviceBufferCount(UUID deviceUid) {
-        List<BufferBLM> buffers = deviceBuffers.get(deviceUid);
+        List<BufferBlm> buffers = deviceBuffers.get(deviceUid);
         return buffers != null ? buffers.size() : 0;
     }
 
     public int getSchemeBufferCount(UUID schemeUid) {
-        List<BufferBLM> buffers = schemeBuffers.get(schemeUid);
+        List<BufferBlm> buffers = schemeBuffers.get(schemeUid);
         return buffers != null ? buffers.size() : 0;
     }
 }

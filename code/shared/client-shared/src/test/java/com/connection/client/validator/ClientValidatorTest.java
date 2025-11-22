@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import com.connection.client.exception.ClientValidateException;
-import com.connection.client.model.ClientBLM;
-import com.connection.client.model.ClientDALM;
-import com.connection.client.model.ClientDTO;
+import com.connection.client.model.ClientBlm;
+import com.connection.client.model.ClientDalm;
+import com.connection.client.model.ClientDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Client Validator Tests")
@@ -30,89 +30,89 @@ class ClientValidatorTest {
     }
 
     @Test
-    @DisplayName("Validate valid ClientDTO - Positive")
-    void testValidateClientDTO_Positive() {
-        ClientDTO client = createValidClientDTO();
+    @DisplayName("Validate valid ClientDto - Positive")
+    void testValidateClientDto_Positive() {
+        ClientDto client = createValidClientDto();
         assertThat(client).isNotNull();
         validator.validate(client);
     }
 
     @Test
-    @DisplayName("Validate valid ClientBLM - Positive")
-    void testValidateClientBLM_Positive() {
-        ClientBLM client = createValidClientBLM();
+    @DisplayName("Validate valid ClientBlm - Positive")
+    void testValidateClientBlm_Positive() {
+        ClientBlm client = createValidClientBlm();
         assertThat(client).isNotNull();
         validator.validate(client);
     }
 
     @Test
-    @DisplayName("Validate valid ClientDALM - Positive")
-    void testValidateClientDALM_Positive() {
-        ClientDALM client = createValidClientDALM();
+    @DisplayName("Validate valid ClientDalm - Positive")
+    void testValidateClientDalm_Positive() {
+        ClientDalm client = createValidClientDalm();
         assertThat(client).isNotNull();
         validator.validate(client);
     }
 
     @Test
-    @DisplayName("Validate null ClientDTO - Negative")
-    void testValidateNullClientDTO_Negative() {
-        ClientDTO client = null;
+    @DisplayName("Validate null ClientDto - Negative")
+    void testValidateNullClientDto_Negative() {
+        ClientDto client = null;
         assertThatThrownBy(() -> validator.validate(client))
                 .isInstanceOf(ClientValidateException.class);
     }
 
     // @Test
-    // @DisplayName("Validate ClientDTO with invalid email - Negative")
-    // void testValidateClientDTOWithInvalidEmail_Negative() {
-    //     ClientDTO client = createClientDTOWithInvalidEmail();
+    // @DisplayName("Validate ClientDto with invalid email - Negative")
+    // void testValidateClientDtoWithInvalidEmail_Negative() {
+    //     ClientDto client = createClientDtoWithInvalidEmail();
     //     assertThatThrownBy(() -> validator.validate(client))
     //             .isInstanceOf(ClientValidateException.class);
     // }
 
     @Test
-    @DisplayName("Validate ClientDTO with short password - Negative")
-    void testValidateClientDTOWithShortPassword_Negative() {
-        ClientDTO client = createClientDTOWithShortPassword();
+    @DisplayName("Validate ClientDto with short password - Negative")
+    void testValidateClientDtoWithShortPassword_Negative() {
+        ClientDto client = createClientDtoWithShortPassword();
         assertThatThrownBy(() -> validator.validate(client))
                 .isInstanceOf(ClientValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate ClientDTO with invalid username - Negative")
-    void testValidateClientDTOWithInvalidUsername_Negative() {
-        ClientDTO client = createClientDTOWithInvalidUsername();
+    @DisplayName("Validate ClientDto with invalid username - Negative")
+    void testValidateClientDtoWithInvalidUsername_Negative() {
+        ClientDto client = createClientDtoWithInvalidUsername();
         assertThatThrownBy(() -> validator.validate(client))
                 .isInstanceOf(ClientValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate ClientDTO with future birth date - Negative")
-    void testValidateClientDTOWithFutureBirthDate_Negative() {
-        ClientDTO client = createClientDTOWithFutureBirthDate();
+    @DisplayName("Validate ClientDto with future birth date - Negative")
+    void testValidateClientDtoWithFutureBirthDate_Negative() {
+        ClientDto client = createClientDtoWithFutureBirthDate();
         assertThatThrownBy(() -> validator.validate(client))
                 .isInstanceOf(ClientValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate null ClientBLM - Negative")
-    void testValidateNullClientBLM_Negative() {
-        ClientBLM client = null;
+    @DisplayName("Validate null ClientBlm - Negative")
+    void testValidateNullClientBlm_Negative() {
+        ClientBlm client = null;
         assertThatThrownBy(() -> validator.validate(client))
                 .isInstanceOf(ClientValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate ClientBLM with null fields - Negative")
-    void testValidateClientBLMWithNullFields_Negative() {
-        ClientBLM client = createClientBLMWithNullFields();
+    @DisplayName("Validate ClientBlm with null fields - Negative")
+    void testValidateClientBlmWithNullFields_Negative() {
+        ClientBlm client = createClientBlmWithNullFields();
         assertThatThrownBy(() -> validator.validate(client))
                 .isInstanceOf(ClientValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate ClientDTO with empty email - Negative")
-    void testValidateClientDTOWithEmptyEmail_Negative() {
-        ClientDTO client = ClientDTO.builder()
+    @DisplayName("Validate ClientDto with empty email - Negative")
+    void testValidateClientDtoWithEmptyEmail_Negative() {
+        ClientDto client = ClientDto.builder()
                 .uid(UUID.randomUUID())
                 .birthDate(new Date())
                 .email("")
@@ -124,10 +124,10 @@ class ClientValidatorTest {
     }
 
     @Test
-    @DisplayName("Validate ClientDTO with long email - Negative")
-    void testValidateClientDTOWithLongEmail_Negative() {
+    @DisplayName("Validate ClientDto with long email - Negative")
+    void testValidateClientDtoWithLongEmail_Negative() {
         String longEmail = "a".repeat(256) + "@example.com";
-        ClientDTO client = ClientDTO.builder()
+        ClientDto client = ClientDto.builder()
                 .uid(UUID.randomUUID())
                 .birthDate(new Date())
                 .email(longEmail)

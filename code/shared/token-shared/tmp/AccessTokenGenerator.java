@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import com.connection.token.model.AccessTokenBLM;
+import com.connection.token.model.AccessTokenBlm;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -36,7 +36,7 @@ public class AccessTokenGenerator {
         return token;
     }
 
-    public AccessTokenBLM getAccessTokenBLM(String token) {
+    public AccessTokenBlm getAccessTokenBlm(String token) {
         Jws<Claims> jws = Jwts.parser()
                 .verifyWith(jwtSecretKey)
                 .build()
@@ -52,6 +52,6 @@ public class AccessTokenGenerator {
             throw new RuntimeException("Invalid token subject");
         }
 
-        return new AccessTokenBLM(token, clientUid, issuedAt, expiration);
+        return new AccessTokenBlm(token, clientUid, issuedAt, expiration);
     }
 }

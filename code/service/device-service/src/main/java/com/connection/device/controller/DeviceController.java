@@ -1,10 +1,16 @@
 package com.connection.device.controller;
 
+import com.connection.device.DeviceService;
+import com.connection.device.config.SecurityUtils;
+import com.connection.device.converter.DeviceConverter;
+import com.connection.device.model.DeviceBlm;
+import com.connection.device.model.DeviceDto;
+import com.connection.device.validator.DeviceValidator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,23 +23,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.connection.device.DeviceService;
-import com.connection.device.config.SecurityUtils;
-import com.connection.device.converter.DeviceConverter;
-import com.connection.device.model.DeviceBLM;
-import com.connection.device.model.DeviceDTO;
-import com.connection.device.validator.DeviceValidator;
-
-import lombok.extern.slf4j.Slf4j;
-
+/** . */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/device")
 public class DeviceController {
-    
+
     @Qualifier("DeviceServiceApiImpl")
     private final DeviceService deviceService;
-    
+
     private final DeviceValidator deviceValidator;
     private final DeviceConverter deviceConverter;
 
@@ -42,77 +40,79 @@ public class DeviceController {
     private static final int DEFAULT_LIMIT = 50;
     private static final int MAX_LIMIT = 1000;
 
+    /** . */
     public DeviceController(
             @Qualifier("DeviceServiceApiImpl") DeviceService deviceService,
-            DeviceValidator deviceValidator,
-            DeviceConverter deviceConverter) {
+            DeviceValidator deviceValidator, DeviceConverter deviceConverter) {
         this.deviceService = deviceService;
         this.deviceValidator = deviceValidator;
         this.deviceConverter = deviceConverter;
     }
 
+    /** . */
     @PostMapping("/devices")
-    public ResponseEntity<DeviceResponse> createDevice(@RequestBody DeviceDTO deviceDTO) {
+    public ResponseEntity<DeviceResponse> createDevice(
+            @RequestBody DeviceDto deviceDto) {
         UUID clientUid = SecurityUtils.getCurrentClientUid();
         log.info("Creating device for client {}", clientUid);
 
-        deviceValidator.validate(deviceDTO);
-        DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
-        DeviceBLM device = deviceService.createDevice(deviceBLM);
+        deviceValidator.validate(deviceDto);
+        DeviceBlm deviceBlm = deviceConverter.toBlm(deviceDto);
+        DeviceBlm device = deviceService.createDevice(deviceBlm);
 
         return ResponseEntity.ok(new DeviceResponse(device.getUid()));
     }
 
+    /** . */
     @GetMapping("/devices")
     public ResponseEntity<DevicesListResponse> getDevicesByClient(
             @RequestParam(required = false) List<UUID> deviceUids,
             @RequestParam(defaultValue = "" + DEFAULT_OFFSET) int offset,
             @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
-        
-        log.info("Getting devices for client with offset: {}, limit: {}", offset, limit);
-        
-        List<DeviceBLM> allDevices = new ArrayList<>();
-        if (deviceUids != null && !deviceUids.isEmpty()){
-            for (UUID devUuid : deviceUids){
+
+        log.info("Getting devices for client with offset: {}, limit: {}",
+                offset, limit);
+
+        List<DeviceBlm> allDevices = new ArrayList<>();
+        if (deviceUids != null && !deviceUids.isEmpty()) {
+            for (UUID devUuid : deviceUids) {
                 allDevices.add(deviceService.getDevice(devUuid));
             }
-        }
-        else{
+        } else {
             UUID clientUid = SecurityUtils.getCurrentClientUid();
             allDevices.addAll(deviceService.getDevicesByClient(clientUid));
         }
-        
-        List<DeviceBLM> paginatedDevices = applyPagination(allDevices, offset, limit);
-        List<DeviceDTO> deviceDTOs = paginatedDevices.stream()
-                .map(deviceConverter::toDTO)
-                .collect(Collectors.toList());
 
-        DevicesListResponse.PaginationInfo paginationInfo = 
-            new DevicesListResponse.PaginationInfo(
-                offset, 
-                limit, 
-                allDevices.size(), 
-                (offset + limit) < allDevices.size()
-            );
+        List<DeviceBlm> paginatedDevices =
+                applyPagination(allDevices, offset, limit);
+        List<DeviceDto> deviceDtos = paginatedDevices.stream()
+                .map(deviceConverter::toDto).collect(Collectors.toList());
 
-        return ResponseEntity.ok(new DevicesListResponse(deviceDTOs, paginationInfo));
+        DevicesListResponse.PaginationInfo paginationInfo =
+                new DevicesListResponse.PaginationInfo(offset, limit,
+                        allDevices.size(),
+                        (offset + limit) < allDevices.size());
+
+        return ResponseEntity
+                .ok(new DevicesListResponse(deviceDtos, paginationInfo));
     }
 
+    /** . */
     @PutMapping("/devices/{deviceUid}")
     public ResponseEntity<DeviceResponse> updateDevice(
-            @PathVariable UUID deviceUid,
-            @RequestBody DeviceDTO deviceDTO) {
-        
+            @PathVariable UUID deviceUid, @RequestBody DeviceDto deviceDto) {
+
         UUID clientUid = SecurityUtils.getCurrentClientUid();
         log.info("Updating device: {} for client: {}", deviceUid, clientUid);
 
-        deviceValidator.validate(deviceDTO);
-        DeviceBLM deviceBLM = deviceConverter.toBLM(deviceDTO);
-        DeviceBLM device = deviceService.updateDevice(deviceBLM);
+        deviceValidator.validate(deviceDto);
+        DeviceBlm deviceBlm = deviceConverter.toBlm(deviceDto);
+        DeviceBlm device = deviceService.updateDevice(deviceBlm);
 
         return ResponseEntity.ok(new DeviceResponse(device.getUid()));
     }
 
+    /** . */
     @DeleteMapping("/devices/{deviceUid}")
     public ResponseEntity<Void> deleteDevice(@PathVariable UUID deviceUid) {
         log.info("Deleting device: {}", deviceUid);
@@ -122,36 +122,38 @@ public class DeviceController {
         return ResponseEntity.noContent().build();
     }
 
+    /** . */
     @GetMapping("/health")
     public ResponseEntity<HealthResponse> healthCheck() {
-        log.info("Health check: status: OK, service: device-service, timestamp: {}", 
+        log.info(
+                "Health check: status: OK, service: device-service, timestamp: {}",
                 System.currentTimeMillis());
 
-        return ResponseEntity.ok().body(new HealthResponse(deviceService.getHealthStatus().toString()));
+        return ResponseEntity.ok().body(
+                new HealthResponse(deviceService.getHealthStatus().toString()));
     }
 
     /**
-     * Применяет пагинацию к списку устройств
+     * Применяет пагинацию к списку устройств.
      * 
      * @param devices полный список устройств
      * @param offset смещение (начальная позиция)
      * @param limit максимальное количество элементов
      * @return пагинированный список устройств
      */
-    private List<DeviceBLM> applyPagination(List<DeviceBLM> devices, int offset, int limit) {
+    private List<DeviceBlm> applyPagination(List<DeviceBlm> devices, int offset,
+            int limit) {
         // Валидация параметров пагинации
         if (offset < 0) {
             offset = DEFAULT_OFFSET;
         }
-        
+
         if (limit <= 0 || limit > MAX_LIMIT) {
             limit = DEFAULT_LIMIT;
         }
-        
+
         // Применяем пагинацию
-        return devices.stream()
-                .skip(offset)
-                .limit(limit)
+        return devices.stream().skip(offset).limit(limit)
                 .collect(Collectors.toList());
     }
 }

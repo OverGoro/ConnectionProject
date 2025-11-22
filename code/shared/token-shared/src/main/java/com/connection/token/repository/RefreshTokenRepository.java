@@ -1,47 +1,46 @@
 package com.connection.token.repository;
 
-import java.util.UUID;
-
 import com.connection.token.exception.RefreshTokenAlreadyExisistsException;
 import com.connection.token.exception.RefreshTokenNotFoundException;
-import com.connection.token.model.RefreshTokenDALM;
+import com.connection.token.model.RefreshTokenDalm;
+import java.util.UUID;
 
+/** . */
 public interface RefreshTokenRepository {
     /**
-     * Лобавить новый refreshToken
+     * Лобавить новый refreshToken.
      * 
-     * @param refreshTokenDALM Новый токен
+     * @param refreshTokenDalm Новый токен
      */
-    public void add(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenAlreadyExisistsException;
+    public void add(RefreshTokenDalm refreshTokenDalm)
+            throws RefreshTokenAlreadyExisistsException;
 
     /**
-     * Обновить токен
-     * Создается новый токен взамен старого, старый отзывается
+     * Обновить токен. Создается новый токен взамен старого, старый отзывается.
      * 
-     * @param refreshTokenDALM Старый токен
-     * @return Новый сохраненный токен
+     * @param refreshTokenDalm Старый токен.
      * @throws RefreshTokenNotFoundException Если токен с таким uid не существует
      */
-    public void updateToken(RefreshTokenDALM refreshTokenDALM, RefreshTokenDALM newRefreshTokenDALM)
+    public void updateToken(RefreshTokenDalm refreshTokenDalm,
+            RefreshTokenDalm newRefreshTokenDalm)
             throws RefreshTokenNotFoundException;
 
     /**
-     * Отозвать токен
+     * Отозвать токен.
      * 
-     * @param refreshTokenDALM Токен для отзыва
+     * @param refreshTokenDalm Токен для отзыва
      * @throws RefreshTokenNotFoundException Если токен с таким uid не существует
      */
-    public void revoke(RefreshTokenDALM refreshTokenDALM) throws RefreshTokenNotFoundException;
+    public void revoke(RefreshTokenDalm refreshTokenDalm)
+            throws RefreshTokenNotFoundException;
 
     /**
-     * Отозвать все токены клиента
-     * 
-     * @param clientDALM Клиент
+     * Отозвать все токены клиента.
      */
-    public void revokeAll(UUID clientUUID);
+    public void revokeAll(UUID clientUuid);
 
     /**
-     * Отозвать все закончившиеся токены
+     * Отозвать все закончившиеся токены.
      */
     public void cleanUpExpired();
 }

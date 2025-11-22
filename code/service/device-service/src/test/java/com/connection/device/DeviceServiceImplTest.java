@@ -2,7 +2,7 @@ package com.connection.device;
 
 import static com.connection.device.mother.DeviceObjectMother.CLIENT_UUID;
 import static com.connection.device.mother.DeviceObjectMother.DEVICE_UUID;
-import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBLM;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBlm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,7 +30,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.connection.auth.events.responses.HealthCheckResponse;
 
 import com.connection.device.exception.DeviceAlreadyExistsException;
-import com.connection.device.model.DeviceBLM;
+import com.connection.device.model.DeviceBlm;
 import com.connection.device.repository.DeviceRepository;
 import com.connection.device.validator.DeviceValidator;
 import com.connection.service.auth.AuthService;
@@ -69,19 +69,19 @@ class DeviceServiceImplTest {
     @DisplayName("Create device - Positive")
     void shouldCreateDeviceWhenValidData() {
         // Arrange
-        DeviceBLM deviceBLM = createValidDeviceBLM();
+        DeviceBlm deviceBlm = createValidDeviceBlm();
         
         setupAuthentication(CLIENT_UUID);
         when(deviceRepository.existsByClientAndName(CLIENT_UUID, "Test Device")).thenReturn(false);
 
         // Act
-        DeviceBLM result = deviceService.createDevice(deviceBLM);
+        DeviceBlm result = deviceService.createDevice(deviceBlm);
 
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(DEVICE_UUID);
-        verify(deviceValidator).validate(deviceBLM);
-        verify(deviceRepository).add(deviceBLM);
+        verify(deviceValidator).validate(deviceBlm);
+        verify(deviceRepository).add(deviceBlm);
     }
 
     @Test
@@ -89,7 +89,7 @@ class DeviceServiceImplTest {
     void shouldThrowExceptionWhenClientUidMismatch() {
         // Arrange
         UUID differentClientUuid = UUID.randomUUID();
-        DeviceBLM deviceBLM = new DeviceBLM(
+        DeviceBlm deviceBlm = new DeviceBlm(
                 DEVICE_UUID,
                 differentClientUuid,
                 "Test Device",
@@ -98,11 +98,11 @@ class DeviceServiceImplTest {
         setupAuthentication(CLIENT_UUID);
 
         // Act & Assert
-        assertThatThrownBy(() -> deviceService.createDevice(deviceBLM))
+        assertThatThrownBy(() -> deviceService.createDevice(deviceBlm))
                 .isInstanceOf(SecurityException.class)
                 .hasMessageContaining("Client UID from token doesn't match device client UID");
 
-        verify(deviceValidator).validate(deviceBLM);
+        verify(deviceValidator).validate(deviceBlm);
         verify(deviceRepository, never()).add(any());
     }
 
@@ -110,16 +110,16 @@ class DeviceServiceImplTest {
     @DisplayName("Create device - Negative: Device already exists")
     void shouldThrowExceptionWhenDeviceAlreadyExists() {
         // Arrange
-        DeviceBLM deviceBLM = createValidDeviceBLM();
+        DeviceBlm deviceBlm = createValidDeviceBlm();
         
         setupAuthentication(CLIENT_UUID);
         when(deviceRepository.existsByClientAndName(CLIENT_UUID, "Test Device")).thenReturn(true);
 
         // Act & Assert
-        assertThatThrownBy(() -> deviceService.createDevice(deviceBLM))
+        assertThatThrownBy(() -> deviceService.createDevice(deviceBlm))
                 .isInstanceOf(DeviceAlreadyExistsException.class);
 
-        verify(deviceValidator).validate(deviceBLM);
+        verify(deviceValidator).validate(deviceBlm);
         verify(deviceRepository, never()).add(any());
     }
 
@@ -127,13 +127,13 @@ class DeviceServiceImplTest {
     @DisplayName("Get device - Positive")
     void shouldGetDeviceWhenValidRequest() {
         // Arrange
-        DeviceBLM deviceBLM = createValidDeviceBLM();
+        DeviceBlm deviceBlm = createValidDeviceBlm();
 
         setupAuthentication(CLIENT_UUID);
-        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceBLM);
+        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceBlm);
 
         // Act
-        DeviceBLM result = deviceService.getDevice(DEVICE_UUID);
+        DeviceBlm result = deviceService.getDevice(DEVICE_UUID);
 
         // Assert
         assertThat(result).isNotNull();
@@ -146,14 +146,14 @@ class DeviceServiceImplTest {
     void shouldThrowExceptionWhenDeviceNotBelongsToClient() {
         // Arrange
         UUID differentClientUuid = UUID.randomUUID();
-        DeviceBLM deviceBLM = new DeviceBLM(
+        DeviceBlm deviceBlm = new DeviceBlm(
                 DEVICE_UUID,
                 differentClientUuid,
                 "Test Device",
                 "Test Description");
 
         setupAuthentication(CLIENT_UUID);
-        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceBLM);
+        when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(deviceBlm);
 
         // Act & Assert
         assertThatThrownBy(() -> deviceService.getDevice(DEVICE_UUID))
@@ -167,14 +167,14 @@ class DeviceServiceImplTest {
     @DisplayName("Get devices by client - Positive")
     void shouldGetDevicesByClientWhenValidRequest() {
         // Arrange
-        DeviceBLM deviceBLM = createValidDeviceBLM();
-        List<DeviceBLM> devicesBLM = Collections.singletonList(deviceBLM);
+        DeviceBlm deviceBlm = createValidDeviceBlm();
+        List<DeviceBlm> devicesBlm = Collections.singletonList(deviceBlm);
 
         setupAuthentication(CLIENT_UUID);
-        when(deviceRepository.findByClientUuid(CLIENT_UUID)).thenReturn(devicesBLM);
+        when(deviceRepository.findByClientUuid(CLIENT_UUID)).thenReturn(devicesBlm);
 
         // Act
-        List<DeviceBLM> result = deviceService.getDevicesByClient(CLIENT_UUID);
+        List<DeviceBlm> result = deviceService.getDevicesByClient(CLIENT_UUID);
 
         // Assert
         assertThat(result).isNotEmpty();
@@ -186,27 +186,27 @@ class DeviceServiceImplTest {
     @DisplayName("Update device - Positive")
     void shouldUpdateDeviceWhenValidData() {
         // Arrange
-        DeviceBLM deviceBLM = createValidDeviceBLM();
-        DeviceBLM existingDevice = createValidDeviceBLM();
+        DeviceBlm deviceBlm = createValidDeviceBlm();
+        DeviceBlm existingDevice = createValidDeviceBlm();
 
         setupAuthentication(CLIENT_UUID);
         when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(existingDevice);
 
 
         // Act
-        DeviceBLM result = deviceService.updateDevice(deviceBLM);
+        DeviceBlm result = deviceService.updateDevice(deviceBlm);
 
         // Assert
         assertThat(result).isNotNull();
-        verify(deviceValidator).validate(deviceBLM);
-        verify(deviceRepository).update(deviceBLM);
+        verify(deviceValidator).validate(deviceBlm);
+        verify(deviceRepository).update(deviceBlm);
     }
 
     @Test
     @DisplayName("Delete device - Positive")
     void shouldDeleteDeviceWhenValidRequest() {
         // Arrange
-        DeviceBLM existingDevice = createValidDeviceBLM();
+        DeviceBlm existingDevice = createValidDeviceBlm();
 
         setupAuthentication(CLIENT_UUID);
         when(deviceRepository.findByUid(DEVICE_UUID)).thenReturn(existingDevice);

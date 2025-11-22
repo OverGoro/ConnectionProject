@@ -1,42 +1,42 @@
 package com.connection.message.config;
 
+import com.connection.device.converter.DeviceConverter;
+import com.connection.message.converter.MessageConverter;
+import com.connection.message.validator.MessageValidator;
+import com.connection.processing.buffer.converter.BufferConverter;
+import com.connection.scheme.converter.ConnectionSchemeConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
-import com.connection.message.converter.MessageConverter;
-import com.connection.message.validator.MessageValidator;
-import com.connection.device.converter.DeviceConverter;
-import com.connection.processing.buffer.converter.BufferConverter;
-import com.connection.scheme.converter.ConnectionSchemeConverter;
-
+/** . */
 @Configuration
 public class MessageUtilsConfig {
-    
+
     @Bean("MessageConverter")
     @Primary
-    MessageConverter messageConverter(){
+    MessageConverter messageConverter() {
         return new MessageConverter();
     }
 
     @Bean("MessageValidator")
     @Primary
-    MessageValidator messageValidator(){
+    MessageValidator messageValidator() {
         return new MessageValidator();
     }
 
     @Bean("BufferConverter")
-    BufferConverter bufferConverter(){
+    BufferConverter bufferConverter() {
         return new BufferConverter();
     }
 
     @Bean("ConnectionSchemeConverter")
-    ConnectionSchemeConverter connectionSchemeConverter(){
+    ConnectionSchemeConverter connectionSchemeConverter() {
         return new ConnectionSchemeConverter();
     }
 
     @Bean("DeviceConverter")
-    DeviceConverter deviceConverter(){
+    DeviceConverter deviceConverter() {
         return new DeviceConverter();
     }
 }

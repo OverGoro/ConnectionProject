@@ -9,9 +9,9 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import com.connection.client.model.ClientBLM;
-import com.connection.client.model.ClientDALM;
-import com.connection.client.model.ClientDTO;
+import com.connection.client.model.ClientBlm;
+import com.connection.client.model.ClientDalm;
+import com.connection.client.model.ClientDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Client Converter Tests")
@@ -25,10 +25,10 @@ class ClientConverterTest {
     }
 
     @Test
-    @DisplayName("Convert DTO to BLM - Positive")
-    void testToBLMFromDTO_Positive() {
-        ClientDTO dto = createValidClientDTO();
-        ClientBLM result = converter.toBLM(dto);
+    @DisplayName("Convert Dto to Blm - Positive")
+    void testToBlmFromDto_Positive() {
+        ClientDto dto = createValidClientDto();
+        ClientBlm result = converter.toBlm(dto);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(dto.getUid());
         assertThat(result.getBirthDate()).isEqualTo(dto.getBirthDate());
@@ -38,10 +38,10 @@ class ClientConverterTest {
     }
 
     @Test
-    @DisplayName("Convert DALM to BLM - Positive")
-    void testToBLMFromDALM_Positive() {
-        ClientDALM dalM = createValidClientDALM();
-        ClientBLM result = converter.toBLM(dalM);
+    @DisplayName("Convert Dalm to Blm - Positive")
+    void testToBlmFromDalm_Positive() {
+        ClientDalm dalM = createValidClientDalm();
+        ClientBlm result = converter.toBlm(dalM);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(dalM.getUid());
         assertThat(result.getBirthDate()).isEqualTo(dalM.getBirthDate());
@@ -51,10 +51,10 @@ class ClientConverterTest {
     }
 
     @Test
-    @DisplayName("Convert BLM to DTO - Positive")
-    void testToDTOFromBLM_Positive() {
-        ClientBLM blm = createValidClientBLM();
-        ClientDTO result = converter.toDTO(blm);
+    @DisplayName("Convert Blm to Dto - Positive")
+    void testToDtoFromBlm_Positive() {
+        ClientBlm blm = createValidClientBlm();
+        ClientDto result = converter.toDto(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid());
         assertThat(result.getBirthDate()).isEqualTo(blm.getBirthDate());
@@ -64,10 +64,10 @@ class ClientConverterTest {
     }
 
     @Test
-    @DisplayName("Convert BLM to DALM - Positive")
-    void testToDALMFromBLM_Positive() {
-        ClientBLM blm = createValidClientBLM();
-        ClientDALM result = converter.toDALM(blm);
+    @DisplayName("Convert Blm to Dalm - Positive")
+    void testToDalmFromBlm_Positive() {
+        ClientBlm blm = createValidClientBlm();
+        ClientDalm result = converter.toDalm(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid());
         assertThat(result.getBirthDate()).isEqualTo(blm.getBirthDate());
@@ -77,11 +77,11 @@ class ClientConverterTest {
     }
 
     @Test
-    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
-    void testRoundTripDTOToBLMToDTO() {
-        ClientDTO original = createValidClientDTO();
-        ClientBLM blm = converter.toBLM(original);
-        ClientDTO result = converter.toDTO(blm);
+    @DisplayName("Round-trip conversion Dto -> Blm -> Dto")
+    void testRoundTripDtoToBlmToDto() {
+        ClientDto original = createValidClientDto();
+        ClientBlm blm = converter.toBlm(original);
+        ClientDto result = converter.toDto(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(original.getUid());
         assertThat(result.getBirthDate()).isEqualTo(original.getBirthDate());
@@ -91,11 +91,11 @@ class ClientConverterTest {
     }
 
     @Test
-    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
-    void testRoundTripDALMToBLMToDALM() {
-        ClientDALM original = createValidClientDALM();
-        ClientBLM blm = converter.toBLM(original);
-        ClientDALM result = converter.toDALM(blm);
+    @DisplayName("Round-trip conversion Dalm -> Blm -> Dalm")
+    void testRoundTripDalmToBlmToDalm() {
+        ClientDalm original = createValidClientDalm();
+        ClientBlm blm = converter.toBlm(original);
+        ClientDalm result = converter.toDalm(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(original.getUid());
         assertThat(result.getBirthDate()).isEqualTo(original.getBirthDate());

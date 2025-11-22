@@ -9,10 +9,10 @@ import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.connection.client.model.ClientBLM;
+import com.connection.client.model.ClientBlm;
 import com.connection.service.auth.AuthService;
-import com.connection.token.model.AccessTokenBLM;
-import com.connection.token.model.RefreshTokenBLM;
+import com.connection.token.model.AccessTokenBlm;
+import com.connection.token.model.RefreshTokenBlm;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +47,7 @@ public class TestAuthService implements AuthService{
     }
 
     @Override
-    public Pair<AccessTokenBLM, RefreshTokenBLM> authorizeByEmail(String email, String password) {
+    public Pair<AccessTokenBlm, RefreshTokenBlm> authorizeByEmail(String email, String password) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'authorizeByEmail'");
     }
@@ -59,31 +59,31 @@ public class TestAuthService implements AuthService{
     }
 
     @Override
-    public Pair<AccessTokenBLM, RefreshTokenBLM> refresh(RefreshTokenBLM refreshTokenBLM) {
+    public Pair<AccessTokenBlm, RefreshTokenBlm> refresh(RefreshTokenBlm refreshTokenBlm) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'refresh'");
     }
 
     @Override
-    public void register(ClientBLM clientBLM) {
+    public void register(ClientBlm clientBlm) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'register'");
     }
 
     @Override
-    public void validateAccessToken(AccessTokenBLM accessTokenBLM) {
+    public void validateAccessToken(AccessTokenBlm accessTokenBlm) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'validateAccessToken'");
     }
 
     @Override
-    public AccessTokenBLM validateAccessToken(String token) {
+    public AccessTokenBlm validateAccessToken(String token) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'validateAccessToken'");
     }
 
     @Override
-    public void validateRefreshToken(RefreshTokenBLM refreshTokenBLM) {
+    public void validateRefreshToken(RefreshTokenBlm refreshTokenBlm) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'validateRefreshToken'");
     }

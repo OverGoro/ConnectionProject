@@ -1,89 +1,44 @@
 package com.connection.message.config;
 
+import java.util.UUID;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
-
+/** . */
 public class SecurityUtils {
 
+    private static final String ROLE_CLIENT = "ROLE_CLIENT";
+    private static final String ROLE_DEVICE = "ROLE_DEVICE";
+
+    /** . */
     public static UUID getCurrentClientUid() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new SecurityException("User not authenticated");
-        }
-
-        // Проверяем, что это клиент
-        if (!isClientAuthenticated()) {
-            throw new SecurityException("Client authentication required");
-        }
-
-        Object principal = authentication.getPrincipal();
-        
-        if (principal instanceof UUID) {
-            return (UUID) principal;
-        } else if (principal instanceof String) {
-            try {
-                return UUID.fromString((String) principal);
-            } catch (IllegalArgumentException e) {
-                throw new SecurityException("Invalid client UID format in principal");
-            }
-        } else {
-            throw new SecurityException("Unexpected principal type: " + principal.getClass());
-        }
+        validateClientAuthentication();
+        return extractUidFromPrincipal("client");
     }
 
+    /** . */
     public static UUID getCurrentDeviceUid() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new SecurityException("Device not authenticated");
-        }
-
-        // Проверяем, что это устройство
-        if (!isDeviceAuthenticated()) {
-            throw new SecurityException("Device authentication required");
-        }
-
-        Object principal = authentication.getPrincipal();
-        
-        if (principal instanceof UUID) {
-            return (UUID) principal;
-        } else if (principal instanceof String) {
-            try {
-                return UUID.fromString((String) principal);
-            } catch (IllegalArgumentException e) {
-                throw new SecurityException("Invalid device UID format in principal");
-            }
-        } else {
-            throw new SecurityException("Unexpected principal type: " + principal.getClass());
-        }
+        validateDeviceAuthentication();
+        return extractUidFromPrincipal("device");
     }
 
+    /** . */
     public static boolean isClientAuthenticated() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null && authentication.isAuthenticated() 
-            && authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_CLIENT"));
+        return hasAuthority(ROLE_CLIENT);
     }
 
+    /** . */
     public static boolean isDeviceAuthenticated() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null && authentication.isAuthenticated() 
-            && authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_DEVICE"));
+        return hasAuthority(ROLE_DEVICE);
     }
 
-    // Новый метод для проверки любой аутентификации
+    /** . */
     public static boolean isAuthenticated() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication = getAuthentication();
         return authentication != null && authentication.isAuthenticated();
     }
 
-    // Новый метод для получения типа аутентификации
+    /** . */
     public static String getAuthenticationType() {
         if (isClientAuthenticated()) {
             return "CLIENT";
@@ -92,5 +47,66 @@ public class SecurityUtils {
         } else {
             return "NONE";
         }
+    }
+
+    private static void validateClientAuthentication() {
+        if (!isClientAuthenticated()) {
+            throw new SecurityException("Client authentication required");
+        }
+    }
+
+    private static void validateDeviceAuthentication() {
+        if (!isDeviceAuthenticated()) {
+            throw new SecurityException("Device authentication required");
+        }
+    }
+
+    private static UUID extractUidFromPrincipal(String principalType) {
+        Authentication authentication = getAuthentication();
+        validateAuthentication(authentication, principalType);
+
+        Object principal = authentication.getPrincipal();
+        return convertToUuid(principal, principalType);
+    }
+
+    private static Authentication getAuthentication() {
+        return SecurityContextHolder.getContext().getAuthentication();
+    }
+
+    private static void validateAuthentication(Authentication authentication,
+            String principalType) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new SecurityException(principalType + " not authenticated");
+        }
+    }
+
+    private static UUID convertToUuid(Object principal, String principalType) {
+        if (principal instanceof UUID) {
+            return (UUID) principal;
+        } else if (principal instanceof String) {
+            return parseUidFromString((String) principal, principalType);
+        } else {
+            throw new SecurityException(
+                    "Unexpected principal type: " + principal.getClass());
+        }
+    }
+
+    private static UUID parseUidFromString(String uuidString,
+            String principalType) {
+        try {
+            return UUID.fromString(uuidString);
+        } catch (IllegalArgumentException e) {
+            throw new SecurityException(
+                    "Invalid " + principalType + " UID format in principal");
+        }
+    }
+
+    private static boolean hasAuthority(String authority) {
+        Authentication authentication = getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(authority));
     }
 }

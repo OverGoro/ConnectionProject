@@ -24,9 +24,9 @@ package com.connection.service.auth.integration;
 // import com.connection.auth.events.commands.ValidateTokenCommand;
 // import com.connection.auth.events.responses.HealthCheckResponse;
 // import com.connection.auth.events.responses.TokenValidationResponse;
-// import com.connection.client.model.ClientBLM;
-// import com.connection.token.model.AccessTokenBLM;
-// import com.connection.token.model.RefreshTokenBLM;
+// import com.connection.client.model.ClientBlm;
+// import com.connection.token.model.AccessTokenBlm;
+// import com.connection.token.model.RefreshTokenBlm;
 // import com.service.auth.AuthService;
 // import com.service.auth.mother.AuthObjectMother;
 
@@ -56,7 +56,7 @@ package com.connection.service.auth.integration;
 //     private Consumer<String, Object> responseConsumer;
 //     private String replyTopic;
 //     private String testEmail;
-//     private ClientBLM testClient;
+//     private ClientBlm testClient;
 
 //     @BeforeEach
 //     void setUpKafkaConsumer() {
@@ -123,7 +123,7 @@ package com.connection.service.auth.integration;
 //         String timestamp = String.valueOf(System.currentTimeMillis()) + UUID.randomUUID().toString().substring(0, 8);
 //         testEmail = "kafka_test_" + timestamp + "@example.com";
         
-//         testClient = new ClientBLM(
+//         testClient = new ClientBlm(
 //             UUID.randomUUID(),
 //             new Date(System.currentTimeMillis() - 25L * 365 * 24 * 60 * 60 * 1000),
 //             testEmail,
@@ -380,7 +380,7 @@ package com.connection.service.auth.integration;
 //     @DisplayName("Should handle expired refresh token via Kafka")
 //     void shouldHandleExpiredRefreshTokenViaKafka() {
 //         // Given - создаем expired refresh token
-//         RefreshTokenBLM expiredToken = AuthObjectMother.createExpiredRefreshTokenBLM();
+//         RefreshTokenBlm expiredToken = AuthObjectMother.createExpiredRefreshTokenBlm();
 //         String expiredTokenString = expiredToken.getToken();
         
 //         String correlationId = UUID.randomUUID().toString();

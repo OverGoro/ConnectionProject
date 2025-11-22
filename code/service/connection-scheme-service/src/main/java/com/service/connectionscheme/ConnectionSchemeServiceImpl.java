@@ -1,33 +1,31 @@
 package com.service.connectionscheme;
 
+import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
+import com.connection.scheme.model.ConnectionSchemeBlm;
+import com.connection.scheme.repository.ConnectionSchemeRepository;
+import com.connection.scheme.validator.ConnectionSchemeValidator;
+import com.connection.service.auth.AuthService;
+import com.service.connectionscheme.config.SecurityUtils;
+// import com.service.connectionscheme.kafka.KafkaAuthClient;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.connection.scheme.exception.ConnectionSchemeAlreadyExistsException;
-import com.connection.scheme.model.ConnectionSchemeBLM;
-import com.connection.scheme.repository.ConnectionSchemeRepository;
-import com.connection.scheme.validator.ConnectionSchemeValidator;
-import com.connection.service.auth.AuthService;
-import com.service.connectionscheme.config.SecurityUtils;
-// import com.service.connectionscheme.kafka.KafkaAuthClient;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
+/** . */
 @Slf4j
 @RequiredArgsConstructor
 @Service("ApiConnectionSchemeService")
 @EnableAutoConfiguration(exclude = {
-        JpaRepositoriesAutoConfiguration.class
+    JpaRepositoriesAutoConfiguration.class
 })
 @Transactional("atomicosTransactionManager")
 public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
@@ -37,87 +35,87 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     private final AuthService authClient;
 
     @Override
-    public ConnectionSchemeBLM createScheme(ConnectionSchemeBLM schemeBLM) {
-        schemeValidator.validate(schemeBLM);
+    public ConnectionSchemeBlm createScheme(ConnectionSchemeBlm schemeBlm) {
+        schemeValidator.validate(schemeBlm);
         UUID clientUid = SecurityUtils.getCurrentClientUid();
-        if (!clientUid.equals(schemeBLM.getClientUid())) {
+        if (!clientUid.equals(schemeBlm.getClientUid())) {
             throw new SecurityException("Client UID from token doesn't match scheme client UID");
         }
 
-        if (schemeRepository.exists(schemeBLM.getUid())) {
+        if (schemeRepository.exists(schemeBlm.getUid())) {
             throw new ConnectionSchemeAlreadyExistsException(
-                    "Scheme with UID '" + schemeBLM.getUid() + "' already exists");
+                    "Scheme with UID '" + schemeBlm.getUid() + "' already exists");
         }
-        log.info("Adding connection scheme: " + schemeBLM.getUid().toString() + " for client "
-                + schemeBLM.getClientUid().toString());
+        log.info("Adding connection scheme: " + schemeBlm.getUid().toString() + " for client "
+                + schemeBlm.getClientUid().toString());
         try {
-            schemeRepository.add(schemeBLM);
+            schemeRepository.add(schemeBlm);
         } catch (ConnectionSchemeAlreadyExistsException e) {
             log.error(e.toString());
             log.error(e.getMessage());
             throw e;
         }
-        log.info("Connection scheme created: {} for client: {}", schemeBLM.getUid(), clientUid);
-        return schemeBLM;
+        log.info("Connection scheme created: {} for client: {}", schemeBlm.getUid(), clientUid);
+        return schemeBlm;
     }
 
     @Override
-    public ConnectionSchemeBLM getSchemeByUid(UUID schemeUid) {
-        ConnectionSchemeBLM schemeBLM = schemeRepository.findByUid(schemeUid);
+    public ConnectionSchemeBlm getSchemeByUid(UUID schemeUid) {
+        ConnectionSchemeBlm schemeBlm = schemeRepository.findByUid(schemeUid);
         UUID clientUid = SecurityUtils.getCurrentClientUid();
 
-        if (!clientUid.equals(schemeBLM.getClientUid())) {
+        if (!clientUid.equals(schemeBlm.getClientUid())) {
             throw new SecurityException("Scheme doesn't belong to the authenticated client");
         }
 
-        return (schemeBLM);
+        return (schemeBlm);
     }
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemeByUid(List<UUID> schemeUids) {
-        Set<ConnectionSchemeBLM> connectionSchemeBLMs = new HashSet<>();
+    public List<ConnectionSchemeBlm> getSchemeByUid(List<UUID> schemeUids) {
+        Set<ConnectionSchemeBlm> connectionSchemeBlms = new HashSet<>();
         for (UUID uuid : schemeUids) {
-            connectionSchemeBLMs.add(getSchemeByUid(uuid));
+            connectionSchemeBlms.add(getSchemeByUid(uuid));
         }
-        return new ArrayList<ConnectionSchemeBLM>(connectionSchemeBLMs);
+        return new ArrayList<ConnectionSchemeBlm>(connectionSchemeBlms);
     }
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUid) {
-        List<ConnectionSchemeBLM> schemesBLM = schemeRepository.findByClientUid(clientUid);
-        return schemesBLM;
+    public List<ConnectionSchemeBlm> getSchemesByClient(UUID clientUid) {
+        List<ConnectionSchemeBlm> schemesBlm = schemeRepository.findByClientUid(clientUid);
+        return schemesBlm;
     }
 
     @Override
-    public ConnectionSchemeBLM updateScheme(UUID schemeUid, ConnectionSchemeBLM schemeBLM) {
-        ConnectionSchemeBLM existingScheme = schemeRepository.findByUid(schemeUid);
+    public ConnectionSchemeBlm updateScheme(UUID schemeUid, ConnectionSchemeBlm schemeBlm) {
+        ConnectionSchemeBlm existingScheme = schemeRepository.findByUid(schemeUid);
         UUID clientUid = SecurityUtils.getCurrentClientUid();
 
         if (!clientUid.equals(existingScheme.getClientUid())) {
             throw new SecurityException("Scheme doesn't belong to the authenticated client");
         }
 
-        schemeValidator.validate(schemeBLM);
+        schemeValidator.validate(schemeBlm);
 
         // Проверяем, что клиент из токена совпадает с клиентом схемы
-        if (!clientUid.equals(schemeBLM.getClientUid())) {
+        if (!clientUid.equals(schemeBlm.getClientUid())) {
             throw new SecurityException("Client UID from token doesn't match scheme client UID");
         }
 
         // Проверяем, что UID не изменяется
-        if (!schemeUid.equals(schemeBLM.getUid())) {
+        if (!schemeUid.equals(schemeBlm.getUid())) {
             throw new IllegalArgumentException("Cannot change scheme UID");
         }
 
-        schemeRepository.update(schemeBLM);
+        schemeRepository.update(schemeBlm);
 
         log.info("Connection scheme updated: {} for client: {}", schemeUid, clientUid);
-        return schemeBLM;
+        return schemeBlm;
     }
 
     @Override
     public void deleteScheme(UUID schemeUid) {
-        ConnectionSchemeBLM existingScheme = schemeRepository.findByUid(schemeUid);
+        ConnectionSchemeBlm existingScheme = schemeRepository.findByUid(schemeUid);
         UUID clientUid = SecurityUtils.getCurrentClientUid();
 
         if (!clientUid.equals(existingScheme.getClientUid())) {
@@ -157,18 +155,18 @@ public class ConnectionSchemeServiceImpl implements ConnectionSchemeService {
     }
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemesByBuffer(UUID bufferUuid) {
-        List<ConnectionSchemeBLM> schemesBLM = schemeRepository.findByBufferUid(bufferUuid);
-        return schemesBLM;
+    public List<ConnectionSchemeBlm> getSchemesByBuffer(UUID bufferUuid) {
+        List<ConnectionSchemeBlm> schemesBlm = schemeRepository.findByBufferUid(bufferUuid);
+        return schemesBlm;
     }
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemesByBuffer(List<UUID> bufferUuids) {
-        Set<ConnectionSchemeBLM> connectionSchemeBLMs = new HashSet<>();
+    public List<ConnectionSchemeBlm> getSchemesByBuffer(List<UUID> bufferUuids) {
+        Set<ConnectionSchemeBlm> connectionSchemeBlms = new HashSet<>();
         for (UUID uuid : bufferUuids) {
-            connectionSchemeBLMs.addAll(getSchemesByBuffer(uuid));
+            connectionSchemeBlms.addAll(getSchemesByBuffer(uuid));
         }
-        return new ArrayList<ConnectionSchemeBLM>(connectionSchemeBLMs);
+        return new ArrayList<ConnectionSchemeBlm>(connectionSchemeBlms);
 
     }
 }

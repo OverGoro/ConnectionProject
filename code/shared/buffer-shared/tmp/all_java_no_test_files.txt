@@ -1,4 +1,4 @@
-// BufferValidateException.java
+
 package com.connection.processing.buffer.exception;
 
 public class BufferValidateException extends BaseBufferException {
@@ -12,7 +12,7 @@ public class BufferValidateException extends BaseBufferException {
     public String toString() {
         return super.toString() + "\ndescription: " + description;
     }
-}// BufferAlreadyExistsException.java
+}
 package com.connection.processing.buffer.exception;
 
 public class BufferAlreadyExistsException extends BaseBufferException {
@@ -23,7 +23,7 @@ public class BufferAlreadyExistsException extends BaseBufferException {
     public String toString() {
         return super.toString() + "\ndescription: buffer already exists";
     }
-}// BaseBufferException.java
+}
 package com.connection.processing.buffer.exception;
 
 public class BaseBufferException extends RuntimeException {
@@ -37,7 +37,7 @@ public class BaseBufferException extends RuntimeException {
     public String toString() {
         return super.toString() + "\nbuffer: " + bufferUid;
     }
-}// BufferNotFoundException.java
+}
 package com.connection.processing.buffer.exception;
 
 public class BufferNotFoundException extends BaseBufferException {
@@ -48,7 +48,7 @@ public class BufferNotFoundException extends BaseBufferException {
     public String toString() {
         return super.toString() + "\ndescription: buffer not found";
     }
-}// BufferBLM.java
+}
 package com.connection.processing.buffer.model;
 
 import java.util.UUID;
@@ -71,7 +71,7 @@ public class BufferBLM {
     protected Integer maxMessagesNumber;
     protected Integer maxMessageSize;
     protected String messagePrototype;
-}// BufferDTO.java
+}
 package com.connection.processing.buffer.model;
 
 import lombok.AllArgsConstructor;
@@ -93,7 +93,7 @@ public class BufferDTO {
     protected Integer maxMessagesNumber;
     protected Integer maxMessageSize;
     protected String messagePrototype;
-}// BufferDALM.java
+}
 package com.connection.processing.buffer.model;
 
 import java.util.UUID;
@@ -116,7 +116,7 @@ public class BufferDALM {
     protected Integer maxMessagesNumber;
     protected Integer maxMessageSize;
     protected String messagePrototype;
-}// BufferConverter.java
+}
 package com.connection.processing.buffer.converter;
 
 import java.util.UUID;
@@ -165,7 +165,7 @@ public class BufferConverter {
             blm.getMessagePrototype()
         );
     }
-}// BufferValidator.java
+}
 package com.connection.processing.buffer.validator;
 
 import java.util.UUID;

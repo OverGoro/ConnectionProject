@@ -331,7 +331,7 @@ public class SecurityUtils {
     public static String getCurrentClientUidAsString() {
         return getCurrentClientUid().toString();
     }
-}// BufferJDBCConfig.java
+}
 package com.service.buffer.config;
 
 import java.util.Properties;
@@ -349,7 +349,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Configuration
 @Slf4j
-public class BufferJDBCConfig {
+public class BufferJdbcConfig {
     
     @Value("${app.datasource.buffer.xa-data-source-class-name:org.postgresql.xa.PGXADataSource}")
     private String xaDataSourceClassName;
@@ -393,7 +393,7 @@ public class BufferJDBCConfig {
             @Qualifier("BufferDataSource") DataSource bufferDataSource) {
         return new NamedParameterJdbcTemplate(bufferDataSource);
     }
-}// // BufferKafkaConfig.java
+}
 // package com.service.buffer.config;
 
 // import java.util.HashMap;
@@ -509,7 +509,7 @@ public class DeviceUtilsConfig {
         return new DeviceConverter();
     }
 }
-// TransactionConfig.java
+
 package com.service.buffer.config;
 
 import java.util.UUID;
@@ -557,7 +557,7 @@ public class TransactionConfig {
             System.out.println("Property already set: " + key + " = " + System.getProperty(key));
         }
     }
-}// BufferRepositoryConfig.java
+}
 package com.service.buffer.config;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -574,7 +574,7 @@ public class BufferRepositoryConfig {
     BufferRepository bufferRepository(@Qualifier("BufferJdbcTemplate") NamedParameterJdbcTemplate template){
         return new BufferRepositorySQLImpl(template);
     }
-}// SecurityConfig.java
+}
 package com.service.buffer.config;
 
 import org.springframework.context.annotation.Bean;
@@ -616,7 +616,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtKafkaAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
-}// BufferUtilsConfig.java
+}
 package com.service.buffer.config;
 
 import org.springframework.context.annotation.Bean;
@@ -636,7 +636,7 @@ public class BufferUtilsConfig {
     BufferValidator bufferValidator(){
         return new BufferValidator();
     }
-}// BuffersListResponse.java
+}
 package com.service.buffer.controller;
 
 import com.connection.processing.buffer.model.BufferDTO;
@@ -666,7 +666,7 @@ public class BuffersListResponse {
         this.buffers = buffers;
         this.pagination = null;
     }
-}// GlobalExceptionHandler.java
+}
 package com.service.buffer.controller;
 
 import lombok.extern.slf4j.Slf4j;
@@ -715,7 +715,7 @@ public class GlobalExceptionHandler {
                 "internal_server_error",
                 "An unexpected error occurred"));
     }
-}// ErrorResponse.java
+}
 package com.service.buffer.controller;
 
 import lombok.AllArgsConstructor;
@@ -726,7 +726,7 @@ import lombok.Getter;
 public class ErrorResponse {
     private final String error;
     private final String message;
-}// HealthResponse.java
+}
 package com.service.buffer.controller;
 
 import lombok.AllArgsConstructor;
@@ -736,7 +736,7 @@ import lombok.Getter;
 @Getter
 public class HealthResponse {
     private final String messaege;
-}// BufferResponse.java
+}
 package com.service.buffer.controller;
 
 import java.util.UUID;
@@ -943,7 +943,7 @@ public class BufferController {
         }
 
     }
-}// CreateBufferRequest.java
+}
 package com.service.buffer.controller;
 
 import java.util.UUID;
@@ -960,7 +960,7 @@ import lombok.Setter;
 public class CreateBufferRequest {
     private BufferDTO bufferDTO;
     private UUID connectionSchemeUid;
-}// UpdateBufferRequest.java
+}
 package com.service.buffer.controller;
 
 import java.util.UUID;
@@ -977,7 +977,7 @@ import lombok.Setter;
 public class UpdateBufferRequest {
     private BufferDTO bufferDTO;
     private UUID connectionSchemeUid;
-}// BufferServiceApplication.java
+}
 package com.service.buffer;
 
 import org.springframework.boot.SpringApplication;
@@ -989,7 +989,7 @@ public class BufferServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(BufferServiceApplication.class, args);
     }
-}// // BufferCommandConsumer.java
+}
 // package com.service.buffer.kafka;
 
 // import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -1959,7 +1959,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             throw new SecurityException("Authentication failed: " + e.getMessage());
         }
     }
-}// BufferServiceIntegrationTest.java
+}
 package com.service.buffer.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -2642,7 +2642,7 @@ public abstract class BaseBufferIntegrationTest {
         }
     }
 
-    // BaseBufferIntegrationTest.java - упрощаем метод cleanupAllTestData
+     - упрощаем метод cleanupAllTestData
     protected void cleanupAllTestData() {
         // Этот метод теперь не используется, так как каждый тест очищает только свои
         // данные

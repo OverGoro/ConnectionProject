@@ -9,9 +9,9 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import com.connection.processing.buffer.model.BufferBLM;
-import com.connection.processing.buffer.model.BufferDALM;
-import com.connection.processing.buffer.model.BufferDTO;
+import com.connection.processing.buffer.model.BufferBlm;
+import com.connection.processing.buffer.model.BufferDalm;
+import com.connection.processing.buffer.model.BufferDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Buffer Converter Tests")
@@ -25,10 +25,10 @@ class BufferConverterTest {
     }
 
     @Test
-    @DisplayName("Convert DALM to BLM - Positive")
-    void testToBLMFromDALM_Positive() {
-        BufferDALM dalM = createValidBufferDALM();
-        BufferBLM result = converter.toBLM(dalM);
+    @DisplayName("Convert Dalm to Blm - Positive")
+    void testToBlmFromDalm_Positive() {
+        BufferDalm dalM = createValidBufferDalm();
+        BufferBlm result = converter.toBlm(dalM);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(dalM.getUid());
         assertThat(result.getDeviceUid()).isEqualTo(dalM.getDeviceUid()); // Изменено
@@ -37,10 +37,10 @@ class BufferConverterTest {
     }
 
     @Test
-    @DisplayName("Convert DTO to BLM - Positive")
-    void testToBLMFromDTO_Positive() {
-        BufferDTO dto = createValidBufferDTO();
-        BufferBLM result = converter.toBLM(dto);
+    @DisplayName("Convert Dto to Blm - Positive")
+    void testToBlmFromDto_Positive() {
+        BufferDto dto = createValidBufferDto();
+        BufferBlm result = converter.toBlm(dto);
         assertThat(result).isNotNull();
         assertThat(result.getUid().toString()).isEqualTo(dto.getUid());
         assertThat(result.getDeviceUid().toString()).isEqualTo(dto.getDeviceUid()); // Изменено
@@ -49,10 +49,10 @@ class BufferConverterTest {
     }
 
     @Test
-    @DisplayName("Convert BLM to DTO - Positive")
-    void testToDTOFromBLM_Positive() {
-        BufferBLM blm = createValidBufferBLM();
-        BufferDTO result = converter.toDTO(blm);
+    @DisplayName("Convert Blm to Dto - Positive")
+    void testToDtoFromBlm_Positive() {
+        BufferBlm blm = createValidBufferBlm();
+        BufferDto result = converter.toDto(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid().toString());
         assertThat(result.getDeviceUid()).isEqualTo(blm.getDeviceUid().toString()); // Изменено
@@ -62,10 +62,10 @@ class BufferConverterTest {
     }
 
     @Test
-    @DisplayName("Convert BLM to DALM - Positive")
-    void testToDALMFromBLM_Positive() {
-        BufferBLM blm = createValidBufferBLM();
-        BufferDALM result = converter.toDALM(blm);
+    @DisplayName("Convert Blm to Dalm - Positive")
+    void testToDalmFromBlm_Positive() {
+        BufferBlm blm = createValidBufferBlm();
+        BufferDalm result = converter.toDalm(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid());
         assertThat(result.getDeviceUid()).isEqualTo(blm.getDeviceUid()); // Изменено
@@ -75,11 +75,11 @@ class BufferConverterTest {
     }
 
     @Test
-    @DisplayName("Round-trip conversion DTO -> BLM -> DTO")
-    void testRoundTripDTOToBLMToDTO() {
-        BufferDTO original = createValidBufferDTO();
-        BufferBLM blm = converter.toBLM(original);
-        BufferDTO result = converter.toDTO(blm);
+    @DisplayName("Round-trip conversion Dto -> Blm -> Dto")
+    void testRoundTripDtoToBlmToDto() {
+        BufferDto original = createValidBufferDto();
+        BufferBlm blm = converter.toBlm(original);
+        BufferDto result = converter.toDto(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(original.getUid());
         assertThat(result.getDeviceUid()).isEqualTo(original.getDeviceUid()); // Изменено
@@ -89,11 +89,11 @@ class BufferConverterTest {
     }
 
     @Test
-    @DisplayName("Round-trip conversion DALM -> BLM -> DALM")
-    void testRoundTripDALMToBLMToDALM() {
-        BufferDALM original = createValidBufferDALM();
-        BufferBLM blm = converter.toBLM(original);
-        BufferDALM result = converter.toDALM(blm);
+    @DisplayName("Round-trip conversion Dalm -> Blm -> Dalm")
+    void testRoundTripDalmToBlmToDalm() {
+        BufferDalm original = createValidBufferDalm();
+        BufferBlm blm = converter.toBlm(original);
+        BufferDalm result = converter.toDalm(blm);
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(original.getUid());
         assertThat(result.getDeviceUid()).isEqualTo(original.getDeviceUid()); // Изменено

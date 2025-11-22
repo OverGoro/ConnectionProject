@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.connection.scheme.model.ConnectionSchemeBLM;
+import com.connection.scheme.model.ConnectionSchemeBlm;
 import com.service.connectionscheme.ConnectionSchemeService;
 
 import lombok.RequiredArgsConstructor;
@@ -24,24 +24,24 @@ import lombok.extern.slf4j.Slf4j;
 @ActiveProfiles("integrationtest")
 public class TestConnectionSchemeService implements ConnectionSchemeService {
     // Хранилище тестовых данных
-    private final Map<UUID, ConnectionSchemeBLM> testSchemes = new ConcurrentHashMap<>();
-    private final Map<UUID, List<ConnectionSchemeBLM>> clientSchemes = new ConcurrentHashMap<>();
-    private final Map<UUID, List<ConnectionSchemeBLM>> bufferSchemes = new ConcurrentHashMap<>();
+    private final Map<UUID, ConnectionSchemeBlm> testSchemes = new ConcurrentHashMap<>();
+    private final Map<UUID, List<ConnectionSchemeBlm>> clientSchemes = new ConcurrentHashMap<>();
+    private final Map<UUID, List<ConnectionSchemeBlm>> bufferSchemes = new ConcurrentHashMap<>();
 
 
     public void addTestConnectionScheme(UUID schemeUid, UUID clientUid, List<UUID> usedBuffers) {
-        ConnectionSchemeBLM scheme = createTestConnectionSchemeBLM(schemeUid, clientUid, usedBuffers);
+        ConnectionSchemeBlm scheme = createTestConnectionSchemeBlm(schemeUid, clientUid, usedBuffers);
         addTestConnectionScheme(scheme);
     }
 
-    public void addTestConnectionScheme(ConnectionSchemeBLM scheme) {
+    public void addTestConnectionScheme(ConnectionSchemeBlm scheme) {
         UUID schemeUid = (scheme.getUid());
         UUID clientUid = (scheme.getClientUid());
 
         testSchemes.put(schemeUid, scheme);
 
         // Добавляем в список схем клиента
-        List<ConnectionSchemeBLM> clientSchemeList = clientSchemes.computeIfAbsent(
+        List<ConnectionSchemeBlm> clientSchemeList = clientSchemes.computeIfAbsent(
                 clientUid, k -> new ArrayList<>());
         clientSchemeList.add(scheme);
 
@@ -58,9 +58,9 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
     }
 
     public void linkSchemeToBuffer(UUID schemeUid, UUID bufferUid) {
-        ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
+        ConnectionSchemeBlm scheme = testSchemes.get(schemeUid);
         if (scheme != null) {
-            List<ConnectionSchemeBLM> bufferSchemeList = bufferSchemes.computeIfAbsent(
+            List<ConnectionSchemeBlm> bufferSchemeList = bufferSchemes.computeIfAbsent(
                     bufferUid, k -> new ArrayList<>());
             if (!bufferSchemeList.contains(scheme)) {
                 bufferSchemeList.add(scheme);
@@ -72,12 +72,12 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
     }
 
     public void removeTestConnectionScheme(UUID schemeUid) {
-        ConnectionSchemeBLM scheme = testSchemes.remove(schemeUid);
+        ConnectionSchemeBlm scheme = testSchemes.remove(schemeUid);
         if (scheme != null) {
             UUID clientUid = (scheme.getClientUid());
 
             // Удаляем из списка клиента
-            List<ConnectionSchemeBLM> clientSchemesList = clientSchemes.get(clientUid);
+            List<ConnectionSchemeBlm> clientSchemesList = clientSchemes.get(clientUid);
             if (clientSchemesList != null) {
                 clientSchemesList.removeIf(s -> s.getUid().equals(schemeUid.toString()));
             }
@@ -100,12 +100,12 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
     }
 
     public boolean connectionSchemeBelongsToClient(UUID schemeUid, UUID clientUid) {
-        ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
+        ConnectionSchemeBlm scheme = testSchemes.get(schemeUid);
         return scheme != null && scheme.getClientUid().equals(clientUid.toString());
     }
 
-    private ConnectionSchemeBLM createTestConnectionSchemeBLM(UUID schemeUid, UUID clientUid, List<UUID> usedBuffers) {
-        return ConnectionSchemeBLM.builder()
+    private ConnectionSchemeBlm createTestConnectionSchemeBlm(UUID schemeUid, UUID clientUid, List<UUID> usedBuffers) {
+        return ConnectionSchemeBlm.builder()
                 .uid(schemeUid)
                 .clientUid(clientUid)
                 .usedBuffers(usedBuffers != null ? usedBuffers : new ArrayList<>())
@@ -122,7 +122,7 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
     }
 
     public void addBufferToScheme(UUID schemeUid, UUID bufferUid) {
-        ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
+        ConnectionSchemeBlm scheme = testSchemes.get(schemeUid);
         if (scheme != null) {
             List<UUID> usedBuffers = scheme.getUsedBuffers();
             if (usedBuffers == null) {
@@ -138,12 +138,12 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
     }
 
     public void removeBufferFromScheme(UUID schemeUid, UUID bufferUid) {
-        ConnectionSchemeBLM scheme = testSchemes.get(schemeUid);
+        ConnectionSchemeBlm scheme = testSchemes.get(schemeUid);
         if (scheme != null && scheme.getUsedBuffers() != null) {
             scheme.getUsedBuffers().remove(bufferUid);
 
             // Удаляем связь
-            List<ConnectionSchemeBLM> bufferSchemesList = bufferSchemes.get(bufferUid);
+            List<ConnectionSchemeBlm> bufferSchemesList = bufferSchemes.get(bufferUid);
             if (bufferSchemesList != null) {
                 bufferSchemesList.removeIf(s -> s.getUid().equals(schemeUid.toString()));
             }
@@ -153,7 +153,7 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
 
 
     @Override
-    public ConnectionSchemeBLM createScheme(ConnectionSchemeBLM schemeBLM) {
+    public ConnectionSchemeBlm createScheme(ConnectionSchemeBlm schemeBlm) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'createScheme'");
     }
@@ -173,34 +173,34 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
 
 
     @Override
-    public ConnectionSchemeBLM getSchemeByUid(UUID schemeUid) {
+    public ConnectionSchemeBlm getSchemeByUid(UUID schemeUid) {
         return testSchemes.get(schemeUid);
     }
 
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemeByUid(List<UUID> schemeUid) {
+    public List<ConnectionSchemeBlm> getSchemeByUid(List<UUID> schemeUid) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'getSchemeByUid'");
     }
 
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemesByBuffer(UUID bufferUuid) {
+    public List<ConnectionSchemeBlm> getSchemesByBuffer(UUID bufferUuid) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'getSchemesByBuffer'");
     }
 
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemesByBuffer(List<UUID> bufferUuid) {
+    public List<ConnectionSchemeBlm> getSchemesByBuffer(List<UUID> bufferUuid) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'getSchemesByBuffer'");
     }
 
 
     @Override
-    public List<ConnectionSchemeBLM> getSchemesByClient(UUID clientUuid) {
+    public List<ConnectionSchemeBlm> getSchemesByClient(UUID clientUuid) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'getSchemesByClient'");
     }
@@ -214,7 +214,7 @@ public class TestConnectionSchemeService implements ConnectionSchemeService {
 
 
     @Override
-    public ConnectionSchemeBLM updateScheme(UUID schemeUid, ConnectionSchemeBLM schemeBLM) {
+    public ConnectionSchemeBlm updateScheme(UUID schemeUid, ConnectionSchemeBlm schemeBlm) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'updateScheme'");
     }

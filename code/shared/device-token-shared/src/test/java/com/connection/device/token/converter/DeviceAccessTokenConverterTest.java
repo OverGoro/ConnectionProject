@@ -15,9 +15,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.connection.device.token.generator.DeviceAccessTokenGenerator;
-import com.connection.device.token.model.DeviceAccessTokenBLM;
-import com.connection.device.token.model.DeviceAccessTokenDALM;
-import com.connection.device.token.model.DeviceAccessTokenDTO;
+import com.connection.device.token.model.DeviceAccessTokenBlm;
+import com.connection.device.token.model.DeviceAccessTokenDalm;
+import com.connection.device.token.model.DeviceAccessTokenDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Device Access Token Converter Tests")
@@ -35,15 +35,15 @@ class DeviceAccessTokenConverterTest {
     }
 
     // @Test
-    // @DisplayName("Convert DALM to BLM - Positive")
-    // void testToBLMFromDALM_Positive() {
-    //     DeviceAccessTokenDALM dalM = createValidDeviceAccessTokenDALM();
-    //     DeviceAccessTokenBLM expectedBLM = createValidDeviceAccessTokenBLM();
+    // @DisplayName("Convert Dalm to Blm - Positive")
+    // void testToBlmFromDalm_Positive() {
+    //     DeviceAccessTokenDalm dalM = createValidDeviceAccessTokenDalm();
+    //     DeviceAccessTokenBlm expectedBlm = createValidDeviceAccessTokenBlm();
         
     //     when(deviceAccessTokenGenerator.generateDeviceAccessToken(any(), any(), any()))
-    //             .thenReturn(expectedBLM.getToken());
+    //             .thenReturn(expectedBlm.getToken());
 
-    //     DeviceAccessTokenBLM result = converter.toBLM(dalM);
+    //     DeviceAccessTokenBlm result = converter.toBlm(dalM);
 
     //     assertThat(result).isNotNull();
     //     assertThat(result.getUid()).isEqualTo(dalM.getUid());
@@ -53,37 +53,37 @@ class DeviceAccessTokenConverterTest {
     // }
 
     @Test
-    @DisplayName("Convert DTO to BLM - Positive")
-    void testToBLMFromDTO_Positive() {
-        DeviceAccessTokenDTO dto = createValidDeviceAccessTokenDTO();
-        DeviceAccessTokenBLM expectedBLM = createValidDeviceAccessTokenBLM();
+    @DisplayName("Convert Dto to Blm - Positive")
+    void testToBlmFromDto_Positive() {
+        DeviceAccessTokenDto dto = createValidDeviceAccessTokenDto();
+        DeviceAccessTokenBlm expectedBlm = createValidDeviceAccessTokenBlm();
         
-        when(deviceAccessTokenGenerator.getDeviceAccessTokenBLM(dto.getToken()))
-                .thenReturn(expectedBLM);
+        when(deviceAccessTokenGenerator.getDeviceAccessTokenBlm(dto.getToken()))
+                .thenReturn(expectedBlm);
 
-        DeviceAccessTokenBLM result = converter.toBLM(dto);
+        DeviceAccessTokenBlm result = converter.toBlm(dto);
 
         assertThat(result).isNotNull();
         assertThat(result.getToken()).isEqualTo(dto.getToken());
     }
 
     @Test
-    @DisplayName("Convert BLM to DTO - Positive")
-    void testToDTOFromBLM_Positive() {
-        DeviceAccessTokenBLM blm = createValidDeviceAccessTokenBLM();
+    @DisplayName("Convert Blm to Dto - Positive")
+    void testToDtoFromBlm_Positive() {
+        DeviceAccessTokenBlm blm = createValidDeviceAccessTokenBlm();
 
-        DeviceAccessTokenDTO result = converter.toDTO(blm);
+        DeviceAccessTokenDto result = converter.toDto(blm);
 
         assertThat(result).isNotNull();
         assertThat(result.getToken()).isEqualTo(blm.getToken());
     }
 
     @Test
-    @DisplayName("Convert BLM to DALM - Positive")
-    void testToDALMFromBLM_Positive() {
-        DeviceAccessTokenBLM blm = createValidDeviceAccessTokenBLM();
+    @DisplayName("Convert Blm to Dalm - Positive")
+    void testToDalmFromBlm_Positive() {
+        DeviceAccessTokenBlm blm = createValidDeviceAccessTokenBlm();
 
-        DeviceAccessTokenDALM result = converter.toDALM(blm);
+        DeviceAccessTokenDalm result = converter.toDalm(blm);
 
         assertThat(result).isNotNull();
         assertThat(result.getUid()).isEqualTo(blm.getUid());

@@ -1,7 +1,7 @@
 package com.connection.device.token.repository;
 
-import static com.connection.device.token.mother.DeviceTokenObjectMother.createValidDeviceAccessTokenBLM;
-import static com.connection.device.token.mother.DeviceTokenObjectMother.createValidDeviceAccessTokenDALM;
+import static com.connection.device.token.mother.DeviceTokenObjectMother.createValidDeviceAccessTokenBlm;
+import static com.connection.device.token.mother.DeviceTokenObjectMother.createValidDeviceAccessTokenDalm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,13 +31,13 @@ import com.connection.device.token.converter.DeviceAccessTokenConverter;
 import com.connection.device.token.exception.DeviceAccessTokenExistsException;
 import com.connection.device.token.exception.DeviceAccessTokenNotFoundException;
 import com.connection.device.token.generator.DeviceAccessTokenGenerator;
-import com.connection.device.token.model.DeviceAccessTokenBLM;
-import com.connection.device.token.model.DeviceAccessTokenDALM;
-import com.connection.device.token.repository.DeviceAccessTokenRepositorySQLImpl;
+import com.connection.device.token.model.DeviceAccessTokenBlm;
+import com.connection.device.token.model.DeviceAccessTokenDalm;
+import com.connection.device.token.repository.DeviceAccessTokenRepositorySqlImpl;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Device Access Token Repository Tests")
-class DeviceAccessTokenRepositorySQLImplTest {
+class DeviceAccessTokenRepositorySqlImplTest {
 
     @Mock
     private NamedParameterJdbcTemplate jdbcTemplate;
@@ -49,16 +49,16 @@ class DeviceAccessTokenRepositorySQLImplTest {
     private DeviceAccessTokenConverter converter;
 
     @InjectMocks
-    private DeviceAccessTokenRepositorySQLImpl repository;
+    private DeviceAccessTokenRepositorySqlImpl repository;
 
-    private DeviceAccessTokenBLM testTokenBLM;
-    private DeviceAccessTokenDALM testTokenDALM;
+    private DeviceAccessTokenBlm testTokenBlm;
+    private DeviceAccessTokenDalm testTokenDalm;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        testTokenBLM = createValidDeviceAccessTokenBLM();
-        testTokenDALM = createValidDeviceAccessTokenDALM();
+        testTokenBlm = createValidDeviceAccessTokenBlm();
+        testTokenDalm = createValidDeviceAccessTokenDalm();
     }
 
     @SuppressWarnings("unchecked")
@@ -66,7 +66,7 @@ class DeviceAccessTokenRepositorySQLImplTest {
     @DisplayName("Add device access token - Positive")
     void testAddDeviceAccessToken_Positive() {
         // Мокируем конвертацию
-        when(converter.toDALM(testTokenBLM)).thenReturn(testTokenDALM);
+        when(converter.toDalm(testTokenBlm)).thenReturn(testTokenDalm);
         
         // Мокируем проверку существования device_token - возвращаем true
         when(jdbcTemplate.queryForObject(
@@ -92,7 +92,7 @@ class DeviceAccessTokenRepositorySQLImplTest {
         // Мокируем успешное выполнение INSERT
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
-        repository.add(testTokenBLM);
+        repository.add(testTokenBlm);
 
         // Проверяем, что была вызвана конвертация
         
@@ -112,7 +112,7 @@ class DeviceAccessTokenRepositorySQLImplTest {
     @DisplayName("Add existing device access token - Negative")
     void testAddExistingDeviceAccessToken_Negative() {
         // Мокируем конвертацию
-        when(converter.toDALM(testTokenBLM)).thenReturn(testTokenDALM);
+        when(converter.toDalm(testTokenBlm)).thenReturn(testTokenDalm);
         
         // Мокируем проверку существования device_token - возвращаем true
         when(jdbcTemplate.queryForObject(
@@ -128,7 +128,7 @@ class DeviceAccessTokenRepositorySQLImplTest {
             eq(Integer.class)
         )).thenReturn(1);
 
-        assertThatThrownBy(() -> repository.add(testTokenBLM))
+        assertThatThrownBy(() -> repository.add(testTokenBlm))
                 .isInstanceOf(DeviceAccessTokenExistsException.class);
 
         verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
@@ -141,14 +141,14 @@ class DeviceAccessTokenRepositorySQLImplTest {
         UUID uid = UUID.randomUUID();
         
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testTokenDALM);
-        when(converter.toBLM(testTokenDALM)).thenReturn(testTokenBLM);
-        when(generator.getDeviceAccessTokenBLM(any())).thenReturn(testTokenBLM);
+                .thenReturn(testTokenDalm);
+        when(converter.toBlm(testTokenDalm)).thenReturn(testTokenBlm);
+        when(generator.getDeviceAccessTokenBlm(any())).thenReturn(testTokenBlm);
 
-        DeviceAccessTokenBLM result = repository.findByUid(uid);
+        DeviceAccessTokenBlm result = repository.findByUid(uid);
 
-        assertThat(result).isEqualTo(testTokenBLM);
-        // verify(converter, times(1)).toBLM(testTokenDALM);
+        assertThat(result).isEqualTo(testTokenBlm);
+        // verify(converter, times(1)).toBlm(testTokenDalm);
     }
 
     @SuppressWarnings("unchecked")
@@ -171,15 +171,15 @@ class DeviceAccessTokenRepositorySQLImplTest {
         String token = "test.token.string";
         
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testTokenDALM);
-        when(converter.toBLM(testTokenDALM)).thenReturn(testTokenBLM);
-        when(generator.getDeviceAccessTokenBLM(any())).thenReturn(testTokenBLM);
+                .thenReturn(testTokenDalm);
+        when(converter.toBlm(testTokenDalm)).thenReturn(testTokenBlm);
+        when(generator.getDeviceAccessTokenBlm(any())).thenReturn(testTokenBlm);
 
 
-        DeviceAccessTokenBLM result = repository.findByToken(token);
+        DeviceAccessTokenBlm result = repository.findByToken(token);
 
-        assertThat(result).isEqualTo(testTokenBLM);
-        // verify(converter, times(1)).toBLM(testTokenDALM);
+        assertThat(result).isEqualTo(testTokenBlm);
+        // verify(converter, times(1)).toBlm(testTokenDalm);
     }
 
     @SuppressWarnings("unchecked")
@@ -189,15 +189,15 @@ class DeviceAccessTokenRepositorySQLImplTest {
         UUID deviceTokenUid = UUID.randomUUID();
         
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testTokenDALM);
-        when(converter.toBLM(testTokenDALM)).thenReturn(testTokenBLM);
-        when(generator.getDeviceAccessTokenBLM(any())).thenReturn(testTokenBLM);
+                .thenReturn(testTokenDalm);
+        when(converter.toBlm(testTokenDalm)).thenReturn(testTokenBlm);
+        when(generator.getDeviceAccessTokenBlm(any())).thenReturn(testTokenBlm);
 
 
-        DeviceAccessTokenBLM result = repository.findByDeviceTokenUid(deviceTokenUid);
+        DeviceAccessTokenBlm result = repository.findByDeviceTokenUid(deviceTokenUid);
 
-        assertThat(result).isEqualTo(testTokenBLM);
-        // verify(converter, times(1)).toBLM(testTokenDALM);
+        assertThat(result).isEqualTo(testTokenBlm);
+        // verify(converter, times(1)).toBlm(testTokenDalm);
     }
 
     @SuppressWarnings("unchecked")
@@ -207,7 +207,7 @@ class DeviceAccessTokenRepositorySQLImplTest {
         UUID uid = UUID.randomUUID();
         
         when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                .thenReturn(testTokenDALM);
+                .thenReturn(testTokenDalm);
         when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
         repository.revoke(uid);

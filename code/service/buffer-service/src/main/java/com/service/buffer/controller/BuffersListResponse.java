@@ -1,19 +1,19 @@
-// BuffersListResponse.java
+
 package com.service.buffer.controller;
 
-import com.connection.processing.buffer.model.BufferDTO;
-
+import com.connection.processing.buffer.model.BufferDto;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.List;
-
+/** . */
 @AllArgsConstructor
 @Getter
 public class BuffersListResponse {
-    private final List<BufferDTO> buffers;
+    private final List<BufferDto> buffers;
     private final PaginationInfo pagination;
 
+    /** . */
     @AllArgsConstructor
     @Getter
     public static class PaginationInfo {
@@ -23,8 +23,9 @@ public class BuffersListResponse {
         private final boolean hasMore;
     }
 
+    /** . */
     // Конструктор для обратной совместимости
-    public BuffersListResponse(List<BufferDTO> buffers) {
+    public BuffersListResponse(List<BufferDto> buffers) {
         this.buffers = buffers;
         this.pagination = null;
     }

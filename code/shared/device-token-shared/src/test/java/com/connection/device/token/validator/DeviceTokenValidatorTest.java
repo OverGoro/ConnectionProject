@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import com.connection.device.token.exception.DeviceTokenValidateException;
-import com.connection.device.token.model.DeviceTokenBLM;
-import com.connection.device.token.model.DeviceTokenDALM;
-import com.connection.device.token.model.DeviceTokenDTO;
+import com.connection.device.token.model.DeviceTokenBlm;
+import com.connection.device.token.model.DeviceTokenDalm;
+import com.connection.device.token.model.DeviceTokenDto;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 @DisplayName("Device Token Validator Tests")
@@ -30,65 +30,65 @@ class DeviceTokenValidatorTest {
     }
 
     @Test
-    @DisplayName("Validate valid DeviceTokenDTO - Positive")
-    void testValidateDeviceTokenDTO_Positive() {
-        DeviceTokenDTO deviceToken = createValidDeviceTokenDTO();
+    @DisplayName("Validate valid DeviceTokenDto - Positive")
+    void testValidateDeviceTokenDto_Positive() {
+        DeviceTokenDto deviceToken = createValidDeviceTokenDto();
         assertThat(deviceToken).isNotNull();
         validator.validate(deviceToken);
     }
 
     @Test
-    @DisplayName("Validate valid DeviceTokenBLM - Positive")
-    void testValidateDeviceTokenBLM_Positive() {
-        DeviceTokenBLM deviceToken = createValidDeviceTokenBLM();
+    @DisplayName("Validate valid DeviceTokenBlm - Positive")
+    void testValidateDeviceTokenBlm_Positive() {
+        DeviceTokenBlm deviceToken = createValidDeviceTokenBlm();
         assertThat(deviceToken).isNotNull();
         validator.validate(deviceToken);
     }
 
     @Test
-    @DisplayName("Validate valid DeviceTokenDALM - Positive")
-    void testValidateDeviceTokenDALM_Positive() {
-        DeviceTokenDALM deviceToken = createValidDeviceTokenDALM();
+    @DisplayName("Validate valid DeviceTokenDalm - Positive")
+    void testValidateDeviceTokenDalm_Positive() {
+        DeviceTokenDalm deviceToken = createValidDeviceTokenDalm();
         assertThat(deviceToken).isNotNull();
         validator.validate(deviceToken);
     }
 
     @Test
-    @DisplayName("Validate null DeviceTokenDTO - Negative")
-    void testValidateNullDeviceTokenDTO_Negative() {
-        DeviceTokenDTO deviceToken = null;
+    @DisplayName("Validate null DeviceTokenDto - Negative")
+    void testValidateNullDeviceTokenDto_Negative() {
+        DeviceTokenDto deviceToken = null;
         assertThatThrownBy(() -> validator.validate(deviceToken))
                 .isInstanceOf(DeviceTokenValidateException.class);
     }
 
     @Test
-    @DisplayName("Validate DeviceTokenDTO with empty token - Negative")
-    void testValidateDeviceTokenDTOWithEmptyToken_Negative() {
-        DeviceTokenDTO deviceToken = createDeviceTokenDTOWithEmptyToken();
+    @DisplayName("Validate DeviceTokenDto with empty token - Negative")
+    void testValidateDeviceTokenDtoWithEmptyToken_Negative() {
+        DeviceTokenDto deviceToken = createDeviceTokenDtoWithEmptyToken();
         assertThatThrownBy(() -> validator.validate(deviceToken))
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    @DisplayName("Validate DeviceTokenBLM with expired token - Negative")
-    void testValidateDeviceTokenBLMWithExpiredToken_Negative() {
-        DeviceTokenBLM deviceToken = createDeviceTokenBLMWithExpiredToken();
+    @DisplayName("Validate DeviceTokenBlm with expired token - Negative")
+    void testValidateDeviceTokenBlmWithExpiredToken_Negative() {
+        DeviceTokenBlm deviceToken = createDeviceTokenBlmWithExpiredToken();
         assertThatThrownBy(() -> validator.validate(deviceToken))
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    @DisplayName("Validate DeviceTokenBLM with future creation date - Negative")
-    void testValidateDeviceTokenBLMWithFutureCreationDate_Negative() {
-        DeviceTokenBLM deviceToken = createDeviceTokenBLMWithFutureCreationDate();
+    @DisplayName("Validate DeviceTokenBlm with future creation date - Negative")
+    void testValidateDeviceTokenBlmWithFutureCreationDate_Negative() {
+        DeviceTokenBlm deviceToken = createDeviceTokenBlmWithFutureCreationDate();
         assertThatThrownBy(() -> validator.validate(deviceToken))
                 .isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    @DisplayName("Validate DeviceTokenDALM with null UID - Negative")
-    void testValidateDeviceTokenDALMWithNullUid_Negative() {
-        DeviceTokenDALM deviceToken = DeviceTokenDALM.builder()
+    @DisplayName("Validate DeviceTokenDalm with null UID - Negative")
+    void testValidateDeviceTokenDalmWithNullUid_Negative() {
+        DeviceTokenDalm deviceToken = DeviceTokenDalm.builder()
                 .uid(null)
                 .deviceUid(UUID.randomUUID())
                 .token("valid.token")
@@ -100,9 +100,9 @@ class DeviceTokenValidatorTest {
     }
 
     @Test
-    @DisplayName("Validate DeviceTokenBLM with long token - Negative")
-    void testValidateDeviceTokenBLMWithLongToken_Negative() {
-        DeviceTokenBLM deviceToken = DeviceTokenBLM.builder()
+    @DisplayName("Validate DeviceTokenBlm with long token - Negative")
+    void testValidateDeviceTokenBlmWithLongToken_Negative() {
+        DeviceTokenBlm deviceToken = DeviceTokenBlm.builder()
                 .token("a".repeat(513))
                 .uid(UUID.randomUUID())
                 .deviceUid(UUID.randomUUID())

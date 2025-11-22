@@ -1,4 +1,4 @@
-// TestTopicUtils.java
+
 package com.connection.device.integration;
 
 import java.util.UUID;

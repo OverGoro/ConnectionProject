@@ -3,9 +3,9 @@ name: Java CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, static_analyze_ok]
   pull_request:
-    branches: [main]
+    branches: [main, static_analyze_ok]
 
 env:
   JAVA_VERSION: '21'
@@ -122,6 +122,15 @@ jobs:
           echo "🧪 Running all tests with testAll task..."
           if [ -f "code/gradlew" ]; then
             cd code && ./gradlew cleanTestResults
+          else
+            echo "❌ Cannot run tests - gradlew not found"
+            exit 1
+          fi
+      - name: 🧪 Run Quality checks
+        run: |
+          echo "🧪 Running all quality checks"
+          if [ -f "code/gradlew" ]; then
+            cd code && ./gradlew staticAnalysis
           else
             echo "❌ Cannot run tests - gradlew not found"
             exit 1

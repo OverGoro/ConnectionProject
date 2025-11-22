@@ -1,7 +1,7 @@
 package com.connection.device.repository;
 
-import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBLM;
-import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDALM;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceBlm;
+import static com.connection.device.mother.DeviceObjectMother.createValidDeviceDalm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,28 +31,28 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import com.connection.device.converter.DeviceConverter;
 import com.connection.device.exception.DeviceAlreadyExistsException;
 import com.connection.device.exception.DeviceNotFoundException;
-import com.connection.device.model.DeviceBLM;
-import com.connection.device.model.DeviceDALM;
+import com.connection.device.model.DeviceBlm;
+import com.connection.device.model.DeviceDalm;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
-@DisplayName("Device Repository Tests - SQL implementation tests")
-class DeviceRepositorySQLImplTest {
+@DisplayName("Device Repository Tests - Sql implementation tests")
+class DeviceRepositorySqlImplTest {
 
         @Mock
         private NamedParameterJdbcTemplate jdbcTemplate;
 
         @InjectMocks
-        private DeviceRepositorySQLImpl repository;
+        private DeviceRepositorySqlImpl repository;
 
-        private DeviceDALM testDeviceDALM;
-        private DeviceBLM testDeviceBLM;
+        private DeviceDalm testDeviceDalm;
+        private DeviceBlm testDeviceBlm;
         private DeviceConverter converter;
 
         @BeforeEach
         void setUp() {
                 MockitoAnnotations.openMocks(this);
-                testDeviceDALM = createValidDeviceDALM();
-                testDeviceBLM = createValidDeviceBLM();
+                testDeviceDalm = createValidDeviceDalm();
+                testDeviceBlm = createValidDeviceBlm();
                 converter = new DeviceConverter();
         }
 
@@ -70,7 +70,7 @@ class DeviceRepositorySQLImplTest {
                 when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
                 // Act
-                repository.add(testDeviceBLM);
+                repository.add(testDeviceBlm);
 
                 // Assert
                 verify(jdbcTemplate, times(1)).queryForObject(
@@ -89,10 +89,10 @@ class DeviceRepositorySQLImplTest {
         void testAddExistingDevice_Negative() {
                 // Arrange
                 when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(testDeviceDALM); // Device exists
+                                .thenReturn(testDeviceDalm); // Device exists
 
                 // Act & Assert
-                assertThatThrownBy(() -> repository.add(testDeviceBLM))
+                assertThatThrownBy(() -> repository.add(testDeviceBlm))
                                 .isInstanceOf(DeviceAlreadyExistsException.class);
 
                 verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
@@ -105,11 +105,11 @@ class DeviceRepositorySQLImplTest {
         void testUpdateDevice_Positive() {
                 // Arrange
                 when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(testDeviceDALM); // Device exists
+                                .thenReturn(testDeviceDalm); // Device exists
                 when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
                 // Act
-                repository.update(testDeviceBLM);
+                repository.update(testDeviceBlm);
 
                 // Assert
                 verify(jdbcTemplate, times(1)).update(
@@ -127,7 +127,7 @@ class DeviceRepositorySQLImplTest {
                                 .thenThrow(new EmptyResultDataAccessException(1)); // Device doesn't exist
 
                 // Act & Assert
-                assertThatThrownBy(() -> repository.update(testDeviceBLM))
+                assertThatThrownBy(() -> repository.update(testDeviceBlm))
                                 .isInstanceOf(DeviceNotFoundException.class);
 
                 verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
@@ -140,11 +140,11 @@ class DeviceRepositorySQLImplTest {
         void testDeleteDevice_Positive() {
                 // Arrange
                 when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(testDeviceDALM); // Device exists
+                                .thenReturn(testDeviceDalm); // Device exists
                 when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
 
                 // Act
-                repository.delete(testDeviceDALM.getUid());
+                repository.delete(testDeviceDalm.getUid());
 
                 // Assert
                 verify(jdbcTemplate, times(1)).update(
@@ -162,7 +162,7 @@ class DeviceRepositorySQLImplTest {
                                 .thenThrow(new EmptyResultDataAccessException(1)); // Device doesn't exist
 
                 // Act & Assert
-                assertThatThrownBy(() -> repository.delete(testDeviceDALM.getUid()))
+                assertThatThrownBy(() -> repository.delete(testDeviceDalm.getUid()))
                                 .isInstanceOf(DeviceNotFoundException.class);
 
                 verify(jdbcTemplate, never()).update(anyString(), any(MapSqlParameterSource.class));
@@ -175,17 +175,17 @@ class DeviceRepositorySQLImplTest {
         void testFindByUid_Positive() {
                 // Arrange
                 when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(testDeviceDALM);
+                                .thenReturn(testDeviceDalm);
 
                 // Act
-                DeviceBLM result = repository.findByUid(testDeviceDALM.getUid());
+                DeviceBlm result = repository.findByUid(testDeviceDalm.getUid());
 
                 // Assert
                 assertThat(result).isNotNull();
-                assertThat(result.getUid()).isEqualTo(testDeviceBLM.getUid());
-                assertThat(result.getClientUuid()).isEqualTo(testDeviceBLM.getClientUuid());
-                assertThat(result.getDeviceName()).isEqualTo(testDeviceBLM.getDeviceName());
-                assertThat(result.getDeviceDescription()).isEqualTo(testDeviceBLM.getDeviceDescription());
+                assertThat(result.getUid()).isEqualTo(testDeviceBlm.getUid());
+                assertThat(result.getClientUuid()).isEqualTo(testDeviceBlm.getClientUuid());
+                assertThat(result.getDeviceName()).isEqualTo(testDeviceBlm.getDeviceName());
+                assertThat(result.getDeviceDescription()).isEqualTo(testDeviceBlm.getDeviceDescription());
                 
                 verify(jdbcTemplate, times(1)).queryForObject(
                                 eq("SELECT uid, client_uuid, device_name, device_description FROM core.device WHERE uid = :uid"),
@@ -203,7 +203,7 @@ class DeviceRepositorySQLImplTest {
                                 .thenThrow(new EmptyResultDataAccessException(1));
 
                 // Act & Assert
-                assertThatThrownBy(() -> repository.findByUid(testDeviceDALM.getUid()))
+                assertThatThrownBy(() -> repository.findByUid(testDeviceDalm.getUid()))
                                 .isInstanceOf(DeviceNotFoundException.class);
         }
 
@@ -214,16 +214,16 @@ class DeviceRepositorySQLImplTest {
         void testFindByClientUuid_Positive() {
                 // Arrange
                 when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(List.of(testDeviceDALM));
+                                .thenReturn(List.of(testDeviceDalm));
 
                 // Act
-                List<DeviceBLM> result = repository.findByClientUuid(testDeviceDALM.getClientUuid());
+                List<DeviceBlm> result = repository.findByClientUuid(testDeviceDalm.getClientUuid());
 
                 // Assert
                 assertThat(result).hasSize(1);
-                assertThat(result.get(0).getUid()).isEqualTo(testDeviceBLM.getUid());
-                assertThat(result.get(0).getClientUuid()).isEqualTo(testDeviceBLM.getClientUuid());
-                assertThat(result.get(0).getDeviceName()).isEqualTo(testDeviceBLM.getDeviceName());
+                assertThat(result.get(0).getUid()).isEqualTo(testDeviceBlm.getUid());
+                assertThat(result.get(0).getClientUuid()).isEqualTo(testDeviceBlm.getClientUuid());
+                assertThat(result.get(0).getDeviceName()).isEqualTo(testDeviceBlm.getDeviceName());
                 
                 verify(jdbcTemplate, times(1)).query(
                                 eq("SELECT uid, client_uuid, device_name, device_description FROM core.device WHERE client_uuid = :client_uuid"),
@@ -238,10 +238,10 @@ class DeviceRepositorySQLImplTest {
         void testExists_Positive() {
                 // Arrange
                 when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(testDeviceDALM);
+                                .thenReturn(testDeviceDalm);
 
                 // Act
-                boolean result = repository.exists(testDeviceDALM.getUid());
+                boolean result = repository.exists(testDeviceDalm.getUid());
 
                 // Assert
                 assertThat(result).isTrue();
@@ -257,7 +257,7 @@ class DeviceRepositorySQLImplTest {
                                 .thenThrow(new EmptyResultDataAccessException(1));
 
                 // Act
-                boolean result = repository.exists(testDeviceDALM.getUid());
+                boolean result = repository.exists(testDeviceDalm.getUid());
 
                 // Assert
                 assertThat(result).isFalse();
@@ -270,10 +270,10 @@ class DeviceRepositorySQLImplTest {
         void testExistsByClientAndName_Positive() {
                 // Arrange
                 when(jdbcTemplate.queryForObject(anyString(), any(MapSqlParameterSource.class), any(RowMapper.class)))
-                                .thenReturn(testDeviceDALM);
+                                .thenReturn(testDeviceDalm);
 
                 // Act
-                boolean result = repository.existsByClientAndName(testDeviceDALM.getClientUuid(), testDeviceDALM.getDeviceName());
+                boolean result = repository.existsByClientAndName(testDeviceDalm.getClientUuid(), testDeviceDalm.getDeviceName());
 
                 // Assert
                 assertThat(result).isTrue();
@@ -294,7 +294,7 @@ class DeviceRepositorySQLImplTest {
                                 .thenThrow(new EmptyResultDataAccessException(1));
 
                 // Act
-                boolean result = repository.existsByClientAndName(testDeviceDALM.getClientUuid(), testDeviceDALM.getDeviceName());
+                boolean result = repository.existsByClientAndName(testDeviceDalm.getClientUuid(), testDeviceDalm.getDeviceName());
 
                 // Assert
                 assertThat(result).isFalse();
